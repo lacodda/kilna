@@ -32,6 +32,7 @@ beforeEach(() => {
       chat_id: CHAT,
       chat_title: 'Dusk over water',
       work_id: null,
+      board: null,
       kind: 'description',
       created_at: NOW,
     },

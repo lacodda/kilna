@@ -4,9 +4,9 @@
   "description": "Chapters with text and outline kept separately, judged on what makes a reader turn the page, gathered into books and shipped a chapter or a draft at a time.",
   "config": {
     "work_kinds": [
-      { "key": "chapter", "label": "Chapter", "folder": "chapters/{title}" },
-      { "key": "scene", "label": "Scene", "folder": "scenes/{title}" },
-      { "key": "story", "label": "Short story", "folder": "stories/{title}" }
+      { "key": "chapter", "label": "Chapter", "folder": "chapters/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "scenarios" ] } },
+      { "key": "scene", "label": "Scene", "folder": "scenes/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "scenarios" ] } },
+      { "key": "story", "label": "Short story", "folder": "stories/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "scenarios" ] } }
     ],
     "release_kinds": [
       {
@@ -419,7 +419,8 @@
     "version_roles": [
       { "key": "text", "label": "Text", "body": "markdown", "skeleton": "## Plan\n\n\n## Draft\n\n" },
       { "key": "outline", "label": "Outline", "body": "markdown", "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n" },
-      { "key": "notes", "label": "Working notes", "body": "markdown" }
+      { "key": "notes", "label": "Working notes", "body": "markdown" },
+      { "key": "brief", "label": "Brief", "body": "markdown", "counts_as_version": false, "skeleton": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },
@@ -476,7 +477,8 @@
       { "key": "words", "label": "Words", "type": "number" },
       { "key": "pov", "label": "POV", "type": "text" },
       { "key": "setting", "label": "Setting", "type": "text" },
-      { "key": "timeline", "label": "In-story date", "type": "text" }
+      { "key": "timeline", "label": "In-story date", "type": "text" },
+      { "key": "premise", "label": "Premise", "type": "multiline" }
     ],
     "rhythm": { "every_days": 7 },
     "prompts": [
@@ -570,6 +572,79 @@
         "method": "# Card describer\n\n## Role\n\nYou write the description a picture generator is given for a card of the canon, instead of the name. A generator does not know who the person is; it knows only what it is told.\n\n## What to write\n\n- English, one paragraph: who (age, build), face, hair, marks; then nothing else.\n- Only the facts given. No clothing unless the facts are about clothing; no mood, no setting, no story.\n- Concrete and countable: named colours, named materials, sizes. Forty to eighty words.\n\n## Output\n\nThe description alone. No preamble, no heading, nothing after it.\n",
         "scope": "canon",
         "produces": "card-prompt"
+      },
+      {
+        "key": "refine",
+        "label": "Refine the idea",
+        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "icon": "wand",
+        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the chapter is about.",
+        "produces": "conception",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their chapter is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the chapter is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the chapter itself. Nothing the author did not give as their own.\n",
+        "kinds": [
+          "chapter",
+          "scene",
+          "story"
+        ]
+      },
+      {
+        "key": "scenarios",
+        "label": "Propose scenarios",
+        "description": "Ways the chapter could go, put on the board.",
+        "icon": "lightbulb",
+        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "method": "# Ways it could go\n\n## Role\n\nYou propose ways a chapter could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the chapter itself.\n",
+        "kinds": [
+          "chapter",
+          "scene",
+          "story"
+        ]
+      },
+      {
+        "key": "write",
+        "label": "Write from the brief",
+        "description": "The chapter, written from the whole order - to talk over in the chat and insert once it is right.",
+        "icon": "pen",
+        "template": "{order}\n\nWrite the chapter.",
+        "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the chapter they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write in the voice and the point of view the fields and the brief give.\n- Lay it out as prose in paragraphs, with scene breaks where the time or the place jumps.\n- Write in the language of the brief.\n\n## Output\n\nThe chapter alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
+        "kinds": [
+          "chapter",
+          "scene",
+          "story"
+        ]
+      }
+    ],
+    "boards": [
+      {
+        "key": "scenarios",
+        "label": "Scenarios",
+        "description": "Ways the chapter could go: the move it turns on, the image through it, how it ends. Star the ones to write by.",
+        "rule": "one",
+        "cards": [
+          {
+            "key": "scenario",
+            "label": "Scenario",
+            "fields": [
+              {
+                "key": "line",
+                "label": "In one line",
+                "hint": "She finds her own name in a stranger's diary"
+              },
+              {
+                "key": "image",
+                "label": "The image through it",
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": "How it ends",
+                "multiline": true
+              }
+            ]
+          }
+        ]
       }
     ]
   }

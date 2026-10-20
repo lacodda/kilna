@@ -477,6 +477,39 @@ pub fn start_lab_task(
     launch(&app, state, prepared)
 }
 
+/// What asking a board of a work's conception for cards would send, without
+/// sending it.
+#[tauri::command]
+pub fn preview_board_task(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+    request: crate::board::answer::CardRequest,
+) -> Result<assistant::task::Composed> {
+    assistant::task::compose_for_board(&state.conn(), &id, &action, &request)
+        .map(|(composed, _)| composed)
+}
+
+/// Ask a board of a work's conception for cards, in the background (v0.99).
+/// They land on the board as soon as the answer comes (ADR 0065). One run
+/// at a time per board.
+#[tauri::command]
+pub fn start_board_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+    board: String,
+    request: crate::board::answer::CardRequest,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    if assistant::task::board_running(state.runs(), &action, &id, &board) {
+        return Err(Error::AlreadyRunning);
+    }
+    let prepared = assistant::task::prepare_for_board(&state.conn(), &id, &action, &request)?;
+    launch(&app, state, prepared)
+}
+
 /// Stop a task by what it is rather than by which run carries it: the board
 /// that asked for ideas did not necessarily start the run - "Make…" may have.
 /// Says whether there was one to stop.

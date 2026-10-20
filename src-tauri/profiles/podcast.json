@@ -4,9 +4,9 @@
   "description": "Episodes with script and show notes drafted separately, judged on whether a listener stays past the first two minutes, scheduled into a feed and shipped as a release.",
   "config": {
     "work_kinds": [
-      { "key": "episode", "label": "Episode", "folder": "episodes/{title}" },
-      { "key": "segment", "label": "Segment", "folder": "segments/{title}" },
-      { "key": "trailer", "label": "Trailer", "folder": "trailers/{title}" }
+      { "key": "episode", "label": "Episode", "folder": "episodes/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "scenarios" ] } },
+      { "key": "segment", "label": "Segment", "folder": "segments/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "scenarios" ] } },
+      { "key": "trailer", "label": "Trailer", "folder": "trailers/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "scenarios" ] } }
     ],
     "release_kinds": [
       {
@@ -142,7 +142,8 @@
     "version_roles": [
       { "key": "script", "label": "Script", "body": "plain", "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n" },
       { "key": "notes", "label": "Show notes", "body": "markdown" },
-      { "key": "outline", "label": "Research outline", "body": "markdown" }
+      { "key": "outline", "label": "Research outline", "body": "markdown" },
+      { "key": "brief", "label": "Brief", "body": "markdown", "counts_as_version": false, "skeleton": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },
@@ -206,7 +207,8 @@
       { "key": "duration", "label": "Duration", "type": "number" },
       { "key": "guest", "label": "Guest", "type": "text" },
       { "key": "recorded_on", "label": "Recorded on", "type": "date" },
-      { "key": "explicit", "label": "Explicit", "type": "boolean" }
+      { "key": "explicit", "label": "Explicit", "type": "boolean" },
+      { "key": "premise", "label": "Premise", "type": "multiline" }
     ],
     "rhythm": { "every_days": 7, "default_time": "08:00" },
     "prompts": [
@@ -271,6 +273,79 @@
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "scope": "canon",
         "produces": "canon"
+      },
+      {
+        "key": "refine",
+        "label": "Refine the idea",
+        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "icon": "wand",
+        "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the episode is about.",
+        "produces": "conception",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their episode is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the episode is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the episode itself. Nothing the author did not give as their own.\n",
+        "kinds": [
+          "episode",
+          "segment",
+          "trailer"
+        ]
+      },
+      {
+        "key": "scenarios",
+        "label": "Propose ways in",
+        "description": "Ways the episode could go, put on the board.",
+        "icon": "lightbulb",
+        "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "method": "# Ways it could go\n\n## Role\n\nYou propose ways a episode could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the episode itself.\n",
+        "kinds": [
+          "episode",
+          "segment",
+          "trailer"
+        ]
+      },
+      {
+        "key": "write",
+        "label": "Write from the brief",
+        "description": "The script, written from the whole order - to talk over in the chat and insert once it is right.",
+        "icon": "pen",
+        "template": "{order}\n\nWrite the script.",
+        "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the episode they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write it to be said aloud: short sentences, one thought each, no phrase a speaker would trip on.\n- Lay it out in the script's section markers: [Cold open], [Intro], [Segment 1], [Segment 2], [Outro].\n- Write in the language of the brief.\n\n## Output\n\nThe script alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
+        "kinds": [
+          "episode",
+          "segment",
+          "trailer"
+        ]
+      }
+    ],
+    "boards": [
+      {
+        "key": "scenarios",
+        "label": "Ways in",
+        "description": "Ways the episode could go: the move it opens on, the thread through it, how it closes. Star the ones to write by.",
+        "rule": "one",
+        "cards": [
+          {
+            "key": "scenario",
+            "label": "Way in",
+            "fields": [
+              {
+                "key": "line",
+                "label": "In one line",
+                "hint": "Open on the sound of the last tram of the night"
+              },
+              {
+                "key": "image",
+                "label": "The thread through it",
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": "How it closes",
+                "multiline": true
+              }
+            ]
+          }
+        ]
       }
     ]
   }

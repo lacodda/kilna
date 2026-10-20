@@ -67,6 +67,13 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::cover::idea::CoverIdea,
         kilna_lib::cover::idea::Verdict,
         kilna_lib::cover::idea::IdeaRequest,
+        // boards.rs
+        kilna_lib::board::BoardView,
+        kilna_lib::board::BoardCard,
+        kilna_lib::board::CardPatch,
+        kilna_lib::board::Verdict,
+        kilna_lib::board::Source,
+        kilna_lib::board::answer::CardRequest,
         // trials.rs
         kilna_lib::lab::TrialBoard,
         kilna_lib::lab::Trial,

@@ -232,6 +232,25 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         dropped: Vec<crate::lab::answer::Dropped>,
     },
+    /// Cards for a board of a work's conception - scenarios, sources - each
+    /// in the fields of a kind the board holds (v0.99, ADR 0065). Written by
+    /// the board's own action - and then put on the board as soon as it
+    /// comes - or by an agent outside the window (`propose_cards`), which
+    /// waits for the person.
+    Cards {
+        work_id: String,
+        /// The board, by its key in the profile.
+        board: String,
+        cards: Vec<crate::board::answer::Packaged>,
+        /// Where the answer says the next run could dig, shown on the board
+        /// as words to click.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        directions: Vec<String>,
+        /// What the answer named that the board does not have, left out of
+        /// its card and said rather than dropped silently.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        dropped: Vec<crate::board::answer::Dropped>,
+    },
 }
 
 /// What a scenes proposal does to the board already on the work.
@@ -445,6 +464,39 @@ pub fn scoring_instruction(config: &ProfileConfig, kind: &str) -> String {
          \"note\": \"one sentence on why\"\n}}\n```\n\nSay whatever you like \
          above the block. Use every axis listed and no others."
     )
+}
+
+/// What an action that refines a conception appends to its prompt: the idea
+/// as one paragraph for its field, when the kind has one, and the brief set
+/// straight under the headings it was written in (ADR 0065).
+pub fn conception_instruction(idea: Option<&str>, brief: &str) -> String {
+    let idea_line = match idea {
+        Some(label) => format!("  \"idea\": \"the {label}, two to four sentences\",\n"),
+        None => String::new(),
+    };
+    format!(
+        "\n\nEnd your reply with a fenced json block, exactly this shape and nothing else \
+         inside it:\n\n```json\n{{\n{idea_line}  \"brief\": \"the {brief}, set straight, in \
+         markdown, under the headings it was written in\"\n}}\n```\n\nSay whatever you like \
+         above the block."
+    )
+}
+
+/// The idea and the brief a refining answer proposes: the fenced block's two
+/// texts, either of which may be missing. None when the answer holds no
+/// block, or the block says nothing.
+pub fn read_conception(body: &str) -> Option<(Option<String>, Option<String>)> {
+    let block = fenced_json(body)?;
+    let raw: Value = serde_json::from_str(&block).ok()?;
+    let text = |key: &str| {
+        raw.get(key)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(str::to_owned)
+    };
+    let (idea, brief) = (text("idea"), text("brief"));
+    (idea.is_some() || brief.is_some()).then_some((idea, brief))
 }
 
 /// What an action that produces a version appends to its prompt.
@@ -1703,6 +1755,7 @@ mod instruction_tests {
             stages: Vec::new(),
             cover_ideas: None,
             guard: None,
+            boards: Vec::new(),
             compose: Vec::new(),
             prompts: Vec::new(),
             rhythm: None,

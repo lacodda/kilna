@@ -122,6 +122,14 @@ pub struct ProfileConfig {
     /// language, in no more than two works of the owner's.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guard: Option<Guard>,
+    /// The boards a work's conception is laid out on: scenarios, sources
+    /// (v0.99, ADR 0065). Each names the kinds of card it holds and the
+    /// fields of each; a kind of work lists the boards its Conception tab
+    /// shows (`conception.boards`). On the profile rather than on a kind,
+    /// as the kinds of note are: a song and a clip may share one. Added in
+    /// v0.99 - a document without it is the same document.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub boards: Vec<Board>,
 }
 
 /// How the guard of repeats reads its two words (ADR 0054).
@@ -216,6 +224,8 @@ pub struct RawProfileConfig {
     pub cover_ideas: Option<u8>,
     #[serde(default)]
     pub guard: Option<Guard>,
+    #[serde(default)]
+    pub boards: Vec<Board>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -275,6 +285,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             overview: raw.overview,
             cover_ideas: raw.cover_ideas,
             guard: raw.guard,
+            boards: raw.boards,
         }
     }
 }
@@ -382,6 +393,116 @@ pub struct WorkKind {
     /// it is the same document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lab: Option<Lab>,
+    /// What a work of this kind is prepared from before it is written - its
+    /// brief, the idea the brief is refined into, the boards of scenarios
+    /// and sources - and so whether it has those on its Conception tab
+    /// (v0.99, ADR 0065). Absent: the tab holds only what is attached to
+    /// the work. Added in v0.99 - a document without it is the same
+    /// document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conception: Option<Conception>,
+}
+
+/// What a kind's Conception tab holds (v0.99, ADR 0065).
+///
+/// A work is prepared before it is written: the person says what it is
+/// about and how they see it (the brief), the brief is refined into one
+/// idea, and boards gather candidates - scenarios to write it by, sources
+/// to draw on - each starred or turned down. What comes out is the order a
+/// writer works from, the same whether the window's assistant writes, an
+/// agent reads it, or the person copies it elsewhere.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Conception {
+    /// The version role the brief is written in. Its versions are the
+    /// brief's revisions and never a draft of the work: the role does not
+    /// count as a version (`counts_as_version: false`), which the profile's
+    /// validation holds it to, and a version of it is never made current.
+    pub brief: String,
+    /// The field the brief is refined into: a song's premise. A text, one
+    /// the kind carries. Absent: "Refine" has nowhere to write the idea, and
+    /// rewrites only the brief.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idea: Option<String>,
+    /// The roles whose current text goes into the order beside the brief:
+    /// what the writer must keep to, as a song's style prompt sets the
+    /// sound its lyrics are sung over.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub with: Vec<String>,
+    /// The boards the tab lays out, in order, by key (`boards` on the
+    /// profile).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub boards: Vec<String>,
+}
+
+/// A board of a work's conception (v0.99, ADR 0065): the kinds of card it
+/// holds, each with its fields, and how a writer reads it.
+///
+/// One mechanism for every board the craft names - cards placed and dragged
+/// among groups, starred or turned down, the person's own or the
+/// assistant's - so a board of scenarios and a board of sources are the
+/// same thing with different words, as a song and a chapter are the same
+/// work with different roles.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Board {
+    pub key: String,
+    pub label: Label,
+    /// What the board is for, said under its name. Absent says nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<Label>,
+    /// How the order reads the board. See [`BoardRule`].
+    #[serde(default)]
+    pub rule: BoardRule,
+    /// The kinds of card it holds, in the order the board offers them. At
+    /// least one.
+    pub cards: Vec<CardKind>,
+}
+
+/// How a writer reads a board (v0.99, ADR 0065).
+///
+/// Two boards, two readings. Scenarios are rivals: a text is written by
+/// one, so a star narrows the choice - one starred is the one, several are
+/// what to choose or combine from, none leaves every card not turned down
+/// to the writer. Sources add up: every card not turned down goes in, the
+/// starred ones first.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
+pub enum BoardRule {
+    /// The text is written by one card.
+    #[default]
+    One,
+    /// Every card is drawn on.
+    All,
+}
+
+/// A kind of card on a board: a scenario, a work of culture, a concept.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct CardKind {
+    pub key: String,
+    pub label: Label,
+    /// What a card of this kind says, field by field. The first is its
+    /// headline - what the card is called on the board and in the order.
+    /// At least one.
+    pub fields: Vec<CardField>,
+}
+
+/// A field of a kind of card: a text with a name.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct CardField {
+    pub key: String,
+    pub label: Label,
+    /// What the empty field says, as a hint of what goes in it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<Label>,
+    /// Whether it holds a paragraph rather than a line.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub multiline: bool,
+}
+
+impl Board {
+    /// The kind of card by its key.
+    pub fn card(&self, key: &str) -> Option<&CardKind> {
+        self.cards.iter().find(|kind| kind.key == key)
+    }
 }
 
 /// What a kind's board of trials is for (v0.95, ADR 0061).
@@ -424,6 +545,7 @@ impl WorkKind {
             open_on: None,
             folder: None,
             lab: None,
+            conception: None,
         }
     }
 
@@ -2479,6 +2601,52 @@ impl ProfileConfig {
         self.kind(kind).and_then(|found| found.lab.as_ref())
     }
 
+    /// The conception of a kind, when its works are prepared on a
+    /// Conception tab (ADR 0065).
+    pub fn conception(&self, kind: &str) -> Option<&Conception> {
+        self.kind(kind).and_then(|found| found.conception.as_ref())
+    }
+
+    /// The conception of a kind, or the refusal that says works of the kind
+    /// are not prepared on one.
+    pub fn require_conception(&self, kind: &str) -> crate::Result<&Conception> {
+        self.conception(kind).ok_or_else(|| {
+            crate::Error::refused("conception.noConception").param("kind", self.kind_named(kind))
+        })
+    }
+
+    /// The board by its key.
+    pub fn board(&self, key: &str) -> Option<&Board> {
+        self.boards.iter().find(|board| board.key == key)
+    }
+
+    /// The boards a work of `kind` lays out, in its conception's order. A
+    /// key the profile does not name is left out - validation says so.
+    pub fn boards_of(&self, kind: &str) -> Vec<&Board> {
+        self.conception(kind)
+            .map(|conception| {
+                conception
+                    .boards
+                    .iter()
+                    .filter_map(|key| self.board(key))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// The board of a work of `kind` by its key, or the refusal that says
+    /// the kind lays out no such board.
+    pub fn require_board(&self, kind: &str, key: &str) -> crate::Result<&Board> {
+        self.boards_of(kind)
+            .into_iter()
+            .find(|board| board.key == key)
+            .ok_or_else(|| {
+                crate::Error::refused("board.notOfKind")
+                    .param("board", key)
+                    .param("kind", self.kind_named(kind))
+            })
+    }
+
     /// The kinds a kept trial of `lab_kind` may go into: every other kind
     /// that has the `role` it keeps its trials in.
     pub fn harvest_kinds<'a>(
@@ -2779,6 +2947,8 @@ impl ProfileConfig {
             }
         }
 
+        self.validate_boards(&mut problems);
+
         unique(
             &mut problems,
             "note kind",
@@ -2836,6 +3006,106 @@ impl ProfileConfig {
         self.validate_prompts(&mut problems);
 
         problems
+    }
+
+    /// The boards, and the conceptions that lay them out (ADR 0065).
+    ///
+    /// A board with no kind of card, or a kind with no field, is a board
+    /// nothing can be put on. A brief that counted as a version would be
+    /// taken for a draft of the work - counted in the catalogue, read by
+    /// the guard of repeats, made the work's current text - so the role a
+    /// conception names must say it is not one. The idea is written by
+    /// "Refine" as text into a field of the work, so it is one, and of the
+    /// kind.
+    fn validate_boards(&self, problems: &mut Vec<String>) {
+        unique(problems, "board", self.boards.iter().map(|b| b.key.clone()));
+        for (index, board) in self.boards.iter().enumerate() {
+            let place = format!("board {} (`{}`)", index + 1, board.key);
+            if board.cards.is_empty() {
+                problems.push(format!("{place} holds no kind of card"));
+            }
+            unique(
+                problems,
+                &format!("{place}: kind of card"),
+                board.cards.iter().map(|c| c.key.clone()),
+            );
+            for (at, card) in board.cards.iter().enumerate() {
+                let place = format!("{place}: kind of card {} (`{}`)", at + 1, card.key);
+                if card.fields.is_empty() {
+                    problems.push(format!("{place} has no field"));
+                }
+                unique(
+                    problems,
+                    &format!("{place}: field"),
+                    card.fields.iter().map(|f| f.key.clone()),
+                );
+            }
+        }
+
+        for (index, kind) in self.work_kinds.iter().enumerate() {
+            let Some(conception) = &kind.conception else {
+                continue;
+            };
+            let place = format!("work kind {} (`{}`)", index + 1, kind.key);
+            match kind
+                .version_roles
+                .iter()
+                .find(|role| role.key == conception.brief)
+            {
+                None => problems.push(format!(
+                    "{place} writes its brief in `{}`, which is not one of its version roles",
+                    conception.brief
+                )),
+                Some(role) if role.comments_on.is_some() || role.counts_as_a_version() => {
+                    problems.push(format!(
+                        "{place} writes its brief in `{}`, which must not count as a version \
+                         (`counts_as_version: false`) nor comment on another role",
+                        conception.brief
+                    ));
+                }
+                Some(_) => {}
+            }
+            if let Some(field) = conception.idea.as_deref() {
+                match self.work_meta_fields.iter().find(|f| f.key == field) {
+                    None => problems.push(format!(
+                        "{place} refines its brief into `{field}`, which is not a field of the profile"
+                    )),
+                    Some(found) if !found.applies_to(&kind.key) => problems.push(format!(
+                        "{place} refines its brief into `{field}`, which it does not carry"
+                    )),
+                    Some(found)
+                        if !matches!(
+                            found.field_type,
+                            MetaFieldType::Text | MetaFieldType::Multiline
+                        ) =>
+                    {
+                        problems.push(format!(
+                            "{place} refines its brief into `{field}`, which is not a text"
+                        ));
+                    }
+                    Some(_) => {}
+                }
+            }
+            for role in &conception.with {
+                if *role == conception.brief || !kind.version_roles.iter().any(|r| r.key == *role) {
+                    problems.push(format!(
+                        "{place} sends `{role}` with its order, which is not one of its other version roles"
+                    ));
+                }
+            }
+            unique(
+                problems,
+                &format!("{place}: board of its conception"),
+                conception.boards.iter().cloned(),
+            );
+            for board in &conception.boards {
+                if self.board(board).is_none() {
+                    problems.push(format!(
+                        "{place} lays out the board `{board}`, which the profile does not name"
+                    ));
+                }
+            }
+        }
     }
 
     /// The compositions, checked against the vocabulary they name: a role a
@@ -2967,8 +3237,9 @@ impl ProfileConfig {
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
         use crate::assistant::prompt::{
-            CANON_SCOPE, COMMENT_SCOPE, COVER_SCOPE, LAB_SCOPE, PHRASES_SCOPE, Produces,
-            RELEASE_SCOPE, SCENE_SCOPE, SELECTION_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
+            BOARD_SCOPE, CANON_SCOPE, COMMENT_SCOPE, COVER_SCOPE, LAB_SCOPE, PHRASES_SCOPE,
+            Produces, RELEASE_SCOPE, SCENE_SCOPE, SELECTION_SCOPE, STYLE_SCOPE, Scope,
+            is_known_placeholder,
         };
 
         unique(
@@ -2999,15 +3270,16 @@ impl ProfileConfig {
                 && scope != COVER_SCOPE
                 && scope != PHRASES_SCOPE
                 && scope != LAB_SCOPE
+                && scope != BOARD_SCOPE
                 && scope != "work"
             {
                 problems.push(format!(
-                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon`, `release`, `cover`, `phrases` or `lab`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon`, `release`, `cover`, `phrases`, `lab` or `board`, not `{scope}`"
                     ));
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(
-                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt`, `release`, `cover-ideas`, `words`, `bricks` or `trials`, not `{}`",
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt`, `release`, `cover-ideas`, `words`, `bricks`, `trials`, `cards:<board>` or `conception`, not `{}`",
                     prompt.produces.as_deref().unwrap_or_default().trim()
                 ));
             }
@@ -3163,6 +3435,53 @@ impl ProfileConfig {
                         "{place} produces `trials`, which only an action about an experiment's board can: give it `\"scope\": \"lab\"`"
                     ));
                 }
+                Produces::Cards(_) if prompt.scope() != Scope::Board => {
+                    problems.push(format!(
+                        "{place} produces cards, which only an action about a board can: give it `\"scope\": \"board\"`"
+                    ));
+                }
+                // A board's cards land on the board the action names, on
+                // every kind it is offered on.
+                Produces::Cards(board) => {
+                    if self.board(&board).is_none() {
+                        problems.push(format!(
+                            "{place} produces `cards:{board}`, but the profile names no board `{board}`"
+                        ));
+                    }
+                    let missing = lacking(&|kind: &WorkKind| {
+                        kind.conception
+                            .as_ref()
+                            .is_some_and(|conception| conception.boards.contains(&board))
+                    });
+                    if !missing.is_empty() {
+                        problems.push(format!(
+                            "{place} produces `cards:{board}`, but {} {} no such board",
+                            missing.join(", "),
+                            if missing.len() == 1 {
+                                "lays out"
+                            } else {
+                                "lay out"
+                            }
+                        ));
+                    }
+                }
+                // The idea and the brief, refined: a revision of the brief of
+                // a work prepared on a conception, offered on such kinds only.
+                Produces::Conception => {
+                    if prompt.scope() != Scope::Work {
+                        problems.push(format!(
+                            "{place} produces `conception`, which an action about a work can"
+                        ));
+                    }
+                    let missing = lacking(&|kind: &WorkKind| kind.conception.is_some());
+                    if !missing.is_empty() {
+                        problems.push(format!(
+                            "{place} produces `conception`, but {} {} not prepared on one",
+                            missing.join(", "),
+                            if missing.len() == 1 { "is" } else { "are" }
+                        ));
+                    }
+                }
                 Produces::Score
                 | Produces::Prose
                 | Produces::Comment
@@ -3175,6 +3494,48 @@ impl ProfileConfig {
                 | Produces::Words
                 | Produces::Bricks
                 | Produces::Trials => {}
+            }
+            // An action about a board proposes its cards and reads the board;
+            // `{cards}` is filled for it alone.
+            let reads_cards = placeholders.iter().any(|name| name == "cards");
+            if prompt.scope() == Scope::Board {
+                if !matches!(prompt.produces(), Produces::Cards(_)) {
+                    problems.push(format!(
+                        "{place} is about a board and must produce `cards:<board>`"
+                    ));
+                }
+                if !reads_cards {
+                    problems.push(format!(
+                        "{place} is about a board but never reads `{{cards}}`"
+                    ));
+                }
+            } else if reads_cards {
+                problems.push(format!(
+                    "{place} reads `{{cards}}` but is not about a board: give it `\"scope\": \"board\"`"
+                ));
+            }
+            // The conception is read only off a work prepared on one: on
+            // another kind the action would be refused every time it ran.
+            if let Some(name) = placeholders.iter().find(|name| {
+                matches!(name.as_str(), "conception" | "starred" | "order")
+                    || name.starts_with("starred:")
+            }) {
+                let missing = lacking(&|kind: &WorkKind| kind.conception.is_some());
+                if !missing.is_empty() {
+                    problems.push(format!(
+                        "{place} reads `{{{name}}}`, but {} {} not prepared on a conception",
+                        missing.join(", "),
+                        if missing.len() == 1 { "is" } else { "are" }
+                    ));
+                }
+                if let Some(board) = name.strip_prefix("starred:")
+                    && self.board(board.trim()).is_none()
+                {
+                    problems.push(format!(
+                        "{place} reads `{{{name}}}`, but the profile names no board `{}`",
+                        board.trim()
+                    ));
+                }
             }
             // An action about a release writes what it goes out under, and is
             // offered only where there is a release: on a kind that goes out.
@@ -4177,6 +4538,119 @@ mod tests {
                 .iter()
                 .any(|p| p.contains("is about a cover and must produce `cover-ideas`"))
         );
+    }
+
+    /// A conception holds only where it can (ADR 0065): its brief a role of
+    /// the kind that is no version of the work, its idea a text field the
+    /// kind carries, its boards ones the profile names - and a board with
+    /// nothing to put on it is refused.
+    #[test]
+    fn a_conception_is_held_to_its_kind() {
+        let config = studio();
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+        let song = config.conception("song").expect("Studio prepares a song");
+        assert_eq!(song.brief, "brief");
+        assert_eq!(song.idea.as_deref(), Some("premise"));
+
+        let mut counting = config.clone();
+        for kind in &mut counting.work_kinds {
+            for role in &mut kind.version_roles {
+                if role.key == "brief" {
+                    role.counts_as_version = Some(true);
+                }
+            }
+        }
+        let problems = counting.validate().join("\n");
+        assert!(
+            problems.contains("must not count as a version"),
+            "{problems}"
+        );
+
+        let mut wrong = config.clone();
+        let kind = wrong
+            .work_kinds
+            .iter_mut()
+            .find(|kind| kind.key == "song")
+            .unwrap();
+        let conception = kind.conception.as_mut().unwrap();
+        conception.idea = Some("bpm".into());
+        conception.with = vec!["brief".into()];
+        conception.boards.push("sources".into());
+        let problems = wrong.validate().join("\n");
+        assert!(
+            problems.contains("refines its brief into `bpm`, which is not a text"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("sends `brief` with its order"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("the board `sources`, which the profile does not name"),
+            "{problems}"
+        );
+
+        let mut empty = config;
+        empty.boards[0].cards[0].fields.clear();
+        let problems = empty.validate().join("\n");
+        assert!(problems.contains("has no field"), "{problems}");
+    }
+
+    /// An action about a board lands its cards on a board the kinds it is
+    /// for lay out, reads the board, and `{cards}` is read there alone; the
+    /// conception's placeholders only where a kind is prepared on one.
+    #[test]
+    fn an_action_about_a_board_is_held_to_the_board() {
+        let mut config = studio();
+        let shipped = config
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == "scenarios")
+            .expect("Studio ships scenarios")
+            .clone();
+        assert_eq!(shipped.scope(), crate::assistant::prompt::Scope::Board);
+        assert_eq!(
+            shipped.produces(),
+            crate::assistant::prompt::Produces::Cards("scenarios".into())
+        );
+
+        let mut about = action("Scenarios for {title}: {conception} {cards}");
+        about.scope = Some("board".into());
+        about.produces = Some("cards:scenarios".into());
+        about.kinds = vec!["audio".into()];
+        config.prompts = vec![about.clone()];
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("`audio` lays out no such board"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("reads `{conception}`, but `audio` is not prepared"),
+            "{problems}"
+        );
+
+        let mut loose = action("Ideas for {title}: {cards}");
+        loose.produces = Some("cards:scenarios".into());
+        loose.kinds = vec!["song".into()];
+        config.prompts = vec![loose];
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("which only an action about a board can"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("reads `{cards}` but is not about a board"),
+            "{problems}"
+        );
+
+        let mut blind = about;
+        blind.template = "Scenarios for {title}".into();
+        blind.kinds = vec!["song".into()];
+        blind.produces = Some("cards:nowhere".into());
+        config.prompts = vec![blind];
+        let problems = config.validate().join("\n");
+        assert!(problems.contains("never reads `{cards}`"), "{problems}");
+        assert!(problems.contains("names no board `nowhere`"), "{problems}");
     }
 
     /// How many ideas a "Make…" asks for: three when the profile says

@@ -9,7 +9,7 @@ import { FilesTab } from '@/features/work/tabs/files/FilesTab'
 import { FrameTab } from '@/features/work/tabs/frame/FrameTab'
 import { HistoryTab } from '@/features/work/tabs/history/HistoryTab'
 import { LinksTab } from '@/features/work/tabs/links/LinksTab'
-import { NotePanel } from '@/features/work/tabs/notes/NotePanel'
+import { ConceptionTab } from '@/features/work/tabs/conception/ConceptionTab'
 import { OverviewTab } from '@/features/work/tabs/overview/OverviewTab'
 import { ScenesTab } from '@/features/work/tabs/scenes/ScenesTab'
 import { ScorePanel } from '@/features/work/tabs/score/ScorePanel'
@@ -30,6 +30,9 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   // `meta` and may rewrite its versions, so their commands stand in its head,
   // beside the fields they change rather than beside its releases.
   overview: ({ work }) => <OverviewTab work={work} />,
+  // What the work is prepared from (v0.99, ADR 0065): the brief, the idea,
+  // the boards, and the notes attached to it.
+  conception: ({ work }) => <ConceptionTab work={work} />,
   versions: ({ workId }) => <VersionPanel workId={workId} />,
   // An experiment's board of trials (v0.95, ADR 0061).
   trials: ({ work }) => <TrialsTab work={work} />,
@@ -42,7 +45,6 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   score: ({ workId }) => <ScorePanel workId={workId} />,
   files: ({ work }) => <FilesTab work={work} />,
   links: ({ work }) => <LinksTab work={work} />,
-  notes: ({ workId }) => <NotePanel workId={workId} />,
   comments: ({ workId }) => <CommentsPanel workId={workId} />,
   // The work's own conversation. The drawer from the window's bar holds every
   // chat; this tab holds this work's, as the mockup draws it (#p-asst).

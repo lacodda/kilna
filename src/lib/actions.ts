@@ -2,7 +2,17 @@ import type { PromptTemplate } from '@/lib/api/types'
 
 /** What a profile action is about, as the backend reads `scope`. */
 export type ActionScope =
-  'work' | 'scene' | 'style' | 'comment' | 'canon' | 'selection' | 'release' | 'cover' | 'phrases'
+  | 'work'
+  | 'scene'
+  | 'style'
+  | 'comment'
+  | 'canon'
+  | 'selection'
+  | 'release'
+  | 'cover'
+  | 'phrases'
+  | 'lab'
+  | 'board'
 
 /**
  * The scope of an action. Anything the backend reads as a work action — no
@@ -30,6 +40,13 @@ export function scopeOf(action: Pick<PromptTemplate, 'scope'>): ActionScope {
       return 'cover'
     case 'phrases':
       return 'phrases'
+    // An experiment's board and a board of a conception ask from the board:
+    // read as work actions, a lab's action turned up on every experiment's
+    // card and was refused when pressed (found in v0.99).
+    case 'lab':
+      return 'lab'
+    case 'board':
+      return 'board'
     default:
       return 'work'
   }

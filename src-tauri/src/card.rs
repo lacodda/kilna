@@ -19,7 +19,8 @@ use crate::error::Result;
 /// The number beside each of a work's tabs.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, ts_rs::TS)]
 pub struct Counts {
-    /// Versions of every role.
+    /// Versions of every role but the brief, which the Conception tab
+    /// writes (ADR 0065).
     pub versions: i64,
     pub scores: i64,
     pub releases: i64,
@@ -49,6 +50,8 @@ pub struct Counts {
     pub history: i64,
     /// The trials on an experiment's board (ADR 0061).
     pub trials: i64,
+    /// The cards on the boards of the work's conception (ADR 0065).
+    pub cards: i64,
 }
 
 /// Count everything a work's card has tabs for.
@@ -60,16 +63,21 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
     // The comments a work's tab lists: its own, or - for a song, which the
     // audience never meets as the song - those under its publications. The
     // same works a status is read from.
-    let heard = match crate::work::get(conn, work_id)? {
+    let (heard, brief) = match crate::work::get(conn, work_id)? {
         Some(work) => {
             let config = crate::profile::config_for(conn, &work.profile_id)?;
-            crate::work::status::speaking_for(
-                conn,
-                work_id,
-                config.vocabulary(&work.kind).has_doors(),
-            )?
+            (
+                crate::work::status::speaking_for(
+                    conn,
+                    work_id,
+                    config.vocabulary(&work.kind).has_doors(),
+                )?,
+                config
+                    .conception(&work.kind)
+                    .map(|conception| conception.brief.clone()),
+            )
         }
-        None => vec![work_id.to_owned()],
+        None => (vec![work_id.to_owned()], None),
     };
     let (mut comments, mut comments_waiting) = (0, 0);
     for id in &heard {
@@ -80,7 +88,7 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
     let history = crate::work::timeline::count(conn, work_id)?;
 
     Ok(conn.query_row(
-        "SELECT (SELECT count(*) FROM work_version WHERE work_id = ?1),
+        "SELECT (SELECT count(*) FROM work_version WHERE work_id = ?1 AND role IS NOT ?2),
                 (SELECT count(*) FROM work_score WHERE work_id = ?1),
                 (SELECT count(*) FROM release WHERE work_id = ?1),
                 (SELECT count(*) FROM asset WHERE work_id = ?1),
@@ -90,8 +98,9 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
                 (SELECT count(*) FROM scene WHERE work_id = ?1),
                 (SELECT count(*) FROM cut WHERE work_id = ?1),
                 (SELECT count(*) FROM cut WHERE source_id = ?1),
-                (SELECT count(*) FROM trial WHERE work_id = ?1)",
-        params![work_id],
+                (SELECT count(*) FROM trial WHERE work_id = ?1),
+                (SELECT count(*) FROM board_card WHERE work_id = ?1)",
+        params![work_id, brief],
         |row| {
             Ok(Counts {
                 versions: row.get(0)?,
@@ -108,6 +117,7 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
                 cut_from: row.get(9)?,
                 history,
                 trials: row.get(10)?,
+                cards: row.get(11)?,
             })
         },
     )?)

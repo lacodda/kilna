@@ -22,4 +22,9 @@ work_id: string | null,
  * `version`, `score`, `note`, `scenes`, `work`, `package` — what kind of
  * thing is being proposed, so the line can say so without reading it.
  */
-kind: string, created_at: string, };
+kind: string, 
+/**
+ * The board cards are proposed for, when they are (ADR 0065): a work
+ * lays out more than one, and each shows only what waits for it.
+ */
+board: string | null, created_at: string, };

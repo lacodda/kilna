@@ -92,6 +92,9 @@ export const keys = {
    *  trial becomes is a song's version, and a song's version changed is
    *  what the board shows as the trial's harvest. */
   trialBoard: (workId: string) => ['works', 'trials', workId] as const,
+  /** The boards of a work's conception (ADR 0065). Under the works' prefix:
+   *  a card's place in the order follows the work's own changes. */
+  boards: (workId: string) => ['works', 'boards', workId] as const,
   /** The Frame tab: the still, the loop, the scheme. */
   frameView: (workId: string) => ['pictures', 'frame', workId] as const,
   /** A scene's built frame. */

@@ -4,7 +4,10 @@ import type { JsonValue } from "./serde_json/JsonValue";
 export type NewVersion = { role: string, body: string, label?: string, meta?: { [key in string]: JsonValue }, 
 /**
  * Make this the work's current version. Defaults to true: a new draft is
- * almost always the one being worked on.
+ * almost always the one being worked on. Only a draft can be: a version
+ * of a role that is not one - a style prompt, a brief, a review - is
+ * written beside the current text and never in its place, whatever this
+ * says (v0.99, see [`is_draft`]).
  */
 make_current?: boolean, 
 /**

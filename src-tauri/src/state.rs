@@ -42,6 +42,10 @@ impl AppState {
         // After the seed on purpose: the carry-forward is what gives a stored
         // field its tail.
         crate::publication::upgrade(&mut conn)?;
+        // A work whose current version is no draft of it - a style prompt, a
+        // brief - points at its newest draft instead (v0.99). After the seed:
+        // what a role is, is read off the carried-forward profile.
+        crate::work::version::settle_current(&conn)?;
 
         // Old, already-read journal entries go at startup rather than on a
         // timer: there is no scheduler in this app, and an app that is left open

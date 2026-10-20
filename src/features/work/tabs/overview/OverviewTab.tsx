@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import type { VersionRole, Work } from '@/lib/api/types'
+import { isBrief } from '@/lib/conception'
 import { today } from '@/lib/month'
 import {
   applies,
@@ -102,10 +103,15 @@ export function OverviewTab({ work }: Props) {
   const repeats = useQuery(queries.workRepeats(work.id, today()))
 
   const board = boardOf(profile.config)
+  // The brief is the Conception tab's (ADR 0065): neither the text nor the
+  // style the overview shows, though it is no draft either.
+  const roles = vocabulary.version_roles.filter(
+    (role) => !isBrief(profile.config, work.kind, role.key),
+  )
   const drawn: Drawn = {
     work,
-    text: textRoleOf(vocabulary.version_roles),
-    style: styleRoleOf(vocabulary.version_roles),
+    text: textRoleOf(roles),
+    style: styleRoleOf(roles),
   }
   const facts: WidgetFacts = {
     scored: vocabulary.axes.length > 0,

@@ -19,7 +19,9 @@ interface Props {
   onDraftChange: (body: string) => void
   label: string
   onLabelChange: (label: string) => void
-  makeCurrent: boolean
+  /** Whether the new version becomes the work's current text; absent for a
+   *  lane whose versions cannot be one, which has no box for it. */
+  makeCurrent: boolean | undefined
   onMakeCurrentChange: (value: boolean) => void
   onSave: () => void
   /** Offered when the form was opened on purpose and can be put away again. */
@@ -159,9 +161,11 @@ export function VersionEditor({
       </TextScroll>
 
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-line px-2.5 py-2">
-        <Checkbox checked={makeCurrent} onCheckedChange={onMakeCurrentChange}>
-          {t('versions.makeCurrentOnSave')}
-        </Checkbox>
+        {makeCurrent !== undefined && (
+          <Checkbox checked={makeCurrent} onCheckedChange={onMakeCurrentChange}>
+            {t('versions.makeCurrentOnSave')}
+          </Checkbox>
+        )}
 
         {kept && <span className="text-xs text-faint">{t('versions.kept')}</span>}
 

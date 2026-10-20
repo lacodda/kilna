@@ -309,6 +309,18 @@ const UPGRADE: &[Step] = &[
         name: "a kind's board of trials and the role its kept trials go into",
         carry: lab_boards,
     },
+    Step {
+        name: "the boards of a conception, and the conception of a kind",
+        carry: conceptions,
+    },
+    Step {
+        name: "a field's label untouched since it shipped",
+        carry: relabel_untouched_fields,
+    },
+    Step {
+        name: "the tab a kind opens on, where it was renamed",
+        carry: renamed_tabs,
+    },
 ];
 
 /// Prompt templates whose key is missing. A user who reworded an action keeps
@@ -524,6 +536,15 @@ fn version_roles(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
                 role.skeleton = shipped.skeleton.clone();
                 changed = true;
             }
+            // Whether the role is a draft of the work, where the stored role
+            // does not say (v0.99). A copy made before the field existed
+            // counted a song's style prompt as a version of the song, and
+            // since a version that is no draft is never the work's current
+            // text, saying nothing let a style prompt become the song.
+            if role.counts_as_version.is_none() && shipped.counts_as_version.is_some() {
+                role.counts_as_version = shipped.counts_as_version;
+                changed = true;
+            }
         }
     }
     changed
@@ -654,6 +675,125 @@ fn lab_boards(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
                     changed = true;
                 }
             }
+        }
+    }
+    changed
+}
+
+/// The boards a conception lays out, by key, and a kind's conception where
+/// the stored kind has none (v0.99, ADR 0065).
+///
+/// A conception arrives only where it would hold in the stored copy: its
+/// brief is a role of the kind that does not count as a version - the step
+/// before carries that word onto a role that said nothing, and a role the
+/// owner said counts keeps the kind without a conception rather than
+/// making their copy refuse to load. What it sends with the order and the
+/// boards it lays out are narrowed to what the stored copy has, and the
+/// idea to a field it has. A conception the owner took off a kind comes
+/// back, the price `carry_forward` states.
+fn conceptions(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = add_new_keys(&mut config.boards, &shipped.boards, |board| &board.key);
+    let boards: Vec<String> = config.boards.iter().map(|b| b.key.clone()).collect();
+    let fields: Vec<(String, Vec<String>)> = config
+        .work_meta_fields
+        .iter()
+        .map(|field| (field.key.clone(), field.kinds.clone()))
+        .collect();
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        let Some(shipped_conception) = &shipped_kind.conception else {
+            continue;
+        };
+        if kind.conception.is_some() {
+            continue;
+        }
+        let brief_holds = kind.version_roles.iter().any(|role| {
+            role.key == shipped_conception.brief
+                && role.comments_on.is_none()
+                && !role.counts_as_a_version()
+        });
+        if !brief_holds {
+            continue;
+        }
+        let has_role = |key: &String| kind.version_roles.iter().any(|role| role.key == *key);
+        let idea = shipped_conception.idea.clone().filter(|key| {
+            fields.iter().any(|(field, kinds)| {
+                field == key && (kinds.is_empty() || kinds.contains(&kind.key))
+            })
+        });
+        let with = shipped_conception
+            .with
+            .iter()
+            .filter(|key| has_role(key))
+            .cloned()
+            .collect();
+        kind.conception = Some(config::Conception {
+            brief: shipped_conception.brief.clone(),
+            idea,
+            with,
+            boards: shipped_conception
+                .boards
+                .iter()
+                .filter(|key| boards.contains(key))
+                .cloned()
+                .collect(),
+        });
+        changed = true;
+    }
+    changed
+}
+
+/// Every label a field ever shipped under, by key, and what it ships under
+/// now. A stored field still labelled exactly as one of these follows the
+/// shipped word; one the owner relabelled is theirs.
+///
+/// The premise is the idea a brief is refined into since v0.99, and the
+/// Russian word for it says so; before the labels spoke two languages it
+/// shipped as one English word.
+fn relabel_untouched_fields(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    use config::Label;
+    let as_shipped = |key: &str| -> Vec<Label> {
+        match key {
+            "premise" => vec![
+                Label::One("Premise".into()),
+                Label::PerLocale(
+                    [("en", "Premise"), ("ru", "Завязка")]
+                        .into_iter()
+                        .map(|(locale, word)| (locale.to_owned(), word.to_owned()))
+                        .collect(),
+                ),
+            ],
+            _ => Vec::new(),
+        }
+    };
+    let mut changed = false;
+    for field in &mut config.work_meta_fields {
+        let Some(now) = shipped.work_meta_fields.iter().find(|s| s.key == field.key) else {
+            continue;
+        };
+        if field.label != now.label && as_shipped(&field.key).contains(&field.label) {
+            field.label = now.label.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// Tabs of the work's card that were renamed, old id to new. The Notes tab
+/// became the Conception tab in v0.99: it holds what is attached to the work
+/// and, for a kind that names one, the conception.
+const RENAMED_TABS: [(&str, &str); 1] = [("notes", "conception")];
+
+/// The tab a kind opens on, where it still names a tab by its old id - a
+/// word the window no longer knows would open the overview instead.
+fn renamed_tabs(config: &mut ProfileConfig, _shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for kind in &mut config.work_kinds {
+        let Some(open_on) = &kind.open_on else {
+            continue;
+        };
+        if let Some((_, new)) = RENAMED_TABS.iter().find(|(old, _)| old == open_on) {
+            kind.open_on = Some((*new).to_owned());
+            changed = true;
         }
     }
     changed
@@ -1556,6 +1696,7 @@ mod tests {
         old.note_kinds.clear();
         old.stages.clear();
         old.style_types.clear();
+        old.boards.clear();
         for mark in &mut old.marks {
             mark.icon = None;
         }
@@ -1564,7 +1705,9 @@ mod tests {
             kind.version_roles.truncate(1);
             for role in &mut kind.version_roles {
                 role.body = None;
+                role.counts_as_version = None;
             }
+            kind.conception = None;
             kind.shot_types.clear();
             kind.scene_blocks.clear();
             kind.cover = false;
@@ -1581,6 +1724,106 @@ mod tests {
             }
         }
         old
+    }
+
+    /// A Studio copy as the owner's stood before v0.99: the style prompt and
+    /// the experiment's brief never said whether they count as versions, the
+    /// premise is the one English word it shipped as, a kind opens on the
+    /// Notes tab, and nothing is prepared on a conception. The upgrade gives
+    /// the roles their word, the song and the experiment their conceptions
+    /// with the board of scenarios, the premise the word it ships with now,
+    /// and the tab its new name - and the copy still validates.
+    #[test]
+    fn an_older_copy_is_prepared_on_a_conception() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap();
+        let mut config = shipped.config.clone();
+        config.boards.clear();
+        for kind in &mut config.work_kinds {
+            kind.conception = None;
+            kind.version_roles
+                .retain(|role| kind.key == "experiment" || role.key != "brief");
+            for role in &mut kind.version_roles {
+                if role.key == "style" || role.key == "brief" {
+                    role.counts_as_version = None;
+                }
+            }
+            if kind.key == "song" {
+                kind.open_on = Some("notes".into());
+            }
+        }
+        for field in &mut config.work_meta_fields {
+            if field.key == "premise" {
+                field.label = config::Label::One("Premise".into());
+            }
+        }
+
+        for step in UPGRADE {
+            (step.carry)(&mut config, &shipped.config);
+        }
+
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+        let song = config.vocabulary("song");
+        let role = |key: &str| {
+            song.version_roles
+                .iter()
+                .find(|role| role.key == key)
+                .unwrap()
+        };
+        assert!(
+            !role("style").counts_as_a_version(),
+            "a style prompt is no draft"
+        );
+        assert!(!role("brief").counts_as_a_version());
+        assert_eq!(song.conception.as_ref().unwrap().boards, ["scenarios"]);
+        assert_eq!(song.conception.as_ref().unwrap().with, ["style"]);
+        assert_eq!(song.open_on.as_deref(), Some("conception"));
+        let lab = config.vocabulary("experiment");
+        assert_eq!(lab.conception.as_ref().unwrap().brief, "brief");
+        assert!(config.board("scenarios").is_some());
+        let premise = config
+            .work_meta_fields
+            .iter()
+            .find(|field| field.key == "premise")
+            .unwrap();
+        assert_eq!(premise.label.in_locale("ru"), "Идея");
+    }
+
+    /// A brief role the owner said counts as a version is theirs to say: the
+    /// kind is left without a conception rather than given one its role
+    /// breaks, and the copy still validates.
+    #[test]
+    fn a_brief_the_owner_counts_keeps_its_kind_off_the_conception() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap();
+        let mut config = shipped.config.clone();
+        for kind in &mut config.work_kinds {
+            kind.conception = None;
+            for role in &mut kind.version_roles {
+                if role.key == "brief" {
+                    role.counts_as_version = Some(true);
+                }
+            }
+        }
+        for step in UPGRADE {
+            (step.carry)(&mut config, &shipped.config);
+        }
+        assert!(config.conception("song").is_none());
+        assert!(config.conception("experiment").is_none());
+        assert!(
+            config
+                .validate()
+                .iter()
+                .all(|problem| !problem.contains("brief")),
+            "{:?}",
+            config.validate()
+        );
     }
 
     /// A Studio copy from before v0.97: its doors ask for nothing beyond the

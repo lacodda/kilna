@@ -949,6 +949,8 @@ function countsOf(studio: Studio, workId: string): CardCounts {
     history: Math.max(timelineOf(studio, workId).length - 1, 0),
     // No experiment in this studio has trials until a test puts them there.
     trials: 0,
+    // Nor a work cards on the boards of its conception.
+    cards: 0,
   }
 }
 
@@ -1088,6 +1090,14 @@ export function answersFor(studio: Studio): Record<string, Handler> {
       series: [],
       trials: [],
     }),
+    // The boards of a conception with nothing on them yet (v0.99): a board's
+    // own tests answer with the cards they need.
+    work_boards: ({ id }) => {
+      const kind = studio.works.find((w) => w.id === id)?.kind
+      const conception = studio.profile.config.work_kinds.find((k) => k.key === kind)?.conception
+      return (conception?.boards ?? []).map((board) => ({ board, cards: [], directions: [] }))
+    },
+    conception_order: ({ id }) => `# “${studio.works.find((w) => w.id === id)?.title ?? ''}”\n`,
     cover_view: ({ id, format }) =>
       coverViewOf(studio, id as string, (format as string | null | undefined) ?? null),
     release_proposals: () => [],

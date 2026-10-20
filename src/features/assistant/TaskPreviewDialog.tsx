@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { startTask } from '@/lib/api/assistant'
+import { previewBoardTask, startBoardTask } from '@/lib/api/boards'
 import { startCardTask } from '@/lib/api/canon'
 import { startCommentTask } from '@/lib/api/comments'
 import { previewCoverTask, startCoverTask } from '@/lib/api/ideas'
@@ -10,6 +11,7 @@ import { previewReleaseTask, startReleaseTask } from '@/lib/api/releases'
 import { previewPhrasesTask, startPhrasesTask, startStyleTask } from '@/lib/api/styles'
 import { previewLabTask, startLabTask } from '@/lib/api/trials'
 import type {
+  CardRequest,
   IdeaRequest,
   PhraseAsked,
   PromptTemplate,
@@ -53,6 +55,8 @@ export type TaskTarget =
   | { on: 'phrases'; composition: string; phrases: PhraseAsked[] }
   /** An experiment's board: trials, as asked (v0.95). */
   | { on: 'lab'; workId: string; request: TrialRequest }
+  /** A board of a work's conception: cards, as asked (v0.99). */
+  | { on: 'board'; workId: string; board: string; request: CardRequest }
 
 interface Props {
   open: boolean
@@ -144,7 +148,17 @@ export function TaskPreviewDialog({
                       ]),
                       queryFn: () => previewLabTask(target.workId, action.key, target.request),
                     }
-                  : queries.commentTaskPreview(target.id, action.key)
+                  : target.on === 'board'
+                    ? {
+                        queryKey: keys.taskPreview([
+                          'board',
+                          target.workId,
+                          action.key,
+                          target.request,
+                        ]),
+                        queryFn: () => previewBoardTask(target.workId, action.key, target.request),
+                      }
+                    : queries.commentTaskPreview(target.id, action.key)
   const preview = useQuery({ ...read, enabled: isOpen, staleTime: 0, retry: false })
 
   const start = useAppMutation({
@@ -172,6 +186,8 @@ export function TaskPreviewDialog({
           return startPhrasesTask(target.composition, target.phrases, action.key)
         case 'lab':
           return startLabTask(target.workId, action.key, target.request)
+        case 'board':
+          return startBoardTask(target.workId, action.key, target.board, target.request)
       }
     },
     refresh: [keys.activeTasks, keys.allChats],

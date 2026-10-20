@@ -1,5 +1,36 @@
 {
   "config": {
+    "boards": [
+      {
+        "cards": [
+          {
+            "fields": [
+              {
+                "hint": "Open on the sound of the last tram of the night",
+                "key": "line",
+                "label": "In one line"
+              },
+              {
+                "key": "image",
+                "label": "The thread through it",
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": "How it closes",
+                "multiline": true
+              }
+            ],
+            "key": "scenario",
+            "label": "Way in"
+          }
+        ],
+        "description": "Ways the episode could go: the move it opens on, the thread through it, how it closes. Star the ones to write by.",
+        "key": "scenarios",
+        "label": "Ways in",
+        "rule": "one"
+      }
+    ],
     "collection_kinds": [
       {
         "key": "season",
@@ -165,6 +196,48 @@
         "produces": "canon",
         "scope": "canon",
         "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
+      },
+      {
+        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "icon": "wand",
+        "key": "refine",
+        "kinds": [
+          "episode",
+          "segment",
+          "trailer"
+        ],
+        "label": "Refine the idea",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their episode is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the episode is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the episode itself. Nothing the author did not give as their own.\n",
+        "produces": "conception",
+        "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the episode is about."
+      },
+      {
+        "description": "Ways the episode could go, put on the board.",
+        "icon": "lightbulb",
+        "key": "scenarios",
+        "kinds": [
+          "episode",
+          "segment",
+          "trailer"
+        ],
+        "label": "Propose ways in",
+        "method": "# Ways it could go\n\n## Role\n\nYou propose ways a episode could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the episode itself.\n",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}"
+      },
+      {
+        "description": "The script, written from the whole order - to talk over in the chat and insert once it is right.",
+        "icon": "pen",
+        "key": "write",
+        "kinds": [
+          "episode",
+          "segment",
+          "trailer"
+        ],
+        "label": "Write from the brief",
+        "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the episode they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write it to be said aloud: short sentences, one thought each, no phrase a speaker would trip on.\n- Lay it out in the script's section markers: [Cold open], [Intro], [Segment 1], [Segment 2], [Outro].\n- Write in the language of the brief.\n\n## Output\n\nThe script alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
+        "template": "{order}\n\nWrite the script."
       }
     ],
     "rhythm": {
@@ -225,6 +298,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "outline"
+          ]
+        },
         "folder": "episodes/{title}",
         "key": "episode",
         "label": "Episode",
@@ -420,6 +503,13 @@
             "body": "markdown",
             "key": "outline",
             "label": "Research outline"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n"
           }
         ]
       },
@@ -474,6 +564,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "outline"
+          ]
+        },
         "folder": "segments/{title}",
         "key": "segment",
         "label": "Segment",
@@ -669,6 +769,13 @@
             "body": "markdown",
             "key": "outline",
             "label": "Research outline"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n"
           }
         ]
       },
@@ -723,6 +830,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "outline"
+          ]
+        },
         "folder": "trailers/{title}",
         "key": "trailer",
         "label": "Trailer",
@@ -918,6 +1035,13 @@
             "body": "markdown",
             "key": "outline",
             "label": "Research outline"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n"
           }
         ]
       }
@@ -942,6 +1066,11 @@
         "key": "explicit",
         "label": "Explicit",
         "type": "boolean"
+      },
+      {
+        "key": "premise",
+        "label": "Premise",
+        "type": "multiline"
       }
     ]
   },

@@ -20,6 +20,7 @@
 //! part of that one - which is how a whole package lands in one piece.
 
 pub mod asset;
+pub mod board;
 pub mod canon;
 pub mod collection;
 pub mod comment;

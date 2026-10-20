@@ -816,7 +816,9 @@
       "description": "A style description was written",
       "release": "Release meta was proposed",
       "coverIdeas": "Ideas for a cover were proposed",
-      "words": "Words were proposed"
+      "words": "Words were proposed",
+      "cards": "Cards for a board were proposed",
+      "trials": "Trials were proposed"
     },
     "keepAsNote": "Keep as a note",
     "keepAsNoteTitle": "Keep as a note",
@@ -1519,7 +1521,8 @@
       "term": "Term",
       "idea": "Idea",
       "trial": "Trial",
-      "shelf": "Shelf of phrases"
+      "shelf": "Shelf of phrases",
+      "card": "Board card"
     }
   },
   "journal": {
@@ -1552,7 +1555,8 @@
       "canon": "Canon",
       "register": "Register",
       "cover": "Cover",
-      "lab": "Lab"
+      "lab": "Lab",
+      "conception": "Conception"
     },
     "work.created": "“{{title}}” added.",
     "work.cloned": "“{{title}}” started as a second attempt, with {{scenes}} scenes copied.",
@@ -1649,7 +1653,9 @@
     "layout.shiftedLater_other": "The plan from {{from}} on moved {{count}} days later — {{moved}} in all.",
     "layout.shiftedEarlier_one": "The plan from {{from}} on moved {{count}} day earlier — {{moved}} in all.",
     "layout.shiftedEarlier_other": "The plan from {{from}} on moved {{count}} days earlier — {{moved}} in all.",
-    "shelf.deleted": "Shelf “{{label}}” put in the trash."
+    "shelf.deleted": "Shelf “{{label}}” put in the trash.",
+    "proposal.cards": "{{client}} proposed cards for the board of “{{title}}”.",
+    "card.deleted": "Card “{{label}}” taken off the board."
   },
   "card": {
     "tab": {
@@ -1662,11 +1668,11 @@
       "score": "Score",
       "files": "Files",
       "links": "Links",
-      "notes": "Notes",
       "assistant": "Assistant",
       "history": "History",
       "comments": "Comments",
-      "trials": "Trials"
+      "trials": "Trials",
+      "conception": "Conception"
     },
     "tabs": "The card's tabs",
     "tabsBack": "Earlier tabs",
@@ -1800,7 +1806,10 @@
     "shelf.move": "the order of shelves",
     "shelf.add": "putting a phrase on a shelf",
     "shelf.remove": "taking a phrase off a shelf",
-    "note.retag": "a tag renamed on every note"
+    "note.retag": "a tag renamed on every note",
+    "card.create": "putting a card on the board",
+    "card.update": "an edit to a card",
+    "card.arrange": "moving cards on the board"
   },
   "stage": {
     "label": "Stage",
@@ -2330,7 +2339,8 @@
     "version": {
       "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}.",
       "parentNotSameRole": "Version “{{parent}}” is not a “{{role}}” version of this work, so nothing can be written from it.",
-      "notOfWork": "Version “{{version}}” does not belong to work “{{work}}”."
+      "notOfWork": "Version “{{version}}” does not belong to work “{{work}}”.",
+      "notADraft": "A version of {{role}} is not a draft of the work, and cannot be its current text."
     },
     "release": {
       "unknownKind": "A {{kind}} does not go out as “{{releaseKind}}”. It goes out as: {{known}}.",
@@ -2512,7 +2522,8 @@
       "roleNotComposed": "The `{{role}}` role of a {{kind}} is not written out of the dictionary; give `body`.",
       "unknownBrick": "No brick of this text's types is called “{{named}}”; `styles` lists them.",
       "ambiguousBrick": "More than one brick is called “{{named}}”; name one by id: {{ids}}.",
-      "trialsNotArray": "`trials` has to be a list with at least one trial in it."
+      "trialsNotArray": "`trials` has to be a list with at least one trial in it.",
+      "cardsNotArray": "`cards` must be a list of at least one card."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -2558,7 +2569,10 @@
       "needsPhrases": "“{{action}}” needs at least one phrase to explain.",
       "isLabAction": "“{{action}}” is about an experiment’s board: start it from the board.",
       "actionAnswersLab": "“{{action}}” proposes trials, which only an action about an experiment’s board can.",
-      "notLabAction": "“{{action}}” does not propose trials for a board."
+      "notLabAction": "“{{action}}” does not propose trials for a board.",
+      "isBoardAction": "“{{action}}” is asked from a board of the conception.",
+      "actionAnswersBoard": "“{{action}}” proposes cards for a board, and is asked from the board.",
+      "notBoardAction": "“{{action}}” is not an action about a board."
     },
     "style": {
       "needsName": "A style needs a name.",
@@ -2700,6 +2714,21 @@
       "needsName": "A shelf needs a name.",
       "exists": "There is a shelf called “{{name}}” already.",
       "unknown": "There is no shelf called “{{shelf}}”."
+    },
+    "conception": {
+      "noConception": "A work of the kind {{kind}} is not prepared on a conception.",
+      "empty": "Nothing of the conception of “{{title}}” is written yet: write its brief or its idea first."
+    },
+    "board": {
+      "notOfKind": "A work of the kind {{kind}} lays out no board “{{board}}”.",
+      "notAKind": "The board “{{board}}” holds no cards of the kind “{{kind}}”.",
+      "notAField": "A card of the kind “{{kind}}” has no field “{{field}}”.",
+      "emptyCard": "A card needs words in at least one of its fields.",
+      "arrangeNotTheBoard": "The board changed while it was being arranged; try again.",
+      "noSuchTopic": "The board has no topic “{{topic}}”.",
+      "tooMany": "One run gives at most {{most}} cards.",
+      "nothingAsked": "Ask for at least one card, or write your own to be worked out.",
+      "noCards": "The answer holds no card with words in it."
     }
   },
   "skip": {
@@ -3635,5 +3664,93 @@
     "takeOff": "Take off this shelf",
     "on_one": "Shelf: {{shelves}}",
     "on_other": "Shelves: {{shelves}}"
+  },
+  "conception": {
+    "title": "Conception",
+    "attached": "Attached",
+    "idea": "Idea",
+    "refineHint": "Refine reads the brief and what is starred, and proposes the idea and the brief set straight - you apply them, or not.",
+    "copy": "Copy the order",
+    "copyHint": "The whole order a writer works from, as markdown: the idea, the brief, the style, the scenarios to write by, what is attached, the channel's voice and the register.",
+    "copied": "The order is on the clipboard",
+    "copyFailed": "Could not copy the order",
+    "openChat": "Open the chat",
+    "running": "Working…",
+    "revision": "revision {{revision}} · {{day}}",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "briefEmpty": "Say what the work is about and how you see it - one line is enough to start. The sections below are where it can grow.",
+    "begin": "Start the {{brief}}"
+  },
+  "board": {
+    "card": "A card",
+    "own": "Your card · optional",
+    "ownPlaceholder": "A way it could go, in your own words",
+    "direction": "Where to dig · optional",
+    "directionPlaceholder": "Eastern literature, the sea as a border, not Russian…",
+    "refine": "Work my card out",
+    "fromAi": "Cards from AI",
+    "generate": "Generate",
+    "putOwn": "Put on the board",
+    "preview": "What will be sent",
+    "more": "More in this direction · ★ {{stars}}",
+    "moreHint": "The starred cards go as examples, the turned-down ones as anti-examples",
+    "moreNeedsStars": "Star a card first: it shows the direction",
+    "dig": "Dig next:",
+    "digHint": "Ask for cards that dig towards: {{direction}}",
+    "filter": "What the board shows",
+    "filters": {
+      "all": "All",
+      "star": "Starred",
+      "mine": "Mine",
+      "rejected": "Turned down"
+    },
+    "writing_one": "Writing {{count}} card",
+    "writing_other": "Writing {{count}} cards",
+    "stop": "Stop",
+    "empty": "Nothing on the board yet. Write your own card above, or ask the assistant for some.",
+    "emptyFilter": "No card under this filter.",
+    "source": {
+      "own": "mine",
+      "refined": "worked out",
+      "ai": "AI"
+    },
+    "fresh": "new",
+    "star": "Write by this one",
+    "reject": "Not that",
+    "delete": "Off the board",
+    "deleted": "The card is in the trash",
+    "move": "Drag to another place or topic",
+    "topicMenu": "Topic",
+    "moveUnder": "Under “{{topic}}”",
+    "noTopic": "Under no topic",
+    "newTopic": "Under a new topic…",
+    "newTopicPlaceholder": "The topic's name",
+    "putUnder": "Put under it",
+    "cancel": "Cancel",
+    "topicName": "The topic's name",
+    "topicHint": "Rename the topic; give it another topic's name to merge the two",
+    "noTopicHeading": "No topic · {{count}}",
+    "agent": "{{client}} proposed cards for “{{board}}”",
+    "putProposed": "Put on the board",
+    "proposed_one": "Cards for the board · {{count}}",
+    "proposed_other": "Cards for the board · {{count}}",
+    "putDone": "On the board: {{count}}",
+    "putMark": "On the board",
+    "openBoard": "Open the board",
+    "dropped": "Card {{card}}: {{part}} “{{value}}” is not on the board and was left out.",
+    "part": {
+      "kind": "the kind",
+      "field": "the field",
+      "card": "the card"
+    },
+    "askFailed": "Could not ask for cards",
+    "stopFailed": "Could not stop the run",
+    "addFailed": "Could not put the card on the board",
+    "judgeFailed": "Could not judge the card",
+    "writeFailed": "Could not save the card",
+    "moveFailed": "Could not move the card",
+    "deleteFailed": "Could not take the card off the board",
+    "putFailed": "Could not put the cards on the board"
   }
 }

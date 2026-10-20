@@ -101,8 +101,9 @@ pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
 /// the edit before it, and a replay rebuilt the old current version.
 pub fn set_current_version(conn: &Connection, work_id: &str, version_id: &str) -> Result<Work> {
     // Refused before anything is written or logged: another work's text is
-    // not this work's version.
+    // not this work's version, and a style prompt or a brief is not its text.
     crate::work::version::check_belongs(conn, work_id, version_id)?;
+    crate::work::version::check_draft(conn, work_id, version_id)?;
     update(
         conn,
         work_id,

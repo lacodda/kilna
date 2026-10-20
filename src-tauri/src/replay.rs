@@ -269,6 +269,27 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::lab::trial::update_at(conn, &id, patch, &at)?;
         }
 
+        "card.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let new = from_params(params, "card")?;
+            crate::board::create_minted(conn, &profile_id, new, minted(params)?)?;
+        }
+
+        "card.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::board::update_at(conn, &id, patch, &at)?;
+        }
+
+        "card.arrange" => {
+            let work_id = required(params, "workId")?;
+            let board = required(params, "board")?;
+            let order: Vec<crate::board::Placed> = from_params(params, "order")?;
+            let at = required(params, "at")?;
+            crate::board::arrange(conn, &work_id, &board, &order, &at)?;
+        }
+
         "note.promote" => {
             let profile_id = workspace_profile(conn, params)?;
             let id = required(params, "id")?;

@@ -264,6 +264,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0041_search_by_key.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 42,
+        name: "board_card",
+        sql: include_str!("../../migrations/0042_board_card.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.

@@ -63,6 +63,10 @@ ideas?: Array<string>,
  */
 trials?: Array<string>, 
 /**
+ * Cards put on a board of a work's conception (ADR 0065).
+ */
+board_cards?: Array<string>, 
+/**
  * Words of the record written: made, or given a facet (ADR 0052).
  */
 terms?: Array<string>, 

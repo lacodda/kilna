@@ -471,7 +471,7 @@ pub fn pump<S, F>(
                     .and_then(Value::as_str)
                     .map(str::to_owned);
                 let fills = kind.as_deref() == Some("release");
-                let lands = matches!(kind.as_deref(), Some("coverIdeas" | "trials"));
+                let lands = matches!(kind.as_deref(), Some("coverIdeas" | "trials" | "cards"));
                 let appended = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
 
                 // What a release goes out under, asked for by the person from
@@ -873,6 +873,91 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 super::proposal::ReadScenes::Proposal(proposal) => value(*proposal),
                 super::proposal::ReadScenes::Refused(why) => Read::Refused(why),
             }
+        }
+        // Cards for the board the key names, read against its kinds of card;
+        // one says it was worked out from the person's own only when the key
+        // asked for that.
+        super::prompt::Produces::Cards(_) => {
+            let Some((work_id, board_key, refines)) = super::task::board_of_key(task_key) else {
+                return Read::Nothing;
+            };
+            let Some(board) = profile.config.board(&board_key) else {
+                return Read::Refused(format!("the profile names no board `{board_key}`"));
+            };
+            let Some(block) = super::proposal::fenced_json(body) else {
+                return Read::Refused("the answer holds no ```json block of cards".into());
+            };
+            let raw: Value = match serde_json::from_str(&block) {
+                Ok(raw) => raw,
+                Err(error) => {
+                    return Read::Refused(format!(
+                        "the json block is not a list of cards: {error}"
+                    ));
+                }
+            };
+            let request = crate::board::answer::CardRequest {
+                refine: refines.then(|| "-".to_owned()),
+                ..crate::board::answer::CardRequest::default()
+            };
+            match crate::board::answer::read(board, &raw, Some(&request)) {
+                Ok(read) => value(super::proposal::Proposal::Cards {
+                    work_id,
+                    board: board_key,
+                    cards: read.cards,
+                    directions: read.directions,
+                    dropped: read.dropped,
+                }),
+                Err(error) => Read::Refused(error.to_string()),
+            }
+        }
+        // The idea and the brief, refined: proposed as a package for the
+        // chat's work - its idea's field, and a revision of the brief written
+        // from the one it refines (ADR 0055) - which the person applies, or
+        // not.
+        super::prompt::Produces::Conception => {
+            let Some(work) = work_of_chat(conn, &run.chat_id) else {
+                return Read::Nothing;
+            };
+            let Some(conception) = profile.config.conception(&work.kind) else {
+                return Read::Nothing;
+            };
+            let Some((idea, brief)) = super::proposal::read_conception(body) else {
+                return Read::Refused(
+                    "the answer holds no ```json block with the idea and the brief".into(),
+                );
+            };
+            let mut fields = Map::new();
+            if let (Some(key), Some(idea)) = (conception.idea.as_deref(), idea) {
+                fields.insert(key.to_owned(), Value::from(idea));
+            }
+            let from = crate::work::version::latest(conn, &work.id, &conception.brief)
+                .ok()
+                .flatten()
+                .map(|version| version.id);
+            let versions = brief
+                .map(|body| super::proposal::PackagedVersion {
+                    role: conception.brief.clone(),
+                    body,
+                    label: None,
+                    from,
+                })
+                .into_iter()
+                .collect::<Vec<_>>();
+            if fields.is_empty() && versions.is_empty() {
+                return Read::Nothing;
+            }
+            value(super::proposal::Proposal::Work {
+                title: None,
+                work_kind: None,
+                fields,
+                unknown_fields: Vec::new(),
+                versions,
+                score: None,
+                notes: Vec::new(),
+                scenes: Vec::new(),
+                releases: Vec::new(),
+                trials: Vec::new(),
+            })
         }
     }
 }
@@ -2822,5 +2907,133 @@ The second verse is the weak one."
 
         assert_eq!(runs.active(), 0);
         assert!(runs.active_chats().is_empty());
+    }
+
+    /// Run `body` as the answer of a task under `key` in a chat on `work_id`,
+    /// and give back the answer as the chat stored it.
+    fn answered(
+        path: &std::path::Path,
+        conn: &Connection,
+        profile_id: &str,
+        work_id: &str,
+        key: String,
+        body: &str,
+    ) -> super::super::Message {
+        let chat_id = super::super::create(
+            conn,
+            profile_id,
+            NewChat {
+                work_id: Some(work_id.to_owned()),
+                ..NewChat::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let runs = Arc::new(Runs::new());
+        let run_id = record(conn, &chat_id, "running");
+        let mut run = get(conn, &run_id).unwrap().unwrap();
+        run.task = Some(key);
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: body.into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+        let path = path.to_path_buf();
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+        let transcript = super::super::transcript(conn, &chat_id).unwrap().unwrap();
+        transcript
+            .messages
+            .into_iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap()
+    }
+
+    /// Cards asked for from a board land on it at once (ADR 0065): a kind or
+    /// a field the board does not have is left out and said, the directions
+    /// the answer offers are kept with it, and a card says it was worked out
+    /// from the person's own only when the task asked for that.
+    #[test]
+    fn a_board_task_puts_its_cards_on_the_board_at_once() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let body = "Three ways.\n\n```json\n{\"cards\": [\n  {\"source\": \"refined\", \"topic\": \"Sea\", \"fields\": {\"line\": \"A keeper counts the ships\", \"image\": \"the lamp\", \"mood\": \"grey\"}},\n  {\"kind\": \"poem\", \"fields\": {\"line\": \"x\"}},\n  {\"line\": \"A boat repainted every spring\", \"ending\": \"it sinks\"}\n],\n\"directions\": [\"the sea as a border\", \"old maps\"]}\n```";
+        let answer = answered(
+            &path,
+            &conn,
+            &profile_id,
+            &song.id,
+            crate::assistant::task::board_key("scenarios", &song.id, "scenarios", false),
+            body,
+        );
+        assert_eq!(answer.meta["proposal"]["kind"], "cards");
+        assert_eq!(
+            answer.meta["applied"]["board_cards"]
+                .as_array()
+                .map(Vec::len),
+            Some(2),
+            "the cards landed and the message says so"
+        );
+        let board = crate::board::for_board(&conn, &song.id, "scenarios").unwrap();
+        assert_eq!(board.len(), 2);
+        assert!(
+            board
+                .iter()
+                .all(|card| card.source == crate::board::Source::Ai),
+            "nothing was asked to be worked out"
+        );
+        assert_eq!(board[0].topic, "Sea");
+        assert_eq!(board[0].fields.get("mood"), None);
+        assert_eq!(
+            crate::board::directions(&conn, &song.id, "scenarios").unwrap(),
+            ["the sea as a border", "old maps"]
+        );
+        let parts: Vec<&str> = answer.meta["proposal"]["dropped"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|one| one["part"].as_str())
+            .collect();
+        assert_eq!(parts, ["field", "kind"]);
+        drop(dir);
+    }
+
+    /// "Refine" proposes; it does not write: the idea for its field and the
+    /// brief set straight, as a package for the work, its brief written from
+    /// the brief it refines (ADR 0055) - waiting for the person to apply it.
+    #[test]
+    fn a_refined_conception_waits_as_a_package_for_the_work() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let brief = fixtures::version(&conn, &song.id, "brief", "## What it is about\nthe harbour");
+        let body = "Here it is.\n\n```json\n{\"idea\": \"Telling a vigil from a habit.\", \"brief\": \"## What it is about\\nA vigil kept long after the ships stopped.\"}\n```";
+        let answer = answered(
+            &path,
+            &conn,
+            &profile_id,
+            &song.id,
+            crate::assistant::task::key("refine", &song.id),
+            body,
+        );
+        let proposal = &answer.meta["proposal"];
+        assert_eq!(proposal["kind"], "work");
+        assert_eq!(
+            proposal["fields"]["premise"],
+            "Telling a vigil from a habit."
+        );
+        assert_eq!(proposal["versions"][0]["role"], "brief");
+        assert_eq!(proposal["versions"][0]["from"], json!(brief.id));
+        assert!(
+            answer.meta.get("applied").is_none(),
+            "a refinement waits for the person"
+        );
+        let work = crate::work::get(&conn, &song.id).unwrap().unwrap();
+        assert_eq!(work.meta.get("premise"), None);
+        drop(dir);
     }
 }

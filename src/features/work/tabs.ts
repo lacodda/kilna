@@ -17,10 +17,13 @@ import { coverHoldsAnything } from '@/features/work/tabs/cover/useCoverEdit'
  * The cover and the frame stand between the storyboard and the splice since
  * v0.86: what a publication looks like is written after its board and before
  * it is cut and sent out. An experiment's trials stand beside its brief
- * (v0.95): the board is where it is worked.
+ * (v0.95): the board is where it is worked. The conception stands first after
+ * the overview (v0.99, ADR 0065): a work is prepared before it is written, and
+ * the notes attached to it - the Notes tab until then - are part of that.
  */
 export const TABS = [
   'overview',
+  'conception',
   'versions',
   'trials',
   'scenes',
@@ -30,7 +33,6 @@ export const TABS = [
   'score',
   'files',
   'links',
-  'notes',
   'comments',
   'assistant',
   'history',
@@ -96,6 +98,9 @@ type Rule = ((facts: CardFacts) => boolean) | null
 // `components/frame`.
 const RULES: Readonly<Record<Tab, Rule>> = {
   overview: null,
+  // Every work has notes to attach; a kind that names a conception draws its
+  // brief and boards there too.
+  conception: null,
   versions: ({ names, holds }) => names.roles || holds.versions,
   trials: ({ names, holds }) => names.lab || holds.trials,
   scenes: ({ names, holds }) => names.storyboard || holds.scenes,
@@ -110,7 +115,6 @@ const RULES: Readonly<Record<Tab, Rule>> = {
   // goes out only as what is made from it.
   files: ({ names, holds }) => names.doors || names.folder || holds.files,
   links: null,
-  notes: null,
   comments: null,
   assistant: null,
   history: null,
@@ -173,6 +177,7 @@ export const NOTHING_COUNTED: CardCounts = {
   cut_from: 0,
   history: 0,
   trials: 0,
+  cards: 0,
 }
 
 /**
@@ -283,7 +288,8 @@ export function tabCounts(counts: CardCounts): Partial<Record<Tab, TabCount>> {
     // Made either way: "Links 2" is how a song shows it has clips without
     // anyone opening the tab.
     links: counts.sources + counts.derived,
-    notes: counts.notes,
+    // What the tab lists: the notes attached and the cards on its boards.
+    conception: counts.notes + counts.cards,
     history: counts.history,
   }
   const shown: Partial<Record<Tab, TabCount>> = {}

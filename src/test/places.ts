@@ -39,7 +39,7 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.song, 'versions', 'Second pass'],
   [IDS.song, 'score', 'Does the chorus stay with you after one listen?'],
   [IDS.song, 'links', 'Paper Lanterns (clip)'],
-  [IDS.song, 'notes', 'Paper Lanterns'],
+  [IDS.song, 'conception', 'Paper Lanterns'],
   // A song's comments are a summary of its publications' (v0.86): the clip's
   // comment, read under the song.
   [IDS.song, 'comments', 'The shot on the bridge is beautiful.'],
@@ -57,7 +57,7 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.video, 'score', 'Paper Lanterns (clip)'],
   [IDS.video, 'files', 'Paper Lanterns (clip)'],
   [IDS.video, 'links', 'soundtrack'],
-  [IDS.video, 'notes', 'An old man who sells lanterns by the bridge.'],
+  [IDS.video, 'conception', 'An old man who sells lanterns by the bridge.'],
   [IDS.video, 'comments', 'The shot on the bridge is beautiful.'],
   [IDS.video, 'assistant', 'Paper Lanterns (clip)'],
   [IDS.video, 'history', 'Paper Lanterns (clip)'],

@@ -10,7 +10,17 @@
           "en": "Song",
           "ru": "Песня"
         },
-        "folder": "songs/{origin.title}"
+        "folder": "songs/{origin.title}",
+        "conception": {
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "style"
+          ],
+          "boards": [
+            "scenarios"
+          ]
+        }
       },
       {
         "key": "video",
@@ -1143,7 +1153,8 @@
             "skeleton": {
               "en": "## Direction\n\n## Hold on to\n\n## Listen to\n\n## Vocabulary\n\n## Schemes\n\n## If it goes wrong\n",
               "ru": "## Направление\n\n## За что держаться\n\n## Кого слушать\n\n## Словарь\n\n## Схемы\n\n## Если пошло не так\n"
-            }
+            },
+            "counts_as_version": false
           },
           {
             "key": "findings",
@@ -1196,6 +1207,9 @@
         "lab": {
           "harvest": "style",
           "anchors": "anchors"
+        },
+        "conception": {
+          "brief": "brief"
         }
       }
     ],
@@ -2579,6 +2593,19 @@
         },
         "comments_on": "lyrics",
         "body": "markdown"
+      },
+      {
+        "key": "brief",
+        "label": {
+          "en": "Brief",
+          "ru": "Замысел"
+        },
+        "body": "markdown",
+        "counts_as_version": false,
+        "skeleton": {
+          "en": "## What it is about\n\n## Where it comes from in me\n\n## How I see it\n\n## What the text should be like\n",
+          "ru": "## О чём\n\n## Откуда это у меня\n\n## Как я это вижу\n\n## Каким должен быть текст\n"
+        }
       }
     ],
     "statuses": [
@@ -2997,7 +3024,7 @@
         "key": "premise",
         "label": {
           "en": "Premise",
-          "ru": "Завязка"
+          "ru": "Идея"
         },
         "type": "multiline",
         "kinds": [
@@ -3594,6 +3621,60 @@
         ],
         "scope": "lab",
         "produces": "trials"
+      },
+      {
+        "key": "refine",
+        "label": {
+          "en": "Refine the idea",
+          "ru": "Уточнить идею"
+        },
+        "description": {
+          "en": "The brief and what is starred, worked into one idea - and the brief set straight.",
+          "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел."
+        },
+        "icon": "wand",
+        "template": "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the song is about.",
+        "produces": "conception",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their song is about before a line of it is written. The author's words come first and are often rough: a feeling, an experience, a picture of how it should sound. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the song is about, from which side it is told, what it must leave the listener with. Sharper than the author put it, never wider. Find the move that sets it apart - not \"a song about faith\" but \"telling faith from its imitation\".\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact, place and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented. What they starred belongs where it fits.\n\n## Never\n\nNo lyrics and no lines of the song. No experience the author did not give as their own. No new themes the brief does not hold.\n",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
+        "key": "scenarios",
+        "label": {
+          "en": "Propose scenarios",
+          "ru": "Предложить сценарии"
+        },
+        "description": {
+          "en": "Ways the song could go, put on the board of scenarios.",
+          "ru": "Как может пойти песня - на доску сценариев."
+        },
+        "icon": "lightbulb",
+        "template": "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "method": "# Scenarios\n\n## Role\n\nYou propose ways a song could go, before it is written. A scenario is not a plot outline and not a theme: it is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath. \"A man repaints his late father's boat every spring\" is a scenario; \"a song about loss\" is not.\n\n## A scenario\n\n- **In one line**: the move itself, concrete and visible - who does what, where.\n- **The image through it**: the image that comes back through the text, and what it carries each time.\n- **How it closes**: the last turn - what has changed by the end, or what is left open.\n\n## How\n\n- Every scenario from another side: another act, place, time or point of view.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief: where the author said how they see it, keep to it.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo lyrics and no lines of the song.\n",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
+        "key": "write",
+        "label": {
+          "en": "Write from the brief",
+          "ru": "Написать по замыслу"
+        },
+        "description": {
+          "en": "The lyrics, written from the whole order - to talk over in the chat and insert once they are right.",
+          "ru": "Текст по всему заказу - обсудить в чате и вставить, когда он хорош."
+        },
+        "icon": "pen",
+        "template": "{order}\n\nWrite the lyrics.",
+        "method": "# Writing from an order\n\n## Role\n\nYou are the songwriter. The order is everything the author prepared: the idea, the brief in their words, the style the song is sung over, the scenarios and which of them to write by, what they attached, the channel's voice and canon, and the register of what is worn out. Write the song they asked for, not another one.\n\n## How\n\n- Write by the scenarios as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- The style prompt sets the sound: its tempo and mood decide how long the lines are and how they move.\n- Use the attached phrases where they fit; never force one in.\n- Keep to the register: a banned word is not used, a limited one sparingly, a rare one once.\n- Write in the language of the brief, unless the fields say otherwise.\n- Lay the text out in section markers: [Verse 1], [Pre-Chorus], [Chorus], [Bridge], [Outro].\n\n## Output\n\nThe lyrics alone. Then, after a blank line, one short paragraph: which scenario it is written by and what was left out on purpose.\n",
+        "kinds": [
+          "song"
+        ]
       }
     ],
     "relation_kinds": [
@@ -3789,6 +3870,58 @@
           }
         ],
         "limit": 1000
+      }
+    ],
+    "boards": [
+      {
+        "key": "scenarios",
+        "label": {
+          "en": "Scenarios",
+          "ru": "Сценарии"
+        },
+        "description": {
+          "en": "Ways the song could go: one telling move, the image that runs through it, how it closes. Star the ones to write by.",
+          "ru": "Как может пойти песня: один выразительный ход, сквозной образ, чем закрывается. Звёздочкой - те, по которым писать."
+        },
+        "rule": "one",
+        "cards": [
+          {
+            "key": "scenario",
+            "label": {
+              "en": "Scenario",
+              "ru": "Сценарий"
+            },
+            "fields": [
+              {
+                "key": "line",
+                "label": {
+                  "en": "In one line",
+                  "ru": "Одной фразой"
+                },
+                "hint": {
+                  "en": "A lighthouse keeper counts the ships that never come",
+                  "ru": "Смотритель маяка считает корабли, которые не приходят"
+                }
+              },
+              {
+                "key": "image",
+                "label": {
+                  "en": "The image through it",
+                  "ru": "Сквозной образ"
+                },
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": {
+                  "en": "How it closes",
+                  "ru": "Чем закрывается"
+                },
+                "multiline": true
+              }
+            ]
+          }
+        ]
       }
     ]
   },

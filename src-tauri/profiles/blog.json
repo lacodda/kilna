@@ -4,9 +4,9 @@
   "description": "Posts with draft and angle kept separately, judged on whether a stranger reads past the first paragraph, scheduled into a calendar and shipped as a publish.",
   "config": {
     "work_kinds": [
-      { "key": "post", "label": "Post", "folder": "posts/{title}" },
-      { "key": "newsletter", "label": "Newsletter issue", "folder": "newsletters/{title}" },
-      { "key": "guide", "label": "Guide", "folder": "guides/{title}" }
+      { "key": "post", "label": "Post", "folder": "posts/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "scenarios" ] } },
+      { "key": "newsletter", "label": "Newsletter issue", "folder": "newsletters/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "scenarios" ] } },
+      { "key": "guide", "label": "Guide", "folder": "guides/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "scenarios" ] } }
     ],
     "release_kinds": [
       {
@@ -55,7 +55,8 @@
     ],
     "version_roles": [
       { "key": "draft", "label": "Draft", "body": "markdown", "skeleton": "## Hook\n\n\n## The point\n\n\n## Takeaway\n\n" },
-      { "key": "angle", "label": "Angle", "body": "plain" }
+      { "key": "angle", "label": "Angle", "body": "plain" },
+      { "key": "brief", "label": "Brief", "body": "markdown", "counts_as_version": false, "skeleton": "## What it is about\n\n## Who it is for\n\n## What I want them to take away\n\n## How it should read\n" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },
@@ -111,7 +112,8 @@
     "work_meta_fields": [
       { "key": "words", "label": "Words", "type": "number" },
       { "key": "target_keyword", "label": "Target keyword", "type": "text" },
-      { "key": "publish_date", "label": "Publish date", "type": "date" }
+      { "key": "publish_date", "label": "Publish date", "type": "date" },
+      { "key": "premise", "label": "Premise", "type": "multiline" }
     ],
     "rhythm": { "every_days": 2 },
     "prompts": [
@@ -166,6 +168,79 @@
         "method": "# Reply writer\n\n## Role\n\nYou are writing, for the author of a post, the reply to one comment from their audience. The author will read it, change what they like and post it themselves.\n\n## The voice\n\n- The replies already posted on the same channel are given with the task. They **are** the voice: match their length, their warmth, their language, how they address people, whether they use emoji. Do not describe the voice — use it.\n- With nothing posted yet, write as a person, not as a brand: plain, warm, short.\n- Answer in the language of the comment.\n\n## What to write\n\n- Answer what the comment actually says. A question gets an answer; praise gets a real thank-you that shows it was read, never a template.\n- Use what the work's text is given for when the comment is about something in it — a line, a moment, a character. Never explain the work unasked.\n- One to three sentences, unless the posted replies are longer as a rule.\n- Never promise anything on the author's behalf: a release date, a sequel, a collaboration. Never argue, and never answer rudeness in kind — a hostile comment gets a short, calm line or the note that it may not need a reply.\n- If a draft is given, rewrite it: keep what the author wrote that already works.\n\n## Output\n\nThe reply alone, as it would be posted.\n",
         "scope": "comment",
         "produces": "reply"
+      },
+      {
+        "key": "refine",
+        "label": "Refine the idea",
+        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "icon": "wand",
+        "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the post is about.",
+        "produces": "conception",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their post is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the post is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the post itself. Nothing the author did not give as their own.\n",
+        "kinds": [
+          "post",
+          "newsletter",
+          "guide"
+        ]
+      },
+      {
+        "key": "scenarios",
+        "label": "Propose takes",
+        "description": "Ways the post could go, put on the board.",
+        "icon": "lightbulb",
+        "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "method": "# Ways it could go\n\n## Role\n\nYou propose ways a post could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the post itself.\n",
+        "kinds": [
+          "post",
+          "newsletter",
+          "guide"
+        ]
+      },
+      {
+        "key": "write",
+        "label": "Write from the brief",
+        "description": "The post, written from the whole order - to talk over in the chat and insert once it is right.",
+        "icon": "pen",
+        "template": "{order}\n\nWrite the post.",
+        "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the post they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Open on the take, not on a warm-up.\n- Lay it out in markdown: short paragraphs, a heading where the reader would want one.\n- Write in the language of the brief.\n\n## Output\n\nThe post alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
+        "kinds": [
+          "post",
+          "newsletter",
+          "guide"
+        ]
+      }
+    ],
+    "boards": [
+      {
+        "key": "scenarios",
+        "label": "Takes",
+        "description": "Ways the post could go: the take it stands on, the example through it, how it ends. Star the ones to write by.",
+        "rule": "one",
+        "cards": [
+          {
+            "key": "scenario",
+            "label": "Take",
+            "fields": [
+              {
+                "key": "line",
+                "label": "In one line",
+                "hint": "Every guide to this skips the one step that breaks"
+              },
+              {
+                "key": "image",
+                "label": "The example through it",
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": "How it ends",
+                "multiline": true
+              }
+            ]
+          }
+        ]
       }
     ]
   }

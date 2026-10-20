@@ -50,6 +50,9 @@ impl Patch for crate::canon::CanonLinkPatch {}
 impl Patch for crate::register::TermPatch {}
 impl Patch for crate::cover::idea::IdeaPatch {}
 impl Patch for crate::lab::TrialPatch {}
+impl Patch for crate::board::CardPatch {
+    const MERGED_BY_KEY: &'static [&'static str] = &["fields"];
+}
 impl Patch for crate::time_off::TimeOffPatch {}
 
 /// What the fields a patch names held before it was applied, as the log

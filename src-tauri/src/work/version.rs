@@ -59,7 +59,10 @@ pub struct NewVersion {
     #[serde(default)]
     pub meta: Option<Map<String, Value>>,
     /// Make this the work's current version. Defaults to true: a new draft is
-    /// almost always the one being worked on.
+    /// almost always the one being worked on. Only a draft can be: a version
+    /// of a role that is not one - a style prompt, a brief, a review - is
+    /// written beside the current text and never in its place, whatever this
+    /// says (v0.99, see [`is_draft`]).
     // Not an `Option`, so `optional_fields` cannot reach it - said by hand.
     #[serde(default = "default_true")]
     #[ts(optional = nullable)]
@@ -174,7 +177,7 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
         ],
     )?;
 
-    if new.make_current {
+    if new.make_current && is_draft(tx, work_id, &new.role)? {
         tx.execute(
             "UPDATE work SET current_version_id = ?2, updated_at = ?3 WHERE id = ?1",
             params![work_id, id, timestamp],
@@ -296,6 +299,123 @@ pub fn check_belongs(conn: &Connection, work_id: &str, version_id: &str) -> Resu
             .param("work", work_id));
     }
     Ok(())
+}
+
+/// Whether a version of `role` is a draft of the work: a time the work was
+/// written, which the work's current text can be.
+///
+/// The work's kind says, through the role (`counts_as_version`, ADR 0001): a
+/// song's lyrics are; its style prompt, its brief and a review of it are
+/// texts written about the song, and making one of them current made it the
+/// song - its text on the overview, the corpus the guard of repeats reads,
+/// what `{body}` gives the assistant. A role the kind does not name is taken
+/// as a draft, as it was before any role could say otherwise.
+pub fn is_draft(conn: &Connection, work_id: &str, role: &str) -> Result<bool> {
+    let (profile_id, kind): (String, String) = conn
+        .query_row(
+            "SELECT profile_id, kind FROM work WHERE id = ?1",
+            params![work_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?
+        .ok_or_else(|| Error::not_found("work", work_id))?;
+    let config = crate::profile::config_for(conn, &profile_id)?;
+    Ok(config
+        .vocabulary(&kind)
+        .version_roles
+        .iter()
+        .find(|known| known.key == role)
+        .is_none_or(|known| known.counts_as_a_version()))
+}
+
+/// Refuse to make a version current when it is not a draft of the work -
+/// see [`is_draft`].
+pub fn check_draft(conn: &Connection, work_id: &str, version_id: &str) -> Result<()> {
+    let role: String = conn
+        .query_row(
+            "SELECT role FROM work_version WHERE id = ?1",
+            params![version_id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .ok_or_else(|| Error::not_found("version", version_id))?;
+    if is_draft(conn, work_id, &role)? {
+        return Ok(());
+    }
+    Err(Error::refused("version.notADraft").param("role", role))
+}
+
+/// Point every work whose current version is not a draft at its newest draft,
+/// or at nothing when it has none (v0.99).
+///
+/// Before v0.99 nothing held a version that is no draft back from becoming
+/// current: a style prompt typed into could become the song, and the brief
+/// an experiment was written in was its current version. What a role is, is
+/// read off the profile, which the upgrade has brought up to date by the time
+/// a workspace is opened - so this runs there, after it, and finds nothing to
+/// do once the rows obey the rule. Not logged: like a migration, it corrects
+/// what an older build wrote rather than doing anything a person asked for.
+pub fn settle_current(conn: &Connection) -> Result<usize> {
+    let rows: Vec<(String, String, String, String)> = conn
+        .prepare(
+            "SELECT w.id, w.profile_id, w.kind, v.role FROM work w
+             JOIN work_version v ON v.id = w.current_version_id",
+        )?
+        .query_map([], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    let mut configs: std::collections::BTreeMap<String, crate::profile::config::ProfileConfig> =
+        std::collections::BTreeMap::new();
+    let mut settled = 0;
+    for (work_id, profile_id, kind, role) in rows {
+        if !configs.contains_key(&profile_id) {
+            configs.insert(
+                profile_id.clone(),
+                crate::profile::config_for(conn, &profile_id)?,
+            );
+        }
+        let vocabulary = configs[&profile_id].vocabulary(&kind);
+        let draft = |key: &str| {
+            vocabulary
+                .version_roles
+                .iter()
+                .find(|known| known.key == key)
+                .is_none_or(|known| known.counts_as_a_version())
+        };
+        if draft(&role) {
+            continue;
+        }
+        let drafts: Vec<String> = vocabulary
+            .version_roles
+            .iter()
+            .filter(|known| known.counts_as_a_version())
+            .map(|known| known.key.clone())
+            .collect();
+        // The newest version of a role that is a draft: the text the work
+        // was last written in, which is what "current" meant.
+        let mut newest: Option<(String, String)> = None;
+        let mut statement = conn.prepare(
+            "SELECT id, role, created_at FROM work_version WHERE work_id = ?1
+             ORDER BY created_at DESC, revision DESC, rowid DESC",
+        )?;
+        let versions = statement.query_map(params![work_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        for version in versions {
+            let (id, of_role) = version?;
+            if drafts.contains(&of_role) {
+                newest = Some((id, of_role));
+                break;
+            }
+        }
+        conn.execute(
+            "UPDATE work SET current_version_id = ?2 WHERE id = ?1",
+            params![work_id, newest.map(|(id, _)| id)],
+        )?;
+        settled += 1;
+    }
+    Ok(settled)
 }
 
 /// Change the body of a version in place.

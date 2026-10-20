@@ -124,6 +124,9 @@ pub struct Outcome {
     /// Trials put on an experiment's board.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub trials: Vec<String>,
+    /// Cards put on a board of a work's conception (ADR 0065).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub board_cards: Vec<String>,
     /// Words of the record written: made, or given a facet (ADR 0052).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub terms: Vec<String>,
@@ -466,8 +469,45 @@ pub fn check(
                 }
             }
         },
+        Proposal::Cards {
+            work_id,
+            board,
+            cards,
+            ..
+        } => match work::get(conn, work_id)? {
+            None => note(Err(Error::not_found("work", work_id))),
+            Some(found) => {
+                // A board the kind no longer lays out, or a kind of card it no
+                // longer holds since the answer came, is said before any card
+                // lands.
+                match config.require_board(&found.kind, board) {
+                    Err(refused) => note(Err(refused)),
+                    Ok(laid) => {
+                        for (index, card) in cards.iter().enumerate() {
+                            if taken_card(overrides, index) && laid.card(&card.kind).is_none() {
+                                note(Err(Error::refused("board.notAKind")
+                                    .param("kind", card.kind.clone())
+                                    .param("board", laid.label.as_str())));
+                            }
+                        }
+                    }
+                }
+                if overrides.items.as_ref().is_some_and(Vec::is_empty) || cards.is_empty() {
+                    note(Err(Error::refused("proposal.nothingTaken")));
+                }
+            }
+        },
     }
     Ok(problems)
+}
+
+/// Whether the person kept the card at `index` of a proposal: every one when
+/// they named none, else the ones named `card:<index>`.
+fn taken_card(overrides: &Overrides, index: usize) -> bool {
+    overrides
+        .items
+        .as_ref()
+        .is_none_or(|items| items.iter().any(|item| *item == format!("card:{index}")))
 }
 
 /// Whether the person kept the idea at `index` of a proposal: every one when
@@ -811,6 +851,34 @@ fn keep(
                     .as_ref()
                     .is_none_or(|items| items.iter().any(|item| *item == format!("trial:{index}")))
             })?;
+            outcome.work_id = Some(work_id);
+        }
+
+        Proposal::Cards {
+            work_id,
+            board,
+            cards,
+            ..
+        } => {
+            for (index, card) in cards.into_iter().enumerate() {
+                if !taken_card(&overrides, index) {
+                    continue;
+                }
+                let made = super::board::create(
+                    conn,
+                    crate::board::NewCard {
+                        work_id: work_id.clone(),
+                        board: board.clone(),
+                        kind: card.kind,
+                        topic: card.topic,
+                        position: None,
+                        source: card.source,
+                        verdict: None,
+                        fields: card.fields,
+                    },
+                )?;
+                outcome.board_cards.push(made.id);
+            }
             outcome.work_id = Some(work_id);
         }
     }

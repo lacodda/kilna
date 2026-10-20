@@ -46,12 +46,14 @@ pub enum Entity {
     Shelf,
     /// A trial on an experiment's board, with its takes (ADR 0061).
     Trial,
+    /// A card on a board of a work's conception (ADR 0065).
+    Card,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 15] = [
+    pub const ALL: [Entity; 16] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -67,6 +69,7 @@ impl Entity {
         Entity::Idea,
         Entity::Shelf,
         Entity::Trial,
+        Entity::Card,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -86,6 +89,7 @@ impl Entity {
             Self::Idea => "idea",
             Self::Shelf => "shelf",
             Self::Trial => "trial",
+            Self::Card => "card",
         }
     }
 
@@ -108,6 +112,7 @@ impl Entity {
             "idea" => Ok(Self::Idea),
             "shelf" => Ok(Self::Shelf),
             "trial" => Ok(Self::Trial),
+            "card" => Ok(Self::Card),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -130,6 +135,7 @@ impl Entity {
             Self::Idea => "cover_idea",
             Self::Shelf => "shelf",
             Self::Trial => "trial",
+            Self::Card => "board_card",
         }
     }
 }
@@ -270,6 +276,12 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "asset",
                 key: "trial_id IN (SELECT id FROM trial WHERE work_id = ?)",
             },
+            // The cards on the boards of its conception, for the comments'
+            // reason.
+            Capture {
+                table: "board_card",
+                key: "work_id",
+            },
             // The terms of the register that named it. The schema's cascade
             // takes the rows down with the work; captured so a song restored
             // carries its images again.
@@ -392,6 +404,11 @@ fn cascade(entity: Entity) -> &'static [Capture] {
         // So is an idea on a cover's board.
         Entity::Idea => &[Capture {
             table: "cover_idea",
+            key: "id",
+        }],
+        // And a card on a board of a conception.
+        Entity::Card => &[Capture {
+            table: "board_card",
             key: "id",
         }],
         // A trial and the takes it was judged by: they are what it is
@@ -975,7 +992,7 @@ const CHILDREN_OF_NOTE: &str = "deletion.entity = 'fact'
 /// into it, so they go with it. Qualified by table, because it is also read
 /// beside `json_each`, whose own columns include an `id`.
 const CHILDREN_OF_WORK: &str =
-    "deletion.entity IN ('version', 'score', 'release', 'note', 'comment', 'idea', 'trial')
+    "deletion.entity IN ('version', 'score', 'release', 'note', 'comment', 'idea', 'trial', 'card')
      AND json_extract(deletion.snapshot, '$.' || (
          CASE deletion.entity
              WHEN 'version' THEN 'work_version'
@@ -984,6 +1001,7 @@ const CHILDREN_OF_WORK: &str =
              WHEN 'comment' THEN 'comment'
              WHEN 'idea' THEN 'cover_idea'
              WHEN 'trial' THEN 'trial'
+             WHEN 'card' THEN 'board_card'
              ELSE 'note'
          END
      ) || '[0].work_id') = ?1";
@@ -1171,7 +1189,8 @@ fn missing_parent(
         | Entity::Scene
         | Entity::Comment
         | Entity::Idea
-        | Entity::Trial => &[("work_id", "work")],
+        | Entity::Trial
+        | Entity::Card => &[("work_id", "work")],
         // A stretch of a splice names two works and needs both: without the
         // short it belongs to nothing, and without the video it is seconds of
         // nowhere. Either being gone is the same refusal.
@@ -1363,6 +1382,18 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by the first of its fields that says anything, and placed by
+        // the work whose board it was on.
+        Entity::Card => conn
+            .query_row(
+                "SELECT substr(coalesce((SELECT value FROM json_each(c.fields)
+                                         WHERE type = 'text' AND trim(value) <> '' LIMIT 1), ''), 1, 80),
+                        w.title, c.profile_id
+                 FROM board_card c JOIN work w ON w.id = c.work_id WHERE c.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
     };
 
     found.ok_or_else(|| Error::not_found(entity_label(entity), id))
@@ -1392,6 +1423,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Idea => "idea",
         Entity::Shelf => "shelf",
         Entity::Trial => "trial",
+        Entity::Card => "card",
     }
 }
 

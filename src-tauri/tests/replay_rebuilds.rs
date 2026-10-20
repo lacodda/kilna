@@ -24,7 +24,7 @@ use kilna_lib::{actions, fixtures, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
-const COMPARED: [&str; 16] = [
+const COMPARED: [&str; 17] = [
     "canon_fact",
     "canon_link",
     "work",
@@ -39,6 +39,7 @@ const COMPARED: [&str; 16] = [
     "comment",
     "cover_idea",
     "trial",
+    "board_card",
     "time_off",
     "tombstone",
 ];
@@ -691,6 +692,87 @@ fn a_board_of_trials_rebuilds_with_its_harvest() {
     got.remove("tombstone");
     assert_eq!(got, want, "the rebuilt board is not the same board");
     assert_eq!(got["trial"].as_array().unwrap().len(), 2);
+}
+
+/// A board of a conception rebuilds card by card (ADR 0065): a card put on
+/// it, one of its fields written and another emptied, starred, dragged under
+/// a topic, the topic renamed onto another and merged, and a card taken to the
+/// trash and back - each card where it stood, under the topic it had.
+#[test]
+fn a_board_of_scenarios_rebuilds_card_by_card() {
+    use kilna_lib::board::{CardPatch, NewCard, Source, Verdict};
+    use kilna_lib::trash::Entity;
+
+    let source = workspace();
+    let song = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+    let card = |line: &str, topic: &str| {
+        actions::board::create(
+            &source,
+            NewCard {
+                work_id: song.id.clone(),
+                board: "scenarios".into(),
+                kind: "scenario".into(),
+                topic: topic.into(),
+                position: None,
+                source: Source::Ai,
+                verdict: None,
+                fields: [("line".to_owned(), line.to_owned())].into_iter().collect(),
+            },
+        )
+        .unwrap()
+    };
+    let keeper = card("A keeper counts the ships", "Sea");
+    let boat = card("A boat repainted every spring", "Shore");
+    let own = actions::board::add_own(&source, &song.id, "scenarios", None, "A letter never sent")
+        .unwrap();
+    actions::board::update(
+        &source,
+        &keeper.id,
+        CardPatch {
+            fields: Some(
+                [
+                    ("image".to_owned(), json!("the lamp")),
+                    ("ending".to_owned(), json!("it goes dark")),
+                ]
+                .into_iter()
+                .collect(),
+            ),
+            ..CardPatch::default()
+        },
+    )
+    .unwrap();
+    actions::board::update(
+        &source,
+        &keeper.id,
+        CardPatch {
+            fields: Some([("ending".to_owned(), Value::Null)].into_iter().collect()),
+            ..CardPatch::default()
+        },
+    )
+    .unwrap();
+    actions::board::judge(&source, &boat.id, Some(Verdict::Star)).unwrap();
+    actions::board::move_card(&source, &own.id, "Sea", 0).unwrap();
+    actions::board::retopic(&source, &song.id, "scenarios", "Shore", "sea").unwrap();
+    let entry = actions::trash::discard(&source, Entity::Card, &keeper.id).unwrap();
+    actions::trash::restore(&source, &entry).unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+    let mut want = contents(&source);
+    let mut got = contents(&rebuilt);
+    want.remove("tombstone");
+    got.remove("tombstone");
+    assert_eq!(got, want, "the rebuilt board is not the same board");
+    assert_eq!(got["board_card"].as_array().unwrap().len(), 3);
 }
 
 /// The calendar's days and shifts rebuild as they were (v0.96): spans closed,

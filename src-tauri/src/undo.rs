@@ -150,6 +150,9 @@ pub fn reversible(kind: &str) -> bool {
             | "idea.update"
             | "trial.create"
             | "trial.update"
+            | "card.create"
+            | "card.update"
+            | "card.arrange"
             | "timeOff.create"
             | "timeOff.update"
             | "timeOff.delete"
@@ -285,6 +288,25 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let patch: crate::cover::idea::IdeaPatch = from_params(params, "before")?;
             apply(conn, |tx| {
                 crate::cover::idea::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A card goes back to what the fields its edit named held: the
+        // verdict, the kind, one field's words without another's.
+        "card.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::board::CardPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::board::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A board goes back to the order it stood in, every card under the
+        // topic it had: a drag, a rename and a merge are each one move back.
+        "card.arrange" => {
+            let work_id = required(params, "workId")?;
+            let board = required(params, "board")?;
+            let before: Vec<crate::board::Placed> = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::board::arrange(tx, &work_id, &board, &before, &at)
             })?;
         }
         // A trial goes back to what the fields its edit named held: the
@@ -649,7 +671,8 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
         | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create"
-        | "fact.create" | "term.create" | "idea.create" | "shelf.create" | "trial.create" => {
+        | "fact.create" | "term.create" | "idea.create" | "shelf.create" | "trial.create"
+        | "card.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -848,6 +871,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "idea.create" => crate::trash::Entity::Idea,
         "shelf.create" => crate::trash::Entity::Shelf,
         "trial.create" => crate::trash::Entity::Trial,
+        "card.create" => crate::trash::Entity::Card,
         other => return Err(Error::Internal(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

@@ -1,5 +1,36 @@
 {
   "config": {
+    "boards": [
+      {
+        "cards": [
+          {
+            "fields": [
+              {
+                "hint": "She finds her own name in a stranger's diary",
+                "key": "line",
+                "label": "In one line"
+              },
+              {
+                "key": "image",
+                "label": "The image through it",
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": "How it ends",
+                "multiline": true
+              }
+            ],
+            "key": "scenario",
+            "label": "Scenario"
+          }
+        ],
+        "description": "Ways the chapter could go: the move it turns on, the image through it, how it ends. Star the ones to write by.",
+        "key": "scenarios",
+        "label": "Scenarios",
+        "rule": "one"
+      }
+    ],
     "collection_kinds": [
       {
         "key": "book",
@@ -417,6 +448,48 @@
         "produces": "card-prompt",
         "scope": "canon",
         "template": "Write the description of this card for a picture generator."
+      },
+      {
+        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "icon": "wand",
+        "key": "refine",
+        "kinds": [
+          "chapter",
+          "scene",
+          "story"
+        ],
+        "label": "Refine the idea",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their chapter is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the chapter is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the chapter itself. Nothing the author did not give as their own.\n",
+        "produces": "conception",
+        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the chapter is about."
+      },
+      {
+        "description": "Ways the chapter could go, put on the board.",
+        "icon": "lightbulb",
+        "key": "scenarios",
+        "kinds": [
+          "chapter",
+          "scene",
+          "story"
+        ],
+        "label": "Propose scenarios",
+        "method": "# Ways it could go\n\n## Role\n\nYou propose ways a chapter could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the chapter itself.\n",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}"
+      },
+      {
+        "description": "The chapter, written from the whole order - to talk over in the chat and insert once it is right.",
+        "icon": "pen",
+        "key": "write",
+        "kinds": [
+          "chapter",
+          "scene",
+          "story"
+        ],
+        "label": "Write from the brief",
+        "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the chapter they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write in the voice and the point of view the fields and the brief give.\n- Lay it out as prose in paragraphs, with scene breaks where the time or the place jumps.\n- Write in the language of the brief.\n\n## Output\n\nThe chapter alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
+        "template": "{order}\n\nWrite the chapter."
       }
     ],
     "relation_kinds": [
@@ -515,6 +588,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "outline"
+          ]
+        },
         "folder": "chapters/{title}",
         "key": "chapter",
         "label": "Chapter",
@@ -722,6 +805,13 @@
             "body": "markdown",
             "key": "notes",
             "label": "Working notes"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n"
           }
         ]
       },
@@ -768,6 +858,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "outline"
+          ]
+        },
         "folder": "scenes/{title}",
         "key": "scene",
         "label": "Scene",
@@ -975,6 +1075,13 @@
             "body": "markdown",
             "key": "notes",
             "label": "Working notes"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n"
           }
         ]
       },
@@ -1021,6 +1128,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "outline"
+          ]
+        },
         "folder": "stories/{title}",
         "key": "story",
         "label": "Short story",
@@ -1228,6 +1345,13 @@
             "body": "markdown",
             "key": "notes",
             "label": "Working notes"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n"
           }
         ]
       }
@@ -1252,6 +1376,11 @@
         "key": "timeline",
         "label": "In-story date",
         "type": "text"
+      },
+      {
+        "key": "premise",
+        "label": "Premise",
+        "type": "multiline"
       }
     ]
   },

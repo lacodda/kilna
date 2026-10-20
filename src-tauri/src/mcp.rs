@@ -160,7 +160,9 @@ fn initialize() -> Value {
     and `propose_cover` proposes ideas onto it. An experiment is a work whose kind is a lab: \
     `trials` reads its board - trials by series, each with what it moves, its text, what came \
     out and the verdict - and `propose_trials` proposes trials onto it; a kept trial becomes a \
-    version of a song's style in the window. `canon` \
+    version of a song's style in the window. A work may be prepared before it is written - a \
+    brief, the idea it was refined into, boards of scenarios: `brief` reads the whole order a \
+    writer works from, and `propose_cards` proposes cards onto one of its boards. `canon` \
     reads the world the works share - cards of people, places and the channel, with facts in \
     layers - and `propose_canon` proposes cards, facts and relations for it. The material for \
     works to come is two shelves of notes: phrases - a word, a line, a quote, each one line, \
@@ -630,6 +632,54 @@ fn tools() -> Vec<Value> {
             &["work", "ideas"],
         ),
         tool(
+            "brief",
+            "The order a writer works from, for a work prepared on a conception - a song, a \
+             chapter, an episode (`conception` of its kind in `workspace`). `order` is the whole \
+             order in markdown, the same text the person copies out of kilna: the idea, the \
+             brief in the author's words, the texts it keeps to (a song's style prompt), the \
+             fields, each board as its rule reads it - the scenario to write by, those to \
+             choose from or combine, or every one not turned down - the notes and phrases \
+             attached with how each is sung, the channel's voice and the canon the work is \
+             about, and the register of what is worn out. `order` is null while nothing of the \
+             conception is written. `boards` are the boards themselves: each card with its id, \
+             kind, topic, where it came from (own, refined, ai), the person's verdict (star: \
+             wanted; rejected: not that; none) and its fields, and the directions the last run \
+             offered. Write from `order`, and answer with `propose_version` - the text in the \
+             role it is written in - or `propose_work` given `work`.",
+            json!({ "work": work_arg() }),
+            &["work"],
+        ),
+        tool(
+            "propose_cards",
+            "Propose cards onto a board of a work's conception - scenarios to write it by, and \
+             whatever else the craft lays out (`boards` in `workspace`, and the boards a kind's \
+             `conception` names). Each card names its `kind`, which may be left out on a board \
+             of one kind, its `fields` by the keys of that kind, and optionally a `topic` to \
+             group it under - one of the board's topics, or a new one of a few words. Give two \
+             to four `directions`: where the next run could dig, a few words each, shown on the \
+             board to click. Read `brief` first: do not repeat what stands on the board, take \
+             the starred cards as the direction and keep away from the turned-down ones. A \
+             kind or a field the board does not have is left out and said in the answer, the \
+             rest lands. The cards wait in the chat on the work and above its board; one click \
+             puts them on the board.",
+            json!({
+                "work": work_arg(),
+                "board": text_arg("The board, by its key: `scenarios`"),
+                "cards": {
+                    "type": "array",
+                    "description": "The cards, each in the fields of a kind of the board",
+                    "items": { "type": "object", "properties": {
+                        "kind": text_arg("A kind of card of the board; may be left out on a board of one kind"),
+                        "topic": text_arg("What it is grouped under, a few words, or leave it out"),
+                        "fields": { "type": "object", "description": "What the card says, by the field keys of its kind", "additionalProperties": { "type": "string" } },
+                    }, "required": ["fields"] },
+                },
+                "directions": { "type": "array", "description": "Two to four places the next run could dig, a few words each", "items": { "type": "string" } },
+                "note": text_arg("One sentence on the choices made, optional"),
+            }),
+            &["work", "board", "cards"],
+        ),
+        tool(
             "propose_version",
             "Propose a new version of a work in a role — a rewritten lyric, a style prompt. The \
              text lands in a chat on the work with an *insert as version* button; the person \
@@ -1044,6 +1094,7 @@ pub fn run_tool(
                         "cover": kind.cover,
                         "frame": kind.frame,
                         "lab": kind.lab,
+                        "conception": kind.conception,
                     })
                 })
                 .collect();
@@ -1081,6 +1132,7 @@ pub fn run_tool(
                 "note_kinds": note_kinds,
                 "style_types": style_types,
                 "compose": config.compose,
+                "boards": config.boards,
             }))
         }
 
@@ -1941,6 +1993,102 @@ pub fn run_tool(
             Ok(said)
         }
 
+        "brief" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            let conception = config.require_conception(&found.kind)?;
+            // Nothing written yet is a conception still to be written, not a
+            // mistake: the boards are there to read all the same.
+            let order = match crate::conception::order(conn, &found) {
+                Ok(order) => Value::from(order),
+                Err(error)
+                    if error
+                        .refusal()
+                        .is_some_and(|r| r.code == "conception.empty") =>
+                {
+                    Value::Null
+                }
+                Err(error) => return Err(error),
+            };
+            let boards: Vec<Value> = crate::board::boards(conn, &found)?
+                .into_iter()
+                .map(|view| {
+                    let laid = config.board(&view.board);
+                    json!({
+                        "key": view.board,
+                        "label": laid.map(|board| &board.label),
+                        "rule": laid.map(|board| board.rule),
+                        "cards": view.cards.iter().map(|card| json!({
+                            "id": card.id,
+                            "kind": card.kind,
+                            "topic": card.topic,
+                            "source": card.source,
+                            "verdict": card.verdict,
+                            "fields": card.fields,
+                        })).collect::<Vec<_>>(),
+                        "directions": view.directions,
+                    })
+                })
+                .collect();
+            pretty(&json!({
+                "work": found.id,
+                "title": found.title,
+                "kind": found.kind,
+                "brief_role": conception.brief,
+                "idea_field": conception.idea,
+                "order": order,
+                "boards": boards,
+            }))
+        }
+
+        "propose_cards" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            let board = config.require_board(&found.kind, required(args, "board")?)?;
+            let cards = args
+                .get("cards")
+                .filter(|raw| raw.as_array().is_some_and(|list| !list.is_empty()))
+                .ok_or_else(|| Error::refused("mcp.cardsNotArray"))?;
+            let mut raw = json!({ "cards": cards });
+            if let Some(directions) = args.get("directions") {
+                raw["directions"] = directions.clone();
+            }
+            let read = crate::board::answer::read(board, &raw, None)?;
+            let count = read.cards.len();
+            let left_out: Vec<String> = read
+                .dropped
+                .iter()
+                .map(|one| format!("card {}: {} “{}”", one.card, one.part, one.value))
+                .collect();
+            let body = apply::render_cards(board, &read.cards, &read.directions, &read.dropped);
+            let proposal = Proposal::Cards {
+                work_id: found.id.clone(),
+                board: board.key.clone(),
+                cards: read.cards,
+                directions: read.directions,
+                dropped: read.dropped,
+            };
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                Some(&found),
+                proposal,
+                &body,
+                arg(args, "note"),
+            )?;
+            let plural = if count == 1 { "" } else { "s" };
+            let mut said = format!(
+                "Proposed {count} card{plural} for the board “{}” of “{}”. They wait in the chat on the work and above its board; one click puts them on the board.",
+                board.label, found.title
+            );
+            if !left_out.is_empty() {
+                said.push_str(&format!(
+                    " Left out, not on the board: {}.",
+                    left_out.join("; ")
+                ));
+            }
+            Ok(said)
+        }
+
         "trials" => {
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
             let board = crate::lab::trial::board(conn, &found.id)?;
@@ -2447,6 +2595,7 @@ fn deliver(
         (Proposal::Release { .. }, _) => Record::new("proposal.release"),
         (Proposal::CoverIdeas { .. }, _) => Record::new("proposal.coverIdeas"),
         (Proposal::Trials { .. }, _) => Record::new("proposal.trials"),
+        (Proposal::Cards { .. }, _) => Record::new("proposal.cards"),
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
@@ -2627,6 +2776,84 @@ mod tests {
             .unwrap()
             .messages
             .remove(0)
+    }
+
+    /// An agent reads the order of a song prepared on a conception - null
+    /// while nothing of it is written, the whole markdown once it is - and
+    /// proposes cards onto its board; they wait until the person puts them
+    /// on it, and a field the board does not have is left out and said.
+    #[test]
+    fn an_agent_reads_the_order_and_proposes_cards() {
+        let (conn, song) = workspace();
+        let read = run_tool(&conn, &claude(), "brief", &args(json!({ "work": song }))).unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+        assert_eq!(read["order"], Value::Null, "nothing is written yet");
+        assert_eq!(read["brief_role"], "brief");
+        assert_eq!(read["boards"][0]["key"], "scenarios");
+
+        fixtures::version(
+            &conn,
+            &song,
+            "brief",
+            "## What it is about\nthe harbour at night",
+        );
+        let read = run_tool(&conn, &claude(), "brief", &args(json!({ "work": song }))).unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+        assert!(
+            read["order"]
+                .as_str()
+                .unwrap()
+                .contains("the harbour at night"),
+            "{read}"
+        );
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_cards",
+            &args(json!({
+                "work": song,
+                "board": "scenarios",
+                "cards": [
+                    { "topic": "Sea", "fields": { "line": "A keeper counts the ships", "mood": "grey" } },
+                    { "fields": { "line": "A boat repainted every spring" } }
+                ],
+                "directions": ["old maps"],
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("Proposed 2 cards"), "{answer}");
+        assert!(answer.contains("mood"), "{answer}");
+        let message = first_message(&conn, &song);
+        assert_eq!(message.meta["proposal"]["kind"], "cards");
+        assert!(
+            crate::board::for_board(&conn, &song, "scenarios")
+                .unwrap()
+                .is_empty()
+        );
+
+        crate::actions::proposal::apply(
+            &conn,
+            &message.id,
+            crate::actions::proposal::Overrides::default(),
+        )
+        .unwrap();
+        let board = crate::board::for_board(&conn, &song, "scenarios").unwrap();
+        assert_eq!(board.len(), 2);
+        assert_eq!(board[0].topic, "Sea");
+        assert_eq!(
+            crate::board::directions(&conn, &song, "scenarios").unwrap(),
+            ["old maps"]
+        );
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "propose_cards",
+            &args(json!({ "work": song, "board": "sources", "cards": [{ "fields": { "line": "x" } }] })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().unwrap().code, "board.notOfKind");
     }
 
     /// An agent reads a board and what an idea is built from, proposes ideas

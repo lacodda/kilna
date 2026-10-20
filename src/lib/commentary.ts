@@ -21,6 +21,18 @@ export function isCommentary(roles: readonly VersionRole[], role: string): boole
   return roles.find((r) => r.key === role)?.comments_on !== undefined
 }
 
+/**
+ * Whether a version of `role` is a draft of the work - a text the work's
+ * current version can be - the backend's `version::is_draft`: the role says
+ * (`counts_as_version`), and without a word anything that comments on
+ * nothing is. A role the kind does not name is taken as a draft.
+ */
+export function isDraft(roles: readonly VersionRole[], role: string): boolean {
+  const found = roles.find((r) => r.key === role)
+  if (found === undefined) return true
+  return found.counts_as_version ?? (found.comments_on === undefined || found.comments_on === null)
+}
+
 /** Everything written about `open`, in the order the history lists it. */
 export function commentaryOn(
   versions: readonly VersionSummary[],

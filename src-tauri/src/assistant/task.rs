@@ -246,6 +246,12 @@ pub fn compose(
         (Scope::Lab, _) => {
             return Err(Error::refused("task.isLabAction").param("action", template.label.as_str()));
         }
+        // Composed by `compose_for_board`, against a board of the conception.
+        (Scope::Board, _) => {
+            return Err(
+                Error::refused("task.isBoardAction").param("action", template.label.as_str())
+            );
+        }
     };
 
     // One block of that scene, when the action is aimed at one. Refused
@@ -362,6 +368,37 @@ pub fn compose(
             return Err(
                 Error::refused("task.actionAnswersLab").param("action", template.label.as_str())
             );
+        }
+        // Only an action about a board of the conception proposes its cards.
+        Produces::Cards(_) => {
+            return Err(
+                Error::refused("task.actionAnswersBoard").param("action", template.label.as_str())
+            );
+        }
+        // The idea and the brief, refined: only for a work prepared on a
+        // conception, whose brief the answer rewrites.
+        Produces::Conception => {
+            let conception = profile.config.require_conception(&work.kind)?;
+            let idea = conception.idea.as_deref().and_then(|key| {
+                profile
+                    .config
+                    .work_meta_fields
+                    .iter()
+                    .find(|field| field.key == key)
+                    .map(|field| field.label.as_str().to_lowercase())
+            });
+            let brief = vocabulary
+                .version_roles
+                .iter()
+                .find(|role| role.key == conception.brief)
+                .map_or_else(
+                    || "brief".to_owned(),
+                    |role| role.label.as_str().to_lowercase(),
+                );
+            prompt.push_str(&super::proposal::conception_instruction(
+                idea.as_deref(),
+                &brief,
+            ));
         }
     }
 
@@ -1331,6 +1368,114 @@ pub fn prepare_for_lab(
     request: &crate::lab::answer::TrialRequest,
 ) -> Result<Prepared> {
     let (composed, profile_id) = compose_for_lab(conn, work_id, action, request)?;
+    prepared(
+        conn,
+        &profile_id,
+        composed,
+        Some(work_id.to_owned()),
+        action,
+    )
+}
+
+/// The key of a task about a board of a work's conception: this action, on
+/// this board, and whether the person's own card is worked out as one more -
+/// what the answer is read by, since only then may a card of it say it was
+/// refined. One run at a time per board, whichever of the two
+/// ([`board_running`]).
+pub fn board_key(action: &str, work_id: &str, board: &str, refines: bool) -> String {
+    format!(
+        "{action}:board:{work_id}:{}:{board}",
+        if refines { "own" } else { "-" }
+    )
+}
+
+/// The work and the board a task key names, and whether it refines one of
+/// the person's own cards, when it names one. The board comes last and may
+/// hold anything, colons included.
+pub fn board_of_key(key: &str) -> Option<(String, String, bool)> {
+    let mut parts = key.splitn(5, ':');
+    parts.next()?;
+    if parts.next()? != "board" {
+        return None;
+    }
+    let work_id = parts.next()?.to_owned();
+    let refines = parts.next()? == "own";
+    let board = parts.next()?.to_owned();
+    Some((work_id, board, refines))
+}
+
+/// Whether a run of `action` is already writing cards for this board, with
+/// or without one of the person's own to work out.
+pub fn board_running(runs: &super::run::Runs, action: &str, work_id: &str, board: &str) -> bool {
+    [true, false]
+        .into_iter()
+        .any(|refines| runs.task_running(&board_key(action, work_id, board, refines)))
+}
+
+/// Compose `action` against a board of a work's conception (v0.99, ADR
+/// 0065): the template is rendered against the work, the way any action is,
+/// and one placeholder only a board has - `{cards}`, the board's kinds of
+/// card, what is asked and what already stands on it. The answer is asked
+/// for as a block of cards, the same shape an agent's `propose_cards` takes.
+pub fn compose_for_board(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    request: &crate::board::answer::CardRequest,
+) -> Result<(Composed, String)> {
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::not_found("prompt", action))?;
+    let Produces::Cards(board_key_of) = template.produces() else {
+        return Err(Error::refused("task.notBoardAction").param("action", template.label.as_str()));
+    };
+    if template.scope() != Scope::Board {
+        return Err(Error::refused("task.notBoardAction").param("action", template.label.as_str()));
+    }
+    let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    if !template.applies_to(&work.kind) {
+        return Err(Error::refused("task.wrongKindForAction")
+            .param("action", template.label.as_str())
+            .param("kind", work.kind.clone()));
+    }
+    let board = profile.config.require_board(&work.kind, &board_key_of)?;
+    request.check()?;
+
+    let rendered = super::prompt::for_work(conn, &work.id, &template.template, Context::default())?;
+    let cards = crate::board::for_board(conn, &work.id, &board.key)?;
+    // After the work's own placeholders, so the words already on the board -
+    // which may hold braces of their own - are not rendered a second time.
+    let mut prompt = rendered.replace(
+        "{cards}",
+        &crate::board::answer::request_sheet(board, &cards, request),
+    );
+    prompt.push_str(&crate::board::answer::instruction(board, request));
+    let prompt = super::waiting::instruct(&prompt);
+
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: board_key(action, &work.id, &board.key, request.refined().is_some()),
+            title: format!("{} · {}", template.label, work.title),
+            attachments: Vec::new(),
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_board`] with the chat it will be answered in: on the work.
+pub fn prepare_for_board(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    request: &crate::board::answer::CardRequest,
+) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_board(conn, work_id, action, request)?;
     prepared(
         conn,
         &profile_id,
@@ -3027,6 +3172,142 @@ mod version_tests {
             !composed.prompt.contains("Mill Lane"),
             "the internal layer reached a public reply: {}",
             composed.prompt
+        );
+    }
+
+    /// A board's action reads the conception and the board: what is starred
+    /// as the direction, what is turned down as what is not wanted, where to
+    /// dig, and the block to answer in - under a key that says whether the
+    /// person's own card is worked out.
+    #[test]
+    fn a_board_task_reads_the_conception_and_the_board() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        version::create(
+            &conn,
+            &song.id,
+            NewVersion {
+                role: "brief".into(),
+                body: "## What it is about\nthe harbour at night".into(),
+                ..NewVersion::default()
+            },
+        )
+        .unwrap();
+        let card = |line: &str| {
+            crate::actions::board::add_own(&conn, &song.id, "scenarios", None, line).unwrap()
+        };
+        let liked = card("A keeper counts the ships");
+        let not = card("A storm sinks the town");
+        crate::actions::board::judge(&conn, &liked.id, Some(crate::board::Verdict::Star)).unwrap();
+        crate::actions::board::judge(&conn, &not.id, Some(crate::board::Verdict::Rejected))
+            .unwrap();
+
+        let request = crate::board::answer::CardRequest {
+            count: 3,
+            refine: Some("A letter never sent".into()),
+            direction: Some("old maps".into()),
+            more: true,
+        };
+        let (composed, _) = compose_for_board(&conn, &song.id, "scenarios", &request).unwrap();
+        for said in [
+            "the harbour at night",
+            "Asked for: 3 new cards of your own, and the person's own card",
+            "A letter never sent",
+            "Where to dig this time: old maps",
+            "Starred - examples of what is wanted:",
+            "A keeper counts the ships",
+            "NOT wanted",
+            "A storm sinks the town",
+            "```json",
+            "\"directions\"",
+        ] {
+            assert!(
+                composed.prompt.contains(said),
+                "the prompt lacks {said:?}:\n{}",
+                composed.prompt
+            );
+        }
+        assert!(!composed.prompt.contains("{cards}"), "{}", composed.prompt);
+        assert_eq!(
+            board_of_key(&composed.key),
+            Some((song.id.clone(), "scenarios".to_owned(), true))
+        );
+
+        let code = |result: Result<(Composed, String)>| {
+            result.unwrap_err().refusal().map(|refusal| refusal.code)
+        };
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights (audio)");
+        assert_eq!(
+            code(compose_for_board(&conn, &audio.id, "scenarios", &request)),
+            Some("task.wrongKindForAction")
+        );
+        assert_eq!(
+            code(compose_for_board(
+                &conn,
+                &song.id,
+                "scenarios",
+                &crate::board::answer::CardRequest::default()
+            )),
+            Some("board.nothingAsked")
+        );
+        assert_eq!(
+            compose(&conn, &song.id, "scenarios", About::default())
+                .unwrap_err()
+                .refusal()
+                .map(|refusal| refusal.code),
+            Some("task.isBoardAction")
+        );
+    }
+
+    /// "Refine" and "Write from the brief" read the conception; the first
+    /// asks for the idea and the brief as a block, the second for prose - and
+    /// both are refused while nothing of the conception is written.
+    #[test]
+    fn the_conceptions_actions_read_it_and_refuse_nothing() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        for action in ["refine", "write"] {
+            assert_eq!(
+                compose(&conn, &song.id, action, About::default())
+                    .unwrap_err()
+                    .refusal()
+                    .map(|refusal| refusal.code),
+                Some("conception.empty"),
+                "{action}"
+            );
+        }
+        version::create(
+            &conn,
+            &song.id,
+            NewVersion {
+                role: "brief".into(),
+                body: "## What it is about\nthe harbour at night".into(),
+                ..NewVersion::default()
+            },
+        )
+        .unwrap();
+        let refine = compose(&conn, &song.id, "refine", About::default()).unwrap();
+        assert!(
+            refine.prompt.contains("the harbour at night"),
+            "{}",
+            refine.prompt
+        );
+        assert!(refine.prompt.contains("\"idea\""), "{}", refine.prompt);
+        assert!(
+            refine.prompt.contains("(nothing is starred yet)"),
+            "{}",
+            refine.prompt
+        );
+        let write = compose(&conn, &song.id, "write", About::default()).unwrap();
+        assert!(
+            write.prompt.contains("# “Harbour lights”"),
+            "{}",
+            write.prompt
+        );
+        assert!(
+            write.prompt.contains("Write the lyrics."),
+            "{}",
+            write.prompt
         );
     }
 }

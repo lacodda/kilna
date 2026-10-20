@@ -44,6 +44,9 @@ pub struct Pending {
     /// `version`, `score`, `note`, `scenes`, `work`, `package` — what kind of
     /// thing is being proposed, so the line can say so without reading it.
     pub kind: String,
+    /// The board cards are proposed for, when they are (ADR 0065): a work
+    /// lays out more than one, and each shows only what waits for it.
+    pub board: Option<String>,
     pub created_at: String,
 }
 
@@ -98,6 +101,10 @@ pub fn pending(conn: &Connection, profile_id: &str) -> Result<Vec<Pending>> {
                 .and_then(Value::as_str)
                 .unwrap_or("proposal")
                 .to_owned(),
+            board: proposal
+                .get("board")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
             created_at,
         });
     }
@@ -574,6 +581,63 @@ pub fn render_ideas(
             out.push_str(&format!(
                 "- idea {}: {} “{}”\n",
                 one.idea, one.part, one.value
+            ));
+        }
+    }
+    out.trim_end().to_owned()
+}
+
+/// Cards for a board as a person reads them before putting them on it: each
+/// field under its word, the topic it goes under, then where the next run
+/// could dig, and what was left out.
+pub fn render_cards(
+    board: &crate::profile::config::Board,
+    cards: &[crate::board::answer::Packaged],
+    directions: &[String],
+    dropped: &[crate::board::answer::Dropped],
+) -> String {
+    let mut out = String::new();
+    for card in cards {
+        let kind = board.card(&card.kind);
+        let ordered: Vec<(String, &String)> = match kind {
+            Some(kind) => kind
+                .fields
+                .iter()
+                .filter_map(|field| Some((field.label.to_string(), card.fields.get(&field.key)?)))
+                .collect(),
+            None => card
+                .fields
+                .iter()
+                .map(|(key, text)| (key.clone(), text))
+                .collect(),
+        };
+        let mut first = true;
+        for (word, text) in ordered {
+            if first {
+                out.push_str(&format!("**{}**", text.trim()));
+                if !card.topic.is_empty() {
+                    out.push_str(&format!(" · _{}_", card.topic));
+                }
+                out.push('\n');
+                first = false;
+            } else {
+                out.push_str(&format!("\n{word}: {}\n", text.trim()));
+            }
+        }
+        out.push('\n');
+    }
+    if !directions.is_empty() {
+        out.push_str(&format!(
+            "Where to dig next: {}\n\n",
+            directions.join(" · ")
+        ));
+    }
+    if !dropped.is_empty() {
+        out.push_str("Left out, not on the board:\n");
+        for one in dropped {
+            out.push_str(&format!(
+                "- card {}: {} “{}”\n",
+                one.card, one.part, one.value
             ));
         }
     }

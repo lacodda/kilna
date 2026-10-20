@@ -61,7 +61,8 @@ const TAB_FOR_ACTION: Record<string, Tab> = {
   release: 'overview',
   link: 'links',
   asset: 'files',
-  note: 'notes',
+  // The notes attached to a work are on its Conception tab since v0.99.
+  note: 'conception',
   proposal: 'assistant',
   assistant: 'assistant',
   tier: 'score',

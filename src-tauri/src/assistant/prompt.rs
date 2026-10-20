@@ -97,6 +97,13 @@ pub enum Produces {
     /// Trials for an experiment's board - a series, what each moves, its
     /// text - in a block the application reads (v0.95, ADR 0061).
     Trials,
+    /// Cards for the board of a work's conception the key names - scenarios,
+    /// sources - in a block the application reads (v0.99, ADR 0065).
+    Cards(String),
+    /// The idea and the brief, refined, in a block the application reads:
+    /// proposed as the idea's field and a revision of the brief (v0.99, ADR
+    /// 0065).
+    Conception,
 }
 
 /// What an action is about.
@@ -132,6 +139,9 @@ pub enum Scope {
     /// The board of trials of an experiment, read as `{trials}` and
     /// `{choices}`: offered on the board and nowhere else (v0.95).
     Lab,
+    /// A board of a work's conception, read as `{cards}`: offered on the
+    /// board and nowhere else (v0.99).
+    Board,
 }
 
 /// The value of `scope` that names a scene action.
@@ -170,6 +180,12 @@ pub const LAB_SCOPE: &str = "lab";
 /// The value of `produces` that names trials for an experiment's board.
 pub const TRIALS: &str = "trials";
 
+/// The value of `scope` that names an action about a board of a conception.
+pub const BOARD_SCOPE: &str = "board";
+
+/// The value of `produces` that names a conception refined.
+pub const CONCEPTION: &str = "conception";
+
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
     /// as prose rather than failing: a profile written for a later kilna
@@ -189,7 +205,15 @@ impl PromptTemplate {
             Some("words") => Produces::Words,
             Some(BRICKS) => Produces::Bricks,
             Some(TRIALS) => Produces::Trials,
+            Some(CONCEPTION) => Produces::Conception,
             Some(value) => {
+                if let Some(board) = value.strip_prefix("cards:") {
+                    return if board.trim().is_empty() {
+                        Produces::Prose
+                    } else {
+                        Produces::Cards(board.trim().to_owned())
+                    };
+                }
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
                         Produces::Prose
@@ -234,6 +258,7 @@ impl PromptTemplate {
             Some(COVER_SCOPE) => Scope::Cover,
             Some(PHRASES_SCOPE) => Scope::Phrases,
             Some(LAB_SCOPE) => Scope::Lab,
+            Some(BOARD_SCOPE) => Scope::Board,
             _ => Scope::Work,
         }
     }
@@ -305,7 +330,15 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "phrases"
             | "types"
             | "trials"
+            | "cards"
+            | "conception"
+            | "starred"
+            | "notes"
+            | "order"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
+        || name
+            .strip_prefix("starred:")
+            .is_some_and(|b| !b.trim().is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
         || name == "lines"
         || name
@@ -489,6 +522,27 @@ pub fn for_work(
                 crate::lines::sheet(conn, &work.profile_id, &work.id, shelf)?,
             ));
         }
+    }
+    // The conception (ADR 0065): the idea and the brief, what is starred on
+    // its boards, the notes attached, and the whole order a writer works
+    // from - each read only when asked for.
+    if wants("conception") {
+        values.push(("conception", crate::conception::sheet(conn, &work)?));
+    }
+    for name in &wanted {
+        if name == "starred" || name.starts_with("starred:") {
+            let board = name.strip_prefix("starred:").map(str::trim);
+            values.push((
+                name.as_str(),
+                crate::conception::starred(conn, &work, board)?,
+            ));
+        }
+    }
+    if wants("notes") {
+        values.push(("notes", crate::conception::notes(conn, &work)?));
+    }
+    if wants("order") {
+        values.push(("order", crate::conception::order(conn, &work)?));
     }
     if wants("selection") {
         values.push((

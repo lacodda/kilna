@@ -28,7 +28,10 @@ use crate::work::{self, WorkFilter, version};
 ///     ideas on its board; an experiment's page its trials, series by series,
 ///     each with its verdict, what came out and where it went; a version
 ///     taken from a trial says so.
-pub const FORMAT: u32 = 4;
+/// 5 — v0.99: a work's page carries the boards of its conception, board by
+///     board and topic by topic, each card with its fields, where it came
+///     from and the person's verdict.
+pub const FORMAT: u32 = 5;
 
 /// What an export produced, so the user can be told rather than guess.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -210,6 +213,7 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
 
         push_cover(conn, &mut page, work)?;
         push_trials(conn, &mut page, &work.id)?;
+        push_boards(conn, &mut page, work)?;
 
         let sources = crate::link::sources(conn, &work.id)?;
         if !sources.is_empty() {
@@ -807,6 +811,66 @@ fn push_trials(conn: &Connection, page: &mut String, work_id: &str) -> Result<()
                 crate::lab::trial::Harvest::Brick { name, .. } => {
                     page.push_str(&format!("\n→ the dictionary: {name}\n"));
                 }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The boards of a work's conception (ADR 0065): each under its name, its
+/// cards topic by topic in the order they stand, each with its fields under
+/// their words, where it came from and the verdict.
+fn push_boards(conn: &Connection, page: &mut String, work: &work::Work) -> Result<()> {
+    let views = crate::board::boards(conn, work)?;
+    if views.iter().all(|view| view.cards.is_empty()) {
+        return Ok(());
+    }
+    let config = profile::config_for(conn, &work.profile_id)?;
+    for view in views.iter().filter(|view| !view.cards.is_empty()) {
+        let board = config.board(&view.board);
+        let name = board.map_or_else(|| view.board.clone(), |board| board.label.to_string());
+        page.push_str(&format!("\n## {name}\n"));
+        let mut topic: Option<&str> = None;
+        for card in &view.cards {
+            if topic != Some(card.topic.as_str()) {
+                topic = Some(card.topic.as_str());
+                if !card.topic.is_empty() {
+                    page.push_str(&format!("\n### {}\n", card.topic));
+                }
+            }
+            let verdict = match card.verdict {
+                Some(crate::board::Verdict::Star) => " · ★",
+                Some(crate::board::Verdict::Rejected) => " · turned down",
+                None => "",
+            };
+            let source = match card.source {
+                crate::board::Source::Own => " · own",
+                crate::board::Source::Refined => " · refined",
+                crate::board::Source::Ai => "",
+            };
+            page.push_str(&format!(
+                "\n- **{}**{source}{verdict}\n",
+                card.headline(board)
+            ));
+            let kind = board.and_then(|board| board.card(&card.kind));
+            let fields: Vec<(String, &String)> = match kind {
+                Some(kind) => kind
+                    .fields
+                    .iter()
+                    .skip(1)
+                    .filter_map(|field| {
+                        Some((field.label.to_string(), card.fields.get(&field.key)?))
+                    })
+                    .collect(),
+                None => card
+                    .fields
+                    .iter()
+                    .skip(1)
+                    .map(|(key, text)| (key.clone(), text))
+                    .collect(),
+            };
+            for (word, text) in fields {
+                page.push_str(&format!("  - {word}: {}\n", text.trim().replace('\n', " ")));
             }
         }
     }

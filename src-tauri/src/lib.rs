@@ -1,6 +1,7 @@
 pub mod actions;
 pub mod asset;
 pub mod assistant;
+pub mod board;
 pub mod canon;
 pub mod card;
 pub mod clock;
@@ -8,6 +9,7 @@ pub mod clone;
 pub mod collection;
 pub mod commands;
 pub mod comment;
+pub mod conception;
 pub mod cover;
 pub mod cut;
 pub mod db;
@@ -204,6 +206,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assistant::start_cover_task,
             commands::assistant::preview_lab_task,
             commands::assistant::start_lab_task,
+            commands::assistant::preview_board_task,
+            commands::assistant::start_board_task,
             commands::assistant::stop_task,
             commands::notes::list_notes,
             commands::notes::list_lines,
@@ -251,6 +255,14 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::ideas::take_idea,
             commands::ideas::take_sibling_cover,
             commands::ideas::delete_idea,
+            commands::boards::work_boards,
+            commands::boards::add_own_card,
+            commands::boards::update_card,
+            commands::boards::judge_card,
+            commands::boards::move_card,
+            commands::boards::retopic_cards,
+            commands::boards::delete_card,
+            commands::boards::conception_order,
             commands::trials::trial_board,
             commands::trials::create_trial,
             commands::trials::update_trial,

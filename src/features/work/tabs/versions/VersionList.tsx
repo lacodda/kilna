@@ -34,7 +34,9 @@ interface Props {
   comparedId: string | null
   onOpen: (id: string) => void
   onCompare: (id: string) => void
-  onMakeCurrent: (id: string) => void
+  /** Make a version the work's current text; absent for a lane whose
+   *  versions cannot be - a style prompt, a review (v0.99). */
+  onMakeCurrent?: (id: string) => void
   onDelete: (id: string) => void
   /** Start a new draft from this version's body. */
   onDeriveFrom: (id: string) => void
@@ -295,7 +297,7 @@ export function VersionList({
                         onSelect: () => onDeriveFrom(version.id),
                       },
                     ]),
-                ...(version.is_current || commentary
+                ...(version.is_current || commentary || onMakeCurrent === undefined
                   ? []
                   : [
                       {

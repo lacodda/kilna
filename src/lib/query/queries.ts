@@ -70,6 +70,7 @@ import {
 } from '@/lib/api/styles'
 import { coverBoard } from '@/lib/api/ideas'
 import { trialBoard } from '@/lib/api/trials'
+import { workBoards } from '@/lib/api/boards'
 import { listDeletions } from '@/lib/api/trash'
 import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
@@ -120,6 +121,8 @@ export const queries = {
     queryOptions({ queryKey: keys.coverBoard(workId), queryFn: () => coverBoard(workId) }),
   trialBoard: (workId: string) =>
     queryOptions({ queryKey: keys.trialBoard(workId), queryFn: () => trialBoard(workId) }),
+  boards: (workId: string) =>
+    queryOptions({ queryKey: keys.boards(workId), queryFn: () => workBoards(workId) }),
   frameView: (workId: string) =>
     queryOptions({ queryKey: keys.frameView(workId), queryFn: () => frameView(workId) }),
   sceneFrameView: (sceneId: string) =>

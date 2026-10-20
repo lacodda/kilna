@@ -5,7 +5,8 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { BadgeCheck, BookOpen, CornerUpLeft, MessageSquareText, Plus } from 'lucide-react'
 import type { VersionSummary } from '@/lib/api/types'
 import { deleteVersion, setCurrentVersion } from '@/lib/api/versions'
-import { commentaryOn, isCommentary, subjectOf } from '@/lib/commentary'
+import { commentaryOn, isCommentary, isDraft, subjectOf } from '@/lib/commentary'
+import { isBrief } from '@/lib/conception'
 import { formatDay } from '@/lib/format'
 import { parentIn, predecessor } from '@/lib/history'
 import { queries } from '@/lib/query/queries'
@@ -58,9 +59,15 @@ interface Props {
 export function VersionPanel({ workId }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
-  const roles = useVocabulary(workId).version_roles
   const { config } = useProfile()
   const kind = useWorkKind(workId)
+  // The brief is written on the Conception tab, and is no version of the
+  // work (ADR 0065): its lane is not drawn here.
+  const vocabulary = useVocabulary(workId).version_roles
+  const roles = useMemo(
+    () => vocabulary.filter((role) => kind === undefined || !isBrief(config, kind, role.key)),
+    [vocabulary, config, kind],
+  )
   // The dictionary the open lane is written out of, if it is (v0.94).
   const [composing, setComposing] = useState(false)
 
@@ -130,6 +137,9 @@ export function VersionPanel({ workId }: Props) {
     roles[0]?.key ??
     ''
   const commentaryLane = isCommentary(roles, lane)
+  // Whether a version of the lane can be the work's current text: a draft
+  // of it can, a style prompt or a review cannot (v0.99).
+  const draftLane = isDraft(roles, lane)
   const composition = commentaryLane ? undefined : compositionFor(config, kind, lane)
   // The profile's action that writes the picks up as prose for this role.
   const prose = composition === undefined ? undefined : proseActionFor(config, kind, lane)
@@ -229,7 +239,7 @@ export function VersionPanel({ workId }: Props) {
     open: open.data?.id === openId ? open.data : undefined,
     onMinted: show,
     failure: t('toast.versionSaveFailed'),
-    current: !commentaryLane,
+    current: draftLane,
   })
 
   const skeleton = roles.find((role) => role.key === lane)?.skeleton
@@ -389,7 +399,7 @@ export function VersionPanel({ workId }: Props) {
               }
             }}
             onCompare={(id) => setComparedId(againstId === id ? null : id)}
-            onMakeCurrent={(id) => makeCurrent.mutate(id)}
+            onMakeCurrent={draftLane ? (id) => makeCurrent.mutate(id) : undefined}
             onDelete={(id) => remove.mutate(id)}
             onDeriveFrom={(id) => void deriveFrom(id)}
           />
@@ -437,7 +447,7 @@ export function VersionPanel({ workId }: Props) {
                 }))}
               onPick={setComparedId}
             />
-            {!commentaryLane && openSummary !== null && !openSummary.is_current && (
+            {draftLane && openSummary !== null && !openSummary.is_current && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -524,7 +534,7 @@ export function VersionPanel({ workId }: Props) {
       onDraftChange={form.setDraft}
       label={form.label}
       onLabelChange={form.setLabel}
-      makeCurrent={form.makeCurrent}
+      makeCurrent={draftLane ? form.makeCurrent : undefined}
       onMakeCurrentChange={form.setMakeCurrent}
       onSave={form.save}
       onCancel={form.composing && summaries.length > 0 ? form.close : undefined}

@@ -292,8 +292,13 @@ export interface TaskSubject {
  */
 export function subjectOf(key: string): TaskSubject {
   const [action = '', second, third] = key.split(':')
-  // A board's task names its publication third: `cover-ideas:cover:<work>`.
-  if (second === 'cover') return { action, workId: third ?? null }
+  // A board's task names its work third: `cover-ideas:cover:<work>`, an
+  // experiment's `<action>:lab:<work>:…` and a conception's
+  // `<action>:board:<work>:…` - read as the work's second word, a lab's and
+  // a board's task named a work called `lab` or `board` (found in v0.99).
+  if (second === 'cover' || second === 'lab' || second === 'board') {
+    return { action, workId: third ?? null }
+  }
   if (
     second === undefined ||
     second === '' ||

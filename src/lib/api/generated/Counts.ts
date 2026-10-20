@@ -5,7 +5,8 @@
  */
 export type Counts = { 
 /**
- * Versions of every role.
+ * Versions of every role but the brief, which the Conception tab
+ * writes (ADR 0065).
  */
 versions: number, scores: number, releases: number, 
 /**
@@ -46,4 +47,8 @@ history: number,
 /**
  * The trials on an experiment's board (ADR 0061).
  */
-trials: number, };
+trials: number, 
+/**
+ * The cards on the boards of the work's conception (ADR 0065).
+ */
+cards: number, };

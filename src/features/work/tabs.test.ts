@@ -171,11 +171,11 @@ describe("the card's tabs", () => {
       // are the ones in its folder on disk (v0.93, ADR 0057).
       expect(drawn(IDS.song)).toEqual([
         'overview',
+        'conception',
         'versions',
         'score',
         'files',
         'links',
-        'notes',
         'comments',
         'assistant',
         'history',

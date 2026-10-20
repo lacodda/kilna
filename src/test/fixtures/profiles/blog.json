@@ -1,5 +1,36 @@
 {
   "config": {
+    "boards": [
+      {
+        "cards": [
+          {
+            "fields": [
+              {
+                "hint": "Every guide to this skips the one step that breaks",
+                "key": "line",
+                "label": "In one line"
+              },
+              {
+                "key": "image",
+                "label": "The example through it",
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": "How it ends",
+                "multiline": true
+              }
+            ],
+            "key": "scenario",
+            "label": "Take"
+          }
+        ],
+        "description": "Ways the post could go: the take it stands on, the example through it, how it ends. Star the ones to write by.",
+        "key": "scenarios",
+        "label": "Takes",
+        "rule": "one"
+      }
+    ],
     "collection_kinds": [
       {
         "key": "series",
@@ -85,6 +116,48 @@
         "produces": "reply",
         "scope": "comment",
         "template": "Write the reply."
+      },
+      {
+        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "icon": "wand",
+        "key": "refine",
+        "kinds": [
+          "post",
+          "newsletter",
+          "guide"
+        ],
+        "label": "Refine the idea",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their post is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the post is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the post itself. Nothing the author did not give as their own.\n",
+        "produces": "conception",
+        "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the post is about."
+      },
+      {
+        "description": "Ways the post could go, put on the board.",
+        "icon": "lightbulb",
+        "key": "scenarios",
+        "kinds": [
+          "post",
+          "newsletter",
+          "guide"
+        ],
+        "label": "Propose takes",
+        "method": "# Ways it could go\n\n## Role\n\nYou propose ways a post could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the post itself.\n",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}"
+      },
+      {
+        "description": "The post, written from the whole order - to talk over in the chat and insert once it is right.",
+        "icon": "pen",
+        "key": "write",
+        "kinds": [
+          "post",
+          "newsletter",
+          "guide"
+        ],
+        "label": "Write from the brief",
+        "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the post they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Open on the take, not on a warm-up.\n- Lay it out in markdown: short paragraphs, a heading where the reader would want one.\n- Write in the language of the brief.\n\n## Output\n\nThe post alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
+        "template": "{order}\n\nWrite the post."
       }
     ],
     "rhythm": {
@@ -137,6 +210,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "angle"
+          ]
+        },
         "folder": "posts/{title}",
         "key": "post",
         "label": "Post",
@@ -301,6 +384,13 @@
             "body": "plain",
             "key": "angle",
             "label": "Angle"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Who it is for\n\n## What I want them to take away\n\n## How it should read\n"
           }
         ]
       },
@@ -347,6 +437,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "angle"
+          ]
+        },
         "folder": "newsletters/{title}",
         "key": "newsletter",
         "label": "Newsletter issue",
@@ -511,6 +611,13 @@
             "body": "plain",
             "key": "angle",
             "label": "Angle"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Who it is for\n\n## What I want them to take away\n\n## How it should read\n"
           }
         ]
       },
@@ -557,6 +664,16 @@
             "weight": 1.0
           }
         ],
+        "conception": {
+          "boards": [
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "angle"
+          ]
+        },
         "folder": "guides/{title}",
         "key": "guide",
         "label": "Guide",
@@ -721,6 +838,13 @@
             "body": "plain",
             "key": "angle",
             "label": "Angle"
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": "Brief",
+            "skeleton": "## What it is about\n\n## Who it is for\n\n## What I want them to take away\n\n## How it should read\n"
           }
         ]
       }
@@ -740,6 +864,11 @@
         "key": "publish_date",
         "label": "Publish date",
         "type": "date"
+      },
+      {
+        "key": "premise",
+        "label": "Premise",
+        "type": "multiline"
       }
     ]
   },

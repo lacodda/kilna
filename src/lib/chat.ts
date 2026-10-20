@@ -114,6 +114,11 @@ const proposalOf = (message: Message): Proposal | null => {
       return Array.isArray((proposal as Partial<{ trials: unknown }>).trials)
         ? (proposal as Proposal)
         : null
+    // Cards for a board of a conception (v0.99), put on the board.
+    case 'cards':
+      return Array.isArray((proposal as Partial<{ cards: unknown }>).cards)
+        ? (proposal as Proposal)
+        : null
     // Words for the record (v0.90, ADR 0052): a phrase to keep and its shelf
     // (ADR 0064), how a word is sung, a term of the register, the works a
     // meaning is in.
@@ -262,7 +267,8 @@ export function offers(item: Exchange, onWork: boolean): Offers {
     kind === 'reply' ||
     kind === 'description' ||
     kind === 'coverIdeas' ||
-    kind === 'trials'
+    kind === 'trials' ||
+    kind === 'cards'
   return {
     insert: onWork && settled && !ownCard,
     keep: settled && !ownCard && kind !== 'note',
