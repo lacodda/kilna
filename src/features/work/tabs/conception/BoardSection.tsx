@@ -91,10 +91,13 @@ export function BoardSection({ work, board }: Props) {
     (card) => card.source === 'own' && headlineOf(board, card) === words.trim(),
   )
 
+  // On the board, the words leave the composer for the next card; a run
+  // that works them out has already taken them into its request.
   const putOwn = useAppMutation({
     mutationFn: () => addOwnCard(work.id, board.key, words),
     failure: 'board.addFailed',
     refresh,
+    onSuccess: () => setWords(''),
   })
   const judge = useAppMutation({
     mutationFn: ({ id, verdict }: { id: string; verdict: CardVerdict | null }) =>

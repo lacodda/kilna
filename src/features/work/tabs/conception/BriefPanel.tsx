@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createVersion } from '@/lib/api/versions'
 import type { Work } from '@/lib/api/types'
 import { briefRoleOf } from '@/lib/conception'
 import { formatDay } from '@/lib/format'
+import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -33,6 +34,7 @@ interface Props {
 export function BriefPanel({ work }: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
+  const client = useQueryClient()
   const role = briefRoleOf(config, work.kind)
   const versions = useQuery(queries.versions(work.id))
   // The brief being written is its newest revision: the list comes newest
@@ -61,7 +63,13 @@ export function BriefPanel({ work }: Props) {
       createVersion(work.id, { role: role!.key, body: skeleton, make_current: false }),
     failure: 'toast.versionSaveFailed',
     refresh: refresh.version(work.id),
-    onSuccess: (version) => setMinted(version.id),
+    // The version is handed to the editor as it came back, before any query
+    // for it answers: a word typed in that moment went into no version and
+    // was then overwritten by the skeleton (found by the live run of v0.99).
+    onSuccess: (version) => {
+      client.setQueryData(keys.version(version.id), version)
+      setMinted(version.id)
+    },
   })
 
   if (role === undefined) return null
@@ -110,6 +118,10 @@ export function BriefPanel({ work }: Props) {
           rows={10}
           maxRows={40}
           value={editing.text}
+          // Nothing to write into until the brief is read: typed before, it
+          // would land in no version.
+          readOnly={open.data === undefined}
+          onBlur={() => void editing.flush()}
           onChange={(event) => editing.setText(event.target.value)}
           className="flex-1 leading-relaxed"
         />

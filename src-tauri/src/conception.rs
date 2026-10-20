@@ -188,13 +188,15 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
         .map_or_else(|| work.kind.clone(), |known| known.label.to_string());
 
     let mut parts = vec![format!("# “{}”", work.title)];
+    // No article: "a experiment" reads wrong, and the kind is a word of the
+    // profile's, in whatever language it was written.
     parts.push(match text_role(&config, work) {
         Some(role) => format!(
-            "A {} to write: its {}.",
-            kind.to_lowercase(),
-            role.to_lowercase()
+            "To write: the {} of this {}.",
+            role.to_lowercase(),
+            kind.to_lowercase()
         ),
-        None => format!("A {} to write.", kind.to_lowercase()),
+        None => format!("To write: this {}.", kind.to_lowercase()),
     });
     if let Some(idea) = idea {
         parts.push(format!("## {}\n\n{idea}", idea_word(&config, conception)));
@@ -203,7 +205,7 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
         parts.push(format!(
             "## {}\n\n{}",
             brief_word(&config, work, conception),
-            brief.body.trim()
+            nested(brief.body.trim())
         ));
     }
     let roles = &config.vocabulary(&work.kind).version_roles;
@@ -217,7 +219,7 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
             .iter()
             .find(|role| role.key == *key)
             .map_or_else(|| key.clone(), |role| role.label.to_string());
-        parts.push(format!("## {word}\n\n{}", text.body.trim()));
+        parts.push(format!("## {word}\n\n{}", nested(text.body.trim())));
     }
     let fields = fields(&config, work, conception);
     if !fields.is_empty() {
@@ -253,7 +255,10 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
     }
     let canon = canon(conn, work, brief.as_ref())?;
     if !canon.is_empty() {
-        parts.push(format!("## The channel and the canon\n\n{canon}"));
+        parts.push(format!(
+            "## The channel and the canon\n\n{}",
+            nested(&canon)
+        ));
     }
     let register = crate::register::sheet::register(conn, &work.profile_id, None)?;
     if !register.trim().is_empty() && !register.starts_with('(') {
@@ -279,29 +284,64 @@ fn fields(config: &ProfileConfig, work: &Work, conception: &Conception) -> Strin
 
 /// What a writer is told of the canon: the channel's card as the public
 /// reads it - its voice, its bans - and the cards the work is about as a
-/// work's text reads them, found by the brief's words where no text exists
-/// yet.
+/// work's text reads them: the ones that live at it, and the ones its brief
+/// names, there being no text to find them in yet.
+///
+/// Not `{canon}`'s sheet: that one lists every card of the canon by name and
+/// id, so an answer can name the card it means - a hundred and more lines a
+/// writer has no use for (found by the live run of v0.99, where it was most
+/// of a hundred-kilobyte order).
 fn canon(conn: &Connection, work: &Work, brief: Option<&Version>) -> Result<String> {
     let config = crate::profile::config_for(conn, &work.profile_id)?;
-    let mut out = Vec::new();
-    let root = crate::canon::view::cards(
+    let text = brief
+        .map(|version| version.body.as_str())
+        .unwrap_or_default();
+    let mut root = Vec::new();
+    let mut about = Vec::new();
+    for card in crate::canon::view::cards(
         conn,
         &work.profile_id,
         &crate::canon::view::CardFilter::default(),
-    )?
-    .into_iter()
-    .find(|card| config.card_kind(&card.kind).is_some_and(|kind| kind.root));
-    if let Some(root) = root {
-        let seen = crate::canon::view::render(conn, &root.id, Lens::Public)?;
-        if !seen.trim().is_empty() {
-            out.push(seen);
+    )? {
+        if config.card_kind(&card.kind).is_some_and(|kind| kind.root) {
+            root.push(crate::canon::view::render(conn, &card.id, Lens::Public)?);
+            continue;
+        }
+        let named = card
+            .title
+            .iter()
+            .chain(card.aliases.iter())
+            .any(|name| crate::canon::appearances::names_word(text, name));
+        if card.work_id.as_deref() == Some(work.id.as_str()) || named {
+            about.push(crate::canon::view::render(conn, &card.id, Lens::Work)?);
         }
     }
-    let about = crate::assistant::prompt::canon_through(conn, work, brief, Lens::Work)?;
-    if !about.starts_with('(') {
-        out.push(about);
-    }
-    Ok(out.join("\n\n"))
+    Ok(root
+        .into_iter()
+        .chain(about)
+        .filter(|seen| !seen.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n"))
+}
+
+/// A markdown text set one heading level deeper, so its own headings stand
+/// under the order's part rather than beside it: a brief's `## What it is
+/// about` under `## Brief`. A fenced block is left as it is.
+fn nested(text: &str) -> String {
+    let mut fenced = false;
+    text.lines()
+        .map(|line| {
+            if line.trim_start().starts_with("```") {
+                fenced = !fenced;
+            }
+            if !fenced && line.starts_with('#') {
+                format!("#{line}")
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 #[cfg(test)]
@@ -389,6 +429,14 @@ mod tests {
         assert!(
             !order.contains("A boat repainted"),
             "a turned-down card went:\n{order}"
+        );
+        assert!(
+            order.contains("### What it is about"),
+            "the brief's headings stand under its part:\n{order}"
+        );
+        assert!(
+            !order.contains("Every card, by name"),
+            "the canon's index of names went:\n{order}"
         );
 
         crate::actions::board::judge(&conn, &keeper.id, Some(Verdict::Star)).unwrap();

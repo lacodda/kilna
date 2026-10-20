@@ -18,7 +18,7 @@ import { say } from '@/lib/toast'
 import { useRunningTasks } from '@/lib/useRunningTasks'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { Panel, SectionLabel } from '@/components/ui/panel'
+import { Panel } from '@/components/ui/panel'
 import { Frame, Scroll } from '@/components/frame'
 import { MetaParagraph } from '@/features/work/tabs/overview/MetaInput'
 import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
@@ -47,13 +47,23 @@ export function ConceptionTab({ work }: Props) {
   if (conception === undefined) return <NotePanel workId={work.id} />
 
   const boards = boardsOf(config, work.kind)
+  // The brief takes the width the idea leaves: an experiment has no idea to
+  // refine its brief into, and an empty column beside it was a hole.
+  const withIdea =
+    ideaFieldOf(config, work.kind) !== undefined || refineActionOf(config, work.kind) !== undefined
   return (
     <Frame head={<ConceptionHead work={work} />}>
       <Scroll label={t('conception.title')}>
         <div className="flex flex-col gap-2.5 pr-0.75 pb-2.5">
-          <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start gap-2.5 max-[1100px]:grid-cols-1">
+          <div
+            className={
+              withIdea
+                ? 'grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start gap-2.5 max-[1100px]:grid-cols-1'
+                : 'flex flex-col'
+            }
+          >
             <BriefPanel work={work} />
-            <IdeaPanel work={work} />
+            {withIdea && <IdeaPanel work={work} />}
           </div>
           {boards.map((board) => (
             <BoardSection key={board.key} work={work} board={board} />
@@ -65,8 +75,9 @@ export function ConceptionTab({ work }: Props) {
   )
 }
 
-/** The head of the tab: its name, and the two things the preparation is for -
- *  the order copied out, and the text written from it. */
+/** The head of the tab: the two things the preparation is for - the order
+ *  copied out, and the text written from it. The tab's name is the bar's: a
+ *  caption saying it again stood beside the brief's own. */
 function ConceptionHead({ work }: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
@@ -80,9 +91,8 @@ function ConceptionHead({ work }: Props) {
   })
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <SectionLabel>{t('conception.title')}</SectionLabel>
-      <span className="ml-auto flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-wrap items-center justify-end gap-2">
+      <span className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
           variant="ghost"

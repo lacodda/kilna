@@ -166,7 +166,9 @@ function CardText({
       {!headline && <span className="caption text-2xs">{label}</span>}
       <Textarea
         aria-label={label}
-        placeholder={field.hint == null ? label : sayLabel(field.hint)}
+        // The headline says what it is called while empty; a field under its
+        // own caption shows its hint, or only that there is room.
+        placeholder={field.hint != null ? sayLabel(field.hint) : headline ? label : '…'}
         autoResize
         rows={1}
         maxRows={headline ? 4 : 8}
