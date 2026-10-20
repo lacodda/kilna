@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.99.0] - 2026-10-20
+
+### Bug Fixes
+- Read a brief before typing into it; trim the order
+- Find the assets from the repository, not this machine's paths
+- Take dowel-ui 0.38.1's copies of the registry components
+- Let the brief's skeleton be selected and copied
+
+### Documentation
+- Describe the conception, its boards and the order
+- Part every release from the one above it
+- Show the conception on the front page
+
+### Features
+- Prepare a work on a brief, an idea and boards
+
+### Testing
+- Hold harvests and the dialog to the rule that drafts are current
+
 ## [0.98.0] - 2026-10-19
 
 ### Bug Fixes
