@@ -98,7 +98,7 @@ export function BriefPanel({ work }: Props) {
         <div className="flex flex-1 flex-col items-start gap-2 rounded-lg border border-dashed border-line-2 bg-softer px-3 py-3">
           <p className="text-sm text-dim">{t('conception.briefEmpty')}</p>
           {skeleton !== '' && (
-            <pre className="w-full font-sans text-xs whitespace-pre-wrap text-faint">
+            <pre className="selectable w-full font-sans text-xs whitespace-pre-wrap text-faint">
               {skeleton}
             </pre>
           )}
