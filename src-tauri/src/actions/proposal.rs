@@ -1796,9 +1796,9 @@ mod tests {
         let message = propose(
             &conn,
             &chat,
-            "brushed drums",
+            "a line about the harbour",
             Proposal::Version {
-                role: "lyrics".into(),
+                role: "style".into(),
                 label: None,
                 from: None,
             },
@@ -1808,7 +1808,7 @@ mod tests {
             &conn,
             &message,
             Overrides {
-                role: Some("style".into()),
+                role: Some("lyrics".into()),
                 label: Some("from the chat".into()),
                 make_current: Some(true),
                 ..Overrides::default()
@@ -1817,7 +1817,7 @@ mod tests {
         .unwrap();
 
         let created = version::get(&conn, &outcome.versions[0]).unwrap().unwrap();
-        assert_eq!(created.role, "style");
+        assert_eq!(created.role, "lyrics");
         assert_eq!(created.label.as_deref(), Some("from the chat"));
         assert!(is_current(&conn, &work_id, &created.id));
     }

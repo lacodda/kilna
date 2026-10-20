@@ -448,13 +448,14 @@ mod tests {
         assert_eq!(refused.refusal().unwrap().code, "trial.parentIsDescendant");
     }
 
-    /// A kept trial goes into a song as a version of its style, beside the
-    /// current one and written from the version it reworks; a trial not kept
-    /// goes nowhere; the board shows where it went.
+    /// A kept trial goes into a song as a version of its style, written from
+    /// the version it reworks and leaving the song's current draft where it
+    /// was; a trial not kept goes nowhere; the board shows where it went.
     #[test]
     fn a_kept_trial_is_harvested_beside_the_songs_style() {
         let (conn, profile_id) = fixtures::workspace();
         let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let lyrics = fixtures::version(&conn, &song.id, "lyrics", "one line");
         let style = fixtures::version(&conn, &song.id, "style", "indie rock, female vocal");
         let lab = experiment(&conn, &profile_id);
         let rework = from_version(&conn, &lab.id, &style.id, "rework").unwrap();
@@ -480,8 +481,8 @@ mod tests {
         let song = crate::work::get(&conn, &song.id).unwrap().unwrap();
         assert_eq!(
             song.current_version_id.as_deref(),
-            Some(style.id.as_str()),
-            "a found sound is put beside the style, not over it"
+            Some(lyrics.id.as_str()),
+            "a found sound is put beside the song's draft, not over it"
         );
 
         let board = trial::board(&conn, &lab.id).unwrap();
@@ -543,11 +544,14 @@ mod tests {
         judge(&conn, &kept.id, Some(Verdict::Keep)).unwrap();
         let made = harvest_work(&conn, &kept.id, "song", "Found in the lab").unwrap();
         assert_eq!(made.kind, "song");
-        let current = crate::work::version::get(&conn, made.current_version_id.as_deref().unwrap())
+        assert_eq!(
+            made.current_version_id, None,
+            "a style is no draft: the song has none until its words are written"
+        );
+        let style = crate::work::version::latest(&conn, &made.id, "style")
             .unwrap()
             .unwrap();
-        assert_eq!(current.role, "style");
-        assert_eq!(current.trial_id.as_deref(), Some(kept.id.as_str()));
+        assert_eq!(style.trial_id.as_deref(), Some(kept.id.as_str()));
 
         let links = crate::link::for_work(&conn, &made.id).unwrap();
         assert_eq!(links.sources.len(), 1);

@@ -1492,7 +1492,7 @@ mod tests {
                 .unwrap()
         };
         let page = read("Breaks under guitars");
-        assert!(page.starts_with("---\nformat: 4\n"), "{page}");
+        assert!(page.starts_with("---\nformat: 5\n"), "{page}");
         assert!(page.contains("## Trials"), "{page}");
         assert!(page.contains("### sweep"), "{page}");
         assert!(page.contains("#### 2 slower · kept (varies 1)"), "{page}");
