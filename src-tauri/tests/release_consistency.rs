@@ -101,13 +101,21 @@ fn readme_links_are_absolute() {
 /// The failure this prevents is subtle: an icon-level tile used where the
 /// large one belongs reads as a solid colour block, and nobody notices until
 /// the site is live.
+///
+/// The registry is the author's, outside this repository, and is named by
+/// `KILNA_BRAND_REGISTRY` - the folder of the line's master SVGs. Without it
+/// (CI checks out only this repository) there is nothing to compare against.
 #[test]
 fn the_brand_assets_match_their_masters() {
-    let registry = Path::new("C:/Projects/obsidian/lacodda/Projects/brand/svg");
-    if !registry.exists() {
-        // The registry is the author's vault; CI checks out only this repo.
+    let Some(registry) = std::env::var_os("KILNA_BRAND_REGISTRY").map(std::path::PathBuf::from)
+    else {
         return;
-    }
+    };
+    assert!(
+        registry.is_dir(),
+        "KILNA_BRAND_REGISTRY names {}, which is no folder",
+        registry.display()
+    );
 
     for (asset, master) in [
         ("assets/logo.svg", "kilna-L.svg"),
