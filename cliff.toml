@@ -7,8 +7,11 @@ header = """
 All notable changes to this project are documented in this file.
 
 """
+# A release opens with the blank line that parts it from the one above,
+# rather than closing with one: with `trim`, a body that closed with it
+# glued each release prepended to the last line of the one before.
 body = """
-{% if version %}\
+\n{% if version %}\
 ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
 {% else %}\
 ## [Unreleased]
