@@ -1,5 +1,5 @@
-import { Children, useState, type ReactNode } from 'react'
-import { cn } from 'dowel-ui'
+import { Children, useId, useState, type ReactNode } from 'react'
+import { cn, type HeadingLevel } from 'dowel-ui'
 import { Button } from './button'
 import { Popover, PopoverPopup, PopoverTrigger } from './popover'
 
@@ -20,6 +20,11 @@ import { Popover, PopoverPopup, PopoverTrigger } from './popover'
  *
  * Built on Popover and Button rather than on a `<div>` of its own, so the
  * panel opens, positions and closes the way every other panel does.
+ *
+ * The bell is named by its label and then by the count it shows -
+ * "Notifications 3". The label alone was a name without the number drawn on
+ * the button, and someone telling voice control what they see says it
+ * (WCAG 2.5.3). The tooltip is the same words, so it is not read twice.
  */
 
 export interface NotificationBellProps {
@@ -29,6 +34,8 @@ export interface NotificationBellProps {
   label: string
   /** The heading of the panel. */
   title: string
+  /** Where the panel's heading stands in the outline: `3` by default. */
+  level?: HeadingLevel
   /** Open, controlled. Left out, the bell manages itself. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -51,6 +58,7 @@ export function NotificationBell({
   count,
   label,
   title,
+  level = 3,
   open,
   onOpenChange,
   markAllLabel,
@@ -69,30 +77,44 @@ export function NotificationBell({
     onOpenChange?.(next)
   }
   const empty = Children.count(children) === 0
+  const badge = count > 9 ? '9+' : count > 0 ? String(count) : undefined
+  const labelId = useId()
+  const badgeId = useId()
+  const Heading = `h${level}` as const
 
   return (
     <Popover open={isOpen} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button variant="icon" size="icon-sm" className={cn('relative', className)} title={label} aria-label={label} />
+          <Button
+            variant="icon"
+            size="icon-sm"
+            className={cn('relative', className)}
+            title={badge === undefined ? label : `${label} ${badge}`}
+            aria-labelledby={badge === undefined ? labelId : `${labelId} ${badgeId}`}
+          />
         }
       >
+        <span id={labelId} hidden>
+          {label}
+        </span>
         <Bell />
-        {count > 0 ? (
+        {badge !== undefined ? (
           <span
+            id={badgeId}
             data-badge
             className={cn(
               'absolute -right-0.5 -top-0.5 min-w-3.5 rounded-full bg-warn px-1',
               'text-center font-mono text-2xs leading-3.5 text-on-warn',
             )}
           >
-            {count > 9 ? '9+' : count}
+            {badge}
           </span>
         ) : null}
       </PopoverTrigger>
       <PopoverPopup align="end" arrow={false} size="lg" className="p-0">
         <header className="flex items-center gap-2 border-b border-line px-3 py-2">
-          <h3 className="text-sm font-semibold">{title}</h3>
+          <Heading className="text-sm font-semibold">{title}</Heading>
           {count > 0 && markAllLabel ? (
             <Button variant="ghost" size="sm" className="ml-auto" disabled={busy} onClick={onMarkAll}>
               {markAllLabel}

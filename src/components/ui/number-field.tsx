@@ -35,6 +35,11 @@ export interface NumberFieldProps {
   onValueChange?: (value: number | null) => void
   min?: number
   max?: number
+  /** Keep a typed number outside `min`/`max` as typed, rather than moving it
+   * to the bound on blur - for a form that says what is wrong instead. A 9
+   * typed for an age of at least 13 became 13 without a word; the arrows
+   * still stop at the bounds. */
+  allowOutOfRange?: boolean
   /** What the arrows change it by. */
   step?: number
   /** What PageUp and PageDown change it by, when a single step is too slow. */
@@ -81,8 +86,15 @@ export function NumberField({
   ...props
 }: NumberFieldProps) {
   const language = useLocale(locale)
+  /* What a `Field` hands its control - the id and the `aria-` references - is
+   * already on the input, put there by Base UI from the field it sits in.
+   * Spread onto the root as well, it landed on a `<div>` with no role, where
+   * `aria-labelledby` and `aria-invalid` mean nothing and axe asks a person
+   * to look (aria-prohibited-attr). */
+  const root: Record<string, unknown> = { ...props }
+  for (const key of ['id', 'aria-labelledby', 'aria-describedby', 'aria-invalid']) delete root[key]
   return (
-    <Base.Root {...props} locale={language} className={cn('inline-flex items-center gap-2', className)}>
+    <Base.Root {...root} locale={language} className={cn('inline-flex items-center gap-2', className)}>
       <Base.Group
         className={cn(
           fieldClasses,
@@ -104,7 +116,8 @@ export function NumberField({
           placeholder={placeholder}
           aria-label={ariaLabel}
           className={cn(
-            'w-full min-w-0 bg-transparent px-2.5 text-sm text-text placeholder:text-faint',
+            // 16px under a finger, for the reason `fieldClasses` gives.
+            'w-full min-w-0 bg-transparent px-2.5 text-sm pointer-coarse:text-lg text-text placeholder:text-faint',
             'outline-none',
             // Figures line up in a column, which is the whole reason a number
             // is in a field of its own.

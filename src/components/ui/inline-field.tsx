@@ -179,7 +179,8 @@ export function InlineField<T>({
           // caption above it and with plain text beside it - the box is
           // there only when it is wanted.
           '-ml-1.5 h-control-sm w-full min-w-0 rounded-sm border border-transparent bg-transparent px-1.5',
-          'text-sm text-ellipsis text-text placeholder:text-faint',
+          // 16px under a finger, for the reason `fieldClasses` gives.
+          'text-sm pointer-coarse:text-lg text-ellipsis text-text placeholder:text-faint',
           'cursor-text transition-colors outline-none',
           'hover:border-line-2 hover:bg-soft',
           'focus:border-accent focus:bg-soft',

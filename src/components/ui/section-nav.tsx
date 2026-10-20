@@ -1,6 +1,6 @@
 import { useId, type HTMLAttributes, type ReactNode } from 'react'
 import { useRender } from '@base-ui/react/use-render'
-import { cn } from 'dowel-ui'
+import { cn, type HeadingLevel } from 'dowel-ui'
 
 /*
  * The left-hand list of a screen with sections, and the heading each opens.
@@ -52,6 +52,9 @@ export interface SectionNavProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
    * "Settings" with a list captioned "Settings" names itself twice, which is
    * what kilna's did. */
   labelHidden?: boolean
+  /** Where the caption stands in the outline: `2` by default, beside the
+   * screen's title. */
+  level?: HeadingLevel
 }
 
 export function SectionNav({
@@ -61,15 +64,17 @@ export function SectionNav({
   render,
   onSelect,
   labelHidden = false,
+  level = 2,
   className,
   ...props
 }: SectionNavProps) {
   const captionId = useId()
+  const Heading = `h${level}` as const
   return (
     <nav aria-labelledby={captionId} className={cn('flex flex-col gap-0.5', className)} {...props}>
-      <h2 id={captionId} className={cn('caption px-2.5 pb-2', labelHidden && 'sr-only')}>
+      <Heading id={captionId} className={cn('caption px-2.5 pb-2', labelHidden && 'sr-only')}>
         {label}
-      </h2>
+      </Heading>
       {items.map((item) => (
         <SectionNavRow
           key={item.id}
@@ -127,7 +132,9 @@ function SectionNavRow({
           ) : (
             <span className="flex min-w-0 flex-1 flex-col">
               <span className={cn('truncate', active && 'font-semibold')}>{item.label}</span>
-              <span className="line-clamp-2 text-2xs text-faint">{item.description}</span>
+              {/* `dim` at this size: `faint` measured below AA at 10px in
+                  both themes (the same finding as ListRow's notes). */}
+              <span className="line-clamp-2 text-2xs text-dim">{item.description}</span>
             </span>
           )}
         </>
@@ -139,13 +146,16 @@ function SectionNavRow({
 export interface SectionHeadingProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   title: ReactNode
   description?: ReactNode
+  /** Where the open section's title stands in the outline: `2` by default. */
+  level?: HeadingLevel
 }
 
 /** The title of the open section and the line under it. */
-export function SectionHeading({ title, description, className, ...props }: SectionHeadingProps) {
+export function SectionHeading({ title, description, level = 2, className, ...props }: SectionHeadingProps) {
+  const Heading = `h${level}` as const
   return (
     <div className={cn('mb-4 flex flex-col gap-1', className)} {...props}>
-      <h2 className="text-base font-semibold text-text">{title}</h2>
+      <Heading className="text-base font-semibold text-text">{title}</Heading>
       {description ? <p className="text-sm text-dim">{description}</p> : null}
     </div>
   )

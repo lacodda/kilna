@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from 'dowel-ui'
+import { cn, type HeadingLevel } from 'dowel-ui'
 
 /*
  * Divider.
@@ -139,31 +139,36 @@ export interface SectionHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>,
   /** Buttons belonging to this section rather than to the screen - Add,
    * Collapse, a link out. */
   actions?: ReactNode
+  /** Where the section stands in the outline: `2` by default. */
+  level?: HeadingLevel
 }
 
 /**
  * The heading over a part of a screen, with what belongs to that part at the
  * far end of the same row.
  *
- * An `h2`: `PageHeader` holds the screen's `h1`, and a section is one level
- * inside it, so a reader moving by heading walks the screen's actual
- * structure. It is the between-size heading the products kept writing by
- * hand, above `SectionLabel`'s uppercase caption and below the page's title.
+ * An `h2` unless told otherwise: `PageHeader` holds the screen's `h1`, and a
+ * section is one level inside it, so a reader moving by heading walks the
+ * screen's actual structure. A section inside a section says `3`. It is the
+ * between-size heading the products kept writing by hand, above
+ * `SectionLabel`'s uppercase caption and below the page's title.
  */
 export function SectionHeader({
   title,
   description,
   actions,
+  level = 2,
   className,
   ...props
 }: SectionHeaderProps) {
+  const Heading = `h${level}` as const
   return (
     <div
       className={cn('mb-3 flex flex-wrap items-start justify-between gap-x-4 gap-y-1', className)}
       {...props}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="text-base font-semibold text-text">{title}</h2>
+        <Heading className="text-base font-semibold text-text">{title}</Heading>
         {description === undefined ? null : <p className="text-sm text-dim">{description}</p>}
       </div>
       {actions === undefined ? null : (

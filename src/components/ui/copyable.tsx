@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type HTMLAttributes } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type HTMLAttributes } from 'react'
 import { cn } from 'dowel-ui'
 
 /*
@@ -13,6 +13,10 @@ import { cn } from 'dowel-ui'
  * It is a `<button>`, so the keyboard can reach it and a screen reader says
  * what it does. And the confirmation is announced, not only drawn: a tick that
  * appears silently tells a sighted user it worked and tells nobody else.
+ *
+ * It is named by its label and then by the value it shows - "Copy a1b2c3".
+ * The label alone was a name without the words drawn on the button, and
+ * someone telling voice control what they see says those words (WCAG 2.5.3).
  *
  * The clipboard can refuse - it needs a secure context and, in some browsers,
  * a permission. A refusal is reported rather than swallowed, because a button
@@ -41,10 +45,16 @@ export function Copyable({
   label,
   copiedLabel,
   onCopy,
+  id,
   className,
   ...props
 }: CopyableProps) {
   const [copied, setCopied] = useState(false)
+  // An element listed in its own `aria-labelledby` is read by its
+  // `aria-label`: the label first, then the value.
+  const ownId = useId()
+  const buttonId = id ?? ownId
+  const valueId = useId()
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // A component that sets state on a timer has to stop when it goes away, or
@@ -68,7 +78,9 @@ export function Copyable({
     <button
       type="button"
       onClick={copy}
+      id={buttonId}
       aria-label={copied ? copiedLabel : label}
+      aria-labelledby={`${buttonId} ${valueId}`}
       className={cn(
         'group inline-flex max-w-full items-center gap-1.5 rounded-sm px-1 py-0.5 text-left target-min',
         'font-mono text-xs text-dim transition-colors',
@@ -78,7 +90,9 @@ export function Copyable({
       )}
       {...props}
     >
-      <span className="truncate">{children}</span>
+      <span id={valueId} className="truncate">
+        {children}
+      </span>
 
       <span className={cn('shrink-0 transition-colors', copied ? 'text-good' : 'text-faint')} aria-hidden>
         {copied ? <Tick /> : <Clipboard />}

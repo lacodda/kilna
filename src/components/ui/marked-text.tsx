@@ -171,7 +171,9 @@ export function MarkedTextarea({
 
   return (
     <div className="relative">
-      <div aria-hidden data-mirror className={cn('pointer-events-none', className)}>
+      {/* Both layers take the same size under a finger - 16px, for the reason
+          `fieldClasses` gives - or the marks drift off the letters they mark. */}
+      <div aria-hidden data-mirror className={cn('pointer-events-none pointer-coarse:text-lg', className)}>
         <MarkedLines text={value} marks={marks} lineMarks={lineMarks} ghost />
       </div>
       <textarea
@@ -182,7 +184,7 @@ export function MarkedTextarea({
         className={cn(
           // The same metrics, and nothing that would draw: the letters, the
           // caret and the selection are what this layer is for.
-          'absolute inset-0 h-full w-full resize-none overflow-hidden text-text outline-none',
+          'absolute inset-0 h-full w-full resize-none overflow-hidden pointer-coarse:text-lg text-text outline-none',
           '[overflow-wrap:anywhere] whitespace-pre-wrap',
           className,
           // After the caller's classes, on purpose. A background in the

@@ -92,7 +92,12 @@ describe("a style's description", () => {
     const { client } = renderApp('/styles')
     await settled(client)
 
-    fireEvent.click(await screen.findByRole('button', { name: en.journal.open }))
+    // The bell is named by its label and then by the count it shows.
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: (name) => name.startsWith(en.journal.open),
+      }),
+    )
     const line = await screen.findByText(en.assistant.proposed.description)
     await act(async () => fireEvent.click(line))
     await settled(client)

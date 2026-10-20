@@ -189,7 +189,8 @@ export function CommandPaletteInput({ hint, className, ...props }: CommandPalett
       <MagnifierIcon />
       <Base.Input
         className={cn(
-          'h-11 w-full bg-transparent text-sm text-text placeholder:text-faint',
+          // 16px under a finger, for the reason `fieldClasses` gives.
+          'h-11 w-full bg-transparent text-sm pointer-coarse:text-lg text-text placeholder:text-faint',
           'focus-visible:outline-none',
           className,
         )}
