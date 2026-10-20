@@ -89,7 +89,7 @@ checkbox. Click it and the line becomes `- [x] …` — the text is what is
 kept, and the box only edits it. The list shows how far along each note's
 checklist is, `2/5`, so a to-do list can be read without opening it.
 
-Checkboxes tick the same way in a work's **Notes** tab.
+Checkboxes tick the same way on a work's **Conception** tab.
 
 ## A note and a work
 
@@ -97,8 +97,10 @@ Any note or phrase can be **about a work**, or kept *for* it. The line under
 the title says which; click it to open the work, or **×** to let go.
 **Attach to a work** picks one from the catalogue. Attaching does not spend
 the note: a note is never spent by works, and a phrase stays fresh. A work's
-own **Notes** tab lists the notes and phrases kept for it, and each has a
-button that opens it here. A phrase there shows its kind chip, its state when
+own **Conception** tab lists the notes and phrases kept for it under
+**Attached** - the Notes tab until v0.99 - and each has a button that opens it
+here; the order a writer works from carries them (see
+[The conception](/kilna/guides/the-conception/)). A phrase there shows its kind chip, its state when
 it is not fresh, and whose words it is, as *— Old Joy*. **Open in Notes** on
 a phrase opens the phrases screen.
 

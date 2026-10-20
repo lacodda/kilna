@@ -23,10 +23,12 @@ style, which then stands on the board as its first trial (see
 
 An experiment is a work like any other: it has a card, versions, fields,
 notes, links, a history, and it goes to the trash and comes back. Its
-versions are a **Brief** - what the experiment is after; Studio's starts
-from a skeleton: the direction, what to hold on to, who to listen to, the
-vocabulary, the schemes, what to do when it goes wrong - and the
-**Findings**, what you learnt. Its fields:
+**Brief** - what the experiment is after; Studio's starts from a skeleton:
+the direction, what to hold on to, who to listen to, the vocabulary, the
+schemes, what to do when it goes wrong - is written on its
+[Conception](/kilna/guides/the-conception/) tab since v0.99, and is never its
+current version; its **Findings**, what you learnt, are a version on the
+Versions tab. Its fields:
 
 | Field | What it holds |
 | --- | --- |

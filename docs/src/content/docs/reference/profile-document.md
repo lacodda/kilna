@@ -695,6 +695,14 @@ stands on its own and comments on nothing, so the count read a song written
 twice as having six versions. The role keeps its own lane, its own revisions
 and its own history; it simply is not counted as the song.
 
+It also says which versions can be the work's **current** text (v0.99). A
+version of a role that does not count - a style prompt, a [brief](#conception),
+a review - is written beside the current text and never in its place: making
+one current is refused, a new version of one is not made current whatever the
+form or an agent asked, and a workspace whose current version was one of
+those points at its newest draft once it is opened. A workspace whose copy of
+a shipped role never said `counts_as_version` gains the shipped word.
+
 ## `marks`
 
 Flags a work can be given by hand, beside the status the app derives:
@@ -1057,6 +1065,82 @@ It is never scored, booked or released, so of the derived meanings only
 experiment kind, its fields and its action at the next start; an
 `experiment` kind of your own gains the lab where it has none.
 
+## `conception`
+
+An optional object on a **work kind** (v0.99, ADR 0065): its works are
+prepared before they are written, on the card's **Conception** tab - a brief
+in the author's words, the idea it is refined into, boards of candidates -
+and what comes out is the order a writer works from. See
+[The conception](/kilna/guides/the-conception/).
+
+```jsonc
+{
+  "key": "song",
+  "label": { "en": "Song", "ru": "Песня" },
+  "conception": {
+    "brief": "brief",
+    "idea": "premise",
+    "with": ["style"],
+    "boards": ["scenarios"]
+  }
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `brief` | string | The version role the brief is written in. It must not count as a version (`counts_as_version: false`) nor comment on another role: a brief is written about the work, never as it, and it is never the work's current text. Its revisions are written on the Conception tab, and its lane is not drawn on the Versions tab. |
+| `idea` | string, optional | The key of the [field](#work_meta_fields) the brief is refined into - a text or multiline field the kind carries. Studio's is `premise`. Absent: **Refine** rewrites only the brief. |
+| `with` | list of strings, optional | Other version roles whose newest text goes into the order beside the brief: what the writer must keep to, as a song's style prompt sets the sound its lyrics are sung over. |
+| `boards` | list of strings, optional | The [boards](#boards) the tab lays out, in order, by key. |
+
+Studio prepares the song (brief, premise, style, scenarios) and the
+experiment (its brief); Novel, Podcast and Blog prepare every kind they ship,
+each with a skeleton of its own. A kind without a conception has the tab too,
+holding only the notes and phrases attached to the work - what its Notes tab
+held until v0.99. A workspace made before v0.99 gains the shipped conceptions
+where a kind's brief role does not count as a version; one you said counts
+leaves the kind without one.
+
+## `boards`
+
+An optional list on the **profile** (v0.99, ADR 0065): the boards a
+[conception](#conception) lays out. One mechanism for all of them - cards of
+the kinds a board holds, each with its fields, standing in order and under a
+topic, the person's own or the assistant's, starred, turned down or not
+judged yet - so a board of scenarios and a board of sources are the same
+thing in different words.
+
+```jsonc
+{
+  "key": "scenarios",
+  "label": { "en": "Scenarios", "ru": "Сценарии" },
+  "description": { "en": "Ways the song could go…", "ru": "Как может пойти песня…" },
+  "rule": "one",
+  "cards": [
+    {
+      "key": "scenario",
+      "label": { "en": "Scenario", "ru": "Сценарий" },
+      "fields": [
+        { "key": "line", "label": "In one line", "hint": "A lighthouse keeper counts the ships that never come" },
+        { "key": "image", "label": "The image through it", "multiline": true },
+        { "key": "ending", "label": "How it closes", "multiline": true }
+      ]
+    }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Identifies the board; a card stores it. |
+| `label`, `description` | labels | What the board is called, and what it is for. |
+| `rule` | `one` or `all` | How the order reads the board. `one` (the default): the cards are rivals and the text is written by one - one starred is the one, several starred are what to choose from or combine, none starred leaves every card not turned down to the writer. `all`: every card not turned down goes in, the starred first. A turned-down card never does. |
+| `cards` | list | The kinds of card the board holds, at least one, each with a `key`, a `label` and its `fields` - at least one, each with a `key`, a `label`, an optional `hint` shown while it is empty, and `multiline` for a paragraph. The first field is the card's headline. |
+
+A card is held to its board: a kind the board does not hold, a field its kind
+does not name, a card that says nothing are refused. A board's cards are not
+searched - they are candidates.
+
 ## `compose`
 
 An optional list on the **profile**: the texts a version role is written out
@@ -1132,9 +1216,9 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — phrases to keep and words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`; `"trials"` — trials for an experiment's board, only in an action with `"scope": "lab"`. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — phrases to keep and words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`; `"trials"` — trials for an experiment's board, only in an action with `"scope": "lab"`; `"cards:<board>"` — cards for that board of the work's [conception](#conception), only in an action with `"scope": "board"`; `"conception"` — the idea and the brief refined, proposed as a package for the work, only on kinds prepared on a conception. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. `"lab"` for one about an [experiment's board](/kilna/guides/the-lab/) (v0.95): it reads `{trials}` - what is asked and what stands on the board - and may read `{choices}`, is offered on the board, must produce `trials`, and may only name kinds that are a lab. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. `"lab"` for one about an [experiment's board](/kilna/guides/the-lab/) (v0.95): it reads `{trials}` - what is asked and what stands on the board - and may read `{choices}`, is offered on the board, must produce `trials`, and may only name kinds that are a lab. `"board"` for one about a board of a [conception](#conception) (v0.99): it reads `{cards}` - the board's kinds of card, what is asked and what stands on it - is offered on the board, must produce `cards:<board>`, and may only name kinds that lay that board out. Absent is the work. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -1263,6 +1347,26 @@ the answer comes. Studio ships `propose-trials` for the experiment, with a
 method that holds the craft: one thing moved at a time, every anchor in every
 trial, the most important phrase first, no band names in the text.
 
+An action with `"scope": "board"` and `"produces": "cards:<board>"` proposes
+cards for a board of a work's conception (v0.99, ADR 0065). The board asks it
+for some cards of its own, the person's own card worked out as one more, where
+to dig, and whether to go further the way of what is starred; `{cards}` reads
+all of that and the board - starred cards as the direction, turned-down ones
+as what is not wanted, the rest as what not to repeat, the topics it groups
+them under. kilna appends the block to answer with: cards in the fields of the
+board's kinds, each with an optional topic, and two to four **directions** to
+dig next, shown on the board as words to click. A kind or a field the board
+does not have is left out and said. The cards **land on the board** as the
+answer comes. Every shipped profile carries `scenarios`.
+
+An action with `"produces": "conception"` refines a work's conception: kilna
+appends a block holding the idea and the brief set straight, and the answer
+comes back as a package for the work - the idea for its field, and a revision
+of the brief written from the newest one - that the person applies or not.
+Every shipped profile carries `refine`, and `write`, an ordinary action that
+reads `{order}` and writes the text, to be talked over and inserted as a
+version from the chat.
+
 Every shipped profile carries a `score` action. Anything else declaring
 `produces` gets the same treatment; an unrecognised value is ignored when the
 profile loads, so a profile written for a future kilna still opens — and named
@@ -1366,6 +1470,22 @@ proposes.
   `{lines:space}` — the fresh phrases of one shelf, by its name. A shelf nobody
   has is said so in the prompt, and a work with none kept for it reads
   *(no lines are kept for this work)*.
+- `{conception}` — the work's idea and its brief, each when written. A kind
+  prepared on no [conception](#conception) refuses the action, and so does a
+  conception with nothing written yet (v0.99).
+- `{starred}` — what is starred on the work's boards, board by board;
+  `{starred:scenarios}` — one board's. Nothing starred reads
+  *(nothing is starred yet)*.
+- `{notes}` — the notes attached to the work, each whole: not the phrases,
+  which `{lines}` reads, nor the cards of the canon, which `{canon}` reads.
+- `{order}` — the whole order a writer works from, in markdown: the title and
+  what is to be written, the idea, the brief, the texts of `with`, the fields,
+  each board as its rule reads it, the notes and phrases attached, the
+  channel's card as the public reads it and the cards the work is about, and
+  the register. The same text **Copy the order** copies and an agent reads
+  with `brief`. Refused as `{conception}` is.
+- `{cards}` — only in an action with `"scope": "board"`: the board, what is
+  asked and what stands on it.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses

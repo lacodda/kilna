@@ -116,9 +116,13 @@ Each work's page includes:
 
 The `format` line is for a reader written against these pages: it says which
 shape the page takes, and moves when a field changes meaning or a section
-changes shape — not when a field is added. Pages written by v0.95 and later
-say `format: 4`: a publication's page carries its cover and its board of
-ideas, an experiment's its trials, and a version taken from a trial says so.
+changes shape — not when a field is added. Pages written by v0.99 and later
+say `format: 5`: a work's page carries the boards of its
+[conception](/kilna/guides/the-conception/), board by board and topic by
+topic, each card with its fields, where it came from and the verdict. v0.95
+to v0.98 wrote `format: 4`: a publication's page carries its cover and its
+board of ideas, an experiment's its trials, and a version taken from a trial
+says so.
 v0.93 and v0.94 wrote `format: 3`: a note's text may show pictures, and the
 export carries them in a `media` folder beside the pages - `![](media/<name>)`
 in `notes.md`, `![](../media/<name>)` on a page one folder down. v0.50 to

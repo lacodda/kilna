@@ -56,6 +56,10 @@ rather than coded.
   trials - a sweep of the field, variations that move one thing at a time -
   each heard, kept or dropped; a kept one goes into a song's style or the
   dictionary and remembers where it came from.
+- **A work prepared before it is written.** Say what it is about in a brief,
+  refine it into one idea, gather ways it could go on a board of scenarios -
+  star one, turn others down, drag them under topics - and hand the whole
+  order to the assistant, to an agent over MCP, or copy it out.
 - **Words that know where they were sung.** Keep words for songs to come in
   blocks, write the stress for the singer and have a lyric checked against
   three million word forms, and see a song light orange or red before it
