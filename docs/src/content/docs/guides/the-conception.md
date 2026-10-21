@@ -1,6 +1,6 @@
 ---
 title: The conception
-description: Preparing a work before it is written - the brief in your words, the idea it is refined into, boards of scenarios to star and turn down - and the one order a writer works from, in kilna, over MCP or copied out.
+description: Preparing a work before it is written - the brief in your words, the idea it is refined into, the research with its quotes checked on the web, boards of scenarios to star and turn down - and the one order a writer works from, in kilna, over MCP or copied out.
 ---
 
 A song, a chapter, an episode is often prepared before a line of it is
@@ -73,6 +73,54 @@ topic. A topic's heading is its name, written in place: rename it there, or
 give it another topic's name to merge the two. Each drag, rename and merge is
 one step for **Undo**.
 
+## The research
+
+The **Research** board gathers what the work could draw on, before or after
+the brief is written - a question like *who were the Pharisees?* can come
+first. It holds three kinds of card:
+
+- **Work** - a novel, a film, a painting, a piece of music, a myth: what is
+  there and why it fits, the quote that carries it with where in the work it
+  stands, what to take, and a caveat when only part of it fits (*only the
+  opening - it gets loud later*).
+- **Primary source** - a text with its address, *Matthew 23:27*, quoted as it
+  stands.
+- **Concept** - a word explained: what it is, what it means said of a
+  person, and where that figure is unfair to the real thing.
+
+**Research** in the board's composer runs the assistant with a web search:
+it checks each quote against a page that holds those very words and gives
+that page as the card's proof. A quote with a proof is marked **checked** and
+links to it; one the assistant could not find is **from memory**. A run that
+reads the web has the two tools for it and nothing else - no files, no shell,
+none of your other assistant tools - because a page is a stranger's words.
+
+A work of music is never quoted: its card names the song and who sings it,
+and says why it fits.
+
+**Images and names** on a card are chips - an image, a name, a place, a
+term. Press one to keep it as a phrase of the work, with the phrases on the
+[Notes](/kilna/guides/notes/) screen; a chip already kept is marked.
+
+The board reads **by topic** - the angles you gave it, *holy things as
+goods*, *faith without show* - or **by kind**: works under their medium,
+concepts apart. By kind it is a reading; drag and rename by topic.
+
+### The library
+
+A work of culture is kept once for the whole workspace, in the **Library** on
+the Notes screen: its title, its author, its other titles - the original, a
+translation - its medium and year. A card on a board links to its entry and
+says only what it is to this work, so putting an entry right puts it right on
+every board. A card the assistant proposes finds its entry by any of its
+names, and fills in what the entry did not say yet; your own card names one
+by its title.
+
+A card that names an entry another work already drew on says **Already worked
+in** that work, and the [guard of repeats](/kilna/guides/the-guard-of-repeats/)
+counts it for a song. An entry a board still links to is not deleted: take
+its cards off the boards first.
+
 ## The order
 
 The order is everything prepared, in one markdown text: the title and what
@@ -84,8 +132,14 @@ is worn out.
 
 How a board of scenarios reads: **one starred** - write by it; **several
 starred** - choose one or combine them; **none starred** - every card not
-turned down, the choice left to the writer. A turned-down card is never in
-the order.
+turned down, the choice left to the writer. The research adds up: every card
+not turned down, the starred first. A turned-down card is never in the order.
+
+A quote reaches the order word for word only when it was checked, with the
+page it was checked against; one from memory is left out, and the writer is
+told to take its sense, never its words. **Refine** and the scenarios read
+what you starred in the research, so the idea and the ways it could go grow
+out of it.
 
 The order goes three ways, and is the same text each time:
 

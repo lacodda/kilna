@@ -16,6 +16,12 @@ holds a day in the calendar, and what they share is a **repeat**:
 - **Red - said lately.** A rare word the other song said within the last 90
   days - or will say, when it is booked within them: a listener who heard
   *пульсар* last month hears it again.
+- **Orange - a source again.** A work of culture both songs drew on: an entry
+  of the [library](/kilna/guides/the-conception/#the-library) on both their
+  boards of research, turned down on neither - *«Old Joy» already worked in
+  “Letters”*. Not a word a listener hears, so never louder than orange; and a
+  song still being researched, with no line written yet, is held against the
+  others by its sources alone.
 
 A word is **rare** when you keep it as a
 [phrase](/kilna/guides/notes/#phrases) of its own (a phrase that is one word,

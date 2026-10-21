@@ -22,8 +22,15 @@ Since 0.98 the rest is **two shelves**: phrases and notes. See
 
 **Notes** in the menu (or `G` `N`) opens the screen. Along the top is one chip
 for each kind of note the profile names, and one chip is always on. In every
-shipped profile the chips are **Phrase** and **Note**; the blog profile also
-has **Source**. There is no *All* chip: you are always on one shelf.
+shipped profile the chips are **Phrase**, **Note** and **Library**. There is
+no *All* chip: you are always on one shelf.
+
+The **Library** holds the works of culture the boards of research link to,
+each once for the whole workspace (v0.100): its row reads who made it, when
+and in what; the open entry has its author, year, medium and other titles to
+write in place, and the works whose boards it worked on. An entry is attached
+to no work and grows into none - the boards link to it. See
+[The research](/kilna/guides/the-conception/#the-research).
 
 The kind on show is part of the address: `/notes?kind=phrase` and
 `/notes?kind=note`. `/notes` opens on the first kind, Phrase. A note opened by

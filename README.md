@@ -90,7 +90,7 @@ later. See [Getting started](https://lacodda.github.io/kilna/getting-started/).
 
 v0.99.0, in daily use: the loop from a version to a scored, scheduled and
 released work is closed, with four craft profiles, a canon, a lab of trials, a
-conception to prepare a work on, the assistant panel, an MCP server and
+conception to prepare a work on with its research and a library of the works of culture it draws on, the assistant panel, an MCP server and
 plugins, in English and Russian. What landed in each version:
 [CHANGELOG](https://github.com/lacodda/kilna/blob/main/CHANGELOG.md).
 

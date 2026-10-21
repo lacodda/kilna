@@ -543,11 +543,45 @@ Two flags, both optional, say what is different about a kind (v0.85,
 | `material` | boolean, optional | Notes of the kind are what works are made from, and are spent by them - a phrase. Such a note says where it stands: fresh, used, parked or dropped. *Attach to a work* keeps it for the work without spending it, and *Make it a work* leaves the note attached to the new work, marking a phrase used. |
 | `line` | boolean, optional | A note of the kind is one line. The Notes screen keeps the kind as rows with shelves, a row each, on its own chip (there is no *All* chip). |
 
-Every shipped profile names `phrase` (material, one line) and `note`; the
-blog profile also names `source`. `idea` is no longer shipped, and an upgrade
+Every shipped profile names `phrase` (material, one line), `note` and
+`source`, the library. `idea` is no longer shipped, and an upgrade
 takes it out of an older stored copy - its notes were already turned into
 notes tagged `idea`. A kind with sections — a card of the canon — can be neither; saving
 says so.
+
+### The library
+
+One kind may be the **library** (v0.100,
+[ADR 0066](https://github.com/lacodda/kilna/blob/main/docs/adr/0066-a-work-of-culture-is-one-entry-of-the-library.md)):
+the works of culture the [boards](#boards) of a conception link to, each kept
+once for the whole workspace. An entry's title is the note's title, its
+author the note's attribution, its other titles - the original, a
+translation - its aliases; it is in one of the kind's `media` and says when
+it was made.
+
+```jsonc
+{
+  "key": "source",
+  "label": { "en": "Library", "ru": "Библиотека" },
+  "icon": "library",
+  "library": true,
+  "media": [
+    { "key": "literature", "label": { "en": "Literature", "ru": "Литература" } },
+    { "key": "film", "label": { "en": "Film", "ru": "Кино" } },
+    { "key": "music", "label": { "en": "Music", "ru": "Музыка" }, "quoted": false }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `library` | boolean, optional | The kind is the library. One kind of a profile at most, and neither a card of the canon, material nor a line. |
+| `media` | list, optional | What an entry can be in, each a `key` and a `label`, in the order the board's **By kind** reads them. Only on the library. `quoted: false` marks a medium whose works are never quoted to a writer - a song's lyrics: the card names the song and says why, and its quotes never reach the order. |
+
+Shipped, the media are literature, film, painting, music (not quoted),
+scripture, myth, history and place. A workspace made before v0.100 gains the
+library; Blog's `source`, a plain kind until then, becomes it and keeps its
+word.
 
 ### Cards of the canon
 
@@ -577,7 +611,7 @@ and lore; Podcast ships guests and segments; Blog ships only plain kinds.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`, `lightbulb`, `quote`. Anything else draws a plain note. |
+| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`, `lightbulb`, `quote`, `library`. Anything else draws a plain note. |
 | `sections` | list, optional | What a card of this kind knows, in the order the card reads. Empty or absent: a plain note. |
 | `root` | boolean, optional | One card of this kind per workspace — the channel, the root of the world. Studio's `channel` is the root. A second card of a root kind is refused, and a profile with two root kinds is refused when it is saved. |
 | `describe_from` | list of strings, optional | The sections the card's description for a picture generator is written from — a person's looks, not their biography. When a settled public fact in one of them changes, the description says it is stale. Absent: the description is written by hand and never goes stale. Each key must be a section of the kind. |
@@ -1135,10 +1169,25 @@ thing in different words.
 | `key` | string | Identifies the board; a card stores it. |
 | `label`, `description` | labels | What the board is called, and what it is for. |
 | `rule` | `one` or `all` | How the order reads the board. `one` (the default): the cards are rivals and the text is written by one - one starred is the one, several starred are what to choose from or combine, none starred leaves every card not turned down to the writer. `all`: every card not turned down goes in, the starred first. A turned-down card never does. |
-| `cards` | list | The kinds of card the board holds, at least one, each with a `key`, a `label` and its `fields` - at least one, each with a `key`, a `label`, an optional `hint` shown while it is empty, and `multiline` for a paragraph. The first field is the card's headline. |
+| `cards` | list | The kinds of card the board holds, at least one, each with a `key`, a `label` and its `fields` - at least one, each with a `key`, a `label`, an optional `hint` shown while it is empty, `multiline` for a paragraph and an optional `shape`. The first field is the card's headline. A kind with `library: true` links each card to an entry of the [library](#the-library) and is called by it; the profile must name a library. |
+
+A field's `shape` says what its text is, where it is more than words (v0.100):
+
+| `shape` | Meaning |
+| --- | --- |
+| `text` | Words. The default. |
+| `quote` | Somebody else's words, word for word. In the order only when the card's proof holds a link, and never from a medium that is not `quoted`; from memory, the writer is told to take its sense. |
+| `proof` | Where the card's quotes were checked: a link, `http://` or `https://`. One to a kind, and only beside a quote; anything but a link is refused. |
+| `chips` | Short things to keep - images, names, places, terms - one to a line or parted by semicolons; each can become a phrase of the work. |
+
+Studio, Novel, Podcast and Blog ship two boards: **Research** (`rule: all`;
+kinds `work` and `text`, which link to the library, and `concept`) and
+**Scenarios**. A workspace made before v0.100 gains the research before the
+scenarios on every conception that has them.
 
 A card is held to its board: a kind the board does not hold, a field its kind
-does not name, a card that says nothing are refused. A board's cards are not
+does not name, a card that says nothing are refused - a card of the library
+says what its entry is, and may say nothing more yet. A board's cards are not
 searched - they are candidates.
 
 ## `compose`
@@ -1218,7 +1267,8 @@ specifically.
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
 | `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — phrases to keep and words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`; `"trials"` — trials for an experiment's board, only in an action with `"scope": "lab"`; `"cards:<board>"` — cards for that board of the work's [conception](#conception), only in an action with `"scope": "board"`; `"conception"` — the idea and the brief refined, proposed as a package for the work, only on kinds prepared on a conception. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. `"lab"` for one about an [experiment's board](/kilna/guides/the-lab/) (v0.95): it reads `{trials}` - what is asked and what stands on the board - and may read `{choices}`, is offered on the board, must produce `trials`, and may only name kinds that are a lab. `"board"` for one about a board of a [conception](#conception) (v0.99): it reads `{cards}` - the board's kinds of card, what is asked and what stands on it - is offered on the board, must produce `cards:<board>`, and may only name kinds that lay that board out. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. `"lab"` for one about an [experiment's board](/kilna/guides/the-lab/) (v0.95): it reads `{trials}` - what is asked and what stands on the board - and may read `{choices}`, is offered on the board, must produce `trials`, and may only name kinds that are a lab. `"board"` for one about a board of a [conception](#conception) (v0.99): it reads `{cards}` - the board's kinds of card, what is asked and what stands on it, and, on a board that links to the library, what the library already gave other works - is offered on the board, must produce `cards:<board>`, and may only name kinds that lay that board out. Absent is the work. |
+| `web` | boolean, optional | The action reads the web (v0.100): its run has the two tools that search and open pages, allowed without asking, and nothing else - no file or shell tool, none of the person's MCP servers - so an answer written from a stranger's page cannot act on it. A follow-up in its chat reads the web too. Studio's **Research** checks its quotes this way. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -1228,7 +1278,7 @@ buttons like that are neither read nor remembered.
 
 The names `icon` accepts: `sparkles`, `wand`, `pen`, `spell-check`, `scroll`,
 `tags`, `gauge`, `music`, `film`, `clapperboard`, `image`, `list`, `lightbulb`,
-`palette`, `eye`, `reply`, `book`, `quote`, `orbit`, `flask`.
+`palette`, `eye`, `reply`, `book`, `quote`, `orbit`, `flask`, `globe`.
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,
@@ -1357,7 +1407,12 @@ them under. kilna appends the block to answer with: cards in the fields of the
 board's kinds, each with an optional topic, and two to four **directions** to
 dig next, shown on the board as words to click. A kind or a field the board
 does not have is left out and said. The cards **land on the board** as the
-answer comes. Every shipped profile carries `scenarios`.
+answer comes. Every shipped profile carries `scenarios`, and `research`
+(v0.100), which reads the web: a card that names a work of culture gives it
+under `entry` - its `title`, `author`, `year`, `medium` and `original` title -
+and lands linked to the library's entry of that name, written into the
+library when there is none; a proof that is not a link, and every quote of a
+medium that is not quoted, are left out and said.
 
 An action with `"produces": "conception"` refines a work's conception: kilna
 appends a block holding the idea and the brief set straight, and the answer
@@ -1473,9 +1528,13 @@ proposes.
 - `{conception}` — the work's idea and its brief, each when written. A kind
   prepared on no [conception](#conception) refuses the action, and so does a
   conception with nothing written yet (v0.99).
+- `{prepared}` — the same, and while nothing of it is written a line that
+  says so instead of a refusal (v0.100): research starts before the idea, and
+  an action that gathers material is not refused for a brief it has not got.
 - `{starred}` — what is starred on the work's boards, board by board;
   `{starred:scenarios}` — one board's. Nothing starred reads
-  *(nothing is starred yet)*.
+  *(nothing is starred yet)*. A card of the library reads as its entry, and
+  a quote only as checked.
 - `{notes}` — the notes attached to the work, each whole: not the phrases,
   which `{lines}` reads, nor the cards of the canon, which `{canon}` reads.
 - `{order}` — the whole order a writer works from, in markdown: the title and
