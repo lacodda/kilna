@@ -31,12 +31,14 @@ function card(id: string, line: string, over: Partial<BoardCard> = {}): BoardCar
     fields: { line },
     created_at: '2026-10-19T10:00:00Z',
     updated_at: '2026-10-19T10:00:00Z',
+    note_id: null,
+    entry: null,
     ...over,
   }
 }
 
 function boards(cards: BoardCard[], directions: string[] = []): BoardView[] {
-  return [{ board: 'scenarios', cards, directions }]
+  return [{ board: 'scenarios', cards, directions, elsewhere: [] }]
 }
 
 beforeEach(() => {
@@ -98,16 +100,22 @@ describe('the Conception tab', () => {
 
   it('puts the person’s card on the board first, then asks for more of the assistant’s', async () => {
     await openTab()
-    const words = await screen.findByRole('textbox', { name: en.board.own })
+    const board = await screen.findByRole('region', { name: 'Scenarios' })
+    const words = within(board).getByRole('textbox', { name: en.board.own })
     fireEvent.change(words, { target: { value: 'A keeper counts the ships' } })
-    fireEvent.change(screen.getByRole('textbox', { name: en.board.direction }), {
+    fireEvent.change(within(board).getByRole('textbox', { name: en.board.direction }), {
       target: { value: 'old maps' },
     })
-    fireEvent.click(screen.getByRole('button', { name: en.board.generate }))
+    fireEvent.click(within(board).getByRole('button', { name: en.board.generate }))
 
     await waitFor(() => expect(backend.argsOf('start_board_task')).toHaveLength(1))
     expect(backend.argsOf('add_own_card')).toEqual([
-      { workId: IDS.song, board: 'scenarios', kind: null, words: 'A keeper counts the ships' },
+      {
+        workId: IDS.song,
+        board: 'scenarios',
+        kind: 'scenario',
+        words: 'A keeper counts the ships',
+      },
     ])
     expect(backend.argsOf('start_board_task')[0]).toEqual({
       id: IDS.song,
@@ -179,6 +187,110 @@ describe('the Conception tab', () => {
         expect.objectContaining({ workId: IDS.song, action: 'write' }),
       ]),
     )
+  })
+
+  it('names a card of the research by its entry, says where it worked and whether its quote was checked', async () => {
+    const entry = {
+      id: 'e-joy',
+      title: 'Old Joy',
+      author: 'Kelly Reichardt',
+      year: '2006',
+      medium: 'film',
+      aliases: [],
+    }
+    const research = (fields: Record<string, string>): BoardCard =>
+      card('joy', '', {
+        board: 'research',
+        kind: 'work',
+        fields,
+        note_id: entry.id,
+        entry,
+      })
+    backend.answer('work_boards', () => [
+      {
+        board: 'research',
+        cards: [
+          research({
+            why: 'two friends drift apart',
+            quote: 'Sorrow is nothing but worn-out joy',
+            chips: 'the hot spring; a log',
+          }),
+        ],
+        directions: [],
+        elsewhere: [{ note_id: entry.id, works: [{ work_id: 'w-letters', title: 'Letters' }] }],
+      },
+    ])
+    backend.answer('list_notes', () => [
+      {
+        ...workspace.notes[0]!,
+        id: 'n-spring',
+        kind: 'phrase',
+        work_id: IDS.song,
+        body: 'The hot spring',
+      },
+    ])
+    backend.answer('chip_to_phrase', () => workspace.notes[0])
+    await openTab()
+
+    const one = await screen.findByRole('article', { name: 'Kelly Reichardt, «Old Joy», 2006' })
+    expect(within(one).getByText('Film')).toBeInTheDocument()
+    expect(within(one).getByText(en.board.workedIn)).toBeInTheDocument()
+    expect(within(one).getByRole('button', { name: '«Letters»' })).toBeInTheDocument()
+    expect(within(one).getByText(en.board.fromMemory)).toBeInTheDocument()
+
+    // A chip already kept for the work is marked; another goes with a press.
+    expect(within(one).getByRole('button', { name: 'the hot spring' })).toBeDisabled()
+    fireEvent.click(within(one).getByRole('button', { name: 'a log' }))
+    await waitFor(() =>
+      expect(backend.argsOf('chip_to_phrase')).toEqual([{ cardId: 'joy', chip: 'a log' }]),
+    )
+  })
+
+  it('marks a quote checked where its proof is a link, and reads the board by kind', async () => {
+    const entry = (id: string, medium: string) => ({
+      id,
+      title: id,
+      author: null,
+      year: null,
+      medium,
+      aliases: [],
+    })
+    backend.answer('work_boards', () => [
+      {
+        board: 'research',
+        cards: [
+          card('dante', '', {
+            board: 'research',
+            kind: 'work',
+            topic: 'Hypocrisy as a system',
+            fields: { quote: 'gilded lead cloaks', proof: 'https://example.org/inferno-23' },
+            note_id: 'Inferno',
+            entry: entry('Inferno', 'literature'),
+          }),
+          card('pharisee', 'Pharisee', {
+            board: 'research',
+            kind: 'concept',
+            topic: 'Hypocrisy as a system',
+            position: 2,
+            fields: { term: 'Pharisee' },
+          }),
+        ],
+        directions: [],
+        elsewhere: [],
+      },
+    ])
+    await openTab()
+
+    const dante = await screen.findByRole('article', { name: '«Inferno»' })
+    expect(within(dante).getByRole('link', { name: en.board.checked })).toHaveAttribute(
+      'href',
+      'https://example.org/inferno-23',
+    )
+    const board = screen.getByRole('region', { name: 'Research' })
+    fireEvent.click(within(board).getByRole('radio', { name: en.board.byKind }))
+    expect(await within(board).findByRole('heading', { name: /Literature/ })).toBeInTheDocument()
+    expect(within(board).getByRole('heading', { name: /Concept/ })).toBeInTheDocument()
+    expect(within(board).queryByRole('button', { name: en.board.move })).not.toBeInTheDocument()
   })
 
   it('holds only what is attached on a work of a kind prepared on no conception', async () => {

@@ -23,6 +23,8 @@ const NOTE: Note = {
   prompt_basis: null,
   state: 'fresh',
   attribution: null,
+  medium: null,
+  year: null,
 }
 
 const pause = () => act(() => vi.advanceTimersByTimeAsync(600))

@@ -11,6 +11,8 @@ function row(id: string, body: string, shelves: string[] = []): LineRow {
     title: null,
     body,
     attribution: null,
+    medium: null,
+    year: null,
     tags: [],
     created_at: 't',
     updated_at: 't',

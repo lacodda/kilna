@@ -420,6 +420,8 @@ pub fn keep_package(
                 layer: card.layer,
                 aliases: card.aliases,
                 state: None,
+                medium: None,
+                year: None,
             },
         )?;
         made.insert(card.handle, created.id.clone());

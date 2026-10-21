@@ -172,10 +172,13 @@ mod tests {
 
     fn with_note_kinds(conn: &Connection, profile_id: &str) {
         let mut config = profile::config_for(conn, profile_id).unwrap();
+        // The library stays: the board of research links to it.
+        let library = config.library().cloned();
         config.note_kinds = vec![
             NoteKind::new("character", "Character"),
             NoteKind::new("location", "Location"),
         ];
+        config.note_kinds.extend(library);
         // Plain kinds, not cards: nothing in the canon may stand in for a
         // style type any more.
         for style in &mut config.style_types {

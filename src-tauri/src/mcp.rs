@@ -241,7 +241,10 @@ fn tools() -> Vec<Value> {
              no kind of release never goes out itself - its works go out as what is made from \
              them. Plus the overview fields, each with the kinds it belongs to, the kinds of \
              note (`note_kinds`: a phrase - `line`, one line - and a note; `material` is spent \
-             by works) and how many \
+             by works; `library` is the library of works of culture the boards link to, with \
+             the `media` an entry is in - a medium not `quoted` is never quoted), the boards \
+             of a conception (`boards`: kinds of card, their fields and each field's `shape`) \
+             and how many \
              works there are. Read this first: a work is judged and versioned in its own kind's \
              keys, and the other tools speak in those keys. Also the style types of the \
              dictionary (`style_types`: key, label, form, families) and the compositions \
@@ -331,7 +334,9 @@ fn tools() -> Vec<Value> {
              `sung`, how its forms are sung where the record says so (the stress as a capital \
              vowel: write a lyric with these spellings, the plain ones in public text). A kind \
              marked `material` is spent by works, and each of its notes says where it stands \
-             in `state`: fresh, used (by the work it names), parked or dropped. Without \
+             in `state`: fresh, used (by the work it names), parked or dropped. An entry of \
+             the kind marked `library` is a work of culture: its `title`, its author as \
+             `attribution`, its other titles as `aliases`, its `medium` and `year`. Without \
              arguments, also `shelves`: every shelf in the owner's order with how many \
              phrases it holds.",
             json!({
@@ -430,9 +435,10 @@ fn tools() -> Vec<Value> {
              on an existing one they wait beside the current. `score` is marks along the kind's \
              axes. `notes` are notes on the work. `releases` plans releases and says what each \
              goes out as — its title, its description, its tags, the comment pinned under it — \
-             by the field keys the kind of release names (see `workspace`). Unknown fields and \
-             axes are named and left out; an unknown role or kind refuses the whole package. \
-             Nothing is written until the person applies it.",
+             by the field keys the kind of release names (see `workspace`). `boards` puts cards \
+             on the boards of its conception, as `propose_cards` does - a new song with its \
+             research. Unknown fields and axes are named and left out; an unknown role or kind \
+             refuses the whole package. Nothing is written until the person applies it.",
             json!({
                 "work": text_arg("An existing work to package changes for: its id, or its exact title. Omit to propose a new work"),
                 "title": text_arg("The title of the new work; required without `work`"),
@@ -476,6 +482,14 @@ fn tools() -> Vec<Value> {
                     "type": "array",
                     "description": "Trials for the board of an experiment (a kind with `lab`), in the shape `propose_trials` takes",
                     "items": { "type": "object" },
+                },
+                "boards": {
+                    "type": "array",
+                    "description": "Cards for the boards of the work's conception - a song with its research - each board with its cards in the shape `propose_cards` takes",
+                    "items": { "type": "object", "properties": {
+                        "board": text_arg("The board, by its key: `research`, `scenarios`"),
+                        "cards": { "type": "array", "items": { "type": "object" } },
+                    }, "required": ["board", "cards"] },
                 },
                 "releases": {
                     "type": "array",
@@ -643,36 +657,59 @@ fn tools() -> Vec<Value> {
              about, and the register of what is worn out. `order` is null while nothing of the \
              conception is written. `boards` are the boards themselves: each card with its id, \
              kind, topic, where it came from (own, refined, ai), the person's verdict (star: \
-             wanted; rejected: not that; none) and its fields, and the directions the last run \
-             offered. Write from `order`, and answer with `propose_version` - the text in the \
-             role it is written in - or `propose_work` given `work`.",
+             wanted; rejected: not that; none), the entry of the library it links to and its \
+             fields; the directions the last run offered; and `elsewhere`, the other works each \
+             entry already worked in. In `order` a quote stands word for word only with where \
+             it was checked. Write from `order`, and answer with `propose_version` - the text \
+             in the role it is written in - or `propose_work` given `work`.",
             json!({ "work": work_arg() }),
             &["work"],
         ),
         tool(
             "propose_cards",
-            "Propose cards onto a board of a work's conception - scenarios to write it by, and \
-             whatever else the craft lays out (`boards` in `workspace`, and the boards a kind's \
-             `conception` names). Each card names its `kind`, which may be left out on a board \
-             of one kind, its `fields` by the keys of that kind, and optionally a `topic` to \
-             group it under - one of the board's topics, or a new one of a few words. Give two \
-             to four `directions`: where the next run could dig, a few words each, shown on the \
-             board to click. Read `brief` first: do not repeat what stands on the board, take \
-             the starred cards as the direction and keep away from the turned-down ones. A \
-             kind or a field the board does not have is left out and said in the answer, the \
-             rest lands. The cards wait in the chat on the work and above its board; one click \
-             puts them on the board.",
+            "Propose cards onto a board of a work's conception - the research it draws on, the \
+             scenarios to write it by, and whatever else the craft lays out (`boards` in \
+             `workspace`, and the boards a kind's `conception` names). Each card names its \
+             `kind`, which may be left out on a board of one kind, its `fields` by the keys of \
+             that kind, and optionally a `topic` to group it under - one of the board's topics, \
+             or a new one of a few words. A kind marked `library` names its work of culture \
+             under `entry` - `title`, `author`, `year`, `medium` (a key of the library's \
+             `media` in `workspace`), `original` - and links to the entry of the library of \
+             that name, written into it when there is none. A field of the shape `quote` is \
+             somebody else's words, word for word; `proof` is the link where they were read, \
+             and a quote without one reaches the writer only as its sense; a work of a medium \
+             that is not `quoted` (a song) gives no quote at all; `chips` are short things to \
+             keep, parted by semicolons. `starred: true` carries over a choice the person \
+             already made - research they took from before. Give two to four `directions`: \
+             where the next run could dig, a few words each, shown on the board to click. Read \
+             `brief` first: do not repeat what stands on the board, take the starred cards as \
+             the direction and keep away from the turned-down ones. A kind or a field the board \
+             does not have is left out and said in the answer, the rest lands. The cards wait \
+             in the chat on the work and above its board; one click puts them on the board.",
             json!({
                 "work": work_arg(),
-                "board": text_arg("The board, by its key: `scenarios`"),
+                "board": text_arg("The board, by its key: `research`, `scenarios`"),
                 "cards": {
                     "type": "array",
                     "description": "The cards, each in the fields of a kind of the board",
                     "items": { "type": "object", "properties": {
                         "kind": text_arg("A kind of card of the board; may be left out on a board of one kind"),
                         "topic": text_arg("What it is grouped under, a few words, or leave it out"),
+                        "entry": {
+                            "type": "object",
+                            "description": "For a kind marked `library`: the work of culture the card is about",
+                            "properties": {
+                                "title": text_arg("Its title as it is known in the language of the work being written"),
+                                "author": text_arg("Who made it, optional"),
+                                "year": text_arg("When it was made, as said: 1913, c. 1308, 1880-83; optional"),
+                                "medium": text_arg("A key of the library's media, optional"),
+                                "original": text_arg("Its title in the language it was made in, when that differs; optional"),
+                            },
+                            "required": ["title"],
+                        },
                         "fields": { "type": "object", "description": "What the card says, by the field keys of its kind", "additionalProperties": { "type": "string" } },
-                    }, "required": ["fields"] },
+                        "starred": { "type": "boolean", "description": "The person already chose it; optional" },
+                    } },
                 },
                 "directions": { "type": "array", "description": "Two to four places the next run could dig, a few words each", "items": { "type": "string" } },
                 "note": text_arg("One sentence on the choices made, optional"),
@@ -1118,10 +1155,15 @@ pub fn run_tool(
                 .iter()
                 .filter(|kind| !kind.is_card())
                 .map(|kind| {
-                    json!({
+                    let mut said = json!({
                         "key": kind.key, "label": kind.label,
                         "line": kind.line, "material": kind.material,
-                    })
+                    });
+                    if kind.library {
+                        said["library"] = json!(true);
+                        said["media"] = json!(kind.media);
+                    }
+                    said
                 })
                 .collect();
             pretty(&json!({
@@ -1852,6 +1894,33 @@ pub fn run_tool(
                 _ => Vec::new(),
             };
 
+            // Cards for the boards of the work's conception, read as
+            // `propose_cards` reads them: a song arrives with its research.
+            let mut cards_left_out = Vec::new();
+            let mut boards = Vec::new();
+            for item in args
+                .get("boards")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let item = item.as_object().cloned().unwrap_or_default();
+                let laid = config.require_board(&kind, required(&item, "board")?)?;
+                let raw =
+                    json!({ "cards": item.get("cards").cloned().unwrap_or_else(|| json!([])) });
+                let read = crate::board::answer::read(laid, config.library(), &raw, None)?;
+                cards_left_out.extend(read.dropped.iter().map(|one| {
+                    format!(
+                        "{} card {}: {} “{}”",
+                        laid.label, one.card, one.part, one.value
+                    )
+                }));
+                boards.push(crate::assistant::proposal::PackagedBoard {
+                    board: laid.key.clone(),
+                    cards: read.cards,
+                });
+            }
+
             if found.is_some()
                 && fields.is_empty()
                 && versions.is_empty()
@@ -1860,6 +1929,7 @@ pub fn run_tool(
                 && scenes.is_empty()
                 && releases.is_empty()
                 && trials.is_empty()
+                && boards.is_empty()
             {
                 return Err(Error::refused("mcp.emptyPackage"));
             }
@@ -1875,6 +1945,7 @@ pub fn run_tool(
                 scenes,
                 releases,
                 trials,
+                boards,
             };
             let body = apply::render_package(&proposal, &config, &kind);
             let mut summary = package_summary(&proposal);
@@ -1882,6 +1953,12 @@ pub fn run_tool(
                 summary.push_str(&format!(
                     ", left out of trials (not in the workspace): {}",
                     trials_left_out.join("; ")
+                ));
+            }
+            if !cards_left_out.is_empty() {
+                summary.push_str(&format!(
+                    ", left out of cards: {}",
+                    cards_left_out.join("; ")
                 ));
             }
             deliver(
@@ -2023,9 +2100,11 @@ pub fn run_tool(
                             "topic": card.topic,
                             "source": card.source,
                             "verdict": card.verdict,
+                            "entry": card.entry,
                             "fields": card.fields,
                         })).collect::<Vec<_>>(),
                         "directions": view.directions,
+                        "elsewhere": view.elsewhere,
                     })
                 })
                 .collect();
@@ -2051,7 +2130,7 @@ pub fn run_tool(
             if let Some(directions) = args.get("directions") {
                 raw["directions"] = directions.clone();
             }
-            let read = crate::board::answer::read(board, &raw, None)?;
+            let read = crate::board::answer::read(board, config.library(), &raw, None)?;
             let count = read.cards.len();
             let left_out: Vec<String> = read
                 .dropped
@@ -2641,6 +2720,7 @@ fn package_summary(proposal: &Proposal) -> String {
         scenes,
         releases,
         trials,
+        boards,
         ..
     } = proposal
     else {
@@ -2693,6 +2773,14 @@ fn package_summary(proposal: &Proposal) -> String {
             "{} trial{}",
             trials.len(),
             if trials.len() == 1 { "" } else { "s" }
+        ));
+    }
+    for packaged in boards {
+        parts.push(format!(
+            "{} card{} for `{}`",
+            packaged.cards.len(),
+            if packaged.cards.len() == 1 { "" } else { "s" },
+            packaged.board
         ));
     }
     if !releases.is_empty() {
@@ -2789,7 +2877,8 @@ mod tests {
         let read: Value = serde_json::from_str(&read).unwrap();
         assert_eq!(read["order"], Value::Null, "nothing is written yet");
         assert_eq!(read["brief_role"], "brief");
-        assert_eq!(read["boards"][0]["key"], "scenarios");
+        assert_eq!(read["boards"][0]["key"], "research");
+        assert_eq!(read["boards"][1]["key"], "scenarios");
 
         fixtures::version(
             &conn,
@@ -2854,6 +2943,102 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(refused.refusal().unwrap().code, "board.notOfKind");
+    }
+
+    /// An agent carries research over: cards of the research board naming
+    /// their works of culture, one starred, a song's quote left out - and a
+    /// new song proposed whole with its research. Applied, the entries are
+    /// the library's, the star the person's choice, and `brief` reads the
+    /// entries back with where else they worked.
+    #[test]
+    fn research_arrives_over_mcp_with_its_entries_and_a_new_song_with_it() {
+        let (conn, song) = workspace();
+        let card = |title: &str, starred: bool| {
+            json!({
+                "kind": "work", "topic": "Quiet endings", "starred": starred,
+                "entry": { "title": title, "author": "Kelly Reichardt", "year": "2006", "medium": "film" },
+                "fields": { "why": "two friends drift apart", "quote": "Sorrow is nothing but worn-out joy" }
+            })
+        };
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_cards",
+            &args(json!({
+                "work": song,
+                "board": "research",
+                "cards": [
+                    card("Old Joy", true),
+                    { "kind": "work", "entry": { "title": "A Song", "medium": "music" },
+                      "fields": { "why": "the same question", "quote": "the words of it" } },
+                    { "kind": "concept", "fields": { "term": "Pharisee", "meaning": "a hypocrite" } }
+                ],
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("Proposed 3 cards"), "{answer}");
+        assert!(
+            answer.contains("quote"),
+            "a song's quote is said to be left out: {answer}"
+        );
+        let message = first_message(&conn, &song);
+        crate::actions::proposal::apply(
+            &conn,
+            &message.id,
+            crate::actions::proposal::Overrides::default(),
+        )
+        .unwrap();
+        let board = crate::board::for_board(&conn, &song, "research").unwrap();
+        assert_eq!(board.len(), 3);
+        assert_eq!(board[0].verdict, Some(crate::board::Verdict::Star));
+        assert_eq!(
+            board[0].entry.as_ref().unwrap().year.as_deref(),
+            Some("2006")
+        );
+        assert!(!board[1].fields.contains_key("quote"));
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "The Pharisee",
+                "kind": "song",
+                "versions": [{ "role": "brief", "body": "## What it is about\na pilgrimage" }],
+                "boards": [{ "board": "research", "cards": [card("old joy", false)] }],
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("1 card for `research`"), "{answer}");
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats.iter().find(|c| c.work_id.is_none()).unwrap();
+        let proposed = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        assert!(proposed.body.contains("### Research"), "{}", proposed.body);
+        let outcome =
+            crate::actions::proposal::apply(&conn, &proposed.id, Default::default()).unwrap();
+        let made = outcome.work_id.unwrap();
+        let cards = crate::board::for_board(&conn, &made, "research").unwrap();
+        assert_eq!(cards.len(), 1);
+        assert_eq!(
+            cards[0].note_id, board[0].note_id,
+            "one entry for both songs"
+        );
+
+        let read = run_tool(&conn, &claude(), "brief", &args(json!({ "work": made }))).unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+        let research = read["boards"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|view| view["key"] == "research")
+            .unwrap();
+        assert_eq!(research["cards"][0]["entry"]["title"], "Old Joy");
+        assert_eq!(research["elsewhere"][0]["works"][0]["work_id"], json!(song));
     }
 
     /// An agent reads a board and what an idea is built from, proposes ideas

@@ -15,7 +15,8 @@ use serde_json::Value;
 
 use super::{BoardCard, Source, Verdict};
 use crate::error::{Error, Result};
-use crate::profile::config::{Board, BoardRule};
+use crate::library::{self, Asked};
+use crate::profile::config::{Board, BoardRule, FieldShape, NoteKind};
 
 /// The most cards one run is asked for.
 pub const MOST: u8 = 6;
@@ -85,6 +86,17 @@ pub struct Packaged {
     pub topic: String,
     pub source: Source,
     pub fields: BTreeMap<String, String>,
+    /// The work of culture a card of a kind that links to the library names:
+    /// found in the library when it lands, or written into it (ADR 0066).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub entry: Option<Asked>,
+    /// Proposed starred: an agent carrying over research the person already
+    /// chose from. A run of the window never stars - the verdict is the
+    /// person's.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub starred: bool,
 }
 
 /// A part of an answer left out because the board has nothing by that name.
@@ -107,17 +119,68 @@ pub struct Read {
     pub dropped: Vec<Dropped>,
 }
 
-/// The cards of an answer's block, read against `board`.
+/// The work of culture a card names under `entry`, read against the library:
+/// none without a title; a medium the library does not name is left out and
+/// said.
+fn entry_of(
+    object: &serde_json::Map<String, Value>,
+    library: Option<&NoteKind>,
+    mut leave: impl FnMut(&str, &str),
+) -> Option<Asked> {
+    let entry = object.get("entry").and_then(Value::as_object)?;
+    let text = |key: &str| {
+        entry
+            .get(key)
+            .and_then(|value| match value {
+                Value::String(text) => Some(text.trim().to_owned()),
+                Value::Number(number) => Some(number.to_string()),
+                _ => None,
+            })
+            .filter(|text| !text.is_empty())
+    };
+    let title = text("title")?;
+    let medium = text("medium").and_then(|key| {
+        if library.is_some_and(|kind| kind.medium(&key).is_some()) {
+            Some(key)
+        } else {
+            leave("medium", &key);
+            None
+        }
+    });
+    Some(Asked {
+        title,
+        author: text("author"),
+        year: text("year"),
+        medium,
+        original: text("original"),
+    })
+}
+
+/// The cards of an answer's block, read against `board`, and the library
+/// its cards may link to.
 ///
 /// The block is `{"cards": [...], "directions": [...]}` or the list of cards
 /// alone. A card names its kind, which may be left out on a board of one
 /// kind; its fields come under `fields` or as keys of the card itself. A
 /// kind the board does not hold, or a field the kind does not name, is left
 /// out and said in `dropped`; a card that says nothing is left out whole.
+///
+/// A card of a kind that links to the library names its work of culture
+/// under `entry` - a title at least, or it is left out whole. A proof that
+/// is not a link is left out, so its quote reads as one from memory; the
+/// quotes of a work of a medium that is never quoted - a song's lyrics - are
+/// left out, whatever the answer gave (ADR 0066).
+///
 /// The answer's word for where a card came from is kept only for one worked
 /// out from the person's own, and only as many as were asked: everything
-/// else is the assistant's own. Refused only when no card could be read.
-pub fn read(board: &Board, raw: &Value, request: Option<&CardRequest>) -> Result<Read> {
+/// else is the assistant's own. A star is kept only from an agent, never
+/// from a run. Refused only when no card could be read.
+pub fn read(
+    board: &Board,
+    library: Option<&NoteKind>,
+    raw: &Value,
+    request: Option<&CardRequest>,
+) -> Result<Read> {
     let (list, directions) = match raw {
         Value::Array(list) => (list, None),
         Value::Object(object) => (
@@ -179,11 +242,31 @@ pub fn read(board: &Board, raw: &Value, request: Option<&CardRequest>) -> Result
                 continue;
             }
         };
+        let entry = if kind.library {
+            match entry_of(object, library, &mut leave) {
+                Some(entry) => Some(entry),
+                None => {
+                    leave("entry", &raw.to_string());
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
+        let quoted = entry.as_ref().is_none_or(|entry| {
+            entry
+                .medium
+                .as_deref()
+                .and_then(|key| library.and_then(|kind| kind.medium(key)))
+                .is_none_or(|medium| medium.quoted)
+        });
         let nested = object.get("fields").and_then(Value::as_object);
         let mut fields = BTreeMap::new();
         for (key, value) in nested.unwrap_or(object) {
             // Flat on the card, the card's own words are not fields.
-            if nested.is_none() && ["kind", "topic", "source"].contains(&key.as_str()) {
+            if nested.is_none()
+                && ["kind", "topic", "source", "entry", "starred"].contains(&key.as_str())
+            {
                 continue;
             }
             let Some(text) = value
@@ -193,13 +276,19 @@ pub fn read(board: &Board, raw: &Value, request: Option<&CardRequest>) -> Result
             else {
                 continue;
             };
-            if kind.fields.iter().any(|field| field.key == *key) {
-                fields.insert(key.clone(), text.to_owned());
-            } else {
+            if !kind.fields.iter().any(|field| field.key == *key) {
                 leave("field", key);
+            } else if kind.is(key, FieldShape::Proof) && !library::is_link(text) {
+                leave("proof", text);
+            } else if !quoted
+                && (kind.is(key, FieldShape::Quote) || kind.is(key, FieldShape::Proof))
+            {
+                leave("quote", key);
+            } else {
+                fields.insert(key.clone(), text.to_owned());
             }
         }
-        if fields.is_empty() {
+        if fields.is_empty() && entry.is_none() {
             leave("card", &raw.to_string());
             continue;
         }
@@ -220,6 +309,9 @@ pub fn read(board: &Board, raw: &Value, request: Option<&CardRequest>) -> Result
                 .to_owned(),
             source,
             fields,
+            entry,
+            starred: request.is_none()
+                && object.get("starred").and_then(Value::as_bool) == Some(true),
         });
     }
     if out.cards.is_empty() {
@@ -228,21 +320,59 @@ pub fn read(board: &Board, raw: &Value, request: Option<&CardRequest>) -> Result
     Ok(out)
 }
 
-/// One card as a prompt reads it: each field that says anything under the
-/// word for it, and the topic it stands under.
-pub fn card_line(board: Option<&Board>, card: &BoardCard) -> String {
+/// One card as a prompt and the order read it: the entry of the library it
+/// links to, each field that says anything under the word for it, and the
+/// topic it stands under.
+///
+/// Somebody else's words reach a writer only as checked (ADR 0066): a card's
+/// quotes are given word for word with where they were checked, or - from
+/// memory - left out with a word that says so; and a work of a medium that
+/// is never quoted gives no quote at all.
+pub fn card_line(board: Option<&Board>, library: Option<&NoteKind>, card: &BoardCard) -> String {
     let kind = board.and_then(|board| board.card(&card.kind));
     let mut parts = Vec::new();
+    if let Some(entry) = &card.entry {
+        parts.push(entry.described(library));
+    }
     match kind {
         Some(kind) => {
+            let quoted = card
+                .entry
+                .as_ref()
+                .is_none_or(|entry| entry.quoted(library));
+            let checked = kind
+                .proof()
+                .and_then(|proof| card.fields.get(&proof.key))
+                .is_some_and(|text| library::is_link(text));
+            let mut from_memory = false;
             for field in &kind.fields {
-                if let Some(text) = card
+                let Some(text) = card
                     .fields
                     .get(&field.key)
                     .filter(|text| !text.trim().is_empty())
-                {
-                    parts.push(format!("{}: {}", field.label, flat(text)));
+                else {
+                    continue;
+                };
+                match field.shape {
+                    FieldShape::Quote if !quoted => {}
+                    FieldShape::Quote if !checked => from_memory = true,
+                    FieldShape::Quote => parts.push(format!("{}: “{}”", field.label, flat(text))),
+                    FieldShape::Proof if !quoted || !checked => {}
+                    FieldShape::Chips => parts.push(format!(
+                        "{}: {}",
+                        field.label,
+                        library::chips(text).join("; ")
+                    )),
+                    FieldShape::Proof | FieldShape::Text => {
+                        parts.push(format!("{}: {}", field.label, flat(text)));
+                    }
                 }
+            }
+            if from_memory {
+                parts.push(
+                    "its quote is from memory, not checked, and left out: take its sense, never its words"
+                        .to_owned(),
+                );
             }
         }
         None => {
@@ -269,8 +399,9 @@ fn flat(text: &str) -> String {
 }
 
 /// What a card of each kind on the board says, field by field, with the
-/// hint of what goes in it.
-fn kinds_sheet(board: &Board) -> String {
+/// hint of what goes in it - and, for a kind that links to the library, the
+/// work of culture it names.
+fn kinds_sheet(board: &Board, library: Option<&NoteKind>) -> String {
     let mut out = String::new();
     for kind in &board.cards {
         if board.cards.len() > 1 {
@@ -281,13 +412,26 @@ fn kinds_sheet(board: &Board) -> String {
         } else {
             out.push_str("A card says:\n");
         }
+        if kind.library {
+            out.push_str(&entry_sheet(library));
+        }
         for field in &kind.fields {
             out.push_str(&format!("- `{}` - {}", field.key, field.label));
             if let Some(hint) = &field.hint {
                 out.push_str(&format!(", for example: “{hint}”"));
             }
-            if field.multiline {
-                out.push_str(" (a few sentences)");
+            match field.shape {
+                FieldShape::Quote => out.push_str(
+                    " (somebody else's words, word for word, in the language they were written in)",
+                ),
+                FieldShape::Proof => out.push_str(
+                    " (the link of the page where you read the quote word for word; leave it out when you could not check it)",
+                ),
+                FieldShape::Chips => out.push_str(
+                    " (short things worth keeping - images, names, places, terms - parted by semicolons)",
+                ),
+                FieldShape::Text if field.multiline => out.push_str(" (a few sentences)"),
+                FieldShape::Text => {}
             }
             out.push('\n');
         }
@@ -295,14 +439,60 @@ fn kinds_sheet(board: &Board) -> String {
     out.trim_end().to_owned()
 }
 
+/// How a card of a kind that links to the library names its work of
+/// culture, and what is never quoted.
+fn entry_sheet(library: Option<&NoteKind>) -> String {
+    let media = library
+        .map(|kind| {
+            kind.media
+                .iter()
+                .map(|medium| format!("`{}` ({})", medium.key, medium.label))
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .unwrap_or_default();
+    let mut out = String::from(
+        "- `entry` - the work of culture it is: `title` as it is known in the language of the work being written, `author`, `year`",
+    );
+    if !media.is_empty() {
+        out.push_str(&format!(", `medium` - one of: {media}"));
+    }
+    out.push_str(
+        ", and `original` - its title in the language it was made in, when that differs\n",
+    );
+    let unquoted: Vec<String> = library
+        .map(|kind| {
+            kind.media
+                .iter()
+                .filter(|medium| !medium.quoted)
+                .map(|medium| medium.label.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    if !unquoted.is_empty() {
+        out.push_str(&format!(
+            "  A work of {} is never quoted: name it, say why it fits, give no words of it.\n",
+            unquoted.join(", ").to_lowercase()
+        ));
+    }
+    out
+}
+
 /// What the board asks for, and what stands on it: the `{cards}` of an
-/// action about a board.
-pub fn request_sheet(board: &Board, cards: &[BoardCard], request: &CardRequest) -> String {
+/// action about a board. `others` is what the library already gave other
+/// works, for a board that links to it.
+pub fn request_sheet(
+    board: &Board,
+    library: Option<&NoteKind>,
+    cards: &[BoardCard],
+    request: &CardRequest,
+    others: &str,
+) -> String {
     let mut out = format!("The board: {}.", board.label);
     if let Some(description) = &board.description {
         out.push_str(&format!(" {description}"));
     }
-    out.push_str(&format!("\n\n{}\n\n", kinds_sheet(board)));
+    out.push_str(&format!("\n\n{}\n\n", kinds_sheet(board, library)));
 
     let count = usize::from(request.count);
     let plural = if count == 1 { "" } else { "s" };
@@ -339,7 +529,7 @@ pub fn request_sheet(board: &Board, cards: &[BoardCard], request: &CardRequest) 
         }
         out.push_str(&format!("\n{heading}\n"));
         for card in cards {
-            out.push_str(&format!("- {}\n", card_line(Some(board), card)));
+            out.push_str(&format!("- {}\n", card_line(Some(board), library, card)));
         }
     };
     list(
@@ -366,6 +556,12 @@ pub fn request_sheet(board: &Board, cards: &[BoardCard], request: &CardRequest) 
         out.push_str(&format!(
             "\nThe board groups its cards under these topics: {}. Put a card under one of them when it belongs there, or under a new topic of a few words.\n",
             topics.join(", ")
+        ));
+    }
+    if board.links_the_library() && !others.trim().is_empty() {
+        out.push_str(&format!(
+            "\nThe library already gave these to other works. Bring one back only when nothing new fits as well, and say in its card why it is worth repeating:\n{}\n",
+            others.trim_end()
         ));
     }
     out.trim_end().to_owned()
@@ -396,17 +592,27 @@ pub fn instruction(board: &Board, request: &CardRequest) -> String {
         .map(|field| format!("      \"{}\": \"{}\"", field.key, field.label))
         .collect::<Vec<_>>()
         .join(",\n");
+    let entry = if first.library {
+        "    \"entry\": {\"title\": \"…\", \"author\": \"…\", \"year\": \"…\", \"medium\": \"…\", \"original\": \"…\"},\n"
+    } else {
+        ""
+    };
     let refined = if request.refined().is_some() {
         "\n- The card worked out from the person's own says `\"source\": \"refined\"`; every other one `\"source\": \"ai\"`."
+    } else {
+        ""
+    };
+    let library = if board.links_the_library() {
+        "\n- A card that names a work of culture gives it under `entry`; leave out what you do not know rather than guess it.\n- Give a quote only as it is written in the work, and its proof only for a page where you read those words yourself; a quote you could not check goes without a proof."
     } else {
         ""
     };
     format!(
         "\n\nEnd your answer with one fenced ```json block holding exactly {total} card{plural}, and two to {most} directions to dig next:\n\n\
 ```json\n\
-{{\"cards\": [\n  {{\n{kind}    \"source\": \"ai\",\n    \"topic\": \"what it is grouped under, a few words, or leave it out\",\n    \"fields\": {{\n{fields}\n    }}\n  }}\n],\n\"directions\": [\"where the next run could dig, a few words\"]}}\n```\n\n\
+{{\"cards\": [\n  {{\n{kind}    \"source\": \"ai\",\n    \"topic\": \"what it is grouped under, a few words, or leave it out\",\n{entry}    \"fields\": {{\n{fields}\n    }}\n  }}\n],\n\"directions\": [\"where the next run could dig, a few words\"]}}\n```\n\n\
 - Write the fields in the language of the work; leave a field out rather than fill it with nothing.\n\
-- A direction is somewhere this board has not been yet, said in a few words a person could click.{refined}",
+- A direction is somewhere this board has not been yet, said in a few words a person could click.{refined}{library}",
         plural = if total == 1 { "" } else { "s" },
         most = MOST_DIRECTIONS,
     )
@@ -455,7 +661,18 @@ pub fn for_writer<'a>(board: &Board, cards: &'a [BoardCard]) -> (String, Vec<&'a
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::profile::config::{CardField, CardKind, Label};
+    use crate::library::Entry;
+    use crate::profile::config::{CardField, CardKind, Label, Medium};
+
+    fn field(key: &str, shape: FieldShape) -> CardField {
+        CardField {
+            key: key.into(),
+            label: Label::from(key),
+            hint: None,
+            multiline: false,
+            shape,
+        }
+    }
 
     fn board(rule: BoardRule) -> Board {
         Board {
@@ -468,15 +685,59 @@ mod tests {
                 label: Label::from("Scenario"),
                 fields: ["line", "image", "ending"]
                     .into_iter()
-                    .map(|key| CardField {
-                        key: key.into(),
-                        label: Label::from(key),
-                        hint: None,
-                        multiline: false,
-                    })
+                    .map(|key| field(key, FieldShape::Text))
                     .collect(),
+                library: false,
             }],
         }
+    }
+
+    /// A board of research: works of culture linked to the library, with a
+    /// quote, its proof and chips, and concepts that link to nothing.
+    fn research() -> Board {
+        Board {
+            key: "research".into(),
+            label: Label::from("Research"),
+            description: None,
+            rule: BoardRule::All,
+            cards: vec![
+                CardKind {
+                    key: "work".into(),
+                    label: Label::from("Work"),
+                    fields: vec![
+                        field("why", FieldShape::Text),
+                        field("quote", FieldShape::Quote),
+                        field("proof", FieldShape::Proof),
+                        field("chips", FieldShape::Chips),
+                    ],
+                    library: true,
+                },
+                CardKind {
+                    key: "concept".into(),
+                    label: Label::from("Concept"),
+                    fields: vec![field("term", FieldShape::Text)],
+                    library: false,
+                },
+            ],
+        }
+    }
+
+    fn library() -> NoteKind {
+        let mut kind = NoteKind::new("source", "Library");
+        kind.library = true;
+        kind.media = vec![
+            Medium {
+                key: "film".into(),
+                label: Label::from("Film"),
+                quoted: true,
+            },
+            Medium {
+                key: "music".into(),
+                label: Label::from("Music"),
+                quoted: false,
+            },
+        ];
+        kind
     }
 
     fn card(id: &str, verdict: Option<Verdict>) -> BoardCard {
@@ -493,7 +754,135 @@ mod tests {
             fields: BTreeMap::from([("line".to_owned(), id.to_owned())]),
             created_at: String::new(),
             updated_at: String::new(),
+            note_id: None,
+            entry: None,
         }
+    }
+
+    /// A card of the research board linked to an entry of `medium`.
+    fn linked(medium: &str, fields: &[(&str, &str)]) -> BoardCard {
+        BoardCard {
+            board: "research".into(),
+            kind: "work".into(),
+            fields: fields
+                .iter()
+                .map(|(key, text)| ((*key).to_owned(), (*text).to_owned()))
+                .collect(),
+            note_id: Some("e".into()),
+            entry: Some(Entry {
+                id: "e".into(),
+                title: "Old Joy".into(),
+                author: Some("Kelly Reichardt".into()),
+                year: Some("2006".into()),
+                medium: Some(medium.into()),
+                aliases: Vec::new(),
+            }),
+            ..card("c", None)
+        }
+    }
+
+    /// A card of the library names its work of culture under `entry`, or is
+    /// left out; a medium the library does not name is dropped from it; a
+    /// proof that is not a link is dropped, and the quotes of a song never
+    /// land; a star lands only from an agent.
+    #[test]
+    fn a_card_of_the_library_is_read_with_its_entry_and_its_quotes_held_to_the_rule() {
+        let research = research();
+        let library = library();
+        let raw = serde_json::json!({ "cards": [
+            {"kind": "work", "starred": true,
+             "entry": {"title": "Old Joy", "author": "Kelly Reichardt", "year": 2006, "medium": "film"},
+             "fields": {"why": "two friends drift", "quote": "Sorrow is nothing but worn-out joy", "proof": "checked"}},
+            {"kind": "work", "entry": {"title": "Blowin' in the Wind", "medium": "music"},
+             "fields": {"why": "the question", "quote": "How many roads", "proof": "https://example.org/song"}},
+            {"kind": "work", "entry": {"title": "A ballad", "medium": "opera"}, "fields": {"why": "x"}},
+            {"kind": "work", "fields": {"why": "no entry"}},
+            {"kind": "concept", "fields": {"term": "pharisee"}}
+        ]});
+        let read = read(&research, Some(&library), &raw, None).unwrap();
+        assert_eq!(read.cards.len(), 4, "{:?}", read.dropped);
+        let film = &read.cards[0];
+        assert_eq!(film.entry.as_ref().unwrap().year.as_deref(), Some("2006"));
+        assert!(film.starred, "an agent may carry a star over");
+        assert!(film.fields.contains_key("quote"));
+        assert!(!film.fields.contains_key("proof"), "a proof is a link");
+        let song = &read.cards[1];
+        assert!(!song.fields.contains_key("quote"), "a song is never quoted");
+        assert!(!song.fields.contains_key("proof"));
+        assert_eq!(read.cards[2].entry.as_ref().unwrap().medium, None);
+        assert_eq!(
+            read.dropped
+                .iter()
+                .map(|d| (d.card, d.part.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                (1, "proof"),
+                (2, "quote"),
+                (2, "quote"),
+                (3, "medium"),
+                (4, "entry")
+            ]
+        );
+        let ran = super::read(
+            &research,
+            Some(&library),
+            &raw,
+            Some(&CardRequest::default()),
+        )
+        .unwrap();
+        assert!(!ran.cards[0].starred, "a run never stars");
+    }
+
+    /// A quote reaches a writer word for word only with where it was checked;
+    /// from memory it is left out and said; a song gives none at all.
+    #[test]
+    fn a_quote_reaches_the_writer_only_as_checked() {
+        let research = research();
+        let library = library();
+        let words = "Sorrow is nothing but worn-out joy";
+        let checked = card_line(
+            Some(&research),
+            Some(&library),
+            &linked(
+                "film",
+                &[("quote", words), ("proof", "https://example.org/old-joy")],
+            ),
+        );
+        assert!(
+            checked.starts_with("(Work) Kelly Reichardt, “Old Joy”, 2006 · Film"),
+            "{checked}"
+        );
+        assert!(checked.contains(words), "{checked}");
+        assert!(checked.contains("https://example.org/old-joy"), "{checked}");
+
+        let remembered = card_line(
+            Some(&research),
+            Some(&library),
+            &linked(
+                "film",
+                &[("quote", words), ("chips", "a lake; a log\nthe hot spring")],
+            ),
+        );
+        assert!(!remembered.contains(words), "{remembered}");
+        assert!(remembered.contains("from memory"), "{remembered}");
+        assert!(
+            remembered.contains("a lake; a log; the hot spring"),
+            "{remembered}"
+        );
+
+        let sung = card_line(
+            Some(&research),
+            Some(&library),
+            &linked(
+                "music",
+                &[("quote", words), ("proof", "https://example.org/x")],
+            ),
+        );
+        assert!(
+            !sung.contains(words) && !sung.contains("from memory"),
+            "{sung}"
+        );
+        assert!(!sung.contains("example.org"), "{sung}");
     }
 
     fn ids(cards: &[&BoardCard]) -> Vec<String> {
@@ -567,7 +956,7 @@ mod tests {
             refine: Some("my own".into()),
             ..CardRequest::default()
         };
-        let read = read(&one, &raw, Some(&request)).unwrap();
+        let read = read(&one, None, &raw, Some(&request)).unwrap();
         assert_eq!(read.cards.len(), 2);
         assert_eq!(read.cards[0].source, Source::Refined);
         assert_eq!(read.cards[0].topic, "Sea");
@@ -598,7 +987,7 @@ mod tests {
     #[test]
     fn an_answer_with_no_card_is_refused() {
         let one = board(BoardRule::One);
-        assert!(read(&one, &serde_json::json!({"cards": []}), None).is_err());
-        assert!(read(&one, &serde_json::json!("nothing"), None).is_err());
+        assert!(read(&one, None, &serde_json::json!({"cards": []}), None).is_err());
+        assert!(read(&one, None, &serde_json::json!("nothing"), None).is_err());
     }
 }

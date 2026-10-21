@@ -725,6 +725,7 @@ fn a_board_of_scenarios_rebuilds_card_by_card() {
                 source: Source::Ai,
                 verdict: None,
                 fields: [("line".to_owned(), line.to_owned())].into_iter().collect(),
+                note_id: None,
             },
         )
         .unwrap()
@@ -772,6 +773,74 @@ fn a_board_of_scenarios_rebuilds_card_by_card() {
     want.remove("tombstone");
     got.remove("tombstone");
     assert_eq!(got, want, "the rebuilt board is not the same board");
+    assert_eq!(got["board_card"].as_array().unwrap().len(), 3);
+}
+
+/// The research rebuilds with its library (ADR 0066): a work of culture
+/// written into the library as its card lands, found again by another
+/// work's card - its blanks filled, a name kept - the person's own card
+/// naming an entry, and a chip kept as a phrase of the work. The entries,
+/// the links and the phrase are where they were.
+#[test]
+fn the_research_rebuilds_with_its_library() {
+    use kilna_lib::board::Source;
+    use kilna_lib::board::answer::Packaged;
+    use kilna_lib::library::Asked;
+
+    let source = workspace();
+    let song = |title: &str| {
+        actions::work::create(
+            &source,
+            work::NewWork {
+                kind: "song".into(),
+                title: title.into(),
+                ..work::NewWork::default()
+            },
+        )
+        .unwrap()
+    };
+    let first = song("Harbour lights");
+    let second = song("Letters");
+    let card = |work: &str, title: &str, author: Option<&str>| {
+        actions::board::put(
+            &source,
+            work,
+            "research",
+            Packaged {
+                kind: "work".into(),
+                topic: "Quiet".into(),
+                source: Source::Ai,
+                fields: [
+                    ("why".to_owned(), "two friends drift".to_owned()),
+                    ("chips".to_owned(), "the hot spring; a log".to_owned()),
+                ]
+                .into_iter()
+                .collect(),
+                entry: Some(Asked {
+                    title: title.into(),
+                    author: author.map(str::to_owned),
+                    year: Some("2006".into()),
+                    medium: Some("film".into()),
+                    original: None,
+                }),
+                starred: false,
+            },
+        )
+        .unwrap()
+    };
+    let landed = card(&first.id, "Old Joy", None);
+    card(&second.id, "old joy", Some("Kelly Reichardt"));
+    actions::board::add_own(&source, &second.id, "research", Some("work"), "Frances Ha").unwrap();
+    actions::board::chip_to_phrase(&source, &landed.id, "the hot spring").unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+    let mut want = contents(&source);
+    let mut got = contents(&rebuilt);
+    want.remove("tombstone");
+    got.remove("tombstone");
+    assert_eq!(got, want, "the rebuilt research is not the same research");
     assert_eq!(got["board_card"].as_array().unwrap().len(), 3);
 }
 

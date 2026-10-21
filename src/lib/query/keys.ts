@@ -120,6 +120,9 @@ export const keys = {
   notesMatching: (filter: object) => ['notes', 'all', filter] as const,
   /** Every note a scene may point at: the cast, the places, the lore. */
   notesCastable: ['notes', 'castable'] as const,
+  /** The works an entry of the library worked in (ADR 0066). Under the
+   *  notes, so a card put on a board - which writes an entry - refreshes it. */
+  entryWorkedIn: (id: string) => ['notes', 'workedIn', id] as const,
   // One prefix over the inbox, the channels and what waits to be kept:
   // keeping a comment changes all three at once. A work's counter is the
   // card's, under `cardCounts`.

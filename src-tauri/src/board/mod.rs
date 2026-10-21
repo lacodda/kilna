@@ -21,8 +21,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
+use crate::library::Entry;
 use crate::minted::Minted;
-use crate::profile::config::{Board, CardKind, ProfileConfig};
+use crate::profile::config::{Board, CardKind, FieldShape, ProfileConfig};
 use crate::work::Work;
 
 /// Where a card came from.
@@ -107,13 +108,23 @@ pub struct BoardCard {
     pub fields: BTreeMap<String, String>,
     pub created_at: String,
     pub updated_at: String,
+    /// The entry of the library it links to, by its note's id: a card of a
+    /// kind the board marks `library` (ADR 0066). None once the entry is
+    /// gone for good.
+    pub note_id: Option<String>,
+    /// That entry, read off its note as the card is read: its title and
+    /// author are the entry's, never the card's.
+    pub entry: Option<Entry>,
 }
 
 impl BoardCard {
-    /// What the card is called: the first of its kind's fields that says
-    /// anything, or the first field of any it holds for a kind the board no
-    /// longer names.
+    /// What the card is called: the entry of the library it links to, or the
+    /// first of its kind's fields that says anything, or the first field of
+    /// any it holds for a kind the board no longer names.
     pub fn headline(&self, board: Option<&Board>) -> String {
+        if let Some(entry) = &self.entry {
+            return entry.headline();
+        }
         let kind = board.and_then(|board| board.card(&self.kind));
         let ordered: Vec<&str> = match kind {
             Some(kind) => kind.fields.iter().map(|field| field.key.as_str()).collect(),
@@ -148,6 +159,10 @@ pub struct NewCard {
     pub verdict: Option<Verdict>,
     #[serde(default)]
     pub fields: BTreeMap<String, String>,
+    /// The entry of the library it links to, for a kind that links to one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub note_id: Option<String>,
 }
 
 /// What may change about a card; `None` leaves a part alone. `fields` is
@@ -201,14 +216,37 @@ pub struct Placed {
     pub topic: String,
 }
 
-const SELECT: &str = "SELECT id, profile_id, work_id, board, kind, topic, position, source, \
-                      verdict, fields, created_at, updated_at FROM board_card";
+/// A card and the entry of the library it links to, read together: the
+/// entry is the card's headline, and reading it apart would ask once a card.
+const SELECT: &str = "SELECT c.id, c.profile_id, c.work_id, c.board, c.kind, c.topic, \
+                      c.position, c.source, c.verdict, c.fields, c.created_at, c.updated_at, \
+                      c.note_id, n.title, n.attribution, n.year, n.medium, n.aliases \
+                      FROM board_card c LEFT JOIN note n ON n.id = c.note_id";
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<BoardCard> {
     let source: String = row.get(7)?;
     let verdict: Option<String> = row.get(8)?;
     let fields: String = row.get(9)?;
+    let note_id: Option<String> = row.get(12)?;
+    let entry = match &note_id {
+        Some(id) => {
+            let aliases: Option<String> = row.get(17)?;
+            Some(Entry {
+                id: id.clone(),
+                title: row.get::<_, Option<String>>(13)?.unwrap_or_default(),
+                author: row.get(14)?,
+                year: row.get(15)?,
+                medium: row.get(16)?,
+                aliases: aliases
+                    .and_then(|raw| serde_json::from_str(&raw).ok())
+                    .unwrap_or_default(),
+            })
+        }
+        None => None,
+    };
     Ok(BoardCard {
+        note_id,
+        entry,
         id: row.get(0)?,
         profile_id: row.get(1)?,
         work_id: row.get(2)?,
@@ -310,6 +348,42 @@ fn check_card<'a>(
     Ok(card)
 }
 
+/// Refuse a proof that is not a link: where a quote was checked is a page a
+/// person can open, and "checked" with nothing to open is "from memory".
+fn check_proof(kind: &CardKind, fields: &BTreeMap<String, String>) -> Result<()> {
+    for field in kind
+        .fields
+        .iter()
+        .filter(|field| field.shape == FieldShape::Proof)
+    {
+        if let Some(text) = fields.get(&field.key)
+            && !crate::library::is_link(text)
+        {
+            return Err(Error::refused("board.proofNotALink").param("value", text.clone()));
+        }
+    }
+    Ok(())
+}
+
+/// Refuse a card whose link to the library does not fit its kind: a kind
+/// that links to the library holds a card of an entry of it, and any other
+/// kind links to nothing.
+fn check_link(
+    conn: &Connection,
+    profile_id: &str,
+    kind: &CardKind,
+    note_id: Option<&str>,
+) -> Result<()> {
+    match (kind.library, note_id) {
+        (true, Some(id)) => crate::library::require(conn, profile_id, id).map(|_| ()),
+        (true, None) => Err(Error::refused("board.needsEntry").param("kind", kind.label.as_str())),
+        (false, Some(_)) => {
+            Err(Error::refused("board.noEntryHere").param("kind", kind.label.as_str()))
+        }
+        (false, None) => Ok(()),
+    }
+}
+
 /// The fields as the row stores them: a JSON object in the order the kind
 /// names its fields, so the first text in it is the card's headline - what
 /// the tombstone and the trash read it by, in SQL, without the profile.
@@ -383,7 +457,9 @@ pub fn spelled(conn: &Connection, work_id: &str, board: &str, topic: &str) -> Re
 ///
 /// Refused when the work's kind lays out no such board, when the card is of
 /// a kind the board does not hold or names a field its kind does not have,
-/// and when it says nothing at all.
+/// when a proof is not a link, when its link to the library does not fit its
+/// kind, and when it says nothing at all - a card of an entry of the library
+/// says what the entry is, and may say nothing more yet.
 pub fn create_minted(
     conn: &Connection,
     profile_id: &str,
@@ -399,7 +475,9 @@ pub fn create_minted(
         &new.kind,
         &fields.keys().collect::<Vec<_>>(),
     )?;
-    if fields.is_empty() {
+    check_proof(kind, &fields)?;
+    check_link(conn, profile_id, kind, new.note_id.as_deref())?;
+    if fields.is_empty() && new.note_id.is_none() {
         return Err(Error::refused("board.emptyCard"));
     }
     let position = match new.position {
@@ -408,8 +486,8 @@ pub fn create_minted(
     };
     conn.execute(
         "INSERT INTO board_card (id, profile_id, work_id, board, kind, topic, position, source,
-                                 verdict, fields, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
+                                 verdict, fields, created_at, updated_at, note_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12)",
         params![
             minted.id(),
             profile_id,
@@ -422,6 +500,7 @@ pub fn create_minted(
             new.verdict.map(Verdict::as_str),
             stored(kind, &fields)?,
             minted.at(),
+            new.note_id,
         ],
     )?;
     get(conn, minted.id())?.ok_or_else(|| Error::Internal("the card vanished after insert".into()))
@@ -429,14 +508,14 @@ pub fn create_minted(
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<BoardCard>> {
     Ok(conn
-        .query_row(&format!("{SELECT} WHERE id = ?1"), params![id], read_row)
+        .query_row(&format!("{SELECT} WHERE c.id = ?1"), params![id], read_row)
         .optional()?)
 }
 
 /// One board of a work, in order.
 pub fn for_board(conn: &Connection, work_id: &str, board: &str) -> Result<Vec<BoardCard>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT} WHERE work_id = ?1 AND board = ?2 ORDER BY position, created_at, rowid"
+        "{SELECT} WHERE c.work_id = ?1 AND c.board = ?2 ORDER BY c.position, c.created_at, c.rowid"
     ))?;
     let rows = statement
         .query_map(params![work_id, board], read_row)?
@@ -447,7 +526,7 @@ pub fn for_board(conn: &Connection, work_id: &str, board: &str) -> Result<Vec<Bo
 /// Every board of a work, board by board, in order.
 pub fn for_work(conn: &Connection, work_id: &str) -> Result<Vec<BoardCard>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT} WHERE work_id = ?1 ORDER BY board, position, created_at, rowid"
+        "{SELECT} WHERE c.work_id = ?1 ORDER BY c.board, c.position, c.created_at, c.rowid"
     ))?;
     let rows = statement
         .query_map(params![work_id], read_row)?
@@ -468,6 +547,8 @@ pub fn update_at(conn: &Connection, id: &str, patch: CardPatch, at: &str) -> Res
     };
     // A card keeps what it says when its kind changes, and is held to the
     // fields of the kind it now is - as it is when it is put on the board.
+    // Its link to the library stays as it is, so a kind that links to the
+    // library and one that does not are not each other's.
     let written = if kind != current.kind || patch.fields.is_some() {
         let of = check_card(
             &config,
@@ -476,7 +557,11 @@ pub fn update_at(conn: &Connection, id: &str, patch: CardPatch, at: &str) -> Res
             &kind,
             &fields.keys().collect::<Vec<_>>(),
         )?;
-        if fields.is_empty() {
+        check_proof(of, &fields)?;
+        if kind != current.kind {
+            check_link(conn, &current.profile_id, of, current.note_id.as_deref())?;
+        }
+        if fields.is_empty() && current.note_id.is_none() {
             return Err(Error::refused("board.emptyCard"));
         }
         stored(of, &fields)?
@@ -633,6 +718,10 @@ pub struct BoardView {
     /// literature", "the sea as a border" - for the next run to go. Empty
     /// until an answer offers any.
     pub directions: Vec<String>,
+    /// The other works each entry of the library on this board has worked
+    /// in: "already worked in…" on its card (ADR 0066). An entry that worked
+    /// nowhere else is left out.
+    pub elsewhere: Vec<crate::library::Elsewhere>,
 }
 
 /// Every board a work's kind lays out, in its conception's order, with the
@@ -658,6 +747,7 @@ pub fn boards(conn: &Connection, work: &Work) -> Result<Vec<BoardView>> {
         cards = rest;
         out.push(BoardView {
             directions: directions(conn, &work.id, &key)?,
+            elsewhere: crate::library::elsewhere(conn, &work.id, &key)?,
             board: key,
             cards: here,
         });

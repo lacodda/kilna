@@ -74,6 +74,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::board::Verdict,
         kilna_lib::board::Source,
         kilna_lib::board::answer::CardRequest,
+        kilna_lib::library::WorkedIn,
         // trials.rs
         kilna_lib::lab::TrialBoard,
         kilna_lib::lab::Trial,

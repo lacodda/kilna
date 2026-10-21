@@ -3,4 +3,4 @@
 /**
  * RepeatWhy two songs sharing a word is a finding.
  */
-export type RepeatWhy = "register" | "rare";
+export type RepeatWhy = "register" | "rare" | "source";

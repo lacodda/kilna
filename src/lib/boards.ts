@@ -1,10 +1,14 @@
 import type {
   Board,
   BoardCard,
+  BoardView,
   CardKind,
   CardRequest,
+  LibraryEntry,
+  NoteKind,
   ProfileConfig,
   PromptTemplate,
+  WorkedIn,
 } from '@/lib/api/types'
 
 /**
@@ -76,14 +80,97 @@ export function kindOf(board: Board, card: Pick<BoardCard, 'kind'>): CardKind | 
   return board.cards.find((kind) => kind.key === card.kind)
 }
 
-/** What a card is called: the first of its kind's fields that says anything. */
+/** What a card is called: the entry of the library it links to, or the
+ *  first of its kind's fields that says anything. */
 export function headlineOf(board: Board, card: BoardCard): string {
+  if (card.entry != null) return entryHeadline(card.entry)
   const keys = kindOf(board, card)?.fields.map((field) => field.key) ?? Object.keys(card.fields)
   for (const key of keys) {
     const text = card.fields[key]?.trim()
     if (text !== undefined && text !== '') return text
   }
   return ''
+}
+
+/** An entry of the library as a list reads it: the author, the title, the
+ *  year - the backend's `Entry::headline`, in the window's quotes. */
+export function entryHeadline(entry: Pick<LibraryEntry, 'title' | 'author' | 'year'>): string {
+  const parts: string[] = []
+  if (entry.author != null && entry.author.trim() !== '') parts.push(entry.author.trim())
+  parts.push(`«${entry.title.trim()}»`)
+  if (entry.year != null && entry.year.trim() !== '') parts.push(entry.year.trim())
+  return parts.join(', ')
+}
+
+/** The note kind that is the library, when the profile has one. */
+export function libraryOf(config: ProfileConfig): NoteKind | undefined {
+  return config.note_kinds.find((kind) => kind.library === true)
+}
+
+/** The medium of an entry, by its key, on the library's kind. */
+export function mediumOf(library: NoteKind | undefined, key: string | null | undefined) {
+  if (key == null) return undefined
+  return library?.media?.find((medium) => medium.key === key)
+}
+
+/** Whether a work of the entry's medium is ever quoted: a song's lyrics are
+ *  not. An entry with no medium, or one the library no longer names, is. */
+export function quoted(library: NoteKind | undefined, entry: LibraryEntry | null): boolean {
+  return mediumOf(library, entry?.medium)?.quoted !== false
+}
+
+/** The chips of a field - one to a line or parted by semicolons - the
+ *  backend's `library::chips`. */
+export function chipsOf(text: string | undefined): string[] {
+  const out: string[] = []
+  for (const raw of (text ?? '').split(/[\n;]/)) {
+    const chip = raw
+      .trim()
+      .replace(/[.,]+$/, '')
+      .trim()
+    if (chip === '' || out.some((kept) => kept.toLowerCase() === chip.toLowerCase())) continue
+    out.push(chip)
+  }
+  return out
+}
+
+/** Whether a text is a link a person can open: where a quote was checked. */
+export function isLink(text: string | undefined): boolean {
+  const trimmed = (text ?? '').trim()
+  return /^https?:\/\/\S+$/.test(trimmed) && trimmed.length > 'https://'.length
+}
+
+/** How a board is grouped: by the topics the person gave it, or by what its
+ *  cards are - the work of culture's medium, or the kind of card. */
+export type Grouping = 'topics' | 'kinds'
+
+/** A board's cards grouped by what they are (v0.100): a card of an entry
+ *  of the library under its medium's word, any other under its kind's -
+ *  the groups in the order their first cards stand, as the topics are. */
+export function kindsOf(
+  board: Board,
+  library: NoteKind | undefined,
+  cards: readonly BoardCard[],
+  say: (label: Board['label']) => string,
+): Topic[] {
+  const sorted = [...cards].sort((a, b) => a.position - b.position)
+  const groups: Topic[] = []
+  for (const card of sorted) {
+    const medium = mediumOf(library, card.entry?.medium)
+    const kind = kindOf(board, card)
+    const name =
+      medium !== undefined ? say(medium.label) : kind !== undefined ? say(kind.label) : card.kind
+    const found = groups.find((group) => group.name === name)
+    if (found === undefined) groups.push({ name, cards: [card] })
+    else found.cards.push(card)
+  }
+  return groups
+}
+
+/** The works an entry on this board has worked in besides this one. */
+export function elsewhereOf(view: BoardView | undefined, card: BoardCard): WorkedIn[] {
+  if (card.note_id == null) return []
+  return view?.elsewhere.find((one) => one.note_id === card.note_id)?.works ?? []
 }
 
 /** The profile's action that proposes cards for this board on this kind. */

@@ -18,6 +18,7 @@
             "style"
           ],
           "boards": [
+            "research",
             "scenarios"
           ]
         }
@@ -2029,6 +2030,74 @@
           "en": "Note",
           "ru": "Заметка"
         }
+      },
+      {
+        "key": "source",
+        "label": {
+          "en": "Library",
+          "ru": "Библиотека"
+        },
+        "icon": "library",
+        "library": true,
+        "media": [
+          {
+            "key": "literature",
+            "label": {
+              "en": "Literature",
+              "ru": "Литература"
+            }
+          },
+          {
+            "key": "film",
+            "label": {
+              "en": "Film",
+              "ru": "Кино"
+            }
+          },
+          {
+            "key": "painting",
+            "label": {
+              "en": "Painting",
+              "ru": "Живопись"
+            }
+          },
+          {
+            "key": "music",
+            "label": {
+              "en": "Music",
+              "ru": "Музыка"
+            },
+            "quoted": false
+          },
+          {
+            "key": "scripture",
+            "label": {
+              "en": "Scripture",
+              "ru": "Священный текст"
+            }
+          },
+          {
+            "key": "myth",
+            "label": {
+              "en": "Myth",
+              "ru": "Миф"
+            }
+          },
+          {
+            "key": "history",
+            "label": {
+              "en": "History",
+              "ru": "История"
+            }
+          },
+          {
+            "key": "place",
+            "label": {
+              "en": "Place",
+              "ru": "Место"
+            }
+          }
+        ]
       }
     ],
     "style_types": [
@@ -3641,6 +3710,26 @@
         ]
       },
       {
+        "key": "research",
+        "label": {
+          "en": "Research",
+          "ru": "Исследовать"
+        },
+        "description": {
+          "en": "Works of culture, primary sources and concepts the song could draw on, quotes checked on the web - put on the research board.",
+          "ru": "Произведения, первоисточники и понятия, на которые может опереться песня, - цитаты сверены в сети - на доску исследования."
+        },
+        "icon": "globe",
+        "template": "A song called \"{title}\" is being prepared.\n\n{prepared}\n\n{cards}",
+        "produces": "cards:research",
+        "scope": "board",
+        "web": true,
+        "method": "# Research\n\n## Role\n\nYou gather what a song could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the song, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the song is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Quiet beats loud: where the author asked for a quiet example, a betrayal or a murder is not one.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the song it serves (\"holy things as goods\", \"faith without show\"), not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo lyrics and no lines of the song. Nothing invented: a work you are not sure exists is not a card.\n",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
         "key": "scenarios",
         "label": {
           "en": "Propose scenarios",
@@ -3651,7 +3740,7 @@
           "ru": "Как может пойти песня - на доску сценариев."
         },
         "icon": "lightbulb",
-        "template": "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+        "template": "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}",
         "produces": "cards:scenarios",
         "scope": "board",
         "method": "# Scenarios\n\n## Role\n\nYou propose ways a song could go, before it is written. A scenario is not a plot outline and not a theme: it is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath. \"A man repaints his late father's boat every spring\" is a scenario; \"a song about loss\" is not.\n\n## A scenario\n\n- **In one line**: the move itself, concrete and visible - who does what, where.\n- **The image through it**: the image that comes back through the text, and what it carries each time.\n- **How it closes**: the last turn - what has changed by the end, or what is left open.\n\n## How\n\n- Every scenario from another side: another act, place, time or point of view.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief: where the author said how they see it, keep to it.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo lyrics and no lines of the song.\n",
@@ -3873,6 +3962,250 @@
       }
     ],
     "boards": [
+      {
+        "key": "research",
+        "label": {
+          "en": "Research",
+          "ru": "Исследование"
+        },
+        "description": {
+          "en": "What the song could draw on: works of culture, primary sources, concepts - each with why it belongs and what to take. Everything not turned down goes into the order, the starred first; a quote goes word for word only once it is checked.",
+          "ru": "На что может опереться песня: произведения, первоисточники, понятия - у каждого, почему здесь и что взять. В заказ идёт всё, кроме отклонённого, отмеченное звёздочкой - первым; цитата дословно - только сверенная."
+        },
+        "rule": "all",
+        "cards": [
+          {
+            "key": "work",
+            "label": {
+              "en": "Work",
+              "ru": "Произведение"
+            },
+            "library": true,
+            "fields": [
+              {
+                "key": "why",
+                "label": {
+                  "en": "What is there, and why it fits",
+                  "ru": "Что там и почему подходит"
+                },
+                "multiline": true
+              },
+              {
+                "key": "quote",
+                "label": {
+                  "en": "Quote",
+                  "ru": "Цитата"
+                },
+                "shape": "quote",
+                "multiline": true
+              },
+              {
+                "key": "translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
+                "shape": "quote",
+                "multiline": true
+              },
+              {
+                "key": "address",
+                "label": {
+                  "en": "Where in it",
+                  "ru": "Где"
+                },
+                "hint": {
+                  "en": "Canto XXIII; the last chapter",
+                  "ru": "Песнь XXIII; последняя глава"
+                }
+              },
+              {
+                "key": "proof",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
+                "shape": "proof"
+              },
+              {
+                "key": "take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
+                "multiline": true
+              },
+              {
+                "key": "caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
+                "multiline": true
+              },
+              {
+                "key": "chips",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
+                "shape": "chips"
+              }
+            ]
+          },
+          {
+            "key": "text",
+            "label": {
+              "en": "Primary source",
+              "ru": "Первоисточник"
+            },
+            "library": true,
+            "fields": [
+              {
+                "key": "quote",
+                "label": {
+                  "en": "The text",
+                  "ru": "Текст"
+                },
+                "shape": "quote",
+                "multiline": true
+              },
+              {
+                "key": "address",
+                "label": {
+                  "en": "Address",
+                  "ru": "Адрес"
+                },
+                "hint": {
+                  "en": "Matthew 23:27",
+                  "ru": "Мф 23:27"
+                }
+              },
+              {
+                "key": "translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
+                "shape": "quote",
+                "multiline": true
+              },
+              {
+                "key": "proof",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
+                "shape": "proof"
+              },
+              {
+                "key": "why",
+                "label": {
+                  "en": "Why it is here",
+                  "ru": "Почему здесь"
+                },
+                "multiline": true
+              },
+              {
+                "key": "take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
+                "multiline": true
+              },
+              {
+                "key": "chips",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
+                "shape": "chips"
+              }
+            ]
+          },
+          {
+            "key": "concept",
+            "label": {
+              "en": "Concept",
+              "ru": "Понятие"
+            },
+            "fields": [
+              {
+                "key": "term",
+                "label": {
+                  "en": "Concept",
+                  "ru": "Понятие"
+                },
+                "hint": {
+                  "en": "Pharisee",
+                  "ru": "Фарисей"
+                }
+              },
+              {
+                "key": "meaning",
+                "label": {
+                  "en": "What it is",
+                  "ru": "Что это"
+                },
+                "multiline": true
+              },
+              {
+                "key": "figurative",
+                "label": {
+                  "en": "What it means of a person",
+                  "ru": "Переносный смысл"
+                },
+                "multiline": true
+              },
+              {
+                "key": "caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
+                "multiline": true
+              },
+              {
+                "key": "chips",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
+                "shape": "chips"
+              }
+            ]
+          }
+        ]
+      },
       {
         "key": "scenarios",
         "label": {

@@ -52,6 +52,13 @@ pub struct PromptTemplate {
     /// proposes a revision of it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope: Option<String>,
+    /// The action reads the web: its run may search and open pages, and does
+    /// nothing else - no file, no shell, none of the person's other tools
+    /// (v0.100, ADR 0066). A page is a stranger's words, and an answer
+    /// written from them must not be able to act on them. Research checks
+    /// its quotes this way. Absent: the run as every other.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub web: bool,
 }
 
 /// What an action asks the answer to be, read off `produces`.
@@ -332,6 +339,7 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "trials"
             | "cards"
             | "conception"
+            | "prepared"
             | "starred"
             | "notes"
             | "order"
@@ -528,6 +536,9 @@ pub fn for_work(
     // from - each read only when asked for.
     if wants("conception") {
         values.push(("conception", crate::conception::sheet(conn, &work)?));
+    }
+    if wants("prepared") {
+        values.push(("prepared", crate::conception::prepared(conn, &work)?));
     }
     for name in &wanted {
         if name == "starred" || name.starts_with("starred:") {
@@ -1385,6 +1396,7 @@ mod tests {
             method: None,
             kinds: Vec::new(),
             scope: None,
+            web: false,
         };
         assert_eq!(
             action("scenes").produces(),
@@ -1675,6 +1687,7 @@ mod version_tests {
             method: None,
             kinds: Vec::new(),
             scope: None,
+            web: false,
         };
         assert_eq!(action(None).produces(), Produces::Prose);
         assert_eq!(action(Some("score")).produces(), Produces::Score);

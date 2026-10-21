@@ -76,6 +76,27 @@ pub fn delete_card(state: State<'_, AppState>, id: String) -> Result<String> {
     actions::trash::discard(&state.conn(), Entity::Card, &id)
 }
 
+/// Keep a chip of a card - an image, a name, a place - as a phrase of the
+/// work the card is on (ADR 0066).
+#[tauri::command]
+pub fn chip_to_phrase(
+    state: State<'_, AppState>,
+    card_id: String,
+    chip: String,
+) -> Result<crate::note::Note> {
+    actions::board::chip_to_phrase(&state.conn(), &card_id, &chip)
+}
+
+/// The works an entry of the library has worked in: what the entry shows in
+/// the library.
+#[tauri::command]
+pub fn entry_worked_in(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<crate::library::WorkedIn>> {
+    crate::library::worked_in(&state.conn(), &id)
+}
+
 /// The whole order a writer works from, in markdown: what "Copy the order"
 /// copies, and what an agent reads with `brief`.
 #[tauri::command]

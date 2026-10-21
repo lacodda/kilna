@@ -89,6 +89,21 @@ pub fn sheet(conn: &Connection, work: &Work) -> Result<String> {
     Ok(out.trim_end().to_owned())
 }
 
+/// `{prepared}`: the idea and the brief as `{conception}` reads them, or -
+/// while nothing of them is written - a line that says so. Research starts
+/// before the idea ("who were the Pharisees?" comes before any song about
+/// them, ADR 0066), so an action that gathers material for a work is not
+/// refused for the brief it has not got yet.
+pub fn prepared(conn: &Connection, work: &Work) -> Result<String> {
+    match sheet(conn, work) {
+        Err(error) if error.refusal().is_some_and(|r| r.code == "conception.empty") => Ok(
+            "(Nothing of the brief is written yet: the title and what is asked below are all there is.)"
+                .to_owned(),
+        ),
+        other => other,
+    }
+}
+
 /// `{starred}` and `{starred:<board>}`: what is starred on the work's boards,
 /// or on one of them, board by board under its name.
 pub fn starred(conn: &Connection, work: &Work, only: Option<&str>) -> Result<String> {
@@ -107,7 +122,10 @@ pub fn starred(conn: &Connection, work: &Work, only: Option<&str>) -> Result<Str
         }
         out.push_str(&format!("{}, starred:\n", board.label));
         for card in &cards {
-            out.push_str(&format!("- {}\n", answer::card_line(Some(board), card)));
+            out.push_str(&format!(
+                "- {}\n",
+                answer::card_line(Some(board), config.library(), card)
+            ));
         }
         out.push('\n');
     }
@@ -240,7 +258,7 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
             };
             part.push_str(&format!(
                 "\n- {star}{}",
-                answer::card_line(Some(board), card)
+                answer::card_line(Some(board), config.library(), card)
             ));
         }
         parts.push(part);
@@ -362,6 +380,7 @@ mod tests {
                 source: Source::Ai,
                 verdict: None,
                 fields: [("line".to_owned(), line.to_owned())].into_iter().collect(),
+                note_id: None,
             },
         )
         .unwrap()
@@ -443,6 +462,77 @@ mod tests {
         let order = super::order(&conn, &work).unwrap();
         assert!(order.contains("Write by this one."), "{order}");
         assert!(order.contains("★ "), "{order}");
+    }
+
+    /// The research reaches the order by its rule - everything not turned
+    /// down, the starred first - with its works of culture named by their
+    /// entries, a checked quote word for word, and one from memory left out;
+    /// `{starred:research}` reads the starred source for "Refine" and the
+    /// scenarios.
+    #[test]
+    fn the_order_draws_on_the_research_and_quotes_only_what_was_checked() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        fixtures::version(&conn, &song.id, "brief", "## What it is about\nthe harbour");
+        let put = |title: &str, quote: &str, proof: Option<&str>| {
+            let mut fields: std::collections::BTreeMap<String, String> = [
+                ("why".to_owned(), format!("why {title}")),
+                ("quote".to_owned(), quote.to_owned()),
+            ]
+            .into_iter()
+            .collect();
+            if let Some(proof) = proof {
+                fields.insert("proof".into(), proof.into());
+            }
+            crate::actions::board::put(
+                &conn,
+                &song.id,
+                "research",
+                crate::board::answer::Packaged {
+                    kind: "work".into(),
+                    topic: "The sea".into(),
+                    source: Source::Ai,
+                    fields,
+                    entry: Some(crate::library::Asked {
+                        title: title.into(),
+                        author: Some("An Author".into()),
+                        medium: Some("literature".into()),
+                        ..Default::default()
+                    }),
+                    starred: false,
+                },
+            )
+            .unwrap()
+        };
+        let checked = put(
+            "The Lighthouse",
+            "the lamp went on",
+            Some("https://example.org/lamp"),
+        );
+        put("The Pier", "the boards were wet", None);
+        crate::actions::board::judge(&conn, &checked.id, Some(Verdict::Star)).unwrap();
+
+        let work = crate::work::get(&conn, &song.id).unwrap().unwrap();
+        let order = order(&conn, &work).unwrap();
+        for said in [
+            "An Author, “The Lighthouse”",
+            "the lamp went on",
+            "https://example.org/lamp",
+            "An Author, “The Pier”",
+            "from memory",
+        ] {
+            assert!(order.contains(said), "the order lacks {said:?}:\n{order}");
+        }
+        assert!(!order.contains("the boards were wet"), "{order}");
+        assert!(
+            order.find("The Lighthouse") < order.find("The Pier"),
+            "the starred first:\n{order}"
+        );
+        let starred = starred(&conn, &work, Some("research")).unwrap();
+        assert!(
+            starred.contains("The Lighthouse") && !starred.contains("The Pier"),
+            "{starred}"
+        );
     }
 
     /// A conception with nothing written is refused rather than sent as an

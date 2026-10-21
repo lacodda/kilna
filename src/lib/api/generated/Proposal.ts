@@ -5,6 +5,7 @@ import type { CardDropped } from "./CardDropped";
 import type { IdeaDropped } from "./IdeaDropped";
 import type { Marks } from "./Marks";
 import type { Package } from "./Package";
+import type { PackagedBoard } from "./PackagedBoard";
 import type { PackagedCard } from "./PackagedCard";
 import type { PackagedIdea } from "./PackagedIdea";
 import type { PackagedNote } from "./PackagedNote";
@@ -74,7 +75,13 @@ releases?: Array<PackagedRelease>,
  * Trials for an experiment's board, by series, each naming the one
  * it varies (v0.95, ADR 0061). Only for a kind that is a lab.
  */
-trials?: Array<PackagedTrial>, } | { "kind": "scenes", scenes: Array<PackagedScene>, 
+trials?: Array<PackagedTrial>, 
+/**
+ * Cards for the boards of the work's conception, board by board -
+ * a new song arrives with its research (v0.100, ADR 0066). Only on
+ * boards the kind lays out.
+ */
+boards?: Array<PackagedBoard>, } | { "kind": "scenes", scenes: Array<PackagedScene>, 
 /**
  * What the proposal does to the board that is there.
  */

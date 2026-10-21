@@ -23,6 +23,8 @@ function phrase(id: string, body: string, state: Note['state'] = 'fresh'): Note 
     title: null,
     body,
     attribution: null,
+    medium: null,
+    year: null,
     tags: ['sea'],
     created_at: NOW,
     updated_at: NOW,

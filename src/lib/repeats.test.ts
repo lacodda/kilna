@@ -67,6 +67,12 @@ describe('repeatHint', () => {
     expect(repeatHint(spent, 'en')).toBe('spent: кофе — in “Tide”, out Sep 20')
   })
 
+  it('says a work of culture both songs drew on as a source that already worked', () => {
+    const source = finding({ word: 'Old Joy', level: 'orange', why: 'source' })
+    expect(repeatHint(source, 'en')).toBe('«Old Joy» already worked in “Tide”, out Sep 20')
+    expect(repeatHint(source, 'ru')).toBe('«Old Joy» уже работал в песне «Tide», вышла 20 сент.')
+  })
+
   it('counts the other songs that say the word too', () => {
     expect(repeatHint(finding({ also: 2 }), 'en')).toBe(
       'пульсар — in “Tide”, out Sep 20, and in 2 more songs',

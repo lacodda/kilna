@@ -5,6 +5,7 @@ import {
   Film,
   FlaskConical,
   Gauge,
+  Globe,
   Image,
   Lightbulb,
   ListOrdered,
@@ -60,6 +61,7 @@ const ACTION_ICONS: Record<string, LucideIcon> = {
   quote: TextQuote,
   orbit: Orbit,
   flask: FlaskConical,
+  globe: Globe,
 }
 
 /** The names, for the reference and for a picker. */

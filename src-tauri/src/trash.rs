@@ -471,13 +471,16 @@ const SPENT_IN: [&str; 2] = ["work_version", "style_brick"];
 /// the one it names is still gone comes back naming nothing, rather than
 /// failing on the foreign key; one that comes back in the same entry is named
 /// again once both are in.
-const SOFT: [(&str, &str, &str); 6] = [
+const SOFT: [(&str, &str, &str); 7] = [
     ("work_version", "parent_version_id", "work_version"),
     ("work_version", "trial_id", "trial"),
     ("style_brick", "trial_id", "trial"),
     ("trial", "parent_id", "trial"),
     ("trial", "source_version_id", "work_version"),
     ("cover_idea", "from_work_id", "work"),
+    // A card of a work restored after the entry of the library it linked to
+    // was deleted (ADR 0066): an entry a live card links to is never deleted.
+    ("board_card", "note_id", "note"),
 ];
 
 /// One table to snapshot, and the column that ties it to the entity being
@@ -527,6 +530,11 @@ pub fn discard_minted(
 
 /// The body of a discard: the snapshot, the entry and the deletion.
 fn discard_in(tx: &Connection, entity: Entity, id: &str, minted: &Minted) -> Result<String> {
+    // An entry of the library a board still links to stays: its cards would
+    // say what they are to a work of culture nobody could name (ADR 0066).
+    if entity == Entity::Note {
+        crate::library::refuse_while_linked(tx, id)?;
+    }
     let (label, origin, profile_id) = describe(tx, entity, id)?;
 
     // Snapshot first, delete second: the rows have to be read while they exist.

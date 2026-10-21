@@ -45,4 +45,12 @@ kinds?: Array<string>,
  * is started from a row of the storyboard, reads it as `{scene}`, and
  * proposes a revision of it.
  */
-scope?: string | null, };
+scope?: string | null, 
+/**
+ * The action reads the web: its run may search and open pages, and does
+ * nothing else - no file, no shell, none of the person's other tools
+ * (v0.100, ADR 0066). A page is a stranger's words, and an answer
+ * written from them must not be able to act on them. Research checks
+ * its quotes this way. Absent: the run as every other.
+ */
+web?: boolean, };

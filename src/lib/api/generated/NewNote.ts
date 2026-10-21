@@ -14,4 +14,8 @@ layer?: Layer, aliases?: Array<string>,
 /**
  * Fresh when absent.
  */
-state?: NoteState, };
+state?: NoteState, 
+/**
+ * For an entry of the library: its medium and when it was made.
+ */
+medium?: string, year?: string, };

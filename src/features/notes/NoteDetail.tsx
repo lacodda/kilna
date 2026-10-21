@@ -21,6 +21,7 @@ import { Markdown } from '@/components/Markdown'
 import { Select } from '@/components/AppSelect'
 import { SaveState, type SaveStatus } from '@/components/ui/save-state'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
+import { LibraryFields } from '@/features/notes/LibraryFields'
 import { NoteBodyEditor } from '@/features/notes/NoteBodyEditor'
 import { NoteTagAdder } from '@/features/notes/NoteTagAdder'
 import { PromoteNoteDialog } from '@/features/notes/PromoteNoteDialog'
@@ -56,6 +57,10 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
   // An idea or a phrase is spent by works, not moved into them (ADR 0045):
   // going to a work marks it used, and it says where it stands.
   const material = isMaterial(config, note.kind)
+  // An entry of the library is a work of culture, one for the whole
+  // workspace (ADR 0066): the boards link to it, it is attached to none and
+  // grows into no work.
+  const library = config.note_kinds.find((kind) => kind.key === note.kind && kind.library === true)
 
   const [title, setTitle] = useState(note.title ?? '')
   const [editing, setEditing] = useState(startEditing)
@@ -153,16 +158,18 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
             className="w-36"
           />
         )}
-        <Button
-          size="sm"
-          onClick={() => {
-            void body.flush().then(() => setPromoting(true))
-          }}
-          title={t('notes.promoteHint')}
-        >
-          <Sprout aria-hidden />
-          {t('notes.promote')}
-        </Button>
+        {library === undefined && (
+          <Button
+            size="sm"
+            onClick={() => {
+              void body.flush().then(() => setPromoting(true))
+            }}
+            title={t('notes.promoteHint')}
+          >
+            <Sprout aria-hidden />
+            {t('notes.promote')}
+          </Button>
+        )}
         <Button
           size="icon-sm"
           variant="danger"
@@ -178,9 +185,14 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       {/* What the note is about, when it is about a work: one click to the
           card, one to let go. Attaching is how a seed written on its own
           joins the song it turned out to be for (ADR 0064). */}
+      {library !== undefined && (
+        <LibraryFields note={note} library={library} onPatch={(change) => patch.mutate(change)} />
+      )}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs text-dim">
         <Link2 aria-hidden className="size-3.5 text-faint" />
-        {note.work_id === null ? (
+        {library !== undefined ? (
+          <span>{t('library.linkedFromBoards')}</span>
+        ) : note.work_id === null ? (
           <Button variant="link" onClick={() => setAttaching(true)}>
             {t('notes.attach')}
           </Button>

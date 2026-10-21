@@ -7,4 +7,4 @@ export type NotePatch = { title?: string | null | null, body?: string | null, at
  * Set together with `prompt`, by the action that knows which facts the
  * description was written from - never by the window.
  */
-prompt_basis?: string | null | null, state?: NoteState | null, };
+prompt_basis?: string | null | null, state?: NoteState | null, medium?: string | null | null, year?: string | null | null, };

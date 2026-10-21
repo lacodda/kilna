@@ -843,7 +843,9 @@
     "proposedCardPrompt": "Proposed description",
     "proposedWords": "Words, proposed",
     "proposedBricks": "Bricks for the dictionary",
-    "noteOnShelf": "on the shelf “{{shelf}}”"
+    "noteOnShelf": "on the shelf “{{shelf}}”",
+    "packageCards_one": "{{count}} card for “{{board}}”",
+    "packageCards_other": "{{count}} cards for “{{board}}”"
   },
   "links": {
     "sources": "Made from",
@@ -2728,7 +2730,19 @@
       "noSuchTopic": "The board has no topic “{{topic}}”.",
       "tooMany": "One run gives at most {{most}} cards.",
       "nothingAsked": "Ask for at least one card, or write your own to be worked out.",
-      "noCards": "The answer holds no card with words in it."
+      "noCards": "The answer holds no card with words in it.",
+      "needsEntry": "A card of the kind “{{kind}}” names a work of culture from the library.",
+      "noEntryHere": "A card of the kind “{{kind}}” links to nothing in the library.",
+      "proofNotALink": "Where a quote was checked is a link: “{{value}}” is not one.",
+      "emptyChip": "A chip needs words.",
+      "noPhrases": "This workspace keeps no phrases to send a chip to.",
+      "chipKeptElsewhere": "“{{phrase}}” is already kept for “{{title}}”."
+    },
+    "library": {
+      "notAnEntry": "“{{title}}” is not an entry of the library.",
+      "onBoards": "The boards of {{works}} still link to this entry: take its cards off them first.",
+      "needsTitle": "A work of culture needs a title.",
+      "none": "This workspace has no library."
     }
   },
   "skip": {
@@ -3261,17 +3275,23 @@
       "spent": {
         "out": "spent: {{word}} — in “{{title}}”, out {{day}}",
         "booked": "spent: {{word}} — in “{{title}}”, booked {{day}}"
+      },
+      "source": {
+        "out": "«{{word}}» already worked in “{{title}}”, out {{day}}",
+        "booked": "«{{word}}» already worked in “{{title}}”, booked {{day}}"
       }
     },
     "count_one": "{{count}} repeat",
     "count_other": "{{count}} repeats",
     "why": {
       "register": "Spent term",
-      "rare": "Rare word"
+      "rare": "Rare word",
+      "source": "Source again"
     },
     "whyHint": {
       "register": "A term of the register: spent, whenever it was said.",
-      "rare": "A rare word: the closer the other song, the louder."
+      "rare": "A rare word: the closer the other song, the louder.",
+      "source": "A work of culture both songs drew on: worth a look, never louder."
     },
     "out": "out {{day}}",
     "booked": "booked {{day}}",
@@ -3742,7 +3762,11 @@
     "part": {
       "kind": "the kind",
       "field": "the field",
-      "card": "the card"
+      "card": "the card",
+      "entry": "the work of culture",
+      "medium": "the medium",
+      "proof": "the proof",
+      "quote": "the quote"
     },
     "askFailed": "Could not ask for cards",
     "stopFailed": "Could not stop the run",
@@ -3751,6 +3775,36 @@
     "writeFailed": "Could not save the card",
     "moveFailed": "Could not move the card",
     "deleteFailed": "Could not take the card off the board",
-    "putFailed": "Could not put the cards on the board"
+    "putFailed": "Could not put the cards on the board",
+    "ownKind": "Kind of card",
+    "entryPlaceholder": "A work of culture, by its title: Old Joy, The Divine Comedy",
+    "grouping": "Group the board",
+    "byTopic": "By topic",
+    "byKind": "By kind",
+    "entryGone": "The entry this card named is gone from the library.",
+    "openEntry": "Open in the library",
+    "workedIn": "Already worked in",
+    "notQuoted": "never quoted",
+    "notQuotedHint": "A song's words are its author's: the order names the song and says why, without its words.",
+    "checked": "checked",
+    "fromMemory": "from memory",
+    "fromMemoryHint": "Not checked: the order gives its sense, never its words.",
+    "openProof": "open",
+    "editChips": "Edit the chips",
+    "chipKept": "Kept in the work's phrases",
+    "chipToPhrases": "Keep “{{chip}}” in the work's phrases",
+    "chipFailed": "Could not keep the chip as a phrase"
+  },
+  "library": {
+    "author": "Author",
+    "authorPlaceholder": "Who made it",
+    "year": "Year",
+    "medium": "Medium",
+    "noMedium": "No medium",
+    "aliases": "Other titles",
+    "aliasesPlaceholder": "The original, a translation - parted by semicolons",
+    "workedNowhere": "Not on any board yet.",
+    "workedIn": "Worked in",
+    "linkedFromBoards": "The boards of works link to it; it is attached to none."
   }
 }

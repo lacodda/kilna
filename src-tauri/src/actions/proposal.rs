@@ -313,6 +313,7 @@ pub fn check(
             scenes,
             releases,
             trials,
+            boards,
             ..
         } => {
             // A package on a work adds to it; one in a chat on nothing is a
@@ -351,7 +352,25 @@ pub fn check(
                             note(config.require_release_kind(&kind, &packaged.kind));
                         }
                         if !trials.is_empty() && config.lab(&kind).is_none() {
-                            note(Err(Error::refused("trial.noLabKind").param("kind", kind)));
+                            note(Err(
+                                Error::refused("trial.noLabKind").param("kind", kind.clone())
+                            ));
+                        }
+                        // Cards land only on a board the kind lays out, and in
+                        // a kind of card it still holds.
+                        for packaged in boards {
+                            match config.require_board(&kind, &packaged.board) {
+                                Err(refused) => note(Err(refused)),
+                                Ok(laid) => {
+                                    for card in &packaged.cards {
+                                        if laid.card(&card.kind).is_none() {
+                                            note(Err(Error::refused("board.notAKind")
+                                                .param("kind", card.kind.clone())
+                                                .param("board", laid.label.as_str())));
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     Err(cause) => note(Err(cause)),
@@ -634,6 +653,7 @@ fn keep(
             scenes,
             releases,
             trials,
+            boards,
             ..
         } => {
             let (work_id, kind, fresh) = match &chat.work_id {
@@ -737,6 +757,13 @@ fn keep(
                 outcome
                     .trials
                     .extend(super::trial::put(conn, &work_id, trials, |_| true)?);
+            }
+            // The boards of its conception: a song arrives with its research.
+            for packaged in boards {
+                for card in packaged.cards {
+                    let made = super::board::put(conn, &work_id, &packaged.board, card)?;
+                    outcome.board_cards.push(made.id);
+                }
             }
             outcome.created_work = fresh;
             outcome.work_id = Some(work_id);
@@ -864,19 +891,7 @@ fn keep(
                 if !taken_card(&overrides, index) {
                     continue;
                 }
-                let made = super::board::create(
-                    conn,
-                    crate::board::NewCard {
-                        work_id: work_id.clone(),
-                        board: board.clone(),
-                        kind: card.kind,
-                        topic: card.topic,
-                        position: None,
-                        source: card.source,
-                        verdict: None,
-                        fields: card.fields,
-                    },
-                )?;
+                let made = super::board::put(conn, &work_id, &board, card)?;
                 outcome.board_cards.push(made.id);
             }
             outcome.work_id = Some(work_id);
@@ -1240,6 +1255,7 @@ mod tests {
             scenes: Vec::new(),
             releases: Vec::new(),
             trials: Vec::new(),
+            boards: Vec::new(),
         }
     }
 
@@ -1447,6 +1463,7 @@ mod tests {
                 scenes: vec![packaged("the road"), packaged("the car")],
                 releases: Vec::new(),
                 trials: Vec::new(),
+                boards: Vec::new(),
             },
         );
 
@@ -1972,6 +1989,7 @@ mod tests {
                 scenes: Vec::new(),
                 releases: Vec::new(),
                 trials: Vec::new(),
+                boards: Vec::new(),
             },
         );
 
@@ -2020,6 +2038,7 @@ mod tests {
                     unknown_fields: Vec::new(),
                 }],
                 trials: Vec::new(),
+                boards: Vec::new(),
             },
         );
 
@@ -2077,6 +2096,7 @@ mod tests {
                 scenes: vec![packaged("fine"), backwards],
                 releases: Vec::new(),
                 trials: Vec::new(),
+                boards: Vec::new(),
             },
         );
         let works_before = work::list(&conn, &profile_id, &Default::default())
@@ -2154,6 +2174,7 @@ mod tests {
                 scenes: Vec::new(),
                 releases: Vec::new(),
                 trials: Vec::new(),
+                boards: Vec::new(),
             },
         );
 
@@ -2457,6 +2478,7 @@ mod tests {
             scenes: Vec::new(),
             releases: Vec::new(),
             trials: Vec::new(),
+            boards: Vec::new(),
         };
 
         let body = render_package(&proposal, &config, "song");

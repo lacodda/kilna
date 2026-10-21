@@ -5,6 +5,7 @@ import { Compass, Eye, Sparkles } from 'lucide-react'
 import { applyProposal, dismissProposal } from '@/lib/api/assistant'
 import {
   addOwnCard,
+  chipToPhrase,
   deleteCard,
   judgeCard,
   moveCard,
@@ -18,18 +19,24 @@ import {
   MOST_CARDS,
   counts,
   dropOf,
+  elsewhereOf,
   headlineOf,
+  kindOf,
+  kindsOf,
+  libraryOf,
   requestOf,
   shows,
   topicsOf,
   type CardFilter,
+  type Grouping,
 } from '@/lib/boards'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { useChipDrag } from '@/lib/useChipDrag'
-import { say as sayLabel } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
+import { refresh as refreshing } from '@/lib/query/refresh'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -39,6 +46,7 @@ import { Panel } from '@/components/ui/panel'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Textarea } from '@/components/ui/textarea'
 import { useFieldDraft } from '@/components/ui/field-draft'
+import { Select } from '@/components/AppSelect'
 import { RowMenu } from '@/components/RowMenu'
 import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
 import { clockOf } from '@/features/work/tabs/cover/useCoverIdeas'
@@ -65,20 +73,40 @@ interface Props {
 export function BoardSection({ work, board }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
+  const { config } = useProfile()
+  const library = libraryOf(config)
   const task = useBoardTask(work, board)
   const views = useQuery(queries.boards(work.id))
   const view = (views.data ?? []).find((one) => one.board === board.key)
   const cards = view?.cards ?? []
   const [words, setWords] = useState('')
+  /** The kind the person's own card is put on the board as. */
+  const [ownKind, setOwnKind] = useState(board.cards[0]?.key ?? '')
   const [refine, setRefine] = useState(true)
   const [count, setCount] = useState(CARDS_ON_ASK)
   const [direction, setDirection] = useState('')
   const [filter, setFilter] = useState<CardFilter>('all')
+  const [grouping, setGrouping] = useState<Grouping>('topics')
   const [previewing, setPreviewing] = useState(false)
   /** The card a new topic is being named for. */
   const [naming, setNaming] = useState<string | null>(null)
   const [topicName, setTopicName] = useState('')
   const refresh = [keys.boards(work.id), keys.cardCounts(work.id)]
+  const ownCardKind = kindOf(board, { kind: ownKind }) ?? board.cards[0]
+
+  // The phrases kept for the work: a chip among them is sent.
+  const notes = useQuery({
+    ...queries.notesFor(work.id),
+    enabled: board.cards.some((kind) => kind.fields.some((field) => field.shape === 'chips')),
+  })
+  const lineKinds = new Set(
+    config.note_kinds.filter((kind) => kind.line === true).map((kind) => kind.key),
+  )
+  const kept = new Set(
+    (notes.data ?? [])
+      .filter((note) => lineKinds.has(note.kind))
+      .map((note) => note.body.trim().toLowerCase()),
+  )
 
   const tally = counts(cards)
   const hasWords = words.trim() !== ''
@@ -87,17 +115,30 @@ export function BoardSection({ work, board }: Props) {
   const asksAi = withAi && (request.count > 0 || request.refine !== null)
   // The same words twice are one card: a second ask with the composer still
   // holding them asks again without putting them on the board twice.
-  const alreadyOn = cards.some(
-    (card) => card.source === 'own' && headlineOf(board, card) === words.trim(),
-  )
+  // A card of the library is the person's when it names the same work.
+  const typed = words.trim()
+  const alreadyOn =
+    typed !== '' &&
+    cards.some(
+      (card) =>
+        card.source === 'own' &&
+        (card.entry != null
+          ? card.entry.title.trim().toLowerCase() === typed.toLowerCase()
+          : headlineOf(board, card) === typed),
+    )
 
   // On the board, the words leave the composer for the next card; a run
   // that works them out has already taken them into its request.
   const putOwn = useAppMutation({
-    mutationFn: () => addOwnCard(work.id, board.key, words),
+    mutationFn: () => addOwnCard(work.id, board.key, words, ownCardKind?.key),
     failure: 'board.addFailed',
     refresh,
     onSuccess: () => setWords(''),
+  })
+  const chip = useAppMutation({
+    mutationFn: ({ id, words }: { id: string; words: string }) => chipToPhrase(id, words),
+    failure: 'board.chipFailed',
+    refresh: refreshing.note,
   })
   const judge = useAppMutation({
     mutationFn: ({ id, verdict }: { id: string; verdict: CardVerdict | null }) =>
@@ -162,8 +203,18 @@ export function BoardSection({ work, board }: Props) {
 
   const topics = topicsOf(cards)
   const named = topics.map((topic) => topic.name).filter((name) => name !== '')
+  // Read by kind, the board is a reading: its groups are what the cards
+  // are, not where the person put them, so nothing is dragged or renamed.
+  const byKind = grouping === 'kinds'
+  const groups = byKind ? kindsOf(board, library, cards, sayLabel) : topics
   const carried =
     carry.dragging === null ? null : cards.find((card) => card.id === carry.dragging!.id)
+  const ownPlaceholder =
+    ownCardKind?.library === true
+      ? t('board.entryPlaceholder')
+      : ownCardKind?.fields[0]?.hint == null
+        ? t('board.ownPlaceholder')
+        : sayLabel(ownCardKind.fields[0].hint)
 
   return (
     <section
@@ -184,7 +235,9 @@ export function BoardSection({ work, board }: Props) {
           target={{ on: 'board', workId: work.id, board: board.key, request }}
           action={task.action}
           before={() =>
-            hasWords && !alreadyOn ? addOwnCard(work.id, board.key, words) : Promise.resolve(null)
+            hasWords && !alreadyOn
+              ? addOwnCard(work.id, board.key, words, ownCardKind?.key)
+              : Promise.resolve(null)
           }
           onStarted={() => {
             task.started(request)
@@ -196,21 +249,36 @@ export function BoardSection({ work, board }: Props) {
 
       <Panel className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2.5 px-3 py-2.5 max-[900px]:grid-cols-1">
         <div className="flex flex-col gap-2">
-          <label className="flex flex-col gap-1">
-            <span className="caption">{t('board.own')}</span>
+          <div className="flex flex-col gap-1">
+            <span className="flex items-center gap-2">
+              <span className="caption">{t('board.own')}</span>
+              {/* A board of several kinds puts the person's card on as the
+                  kind they say: a work of culture, a concept. */}
+              {board.cards.length > 1 && (
+                <Select
+                  value={ownCardKind?.key ?? ''}
+                  onChange={(next) => {
+                    if (next !== '') setOwnKind(next)
+                  }}
+                  options={board.cards.map((kind) => ({
+                    value: kind.key,
+                    label: sayLabel(kind.label),
+                  }))}
+                  aria-label={t('board.ownKind')}
+                  className="h-7 w-44"
+                />
+              )}
+            </span>
             <Textarea
               rows={1}
               autoResize
               maxRows={4}
               value={words}
-              placeholder={
-                board.cards[0]?.fields[0]?.hint == null
-                  ? t('board.ownPlaceholder')
-                  : sayLabel(board.cards[0].fields[0].hint)
-              }
+              aria-label={t('board.own')}
+              placeholder={ownPlaceholder}
               onChange={(event) => setWords(event.target.value)}
             />
-          </label>
+          </div>
           {withAi && (
             <label className="flex flex-col gap-1">
               <span className="caption">{t('board.direction')}</span>
@@ -319,6 +387,18 @@ export function BoardSection({ work, board }: Props) {
             </Chip>
           ))}
         </ChipGroup>
+        {/* A board of several kinds is read by its topics - the angles the
+            person gave it - or by what its cards are. */}
+        {board.cards.length > 1 && cards.length > 0 && (
+          <SegmentedControl
+            aria-label={t('board.grouping')}
+            value={grouping}
+            onValueChange={(next) => setGrouping(next as Grouping)}
+          >
+            <Segment value="topics">{t('board.byTopic')}</Segment>
+            <Segment value="kinds">{t('board.byKind')}</Segment>
+          </SegmentedControl>
+        )}
         {task.writing && (
           <span className="ml-auto flex items-center gap-2 text-xs text-dim" role="status">
             <span aria-hidden className="size-2 animate-pulse rounded-full bg-accent" />
@@ -369,24 +449,31 @@ export function BoardSection({ work, board }: Props) {
         </div>
       )}
 
-      {topics.map((topic) => {
+      {groups.map((topic) => {
         const shown = topic.cards.filter((card) => shows(card, filter))
-        if (shown.length === 0 && carry.dragging === null) return null
+        if (shown.length === 0 && (carry.dragging === null || byKind)) return null
         return (
           <div
             key={topic.name}
-            data-topic-drop={topic.name}
+            data-topic-drop={byKind ? undefined : topic.name}
             className={cn(
               'flex flex-col gap-1.5 rounded-md',
-              carry.dragging !== null && 'outline-1 outline-line-2 outline-dashed',
+              carry.dragging !== null && !byKind && 'outline-1 outline-line-2 outline-dashed',
             )}
           >
-            {(topics.length > 1 || topic.name !== '') && (
-              <TopicHeading
-                name={topic.name}
-                count={topic.cards.length}
-                onRename={(to) => retopic.mutate({ from: topic.name, to })}
-              />
+            {byKind ? (
+              <h4 className="caption flex items-center gap-2 px-0.5">
+                {topic.name}
+                <span className="font-mono text-2xs text-faint">{topic.cards.length}</span>
+              </h4>
+            ) : (
+              (groups.length > 1 || topic.name !== '') && (
+                <TopicHeading
+                  name={topic.name}
+                  count={topic.cards.length}
+                  onRename={(to) => retopic.mutate({ from: topic.name, to })}
+                />
+              )
             )}
             <div className="grid grid-cols-[repeat(auto-fill,minmax(232px,1fr))] items-stretch gap-2.5">
               {shown.map((card) => (
@@ -394,13 +481,18 @@ export function BoardSection({ work, board }: Props) {
                   key={card.id}
                   board={board}
                   card={card}
+                  library={library}
+                  elsewhere={elsewhereOf(view, card)}
+                  kept={kept}
                   slot={topic.cards.indexOf(card)}
                   fresh={task.fresh.has(card.id)}
                   carried={carry.dragging?.id === card.id}
-                  busy={busy}
+                  movable={!byKind}
+                  busy={busy || chip.isPending}
                   onVerdict={(verdict) => judge.mutate({ id: card.id, verdict })}
                   onField={(key, text) => write.mutate({ id: card.id, key, text })}
                   onDelete={() => remove.mutate(card.id)}
+                  onChip={(words) => chip.mutate({ id: card.id, words })}
                   onGrab={(event) => carry.begin(event, card.id)}
                   topicMenu={
                     <RowMenu

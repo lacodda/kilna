@@ -230,6 +230,7 @@ pub fn render_package(
         scenes,
         releases,
         trials,
+        boards,
         ..
     } = proposal
     else {
@@ -322,6 +323,15 @@ pub fn render_package(
         out.push_str("### Trials\n\n");
         out.push_str(&render_trials(trials, &[]));
         out.push('\n');
+    }
+
+    for packaged in boards {
+        let Some(board) = config.board(&packaged.board) else {
+            continue;
+        };
+        out.push_str(&format!("### {}\n\n", board.label));
+        out.push_str(&render_cards(board, &packaged.cards, &[], &[]));
+        out.push_str("\n\n");
     }
 
     if !scenes.is_empty() {
@@ -611,10 +621,21 @@ pub fn render_cards(
                 .map(|(key, text)| (key.clone(), text))
                 .collect(),
         };
-        let mut first = true;
+        // A card that names a work of culture is called by it; any other by
+        // its first field.
+        let entry = card.entry.as_ref().map(crate::library::Asked::headline);
+        let star = if card.starred { "★ " } else { "" };
+        let mut first = entry.is_none();
+        if let Some(entry) = entry {
+            out.push_str(&format!("{star}**{entry}**"));
+            if !card.topic.is_empty() {
+                out.push_str(&format!(" · _{}_", card.topic));
+            }
+            out.push('\n');
+        }
         for (word, text) in ordered {
             if first {
-                out.push_str(&format!("**{}**", text.trim()));
+                out.push_str(&format!("{star}**{}**", text.trim()));
                 if !card.topic.is_empty() {
                     out.push_str(&format!(" · _{}_", card.topic));
                 }

@@ -309,9 +309,23 @@ const UPGRADE: &[Step] = &[
         name: "a kind's board of trials and the role its kept trials go into",
         carry: lab_boards,
     },
+    // Before the boards: a board whose cards link to the library arrives
+    // only in a copy that has one.
+    Step {
+        name: "the library a note kind is, and the media of its entries",
+        carry: library_vocabulary,
+    },
     Step {
         name: "the boards of a conception, and the conception of a kind",
         carry: conceptions,
+    },
+    Step {
+        name: "boards newly laid out in a conception the stored kind already has",
+        carry: conception_boards,
+    },
+    Step {
+        name: "the scenarios' template untouched since v0.99, once the research is there",
+        carry: research_templates,
     },
     Step {
         name: "a field's label untouched since it shipped",
@@ -385,6 +399,12 @@ fn prompt_details(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
             && prompt.template != shipped.template
         {
             prompt.template = shipped.template.clone();
+            changed = true;
+        }
+        // Whether the action reads the web (v0.100), where the stored action
+        // says it does not and the shipped one does.
+        if !prompt.web && shipped.web {
+            prompt.web = true;
             changed = true;
         }
     }
@@ -692,7 +712,16 @@ fn lab_boards(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
 /// idea to a field it has. A conception the owner took off a kind comes
 /// back, the price `carry_forward` states.
 fn conceptions(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let mut changed = add_new_keys(&mut config.boards, &shipped.boards, |board| &board.key);
+    // A board whose cards link to the library needs one: a copy whose own
+    // kind of the key could not become it goes without the board rather
+    // than failing to load.
+    let arriving: Vec<config::Board> = shipped
+        .boards
+        .iter()
+        .filter(|board| !board.links_the_library() || config.library().is_some())
+        .cloned()
+        .collect();
+    let mut changed = add_new_keys(&mut config.boards, &arriving, |board| &board.key);
     let boards: Vec<String> = config.boards.iter().map(|b| b.key.clone()).collect();
     let fields: Vec<(String, Vec<String>)> = config
         .work_meta_fields
@@ -739,6 +768,96 @@ fn conceptions(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
         });
         changed = true;
     }
+    changed
+}
+
+/// The boards a shipped conception lays out that the stored conception of
+/// the same kind does not (v0.100, ADR 0066): the research arrived after
+/// the scenarios, on songs already prepared on a conception. Each goes where
+/// the shipped list puts it - after the board it follows there, or first -
+/// when the stored copy has the board at all. A board the owner took off a
+/// conception comes back, the price `carry_forward` states.
+fn conception_boards(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let boards: Vec<String> = config.boards.iter().map(|b| b.key.clone()).collect();
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        let (Some(conception), Some(shipped_conception)) =
+            (kind.conception.as_mut(), shipped_kind.conception.as_ref())
+        else {
+            continue;
+        };
+        for (index, key) in shipped_conception.boards.iter().enumerate() {
+            if conception.boards.contains(key) || !boards.contains(key) {
+                continue;
+            }
+            let after = shipped_conception.boards[..index]
+                .iter()
+                .rev()
+                .find_map(|before| conception.boards.iter().position(|b| b == before));
+            let at = after.map_or(0, |position| position + 1);
+            conception.boards.insert(at, key.clone());
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// The scenarios' template still reading as it shipped in v0.99 follows the
+/// shipped wording, which reads what is starred in the research - once the
+/// copy has the board of research to read: a template that names a board
+/// the copy does not have would read nothing.
+fn research_templates(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    if config.board("research").is_none() {
+        return false;
+    }
+    let mut changed = false;
+    for prompt in &mut config.prompts {
+        let Some(shipped) = shipped.prompts.iter().find(|s| s.key == prompt.key) else {
+            continue;
+        };
+        if TEMPLATES_BEFORE_THE_RESEARCH
+            .iter()
+            .any(|(key, before)| *key == prompt.key && *before == prompt.template)
+            && prompt.template != shipped.template
+        {
+            prompt.template = shipped.template.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// The library (v0.100, ADR 0066): a stored note kind of the key the shipped
+/// library has - Blog's `source`, a plain kind since it shipped - becomes the
+/// library where it is a plain page, and no other kind of the copy is one;
+/// its media arrive where it names none, and newly shipped ones by key. A
+/// copy that never had the kind gains it whole with the keyed vocabulary.
+fn library_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let Some(shipped_library) = shipped.library() else {
+        return false;
+    };
+    let another = config
+        .note_kinds
+        .iter()
+        .any(|kind| kind.library && kind.key != shipped_library.key);
+    let Some(kind) = config
+        .note_kinds
+        .iter_mut()
+        .find(|kind| kind.key == shipped_library.key)
+    else {
+        return false;
+    };
+    let mut changed = false;
+    if !kind.library {
+        if another || kind.is_card() || kind.material || kind.line {
+            return false;
+        }
+        kind.library = true;
+        changed = true;
+    }
+    changed |= add_new_keys(&mut kind.media, &shipped_library.media, |medium| {
+        &medium.key
+    });
     changed
 }
 
@@ -1272,6 +1391,30 @@ const TEMPLATES_BEFORE_THE_REGISTER: [(&str, &str); 2] = [
     ),
 ];
 
+/// The scenarios' templates as they shipped before the research (v0.99), by
+/// the action they belong to: they did not read what is starred on the board
+/// of research. A copy still reading exactly like one follows the shipped
+/// wording, which reads `{starred:research}`; a reworded one stays the
+/// owner's.
+const TEMPLATES_BEFORE_THE_RESEARCH: [(&str, &str); 4] = [
+    (
+        "scenarios",
+        "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+    ),
+    (
+        "scenarios",
+        "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+    ),
+    (
+        "scenarios",
+        "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+    ),
+    (
+        "scenarios",
+        "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
+    ),
+];
+
 /// Shipped descriptions that changed, old to new, on the same terms as the
 /// names: a copy the owner never touched follows, a rewritten one stays.
 /// Every wording the file ever shipped maps to the current one, so a copy
@@ -1778,7 +1921,10 @@ mod tests {
             "a style prompt is no draft"
         );
         assert!(!role("brief").counts_as_a_version());
-        assert_eq!(song.conception.as_ref().unwrap().boards, ["scenarios"]);
+        assert_eq!(
+            song.conception.as_ref().unwrap().boards,
+            ["research", "scenarios"]
+        );
         assert_eq!(song.conception.as_ref().unwrap().with, ["style"]);
         assert_eq!(song.open_on.as_deref(), Some("conception"));
         let lab = config.vocabulary("experiment");
@@ -1790,6 +1936,89 @@ mod tests {
             .find(|field| field.key == "premise")
             .unwrap();
         assert_eq!(premise.label.in_locale("ru"), "Идея");
+    }
+
+    /// A copy as the owner's stood after v0.99: the song prepared on the
+    /// scenarios alone, no library, no research, the scenarios' template as it
+    /// shipped. The upgrade lays the research out before the scenarios,
+    /// brings the library with its media and the action that reads the web,
+    /// and the scenarios read what is starred in the research - and the copy
+    /// validates. A copy of Blog, whose `source` was a plain kind, finds it
+    /// the library.
+    #[test]
+    fn a_copy_of_v099_is_given_the_research_and_the_library() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap();
+        let mut config = shipped.config.clone();
+        config.boards.retain(|board| board.key != "research");
+        config.note_kinds.retain(|kind| !kind.library);
+        config.prompts.retain(|prompt| prompt.key != "research");
+        for prompt in &mut config.prompts {
+            if prompt.key == "scenarios" {
+                prompt.template = TEMPLATES_BEFORE_THE_RESEARCH[0].1.to_owned();
+            }
+        }
+        for kind in &mut config.work_kinds {
+            if let Some(conception) = &mut kind.conception {
+                conception.boards.retain(|board| board != "research");
+            }
+        }
+
+        for step in UPGRADE {
+            (step.carry)(&mut config, &shipped.config);
+        }
+
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+        assert_eq!(
+            config.conception("song").unwrap().boards,
+            ["research", "scenarios"]
+        );
+        let library = config.library().expect("the library arrived");
+        assert_eq!(library.key, "source");
+        assert!(library.medium("music").is_some_and(|music| !music.quoted));
+        let research = config
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == "research")
+            .unwrap();
+        assert!(research.web);
+        let scenarios = config
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == "scenarios")
+            .unwrap();
+        assert!(
+            scenarios.template.contains("{starred:research}"),
+            "{}",
+            scenarios.template
+        );
+
+        let blog = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "blog")
+            .unwrap();
+        let mut config = blog.config.clone();
+        for kind in &mut config.note_kinds {
+            if kind.key == "source" {
+                *kind = config::NoteKind::new("source", "Source");
+            }
+        }
+        config.boards.retain(|board| board.key != "research");
+        for step in UPGRADE {
+            (step.carry)(&mut config, &blog.config);
+        }
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+        let source = config.library().expect("Blog's sources are the library");
+        assert_eq!(source.label.as_str(), "Source", "the owner's word stays");
+        assert_eq!(
+            source.media.len(),
+            blog.config.library().unwrap().media.len()
+        );
+        assert!(config.board("research").is_some());
     }
 
     /// A brief role the owner said counts as a version is theirs to say: the

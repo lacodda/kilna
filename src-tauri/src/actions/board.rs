@@ -10,8 +10,11 @@
 use rusqlite::Connection;
 
 use super::gesture;
+use crate::board::answer::Packaged;
 use crate::board::{self, BoardCard, CardPatch, NewCard, Placed, Source, Verdict};
 use crate::error::{Error, Result};
+use crate::library::{Asked, Entry};
+use crate::note::{NewNote, Note, NotePatch};
 
 /// Put a card on a board. Its place is settled before the operation is
 /// logged, so a replay lands it where it landed here; its topic takes the
@@ -48,7 +51,9 @@ pub fn update(conn: &Connection, id: &str, patch: CardPatch) -> Result<BoardCard
 }
 
 /// The person's own card, in their words, on a board: the words go into the
-/// first field of the kind, which is the card's headline.
+/// first field of the kind, which is the card's headline - or, on a kind
+/// that links to the library, they name the work of culture, found in the
+/// library or written into it, and the card says nothing more yet.
 pub fn add_own(
     conn: &Connection,
     work_id: &str,
@@ -71,20 +76,208 @@ pub fn add_own(
         })?,
         None => &found.cards[0],
     };
-    let field = card.fields[0].key.clone();
-    create(
-        conn,
-        NewCard {
-            work_id: work_id.to_owned(),
-            board: board_key.to_owned(),
-            kind: card.key.clone(),
-            topic: String::new(),
-            position: None,
-            source: Source::Own,
-            verdict: None,
-            fields: [(field, words.to_owned())].into_iter().collect(),
-        },
-    )
+    crate::db::unit::atomically(conn, |conn| {
+        let (fields, note_id) = if card.library {
+            let entry = entry_for(
+                conn,
+                &Asked {
+                    title: words.to_owned(),
+                    ..Asked::default()
+                },
+            )?;
+            (Default::default(), Some(entry.id))
+        } else {
+            let field = card.fields[0].key.clone();
+            ([(field, words.to_owned())].into_iter().collect(), None)
+        };
+        create(
+            conn,
+            NewCard {
+                work_id: work_id.to_owned(),
+                board: board_key.to_owned(),
+                kind: card.key.clone(),
+                topic: String::new(),
+                position: None,
+                source: Source::Own,
+                verdict: None,
+                fields,
+                note_id,
+            },
+        )
+    })
+}
+
+/// A card an answer or an agent proposed, put on the board: on a kind that
+/// links to the library, the work of culture it names is found there - its
+/// blanks filled from what the answer says - or written into it first, as a
+/// gesture of its own, so an undo of the card leaves the library as it grew.
+/// A card proposed starred lands starred: an agent carrying over research
+/// the person already chose from (ADR 0066).
+pub fn put(conn: &Connection, work_id: &str, board_key: &str, card: Packaged) -> Result<BoardCard> {
+    crate::db::unit::atomically(conn, |conn| {
+        let work =
+            crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+        let config = crate::profile::config_for(conn, &work.profile_id)?;
+        let laid = config.require_board(&work.kind, board_key)?;
+        let kind = laid.card(&card.kind).ok_or_else(|| {
+            Error::refused("board.notAKind")
+                .param("kind", card.kind.clone())
+                .param("board", laid.label.as_str())
+        })?;
+        let note_id = match (kind.library, &card.entry) {
+            (true, Some(asked)) => Some(entry_for(conn, asked)?.id),
+            (true, None) => {
+                return Err(Error::refused("board.needsEntry").param("kind", kind.label.as_str()));
+            }
+            (false, _) => None,
+        };
+        create(
+            conn,
+            NewCard {
+                work_id: work_id.to_owned(),
+                board: board_key.to_owned(),
+                kind: card.kind,
+                topic: card.topic,
+                position: None,
+                source: card.source,
+                verdict: card.starred.then_some(Verdict::Star),
+                fields: card.fields,
+                note_id,
+            },
+        )
+    })
+}
+
+/// The entry of the library a card asks for: the one the library already
+/// has under one of its names - what it does not say yet filled in from the
+/// answer, a name it did not know kept as another title - or a new one. A
+/// medium the library does not name is left out.
+pub fn entry_for(conn: &Connection, asked: &Asked) -> Result<Entry> {
+    let title = asked.title.trim();
+    if title.is_empty() {
+        return Err(Error::refused("library.needsTitle"));
+    }
+    let profile_id = super::active_profile_id(conn)?;
+    let config = crate::profile::config_for(conn, &profile_id)?;
+    let library = config
+        .library()
+        .ok_or_else(|| Error::refused("library.none"))?;
+    let said = |text: &Option<String>| {
+        text.as_deref()
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(str::to_owned)
+    };
+    let medium = said(&asked.medium).filter(|key| library.medium(key).is_some());
+    match crate::library::find(conn, &profile_id, asked)? {
+        Some(entry) => {
+            let mut patch = NotePatch::default();
+            let mut changed = false;
+            if entry.author.is_none() && said(&asked.author).is_some() {
+                patch.attribution = Some(said(&asked.author));
+                changed = true;
+            }
+            if entry.year.is_none() && said(&asked.year).is_some() {
+                patch.year = Some(said(&asked.year));
+                changed = true;
+            }
+            if entry.medium.is_none() && medium.is_some() {
+                patch.medium = Some(medium.clone());
+                changed = true;
+            }
+            let mut aliases = entry.aliases.clone();
+            for name in [Some(title.to_owned()), said(&asked.original)]
+                .into_iter()
+                .flatten()
+            {
+                let known = entry.knows(&name)
+                    || aliases
+                        .iter()
+                        .any(|alias| crate::words::plain(alias) == crate::words::plain(&name));
+                if !known {
+                    aliases.push(name);
+                }
+            }
+            if aliases != entry.aliases {
+                patch.aliases = Some(aliases);
+                changed = true;
+            }
+            if !changed {
+                return Ok(entry);
+            }
+            let note = super::note::update(conn, &entry.id, patch)?;
+            Ok(Entry::of(&note))
+        }
+        None => {
+            let note = super::note::create(
+                conn,
+                NewNote {
+                    body: String::new(),
+                    kind: Some(library.key.clone()),
+                    title: Some(title.to_owned()),
+                    attribution: said(&asked.author),
+                    aliases: said(&asked.original)
+                        .filter(|original| {
+                            crate::words::plain(original) != crate::words::plain(title)
+                        })
+                        .into_iter()
+                        .collect(),
+                    medium,
+                    year: said(&asked.year),
+                    ..NewNote::default()
+                },
+            )?;
+            Ok(Entry::of(&note))
+        }
+    }
+}
+
+/// A chip of a card - an image, a name, a place - kept as a phrase of the
+/// work the card is on (ADR 0066): the phrase already written in these words
+/// joins the work, a new one is written for it. A phrase kept for another
+/// work stays where it is and says so: a phrase is kept for one work.
+pub fn chip_to_phrase(conn: &Connection, card_id: &str, chip: &str) -> Result<Note> {
+    let chip = chip.trim();
+    if chip.is_empty() {
+        return Err(Error::refused("board.emptyChip"));
+    }
+    let card = board::get(conn, card_id)?.ok_or_else(|| Error::not_found("card", card_id))?;
+    let config = crate::profile::config_for(conn, &card.profile_id)?;
+    let Some(kind) = config
+        .note_kinds
+        .iter()
+        .find(|kind| kind.line && kind.material)
+    else {
+        return Err(Error::refused("board.noPhrases"));
+    };
+    crate::db::unit::atomically(conn, |conn| {
+        match crate::lines::find(conn, &card.profile_id, chip)? {
+            Some(found) if found.work_id.as_deref() == Some(card.work_id.as_str()) => Ok(found),
+            Some(found) if found.work_id.is_none() => super::note::update(
+                conn,
+                &found.id,
+                NotePatch {
+                    work_id: Some(Some(card.work_id.clone())),
+                    ..NotePatch::default()
+                },
+            ),
+            Some(found) => Err(Error::refused("board.chipKeptElsewhere")
+                .param("phrase", found.body.clone())
+                .param(
+                    "title",
+                    work_title(conn, found.work_id.as_deref().unwrap_or_default()),
+                )),
+            None => super::note::create(
+                conn,
+                NewNote {
+                    body: chip.to_owned(),
+                    kind: Some(kind.key.clone()),
+                    work_id: Some(card.work_id.clone()),
+                    ..NewNote::default()
+                },
+            ),
+        }
+    })
 }
 
 /// Star a card, turn it down, or take the verdict back. Saying the verdict
@@ -192,6 +385,164 @@ mod tests {
         crate::undo::undo(conn, &offer.operation_id).unwrap();
     }
 
+    /// A card of the research board naming a work of culture, as an answer
+    /// gives it.
+    fn source(title: &str, author: Option<&str>, why: &str) -> Packaged {
+        Packaged {
+            kind: "work".into(),
+            topic: String::new(),
+            source: Source::Ai,
+            fields: [("why".to_owned(), why.to_owned())].into_iter().collect(),
+            entry: Some(Asked {
+                title: title.into(),
+                author: author.map(str::to_owned),
+                medium: Some("film".into()),
+                ..Asked::default()
+            }),
+            starred: false,
+        }
+    }
+
+    /// The same work of culture on two works' boards is one entry of the
+    /// library: found by a name it goes by, its blanks filled, a name it did
+    /// not know kept - and each card says where else it has worked.
+    #[test]
+    fn a_work_of_culture_is_one_entry_wherever_it_works() {
+        let (conn, first) = song();
+        let profile_id = crate::work::get(&conn, &first).unwrap().unwrap().profile_id;
+        let second = fixtures::song(&conn, &profile_id, "Another Song").id;
+
+        let here = put(
+            &conn,
+            &first,
+            "research",
+            source("Old Joy", None, "two friends"),
+        )
+        .unwrap();
+        let mut again = source("old joy", Some("Kelly Reichardt"), "the hot spring");
+        again.entry.as_mut().unwrap().original = Some("Старая радость".into());
+        let there = put(&conn, &second, "research", again).unwrap();
+
+        assert_eq!(here.note_id, there.note_id, "one entry, not two");
+        let entry = there.entry.unwrap();
+        assert_eq!(
+            entry.author.as_deref(),
+            Some("Kelly Reichardt"),
+            "a blank filled"
+        );
+        assert_eq!(
+            entry.title, "Old Joy",
+            "the title it was written under stays"
+        );
+        assert!(entry.knows("Старая радость"), "a name it did not know kept");
+        assert_eq!(
+            crate::library::entries(&conn, &profile_id).unwrap().len(),
+            1
+        );
+
+        let elsewhere = crate::library::elsewhere(&conn, &first, "research").unwrap();
+        assert_eq!(elsewhere.len(), 1);
+        assert_eq!(elsewhere[0].works[0].title, "Another Song");
+
+        // Turned down there, it has not worked there.
+        judge(&conn, &there.id, Some(Verdict::Rejected)).unwrap();
+        assert!(
+            crate::library::elsewhere(&conn, &first, "research")
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    /// A card of the library is held to it: a kind that links to the library
+    /// needs an entry, another kind links to nothing, a proof is a link, and
+    /// the person's own words on such a kind name the entry.
+    #[test]
+    fn a_card_of_the_library_is_held_to_it() {
+        let (conn, work_id) = song();
+        let mut new = NewCard {
+            work_id: work_id.clone(),
+            board: "research".into(),
+            kind: "work".into(),
+            topic: String::new(),
+            position: None,
+            source: Source::Own,
+            verdict: None,
+            fields: [("why".to_owned(), "x".to_owned())].into_iter().collect(),
+            note_id: None,
+        };
+        let code = |result: Result<BoardCard>| result.unwrap_err().refusal().unwrap().code;
+        assert_eq!(code(create(&conn, new.clone())), "board.needsEntry");
+
+        let own = add_own(&conn, &work_id, "research", Some("work"), "Frances Ha").unwrap();
+        assert_eq!(own.entry.as_ref().unwrap().title, "Frances Ha");
+        assert!(
+            own.fields.is_empty(),
+            "an entry is enough to stand on the board"
+        );
+
+        new.note_id = own.note_id.clone();
+        new.fields.insert("proof".into(), "checked".into());
+        assert_eq!(code(create(&conn, new.clone())), "board.proofNotALink");
+
+        new.kind = "concept".into();
+        new.fields = [("term".to_owned(), "x".to_owned())].into_iter().collect();
+        assert_eq!(code(create(&conn, new)), "board.noEntryHere");
+    }
+
+    /// An entry a board still links to is not deleted; with the card gone, it
+    /// is.
+    #[test]
+    fn an_entry_a_board_links_to_stays() {
+        let (conn, work_id) = song();
+        let card = put(&conn, &work_id, "research", source("Old Joy", None, "x")).unwrap();
+        let note_id = card.note_id.clone().unwrap();
+        let refused = crate::actions::trash::discard(&conn, crate::trash::Entity::Note, &note_id)
+            .unwrap_err();
+        assert_eq!(refused.refusal().unwrap().code, "library.onBoards");
+        crate::actions::trash::discard(&conn, crate::trash::Entity::Card, &card.id).unwrap();
+        crate::actions::trash::discard(&conn, crate::trash::Entity::Note, &note_id).unwrap();
+    }
+
+    /// A chip becomes a phrase of the work: a new one, or the phrase already
+    /// written in those words joining the work; a phrase kept for another
+    /// work stays there and says so.
+    #[test]
+    fn a_chip_becomes_a_phrase_of_the_work() {
+        let (conn, work_id) = song();
+        let profile_id = crate::work::get(&conn, &work_id)
+            .unwrap()
+            .unwrap()
+            .profile_id;
+        let mut card = source("Inferno", Some("Dante"), "the hypocrites");
+        card.fields
+            .insert("chips".into(), "gilded lead cloaks; Arzamas".into());
+        let card = put(&conn, &work_id, "research", card).unwrap();
+
+        let made = chip_to_phrase(&conn, &card.id, "gilded lead cloaks").unwrap();
+        assert_eq!(made.work_id.as_deref(), Some(work_id.as_str()));
+        assert_eq!(made.kind, "phrase");
+        let again = chip_to_phrase(&conn, &card.id, "Gilded lead cloaks").unwrap();
+        assert_eq!(again.id, made.id, "the same words are one phrase");
+
+        let loose = crate::actions::note::create(
+            &conn,
+            NewNote {
+                body: "Arzamas".into(),
+                kind: Some("phrase".into()),
+                ..NewNote::default()
+            },
+        )
+        .unwrap();
+        let joined = chip_to_phrase(&conn, &card.id, "arzamas").unwrap();
+        assert_eq!(joined.id, loose.id);
+        assert_eq!(joined.work_id.as_deref(), Some(work_id.as_str()));
+
+        let other = fixtures::song(&conn, &profile_id, "Another Song").id;
+        let elsewhere = put(&conn, &other, "research", source("Inferno", None, "y")).unwrap();
+        let refused = chip_to_phrase(&conn, &elsewhere.id, "Arzamas").unwrap_err();
+        assert_eq!(refused.refusal().unwrap().code, "board.chipKeptElsewhere");
+    }
+
     fn scenario(conn: &Connection, work_id: &str, line: &str, topic: &str) -> BoardCard {
         create(
             conn,
@@ -204,6 +555,7 @@ mod tests {
                 source: Source::Ai,
                 verdict: None,
                 fields: [("line".to_owned(), line.to_owned())].into_iter().collect(),
+                note_id: None,
             },
         )
         .unwrap()
@@ -249,6 +601,7 @@ mod tests {
             source: Source::Own,
             verdict: None,
             fields: [("line".to_owned(), "x".to_owned())].into_iter().collect(),
+            note_id: None,
         };
         assert!(
             create(&conn, new.clone()).is_err(),

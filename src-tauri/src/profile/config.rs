@@ -480,9 +480,18 @@ pub struct CardKind {
     pub key: String,
     pub label: Label,
     /// What a card of this kind says, field by field. The first is its
-    /// headline - what the card is called on the board and in the order.
-    /// At least one.
+    /// headline - what the card is called on the board and in the order -
+    /// unless the card links to the library, where it is called what its
+    /// entry is called. At least one.
     pub fields: Vec<CardField>,
+    /// A card of this kind links to an entry of the library (v0.100, ADR
+    /// 0066): what the work of culture is - its title, its author, when it
+    /// was made, its medium - is the entry's, one record for the whole
+    /// workspace, and the card says only what it is to this work. Needs a
+    /// note kind marked `library`. Added in v0.100 - a document without it
+    /// is the same document.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub library: bool,
 }
 
 /// A field of a kind of card: a text with a name.
@@ -496,12 +505,67 @@ pub struct CardField {
     /// Whether it holds a paragraph rather than a line.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub multiline: bool,
+    /// What the text is, where it is more than words. Absent: words.
+    #[serde(default, skip_serializing_if = "FieldShape::is_text")]
+    pub shape: FieldShape,
+}
+
+/// What a field of a card holds (v0.100, ADR 0066).
+///
+/// Most fields are words a person reads. Three are read by the application
+/// as well: a quote is somebody else's words, which reach a writer word for
+/// word only once they were checked; where they were checked is a link; and
+/// chips are the images, names and places a card brings, each sent to the
+/// work's phrases with one click.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
+pub enum FieldShape {
+    #[default]
+    Text,
+    /// Somebody else's words: the original, a translation. In the order a
+    /// writer works from only when the card's proof says where they were
+    /// checked, and never from a work of a medium that is not quoted (a
+    /// song's lyrics).
+    Quote,
+    /// Where the card's quotes were checked: a link, `http(s)://`. Empty is
+    /// "from memory".
+    Proof,
+    /// Short things to keep - images, names, places, terms - one to a line
+    /// or parted by semicolons; each can become a phrase of the work.
+    Chips,
+}
+
+impl FieldShape {
+    pub fn is_text(&self) -> bool {
+        *self == FieldShape::Text
+    }
+}
+
+impl CardKind {
+    /// The field of this kind that holds where its quotes were checked.
+    pub fn proof(&self) -> Option<&CardField> {
+        self.fields
+            .iter()
+            .find(|field| field.shape == FieldShape::Proof)
+    }
+
+    /// Whether `key` is a field of this kind of the shape given.
+    pub fn is(&self, key: &str, shape: FieldShape) -> bool {
+        self.fields
+            .iter()
+            .any(|field| field.key == key && field.shape == shape)
+    }
 }
 
 impl Board {
     /// The kind of card by its key.
     pub fn card(&self, key: &str) -> Option<&CardKind> {
         self.cards.iter().find(|kind| kind.key == key)
+    }
+
+    /// Whether any kind of card of the board links to the library.
+    pub fn links_the_library(&self) -> bool {
+        self.cards.iter().any(|kind| kind.library)
     }
 }
 
@@ -1303,6 +1367,41 @@ pub struct NoteKind {
     /// as a page among the notes (ADR 0045).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub line: bool,
+    /// A note of this kind is an entry of the library: a work of culture -
+    /// a novel, a film, a painting, a gospel - kept once for the whole
+    /// workspace and linked from the boards of the works it is drawn on
+    /// (v0.100, ADR 0066). Its title is the work's, its attribution the
+    /// author, its aliases its other titles; it is in one of `media`, and
+    /// says when it was made. One kind of a profile at most. Added in v0.100
+    /// - a document without it is the same document.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub library: bool,
+    /// What an entry of the library can be in: literature, film, painting,
+    /// music. Only on a library kind; in the order the board's "by kind"
+    /// reads them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub media: Vec<Medium>,
+}
+
+/// What a work of culture is in - literature, film, music - as an entry of
+/// the library says it (ADR 0066).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Medium {
+    pub key: String,
+    pub label: Label,
+    /// Whether a work of this medium is ever quoted to a writer. A song's
+    /// words are its author's to sing: a card of a song names it and says
+    /// why, and its quotes never reach the order. Absent: quoted.
+    #[serde(default = "quoted_by_default", skip_serializing_if = "is_quoted")]
+    pub quoted: bool,
+}
+
+fn quoted_by_default() -> bool {
+    true
+}
+
+fn is_quoted(quoted: &bool) -> bool {
+    *quoted
 }
 
 impl NoteKind {
@@ -1316,6 +1415,8 @@ impl NoteKind {
             describe_from: Vec::new(),
             material: false,
             line: false,
+            library: false,
+            media: Vec::new(),
         }
     }
 
@@ -1328,6 +1429,11 @@ impl NoteKind {
         self.sections.iter().find(|section| section.key == key)
     }
 
+    /// A medium of the library by its key.
+    pub fn medium(&self, key: &str) -> Option<&Medium> {
+        self.media.iter().find(|medium| medium.key == key)
+    }
+
     /// Everything wrong with this kind's sections, each line naming its place.
     fn validate_into(&self, problems: &mut Vec<String>, place: &str, kinds: &[NoteKind]) {
         unique(
@@ -1335,6 +1441,23 @@ impl NoteKind {
             &format!("{place}: section"),
             self.sections.iter().map(|s| s.key.clone()),
         );
+        unique(
+            problems,
+            &format!("{place}: medium"),
+            self.media.iter().map(|m| m.key.clone()),
+        );
+        // An entry of the library is a page about a work of culture: not a
+        // card of the canon, not spent by a work, not one line.
+        if self.library && (self.is_card() || self.material || self.line) {
+            problems.push(format!(
+                "{place} is the library, and an entry of it is neither a card of the canon, material nor a line"
+            ));
+        }
+        if !self.library && !self.media.is_empty() {
+            problems.push(format!(
+                "{place} names media, which only the library's kind has"
+            ));
+        }
         if self.root && !self.is_card() {
             problems.push(format!(
                 "{place} is the root of the canon but names no sections"
@@ -2680,6 +2803,12 @@ impl ProfileConfig {
         self.note_kinds.iter().find(|kind| kind.key == key)
     }
 
+    /// The note kind that is the library, when the profile has one (ADR
+    /// 0066): the works of culture the boards link to.
+    pub fn library(&self) -> Option<&NoteKind> {
+        self.note_kinds.iter().find(|kind| kind.library)
+    }
+
     /// The kind of card a note of `key` is, when it is one: a kind the
     /// profile names with sections (ADR 0043).
     pub fn card_kind(&self, key: &str) -> Option<&NoteKind> {
@@ -3039,7 +3168,45 @@ impl ProfileConfig {
                     &format!("{place}: field"),
                     card.fields.iter().map(|f| f.key.clone()),
                 );
+                if card.library && self.library().is_none() {
+                    problems.push(format!(
+                        "{place} links to the library, but no note kind is the library (`library: true`)"
+                    ));
+                }
+                // One answer to "where were the quotes checked", and only on
+                // a card that holds a quote to check.
+                let shaped = |shape: FieldShape| {
+                    card.fields
+                        .iter()
+                        .filter(|field| field.shape == shape)
+                        .count()
+                };
+                if shaped(FieldShape::Proof) > 1 {
+                    problems.push(format!(
+                        "{place} has {} fields of proof; one says where its quotes were checked",
+                        shaped(FieldShape::Proof)
+                    ));
+                }
+                if shaped(FieldShape::Proof) > 0 && shaped(FieldShape::Quote) == 0 {
+                    problems.push(format!(
+                        "{place} has a field of proof but no quote to check"
+                    ));
+                }
             }
+        }
+
+        let libraries: Vec<&str> = self
+            .note_kinds
+            .iter()
+            .filter(|kind| kind.library)
+            .map(|kind| kind.key.as_str())
+            .collect();
+        if libraries.len() > 1 {
+            problems.push(format!(
+                "a workspace has one library, and {} note kinds are named it: {}",
+                libraries.len(),
+                libraries.join(", ")
+            ));
         }
 
         for (index, kind) in self.work_kinds.iter().enumerate() {
@@ -3517,8 +3684,10 @@ impl ProfileConfig {
             // The conception is read only off a work prepared on one: on
             // another kind the action would be refused every time it ran.
             if let Some(name) = placeholders.iter().find(|name| {
-                matches!(name.as_str(), "conception" | "starred" | "order")
-                    || name.starts_with("starred:")
+                matches!(
+                    name.as_str(),
+                    "conception" | "prepared" | "starred" | "order"
+                ) || name.starts_with("starred:")
             }) {
                 let missing = lacking(&|kind: &WorkKind| kind.conception.is_some());
                 if !missing.is_empty() {
@@ -4363,6 +4532,7 @@ mod tests {
             method: None,
             kinds: Vec::new(),
             scope: None,
+            web: false,
         }
     }
 

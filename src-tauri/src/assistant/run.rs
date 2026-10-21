@@ -339,12 +339,20 @@ pub fn start_as(
         .action
         .as_deref()
         .and_then(|action| method_of(conn, action));
+    // Whether the action reads the web, read the same way and for the same
+    // reason: a follow-up in a chat of research reads the web too, and with
+    // nothing else (ADR 0066).
+    let web = chat
+        .action
+        .as_deref()
+        .is_some_and(|action| reads_the_web(conn, action));
     let stream = Stream::start(
         prompt,
         chat.session_id.as_deref(),
         workdir,
         method.as_deref(),
         attachments,
+        web,
     )?;
 
     let started_at = now();
@@ -609,6 +617,20 @@ fn method_of(conn: &Connection, action: &str) -> Option<String> {
         .find(|prompt| prompt.key == action)?
         .method()
         .map(str::to_owned)
+}
+
+/// Whether an action of the active profile reads the web.
+fn reads_the_web(conn: &Connection, action: &str) -> bool {
+    crate::profile::active(conn)
+        .ok()
+        .flatten()
+        .is_some_and(|profile| {
+            profile
+                .config
+                .prompts
+                .iter()
+                .any(|prompt| prompt.key == action && prompt.web)
+        })
 }
 
 /// What reading an answer for a proposal came to.
@@ -899,7 +921,8 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 refine: refines.then(|| "-".to_owned()),
                 ..crate::board::answer::CardRequest::default()
             };
-            match crate::board::answer::read(board, &raw, Some(&request)) {
+            match crate::board::answer::read(board, profile.config.library(), &raw, Some(&request))
+            {
                 Ok(read) => value(super::proposal::Proposal::Cards {
                     work_id,
                     board: board_key,
@@ -957,6 +980,7 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 scenes: Vec::new(),
                 releases: Vec::new(),
                 trials: Vec::new(),
+                boards: Vec::new(),
             })
         }
     }

@@ -31,7 +31,9 @@ use crate::work::{self, WorkFilter, version};
 /// 5 — v0.99: a work's page carries the boards of its conception, board by
 ///     board and topic by topic, each card with its fields, where it came
 ///     from and the person's verdict.
-pub const FORMAT: u32 = 5;
+/// 6 — v0.100: a card of a board is called by the entry of the library it
+///     links to, and an entry in `notes.md` says its medium and year.
+pub const FORMAT: u32 = 6;
 
 /// What an export produced, so the user can be told rather than guess.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -341,6 +343,14 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             page.push_str(&format!("{}\n", note.body));
             if let Some(whose) = &note.attribution {
                 page.push_str(&format!("\n— {whose}\n"));
+            }
+            // An entry of the library: what it is in, and when it was made.
+            let made: Vec<&str> = [note.medium.as_deref(), note.year.as_deref()]
+                .into_iter()
+                .flatten()
+                .collect();
+            if !made.is_empty() {
+                page.push_str(&format!("\n{}\n", made.join(" · ")));
             }
             if !note.tags.is_empty() {
                 page.push_str(&format!("\n_{}_\n", note.tags.join(", ")));
@@ -853,11 +863,14 @@ fn push_boards(conn: &Connection, page: &mut String, work: &work::Work) -> Resul
                 card.headline(board)
             ));
             let kind = board.and_then(|board| board.card(&card.kind));
+            // The headline is the first field, unless the card is called by
+            // the entry of the library it links to.
+            let headline = usize::from(card.entry.is_none());
             let fields: Vec<(String, &String)> = match kind {
                 Some(kind) => kind
                     .fields
                     .iter()
-                    .skip(1)
+                    .skip(headline)
                     .filter_map(|field| {
                         Some((field.label.to_string(), card.fields.get(&field.key)?))
                     })
@@ -865,7 +878,7 @@ fn push_boards(conn: &Connection, page: &mut String, work: &work::Work) -> Resul
                 None => card
                     .fields
                     .iter()
-                    .skip(1)
+                    .skip(headline)
                     .map(|(key, text)| (key.clone(), text))
                     .collect(),
             };
@@ -1492,7 +1505,10 @@ mod tests {
                 .unwrap()
         };
         let page = read("Breaks under guitars");
-        assert!(page.starts_with("---\nformat: 5\n"), "{page}");
+        assert!(
+            page.starts_with(&format!("---\nformat: {FORMAT}\n")),
+            "{page}"
+        );
         assert!(page.contains("## Trials"), "{page}");
         assert!(page.contains("### sweep"), "{page}");
         assert!(page.contains("#### 2 slower · kept (varies 1)"), "{page}");

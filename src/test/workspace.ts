@@ -330,6 +330,8 @@ export function studio(): Studio {
       prompt_basis: null,
       state: 'fresh',
       attribution: null,
+      medium: null,
+      year: null,
     },
     {
       id: IDS.character,
@@ -347,6 +349,8 @@ export function studio(): Studio {
       prompt_basis: 'f00d',
       state: 'fresh',
       attribution: null,
+      medium: null,
+      year: null,
     },
   ]
 
@@ -1095,8 +1099,14 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     work_boards: ({ id }) => {
       const kind = studio.works.find((w) => w.id === id)?.kind
       const conception = studio.profile.config.work_kinds.find((k) => k.key === kind)?.conception
-      return (conception?.boards ?? []).map((board) => ({ board, cards: [], directions: [] }))
+      return (conception?.boards ?? []).map((board) => ({
+        board,
+        cards: [],
+        directions: [],
+        elsewhere: [],
+      }))
     },
+    entry_worked_in: () => [],
     conception_order: ({ id }) => `# “${studio.works.find((w) => w.id === id)?.title ?? ''}”\n`,
     cover_view: ({ id, format }) =>
       coverViewOf(studio, id as string, (format as string | null | undefined) ?? null),

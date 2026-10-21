@@ -8,7 +8,17 @@ import type { Label } from "./Label";
 export type CardKind = { key: string, label: Label, 
 /**
  * What a card of this kind says, field by field. The first is its
- * headline - what the card is called on the board and in the order.
- * At least one.
+ * headline - what the card is called on the board and in the order -
+ * unless the card links to the library, where it is called what its
+ * entry is called. At least one.
  */
-fields: Array<CardField>, };
+fields: Array<CardField>, 
+/**
+ * A card of this kind links to an entry of the library (v0.100, ADR
+ * 0066): what the work of culture is - its title, its author, when it
+ * was made, its medium - is the entry's, one record for the whole
+ * workspace, and the card says only what it is to this work. Needs a
+ * note kind marked `library`. Added in v0.100 - a document without it
+ * is the same document.
+ */
+library?: boolean, };

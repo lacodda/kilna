@@ -66,7 +66,14 @@ export function repeatHint(
   language: string = current(),
 ): string {
   const when = finding.booked ? 'booked' : 'out'
-  const key = finding.why === 'register' ? `repeats.hint.spent.${when}` : `repeats.hint.${when}`
+  // A work of culture both drew on is said as one (ADR 0066): "«Old Joy»
+  // already worked in “Letters”, out Sep 20".
+  const key =
+    finding.why === 'register'
+      ? `repeats.hint.spent.${when}`
+      : finding.why === 'source'
+        ? `repeats.hint.source.${when}`
+        : `repeats.hint.${when}`
   const hint = i18n.t(key, {
     lng: language,
     word: finding.word,

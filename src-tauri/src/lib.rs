@@ -23,6 +23,7 @@ pub mod folder;
 pub mod journal;
 pub mod lab;
 pub mod layout;
+pub mod library;
 pub mod lines;
 pub mod link;
 pub mod log;
@@ -262,6 +263,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::boards::move_card,
             commands::boards::retopic_cards,
             commands::boards::delete_card,
+            commands::boards::chip_to_phrase,
+            commands::boards::entry_worked_in,
             commands::boards::conception_order,
             commands::trials::trial_board,
             commands::trials::create_trial,

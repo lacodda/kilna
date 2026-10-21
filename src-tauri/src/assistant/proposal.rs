@@ -127,6 +127,11 @@ pub enum Proposal {
         /// it varies (v0.95, ADR 0061). Only for a kind that is a lab.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         trials: Vec<crate::lab::answer::Packaged>,
+        /// Cards for the boards of the work's conception, board by board -
+        /// a new song arrives with its research (v0.100, ADR 0066). Only on
+        /// boards the kind lays out.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        boards: Vec<PackagedBoard>,
     },
     /// A storyboard for the chat's work: scenes added after the last, the
     /// whole board replaced, or numbered scenes revised in place. Made by
@@ -348,6 +353,14 @@ pub struct PackagedRelease {
     /// proposal that only half fits is worth applying, but not silently.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unknown_fields: Vec<String>,
+}
+
+/// Cards for one board of a work's conception, inside a package.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct PackagedBoard {
+    /// The board, by its key in the profile.
+    pub board: String,
+    pub cards: Vec<crate::board::answer::Packaged>,
 }
 
 /// A note inside a package: a note or a phrase of the work (ADR 0064).
@@ -1511,6 +1524,7 @@ mod tests {
             scenes: Vec::new(),
             releases: Vec::new(),
             trials: Vec::new(),
+            boards: Vec::new(),
         };
         let stored = serde_json::to_value(&proposal).unwrap();
         assert_eq!(stored["kind"], "work");

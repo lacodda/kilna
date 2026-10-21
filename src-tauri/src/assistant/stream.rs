@@ -231,6 +231,20 @@ impl Stopper {
     }
 }
 
+/// What a run that reads the web is started with (ADR 0066): the CLI's two
+/// tools for the web as the only ones it has, both allowed without a
+/// question nobody would be there to answer, and no MCP server - only those
+/// a config names count, and none is named.
+pub fn web_args() -> [&'static str; 5] {
+    [
+        "--tools",
+        "WebSearch,WebFetch",
+        "--allowedTools",
+        "WebSearch,WebFetch",
+        "--strict-mcp-config",
+    ]
+}
+
 /// The folders the attached files live in, each once, in order of first
 /// use. A file with no parent — a bare name — is skipped: it was checked to
 /// exist against the process's own directory, which the CLI does not get.
@@ -267,12 +281,19 @@ impl Stream {
     /// `attachments` are reference files the prompt names by path. The CLI
     /// reads only inside the directories it is given, so each file's folder
     /// is added with `--add-dir`; nothing is copied into `workdir`.
+    ///
+    /// `web` is a run of an action that reads the web (ADR 0066): it has the
+    /// two tools that search and open pages, allowed without asking, and
+    /// nothing else - no file or shell tool, none of the person's MCP
+    /// servers. A page is a stranger's words, and a run that read one must
+    /// not be able to act on them.
     pub fn start(
         prompt: &str,
         session_id: Option<&str>,
         workdir: Option<&std::path::Path>,
         method: Option<&str>,
         attachments: &[std::path::PathBuf],
+        web: bool,
     ) -> Result<Self> {
         let mut command = super::cli::command();
         command.args([
@@ -282,6 +303,9 @@ impl Stream {
             // stream-json refuses to run without it.
             "--verbose",
         ]);
+        if web {
+            command.args(web_args());
+        }
 
         if let Some(session_id) = session_id {
             command.args(["--resume", session_id]);
@@ -366,6 +390,24 @@ impl Stream {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A run that reads the web has the CLI's two tools for it, allowed, and
+    /// nothing else: no other built-in tool, and no MCP server of the
+    /// person's - only a config would name one, and none is given.
+    #[test]
+    fn a_run_that_reads_the_web_has_the_web_and_nothing_else() {
+        let args = web_args();
+        let after = |flag: &str| {
+            args.iter()
+                .position(|arg| *arg == flag)
+                .and_then(|at| args.get(at + 1))
+                .copied()
+        };
+        assert_eq!(after("--tools"), Some("WebSearch,WebFetch"));
+        assert_eq!(after("--allowedTools"), Some("WebSearch,WebFetch"));
+        assert!(args.contains(&"--strict-mcp-config"));
+        assert!(!args.contains(&"--mcp-config"));
+    }
 
     // Shapes below are trimmed from real `stream-json` output (CLI 2.1.241).
 

@@ -45,4 +45,13 @@ prompt_basis: string | null,
  * Where a note of a material kind stands: fresh, used by a work, set
  * aside, given up on. A plain note is fresh for ever.
  */
-state: NoteState, };
+state: NoteState, 
+/**
+ * What an entry of the library is in - literature, film - by the key of
+ * a medium its kind declares (ADR 0066). None on any other note.
+ */
+medium: string | null, 
+/**
+ * When an entry of the library was made, as said: `1913`, `c. 1308`.
+ */
+year: string | null, };

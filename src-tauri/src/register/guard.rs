@@ -57,6 +57,10 @@ pub enum RepeatWhy {
     Register,
     /// A rare word: the closer the other song, the louder.
     Rare,
+    /// A work of culture both songs drew on - an entry of the library on
+    /// both their boards, not turned down (ADR 0066). Not a word a listener
+    /// hears, so worth a look and never louder: `word` is the entry's title.
+    Source,
 }
 
 /// One word a song shares with the songs that went out or are booked: one
@@ -199,6 +203,8 @@ fn songs(conn: &Connection, profile_id: &str) -> Result<Vec<Song>> {
         }
     }
 
+    researched(conn, &config, &mut by_work, &drawn_on(conn, profile_id)?)?;
+
     // A release speaks for its own work and for everything up the chain it
     // was made from: a song is out when its audio is.
     let up = crate::link::ancestors_by_work(conn, profile_id)?;
@@ -242,6 +248,70 @@ fn songs(conn: &Connection, profile_id: &str) -> Result<Vec<Song>> {
         }
     }
     Ok(by_work)
+}
+
+/// The works of culture each work drew on: the entries of the library its
+/// boards link to, not turned down, by id, with their titles.
+fn drawn_on(
+    conn: &Connection,
+    profile_id: &str,
+) -> Result<HashMap<String, BTreeMap<String, String>>> {
+    let mut statement = conn.prepare(
+        "SELECT DISTINCT c.work_id, c.note_id, coalesce(n.title, '') FROM board_card c
+           JOIN note n ON n.id = c.note_id
+          WHERE c.profile_id = ?1 AND (c.verdict IS NULL OR c.verdict <> 'rejected')",
+    )?;
+    let rows = statement
+        .query_map(params![profile_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    let mut out: HashMap<String, BTreeMap<String, String>> = HashMap::new();
+    for (work_id, note_id, title) in rows {
+        out.entry(work_id).or_default().insert(note_id, title);
+    }
+    Ok(out)
+}
+
+/// A song not written yet that already drew on the library - a song being
+/// researched - is held against the others too: it has no words to share
+/// yet, only its sources. Only a work of a kind that is sung.
+fn researched(
+    conn: &Connection,
+    config: &crate::profile::config::ProfileConfig,
+    songs: &mut Vec<Song>,
+    drawn: &HashMap<String, BTreeMap<String, String>>,
+) -> Result<()> {
+    // In the order the ids sort, so the guard reads the same twice.
+    let mut ids: Vec<&String> = drawn.keys().collect();
+    ids.sort();
+    for work_id in ids {
+        if songs.iter().any(|song| song.id == *work_id) {
+            continue;
+        }
+        let Some(work) = crate::work::get(conn, work_id)? else {
+            continue;
+        };
+        let sung = config
+            .vocabulary(&work.kind)
+            .version_roles
+            .iter()
+            .any(|role| role.sung);
+        if sung {
+            songs.push(Song {
+                id: work.id,
+                title: work.title,
+                body: String::new(),
+                out: None,
+                booked: None,
+            });
+        }
+    }
+    Ok(())
 }
 
 /// The words of a text by stem, each with the first way the text writes it:
@@ -347,6 +417,7 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
         |day: Date| (day - today).whole_days().unsigned_abs() <= u64::from(guard.window_days);
 
     let kept = kept_pairs(conn, profile_id, &mut stems)?;
+    let drawn = drawn_on(conn, profile_id)?;
 
     let mut out = Vec::new();
     for (index, song) in songs.iter().enumerate() {
@@ -411,6 +482,18 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
                     RepeatLevel::Orange
                 };
                 add(stem.clone(), finding(word, RepeatWhy::Rare, level, stem));
+            }
+            // The works of culture both drew on: "Old Joy already worked in
+            // that song" - kept by its title, as a word is.
+            if let (Some(mine), Some(theirs)) = (drawn.get(&song.id), drawn.get(&neighbour.id)) {
+                for (note_id, title) in mine {
+                    if !theirs.contains_key(note_id) || title.trim().is_empty() {
+                        continue;
+                    }
+                    let key = stems.of(title);
+                    let found = finding(title, RepeatWhy::Source, RepeatLevel::Orange, &key);
+                    add(format!("source:{note_id}"), found);
+                }
             }
         }
         if by_stem.is_empty() {
@@ -769,6 +852,70 @@ mod tests {
                 ),
             ]
         );
+    }
+
+    /// A work of culture a song that went out drew on, drawn on again by a
+    /// song still being researched - no words of its own yet - is a finding
+    /// of its own: orange, named by the entry's title, kept like a word. A
+    /// card turned down has not drawn on it.
+    #[test]
+    fn a_source_drawn_on_again_is_seen_before_a_line_is_written() {
+        let (conn, profile_id) = fixtures::workspace();
+        let out = song(
+            &conn,
+            &profile_id,
+            "Out lately",
+            "тихий берег",
+            Some("2026-09-20"),
+        );
+        let draft = fixtures::song(&conn, &profile_id, "Being researched").id;
+        let card = |work: &str| {
+            crate::actions::board::put(
+                &conn,
+                work,
+                "research",
+                crate::board::answer::Packaged {
+                    kind: "work".into(),
+                    topic: String::new(),
+                    source: crate::board::Source::Ai,
+                    fields: Default::default(),
+                    entry: Some(crate::library::Asked {
+                        title: "Old Joy".into(),
+                        ..Default::default()
+                    }),
+                    starred: false,
+                },
+            )
+            .unwrap()
+        };
+        card(&out);
+        let drawn = card(&draft);
+
+        assert_eq!(
+            findings(&conn, &profile_id, &draft),
+            vec![(
+                "Old Joy".to_owned(),
+                RepeatLevel::Orange,
+                RepeatWhy::Source,
+                false
+            )]
+        );
+        keep_minted(
+            &conn,
+            &profile_id,
+            &draft,
+            "Old Joy",
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        assert!(
+            findings(&conn, &profile_id, &draft)[0].3,
+            "kept like a word"
+        );
+
+        crate::actions::board::judge(&conn, &drawn.id, Some(crate::board::Verdict::Rejected))
+            .unwrap();
+        assert!(findings(&conn, &profile_id, &draft).is_empty());
     }
 
     #[test]

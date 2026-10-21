@@ -6,7 +6,9 @@ import type {
   CardRequest,
   CardVerdict,
   ComposedTask,
+  Note,
   StartedTask,
+  WorkedIn,
 } from '@/lib/api/types'
 
 // The boards of a work's conception (v0.99, ADR 0065).
@@ -32,6 +34,11 @@ export const retopicCards = (workId: string, board: string, from: string, to: st
 export const deleteCard = (id: string) => invoke<string>('delete_card', { id })
 /** The whole order a writer works from, in markdown. */
 export const conceptionOrder = (id: string) => invoke<string>('conception_order', { id })
+/** A chip of a card kept as a phrase of its work (v0.100, ADR 0066). */
+export const chipToPhrase = (cardId: string, chip: string) =>
+  invoke<Note>('chip_to_phrase', { cardId, chip })
+/** The works an entry of the library has worked in. */
+export const entryWorkedIn = (id: string) => invoke<WorkedIn[]>('entry_worked_in', { id })
 
 /** Ask a board for cards in the background; they land on it as they come. */
 export const startBoardTask = (id: string, action: string, board: string, request: CardRequest) =>

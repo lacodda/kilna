@@ -89,6 +89,16 @@ export function ProposedWork({ workId, messageId, proposal, applied, dismissed }
   // An experiment comes with its board: how many trials it lands with.
   const trials = proposal.trials ?? []
   if (trials.length > 0) parts.push(t('assistant.packageTrials', { count: trials.length }))
+  // A song may come with its research (v0.100): how many cards, board by board.
+  for (const packaged of proposal.boards ?? []) {
+    const board = profile.config.boards?.find((one) => one.key === packaged.board)
+    parts.push(
+      t('assistant.packageCards', {
+        count: packaged.cards.length,
+        board: board === undefined ? packaged.board : say(board.label),
+      }),
+    )
+  }
 
   const unknownFields = proposal.unknown_fields ?? []
   const unknownAxes = proposal.score?.unknown ?? []

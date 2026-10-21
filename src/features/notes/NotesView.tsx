@@ -4,14 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ListChecks, Plus } from 'lucide-react'
 import { createNote } from '@/lib/api/notes'
-import type { Note, NoteState } from '@/lib/api/types'
+import type { Note, NoteKind, NoteState } from '@/lib/api/types'
 import { progressOf } from '@/lib/checklist'
 import { isLine, isMaterial, NOTE_STATES, titleOf } from '@/lib/notes'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { plainNoteKindsOf } from '@/lib/canon'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { useDebounced } from '@/lib/useDebounced'
 import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
@@ -228,6 +228,9 @@ export function NotesView() {
                         <NoteRow
                           note={note}
                           kindLabel={labelOf(kinds, note.kind)}
+                          library={kinds.find(
+                            (one) => one.key === note.kind && one.library === true,
+                          )}
                           material={isMaterial(config, note.kind)}
                           active={note.id === noteId}
                           onOpen={() => open(note.id)}
@@ -276,12 +279,15 @@ export function NotesView() {
 function NoteRow({
   note,
   kindLabel,
+  library,
   material,
   active,
   onOpen,
 }: {
   note: Note
   kindLabel: string
+  /** The library's kind, when the note is an entry of it. */
+  library?: NoteKind
   /** Whether it is spent by works, and so says where it stands. */
   material: boolean
   active: boolean
@@ -292,12 +298,22 @@ function NoteRow({
   const progress = progressOf(note.body)
   const day = formatDay(note.updated_at)
   const state = material && note.state !== 'fresh' ? ` · ${t(`notes.state.${note.state}`)}` : ''
+  // An entry of the library reads by who made it, when, and in what - not
+  // by the kind every row on the screen shares.
+  const made = [
+    note.attribution,
+    note.year,
+    library?.media?.find((medium) => medium.key === note.medium)?.label,
+  ]
+    .map((part) => (part == null ? '' : typeof part === 'string' ? part : sayLabel(part)))
+    .filter((part) => part.trim() !== '')
+    .join(' · ')
 
   return (
     <RowButton
       selected={active}
       onClick={onOpen}
-      description={`${kindLabel}${state} · ${day}`}
+      description={library !== undefined && made !== '' ? made : `${kindLabel}${state} · ${day}`}
       // How far along a checklist is, where the note has one: the reason to
       // open a to-do list is usually to see what is left.
       end={

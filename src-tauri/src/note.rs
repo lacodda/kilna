@@ -46,6 +46,11 @@ pub struct Note {
     /// Where a note of a material kind stands: fresh, used by a work, set
     /// aside, given up on. A plain note is fresh for ever.
     pub state: NoteState,
+    /// What an entry of the library is in - literature, film - by the key of
+    /// a medium its kind declares (ADR 0066). None on any other note.
+    pub medium: Option<String>,
+    /// When an entry of the library was made, as said: `1913`, `c. 1308`.
+    pub year: Option<String>,
 }
 
 /// Where a material note stands (ADR 0045). The code's words, not the
@@ -120,6 +125,11 @@ pub struct NewNote {
     /// Fresh when absent.
     #[serde(default)]
     pub state: Option<NoteState>,
+    /// For an entry of the library: its medium and when it was made.
+    #[serde(default)]
+    pub medium: Option<String>,
+    #[serde(default)]
+    pub year: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
@@ -168,6 +178,18 @@ pub struct NotePatch {
     pub prompt_basis: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub state: Option<NoteState>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub medium: Option<Option<String>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub year: Option<Option<String>>,
 }
 
 /// Narrowing applied to a listing. Every field may be left out - serde
@@ -193,7 +215,7 @@ pub struct NoteFilter {
 }
 
 const SELECT_NOTE: &str = "SELECT id, profile_id, work_id, kind, title, body, tags, created_at, \
-     updated_at, layer, aliases, prompt, prompt_basis, state, attribution FROM note";
+     updated_at, layer, aliases, prompt, prompt_basis, state, attribution, medium, year FROM note";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewNote) -> Result<Note> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -216,8 +238,8 @@ pub fn create_minted(
     one_root(conn, profile_id, &kind, None)?;
 
     conn.execute(
-        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases, state, attribution)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12)",
+        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases, state, attribution, medium, year)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
         params![
             id,
             profile_id,
@@ -231,6 +253,8 @@ pub fn create_minted(
             serde_json::to_string(&clean_aliases(new.aliases))?,
             new.state.unwrap_or_default().as_str(),
             blank_is_none(new.attribution),
+            blank_is_none(new.medium),
+            blank_is_none(new.year),
         ],
     )?;
 
@@ -446,6 +470,22 @@ pub fn update_at(conn: &Connection, id: &str, patch: NotePatch, at: &str) -> Res
             &mut values,
             "state",
             Box::new(state.as_str().to_owned()),
+        );
+    }
+    if let Some(medium) = patch.medium {
+        set(
+            &mut assignments,
+            &mut values,
+            "medium",
+            Box::new(blank_is_none(medium)),
+        );
+    }
+    if let Some(year) = patch.year {
+        set(
+            &mut assignments,
+            &mut values,
+            "year",
+            Box::new(blank_is_none(year)),
         );
     }
     if let Some(basis) = patch.prompt_basis {
@@ -672,6 +712,8 @@ struct RawNote {
     prompt_basis: Option<String>,
     state: String,
     attribution: Option<String>,
+    medium: Option<String>,
+    year: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
@@ -691,6 +733,8 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
         prompt_basis: row.get(12)?,
         state: row.get(13)?,
         attribution: row.get(14)?,
+        medium: row.get(15)?,
+        year: row.get(16)?,
     })
 }
 
@@ -712,6 +756,8 @@ impl RawNote {
             updated_at: self.updated_at,
             prompt: self.prompt,
             prompt_basis: self.prompt_basis,
+            medium: self.medium,
+            year: self.year,
         })
     }
 }

@@ -1412,6 +1412,10 @@ pub fn board_running(runs: &super::run::Runs, action: &str, work_id: &str, board
         .any(|refines| runs.task_running(&board_key(action, work_id, board, refines)))
 }
 
+/// The most entries of the library a board's run is told other works drew
+/// on: the most recent of them, a page rather than a catalogue.
+const OTHERS_AT_MOST: usize = 40;
+
 /// Compose `action` against a board of a work's conception (v0.99, ADR
 /// 0065): the template is rendered against the work, the way any action is,
 /// and one placeholder only a board has - `{cards}`, the board's kinds of
@@ -1447,11 +1451,24 @@ pub fn compose_for_board(
 
     let rendered = super::prompt::for_work(conn, &work.id, &template.template, Context::default())?;
     let cards = crate::board::for_board(conn, &work.id, &board.key)?;
+    // What the library already gave other works, so a run brings back the
+    // film the last song drew on only on purpose (ADR 0066).
+    let others = if board.links_the_library() {
+        crate::library::others_sheet(conn, &profile.config, &work.id, OTHERS_AT_MOST)?
+    } else {
+        String::new()
+    };
     // After the work's own placeholders, so the words already on the board -
     // which may hold braces of their own - are not rendered a second time.
     let mut prompt = rendered.replace(
         "{cards}",
-        &crate::board::answer::request_sheet(board, &cards, request),
+        &crate::board::answer::request_sheet(
+            board,
+            profile.config.library(),
+            &cards,
+            request,
+            &others,
+        ),
     );
     prompt.push_str(&crate::board::answer::instruction(board, request));
     let prompt = super::waiting::instruct(&prompt);
