@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.100.0] - 2026-10-21
+
+### Bug Fixes
+- Order where an entry worked by title and rowid, not a uuid
+- Keep a translation out of the quote, show hints as examples
+
+### Documentation
+- Describe the research, the library and ADR 0066
+
+### Features
+- Research a work on a board linked to a library
+
 ## [0.99.0] - 2026-10-20
 
 ### Bug Fixes
