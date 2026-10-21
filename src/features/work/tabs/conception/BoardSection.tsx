@@ -592,7 +592,9 @@ function TopicHeading({
         aria-label={t('board.topicName')}
         title={t('board.topicHint')}
         {...draft}
-        className="h-7 w-auto max-w-80 border-transparent bg-transparent px-1 text-xs font-semibold tracking-caption uppercase hover:border-line-2 focus:bg-soft"
+        // As wide as its words: a topic of four words is read whole, not cut
+        // at the width of an empty field.
+        className="field-sizing-content h-7 w-auto max-w-full min-w-24 border-transparent bg-transparent px-1 text-xs font-semibold tracking-caption uppercase hover:border-line-2 focus:bg-soft"
       />
       <span className="font-mono text-2xs text-faint">{count}</span>
     </div>

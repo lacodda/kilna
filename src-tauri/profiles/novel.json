@@ -699,7 +699,6 @@
               {
                 "key": "translation",
                 "label": "Translation",
-                "shape": "quote",
                 "multiline": true
               },
               {
@@ -751,7 +750,6 @@
               {
                 "key": "translation",
                 "label": "Translation",
-                "shape": "quote",
                 "multiline": true
               },
               {

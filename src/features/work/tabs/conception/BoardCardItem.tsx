@@ -318,7 +318,18 @@ function CardText({
   /** What stands beside the field's word: a quote's check, a proof's link. */
   mark?: ReactNode
 }) {
+  const { t } = useTranslation()
   const label = sayLabel(field.label)
+  // An empty field under its caption shows its hint as an example, so a card
+  // of eight fields with two written does not read as saying all eight.
+  const placeholder =
+    field.hint != null
+      ? headline
+        ? sayLabel(field.hint)
+        : t('board.hintExample', { hint: sayLabel(field.hint) })
+      : headline
+        ? label
+        : '…'
   const draft = useFieldDraft(
     value,
     (text) => {
@@ -338,7 +349,7 @@ function CardText({
         aria-label={label}
         // The headline says what it is called while empty; a field under its
         // own caption shows its hint, or only that there is room.
-        placeholder={field.hint != null ? sayLabel(field.hint) : headline ? label : '…'}
+        placeholder={placeholder}
         autoResize
         rows={1}
         maxRows={headline ? 4 : 8}

@@ -522,10 +522,11 @@ pub struct CardField {
 pub enum FieldShape {
     #[default]
     Text,
-    /// Somebody else's words: the original, a translation. In the order a
+    /// Somebody else's words, as the work writes them. In the order a
     /// writer works from only when the card's proof says where they were
     /// checked, and never from a work of a medium that is not quoted (a
-    /// song's lyrics).
+    /// song's lyrics). A translation beside it is the card's own words, not
+    /// a quote: the proof checks the original.
     Quote,
     /// Where the card's quotes were checked: a link, `http(s)://`. Empty is
     /// "from memory".

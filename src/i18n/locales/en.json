@@ -3793,7 +3793,8 @@
     "editChips": "Edit the chips",
     "chipKept": "Kept in the work's phrases",
     "chipToPhrases": "Keep “{{chip}}” in the work's phrases",
-    "chipFailed": "Could not keep the chip as a phrase"
+    "chipFailed": "Could not keep the chip as a phrase",
+    "hintExample": "e.g. {{hint}}"
   },
   "library": {
     "author": "Author",

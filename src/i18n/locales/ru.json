@@ -4058,7 +4058,8 @@
     "editChips": "Править чипы",
     "chipKept": "Уже во фразах работы",
     "chipToPhrases": "Во фразы работы: «{{chip}}»",
-    "chipFailed": "Не удалось сохранить чип во фразы"
+    "chipFailed": "Не удалось сохранить чип во фразы",
+    "hintExample": "например: {{hint}}"
   },
   "library": {
     "author": "Автор",

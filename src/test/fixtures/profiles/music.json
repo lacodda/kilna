@@ -28,8 +28,7 @@
                   "en": "Translation",
                   "ru": "Перевод"
                 },
-                "multiline": true,
-                "shape": "quote"
+                "multiline": true
               },
               {
                 "hint": {
@@ -122,8 +121,7 @@
                   "en": "Translation",
                   "ru": "Перевод"
                 },
-                "multiline": true,
-                "shape": "quote"
+                "multiline": true
               },
               {
                 "key": "proof",

@@ -19,8 +19,7 @@
               {
                 "key": "translation",
                 "label": "Translation",
-                "multiline": true,
-                "shape": "quote"
+                "multiline": true
               },
               {
                 "hint": "Canto XXIII; the last chapter",
@@ -71,8 +70,7 @@
               {
                 "key": "translation",
                 "label": "Translation",
-                "multiline": true,
-                "shape": "quote"
+                "multiline": true
               },
               {
                 "key": "proof",
