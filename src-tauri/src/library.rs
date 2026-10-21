@@ -263,14 +263,16 @@ pub struct Elsewhere {
 /// [`Elsewhere`] for every entry on a board of a work, by title of the other
 /// work. An entry that worked nowhere else is left out.
 pub fn elsewhere(conn: &Connection, work_id: &str, board: &str) -> Result<Vec<Elsewhere>> {
+    // By the other work's title, the order it was made in breaking a tie; an
+    // entry's works are gathered below, one each.
     let mut statement = conn.prepare(
-        "SELECT DISTINCT c.note_id, w.id, w.title FROM board_card c
+        "SELECT c.note_id, w.id, w.title FROM board_card c
            JOIN work w ON w.id = c.work_id
           WHERE c.note_id IN (SELECT note_id FROM board_card
                                WHERE work_id = ?1 AND board = ?2 AND note_id IS NOT NULL)
             AND c.work_id <> ?1
             AND (c.verdict IS NULL OR c.verdict <> 'rejected')
-          ORDER BY c.note_id, w.title, w.id",
+          ORDER BY w.title, w.rowid",
     )?;
     let rows = statement
         .query_map(params![work_id, board], |row| {
@@ -284,9 +286,10 @@ pub fn elsewhere(conn: &Connection, work_id: &str, board: &str) -> Result<Vec<El
     let mut out: Vec<Elsewhere> = Vec::new();
     for (note_id, id, title) in rows {
         let found = WorkedIn { work_id: id, title };
-        match out.last_mut() {
-            Some(last) if last.note_id == note_id => last.works.push(found),
-            _ => out.push(Elsewhere {
+        match out.iter_mut().find(|known| known.note_id == note_id) {
+            Some(known) if known.works.contains(&found) => {}
+            Some(known) => known.works.push(found),
+            None => out.push(Elsewhere {
                 note_id,
                 works: vec![found],
             }),
@@ -298,10 +301,10 @@ pub fn elsewhere(conn: &Connection, work_id: &str, board: &str) -> Result<Vec<El
 /// Every work an entry has worked in: what the library shows on the entry.
 pub fn worked_in(conn: &Connection, note_id: &str) -> Result<Vec<WorkedIn>> {
     let mut statement = conn.prepare(
-        "SELECT DISTINCT w.id, w.title FROM board_card c
+        "SELECT w.id, w.title FROM board_card c
            JOIN work w ON w.id = c.work_id
           WHERE c.note_id = ?1 AND (c.verdict IS NULL OR c.verdict <> 'rejected')
-          ORDER BY w.title, w.id",
+          ORDER BY w.title, w.rowid",
     )?;
     let rows = statement
         .query_map(params![note_id], |row| {
@@ -311,7 +314,14 @@ pub fn worked_in(conn: &Connection, note_id: &str) -> Result<Vec<WorkedIn>> {
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
-    Ok(rows)
+    // A work with two cards of the entry worked with it once.
+    let mut out: Vec<WorkedIn> = Vec::new();
+    for found in rows {
+        if !out.contains(&found) {
+            out.push(found);
+        }
+    }
+    Ok(out)
 }
 
 /// Refuse to delete an entry a board still links to, naming the works: the
@@ -352,7 +362,7 @@ pub fn others_sheet(
           WHERE c.note_id IS NOT NULL AND c.work_id <> ?1
             AND (c.verdict IS NULL OR c.verdict <> 'rejected')
           GROUP BY c.note_id, w.id
-          ORDER BY at DESC",
+          ORDER BY at DESC, w.title, w.rowid",
     )?;
     let rows = statement
         .query_map(params![work_id], |row| {
