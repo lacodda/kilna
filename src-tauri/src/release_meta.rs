@@ -678,9 +678,11 @@ pub const HISTORY: usize = 8;
 
 /// What went out before, for `{releases}`: the latest releases of the
 /// workspace through doors with fields, newest first, each with what it went
-/// out under. Read so a new description does not open, sign off or ask the
-/// way the last few did. Releases that went out come first, then the ones
-/// planned for a day; the release the action is about is left out.
+/// out under. Read so a new description is not built the way the last few
+/// were. Ordered by the day each goes out on, whether it went out or is
+/// booked: a text written for next week is as recent as one that went out
+/// yesterday, and one not yet marked as out is no less written (v0.100.1).
+/// The release the action is about is left out.
 pub fn history(conn: &Connection, release_id: &str, limit: usize) -> Result<String> {
     let (release, _) = definition(conn, release_id)?;
     let work = work::get(conn, &release.work_id)?
@@ -690,7 +692,7 @@ pub fn history(conn: &Connection, release_id: &str, limit: usize) -> Result<Stri
         "SELECT r.id FROM release r JOIN work w ON w.id = r.work_id
           WHERE w.profile_id = ?1 AND r.id <> ?2 AND r.meta <> '{}'
             AND (r.released_at IS NOT NULL OR r.scheduled_at IS NOT NULL)
-          ORDER BY (r.released_at IS NULL), coalesce(r.released_at, r.scheduled_at) DESC, r.rowid DESC",
+          ORDER BY substr(coalesce(r.released_at, r.scheduled_at), 1, 10) DESC, r.rowid DESC",
     )?;
     let ids: Vec<String> = statement
         .query_map(rusqlite::params![work.profile_id, release.id], |row| {
@@ -728,12 +730,11 @@ pub fn history(conn: &Connection, release_id: &str, limit: usize) -> Result<Stri
         if written.is_empty() {
             continue;
         }
-        let when = earlier
-            .released_at
-            .as_deref()
-            .map(day_of)
-            .or(earlier.scheduled_at.clone())
-            .unwrap_or_default();
+        let when = match (&earlier.released_at, &earlier.scheduled_at) {
+            (Some(out), _) => format!("went out {}", day_of(out)),
+            (None, Some(day)) => format!("booked for {day}"),
+            (None, None) => String::new(),
+        };
         entries.push(format!(
             "“{}” ({}, {when})\n{}",
             earlier_work.title,
@@ -942,6 +943,29 @@ mod tests {
         write_title(&conn, &audio, "Tide");
 
         assert_eq!(title_of(&conn, &audio), "Tide (Song premiere 2026)");
+    }
+
+    /// What the writer reads as recent is ordered by the day each goes out
+    /// on, booked or out: a text written for next week, or one not marked as
+    /// out yet, is as recent as its day, and says which it is.
+    #[test]
+    fn the_history_reads_what_is_booked_beside_what_went_out() {
+        let (mut conn, profile_id) = fixtures::workspace();
+        let old = fixtures::video(&conn, &profile_id, "Old harbour");
+        let old = fixtures::release(&conn, &old.id, "youtube", Some("2026-09-01"));
+        write_title(&conn, &old.id, "Old harbour");
+        release::mark_released(&conn, &old.id, None, Some("2026-09-01".into())).unwrap();
+        let new = fixtures::video(&conn, &profile_id, "New harbour");
+        let new = fixtures::release(&conn, &new.id, "youtube", Some("2026-10-10"));
+        write_title(&conn, &new.id, "New harbour");
+        let id = video_with_release(&mut conn, &profile_id, None);
+
+        let read = history(&conn, &id, HISTORY).unwrap();
+
+        let booked = read.find("“New harbour” (YouTube, booked for 2026-10-10)");
+        let out = read.find("“Old harbour” (YouTube, went out 2026-09-01)");
+        assert!(booked.is_some() && out.is_some(), "{read}");
+        assert!(booked < out, "the newer day first, booked or not: {read}");
     }
 
     /// A video with a YouTube release planned for it, and the plot its

@@ -302,6 +302,10 @@ const UPGRADE: &[Step] = &[
         carry: going_out_words,
     },
     Step {
+        name: "an action's method still reading as an earlier release shipped it",
+        carry: rewritten_methods,
+    },
+    Step {
         name: "the folder a kind keeps its files in on disk",
         carry: kind_folders,
     },
@@ -1423,6 +1427,46 @@ const TEMPLATES_BEFORE_THE_RESEARCH: [(&str, &str); 4] = [
         "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\n{cards}",
     ),
 ];
+
+/// Methods as earlier releases shipped them, by the action they belong to
+/// (ADR 0021). A stored method still reading exactly like one of these was
+/// never touched by the owner, and follows the shipped wording; one they
+/// rewrote stays theirs. Without it a method once stored never changes again:
+/// [`prompt_details`] only fills a method that is missing.
+const METHODS_BEFORE: [(&str, &str); 1] = [(
+    "release-meta",
+    include_str!("methods_before/release-meta-0.86.md"),
+)];
+
+/// A method still reading as an earlier release shipped it moves to the
+/// shipped wording; see [`METHODS_BEFORE`].
+fn rewritten_methods(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for prompt in &mut config.prompts {
+        let Some(stored) = prompt.method() else {
+            continue;
+        };
+        let untouched = METHODS_BEFORE
+            .iter()
+            .any(|(key, before)| *key == prompt.key && before.trim() == stored);
+        if !untouched {
+            continue;
+        }
+        let Some(method) = shipped
+            .prompts
+            .iter()
+            .find(|candidate| candidate.key == prompt.key)
+            .and_then(|candidate| candidate.method())
+        else {
+            continue;
+        };
+        if method != stored {
+            prompt.method = Some(method.to_owned());
+            changed = true;
+        }
+    }
+    changed
+}
 
 /// Shipped descriptions that changed, old to new, on the same terms as the
 /// names: a copy the owner never touched follows, a rewritten one stays.
@@ -3945,6 +3989,89 @@ mod tests {
         assert!(
             short.cover,
             "the cover arrived in a workspace that had the kind already"
+        );
+    }
+
+    /// A method still reading as an earlier release shipped it follows the
+    /// shipped wording; one the owner rewrote stays theirs. And the premiere's
+    /// tail and the excerpt arrive where the stored copy has neither.
+    #[test]
+    fn an_untouched_method_follows_and_a_rewritten_one_stays() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for prompt in &mut config.prompts {
+            if prompt.key == "release-meta" {
+                prompt.method = Some(METHODS_BEFORE[0].1.to_owned());
+            }
+        }
+        for kind in &mut config.work_kinds {
+            kind.excerpt = false;
+            for door in &mut kind.release_kinds {
+                for field in &mut door.fields {
+                    field.premiere = None;
+                }
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap()
+            .config;
+        let method = |config: &ProfileConfig| {
+            config
+                .prompts
+                .iter()
+                .find(|prompt| prompt.key == "release-meta")
+                .and_then(|prompt| prompt.method().map(str::to_owned))
+        };
+        assert_eq!(
+            method(&config),
+            method(&shipped),
+            "the untouched method follows"
+        );
+        assert_ne!(method(&config).as_deref(), Some(METHODS_BEFORE[0].1.trim()));
+        assert!(config.vocabulary("short").excerpt, "the excerpt arrived");
+        let title = config.vocabulary("audio").release_kinds[0]
+            .fields
+            .iter()
+            .find(|field| field.key == "title")
+            .unwrap();
+        assert!(title.premiere.is_some(), "the premiere's tail arrived");
+
+        let mut rewritten = config.clone();
+        for prompt in &mut rewritten.prompts {
+            if prompt.key == "release-meta" {
+                prompt.method = Some("My own way of writing a release".into());
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&rewritten).unwrap()],
+        )
+        .unwrap();
+        seed(&conn).unwrap();
+        assert_eq!(
+            method(&config_for(&conn, &id).unwrap()).as_deref(),
+            Some("My own way of writing a release"),
+            "a rewritten method stays the owner's"
         );
     }
 
