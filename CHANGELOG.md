@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.100.1] - 2026-10-23
+
+### Bug Fixes
+- Write release meta without one shape for every release
+
+### Documentation
+- Describe the premiere tail, the excerpt and ADR 0067
+
+### Features
+- Title the release that opens a song as its premiere
+
 ## [0.100.0] - 2026-10-21
 
 ### Bug Fixes
