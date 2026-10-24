@@ -99,6 +99,7 @@ A work kind may also say:
 | `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the title of what it is all made from - the song, even for a short cut from its clip - and `{n}` its number among the works of this kind made from it. Studio's are one string for every language: `"{title} (video)"`, `"{title} (audio)"`, `"{title} (short)"`. A template without `{n}` numbers only the second and later ones, inside a closing bracket when it ends with one: *Tide (short)*, *Tide (short 2)*. A title one of them already has is skipped. A map per language is still read, in the window's language. Absent means the source's title as it is. |
 | `open_on` | string, optional | The tab a work of this kind opens on when the address names none - from the catalogue, the calendar, a search hit: `versions`, `score`, `scenes`, `cover`, `frame`, `files`, `links`, `notes`, `comments`, `assistant`, `history` or `overview`. Studio's song could open on `versions`, its short on `scenes`. kilna writes it when you choose in **Settings › The work card**. A tab the kind's works do not have, or a word this build does not know, opens the Overview; absent is the Overview. Added in v0.90.1 - before, one tab for every card was kept on the machine. |
 | `folder` | string, optional | Where a work of this kind keeps its files on disk, under the media folder this machine names for the workspace (**Settings › Data**): `songs/{origin.title}`. See [A work's folder on disk](#a-works-folder-on-disk). Absent is no folder. Added in v0.93. |
+| `excerpt` | boolean, optional | A work of this kind is a piece of what it is made from - Studio's short - rather than the whole of it. An excerpt never opens a song: a teaser out before the track leaves the track the [premiere](#what-a-release-goes-out-as). Absent is a whole work. Added in v0.100.1. |
 
 The window's order of `work_kinds` is the order the **Make…** menu lists
 them in.
@@ -278,6 +279,7 @@ goes out under, the text beneath it, the words it is found by:
 | `limit` | How many characters the destination accepts. Counted beside the box, never enforced — kilna is not the authority on what a platform takes this month. |
 | `required` | `true`: a release cannot go out with this field empty - one of the door's [checklist](#what-a-place-needs-before-it-goes-out) items. `false` is kept as written, so a field you made optional stays optional when a shipped requirement is carried forward. Absent is optional. |
 | `suffix` | A tail the value always ends with, whoever writes the rest: Studio's audio YouTube title keeps `" (audio)"`. The release keeps it at every write - typed, generated, proposed, replayed - and takes it off when the release moves to a place that keeps none. An empty value stays empty; within `limit`, the tail is what stays. |
+| `premiere` | The tail instead of `suffix`, one string or a map per language, when the release opens its song - the first of what was made from it to go out, or booked for the earliest day. `{year}` reads the year it goes out. Studio's audio YouTube title: `" (Song premiere {year})"`, in Russian `" (Премьера песни {year})"`; the word is taken in the language of the title it ends - a title in Cyrillic letters takes the Russian one. Kept as `suffix` is, and settled again whenever the release or one of its siblings is booked, moved, made, marked out or taken back; a release that went out keeps the tail it went out under. Added in v0.100.1. |
 
 A kind with no `fields` says nothing about itself, and its releases show no
 boxes. That is the state of every profile written before the field existed; a
@@ -1365,8 +1367,9 @@ you, its answer **fills the fields still empty** at once; the ones you had
 already started wait beside what you wrote as a proposal, taken a field at a
 time or all together. Studio ships `release-meta` for the clip, the audio and
 the short: it reads the release, what the work was made from, the channel and
-the canon a public text may see, and what went out lately, so a new
-description does not sign off or ask the way the last ones did.
+the canon a public text may see, and the releases that went out or are
+booked lately, so a new one is not built the way the last ones were: the
+channel's template is a set of moves to choose from, not an order to fill.
 
 An action with `"scope": "cover"` and `"produces": "cover-ideas"` proposes
 ideas for a publication's cover. kilna appends the block to answer with - a
@@ -1500,8 +1503,9 @@ proposes.
   refusing, which is the difference from `{donor}`.
 - `{release}` and `{releases}` — only in an action with `"scope": "release"`:
   the release it is about (where it goes out, when, and every field with what
-  is written there), and what went out lately - the latest releases with their
-  fields, newest first.
+  is written there), and what went out or is booked lately - the eight
+  releases closest to now with their fields, by the day each goes out on,
+  newest first, each saying whether it went out or is booked.
 - `{ideas}` and `{choices}` — only in an action with `"scope": "cover"`: what
   the board asks for (how many ideas, the person's own to work out, more in
   the direction of the shortlist) with what already stands on it - the

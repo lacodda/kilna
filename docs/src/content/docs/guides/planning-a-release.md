@@ -448,6 +448,20 @@ off again when the release moves to a place that keeps no tail. An empty
 title stays empty. The tail is the field's `suffix` in
 [the profile document](/kilna/reference/profile-document/).
 
+A tail may also say that the release **opens its song**. The audio a song
+premieres with - the first of what was made from the song to go out, or the
+one booked for the earliest day - goes out as *Harbour lights (Song premiere
+2026)*; an audio that follows its clip keeps *" (audio)"*. The year is the
+year it goes out, and the words are those of the title's language: a title in
+Cyrillic letters takes *(Премьера песни 2026)*. kilna settles it again every
+time the release or one of its siblings is booked, moved, made, marked out or
+taken back - book the clip a day earlier and the audio's title loses the
+premiere; move the audio into January and the year changes. A short never
+takes the premiere, even out a day before as a teaser: it is an excerpt. What
+went out keeps the title it went out under. The premiere's tail is the
+field's `premiere`, and a short is a kind with `excerpt`, in the profile
+document.
+
 ### Without the singer's marks
 
 A description that quotes the lyric — the audio's `{donor:lyrics}` — reads it
@@ -477,10 +491,20 @@ Once something is written, the button asks before replacing it.
 
 A template fills a field from the work's own words. Writing a description a
 channel would post is a different job: it reads the song the release goes out
-for, the channel's voice and signature, and what went out last week, so this
-one does not sign off or ask the way the last one did. That is the **Release
-meta** button on a release - an [assistant action](/kilna/guides/the-assistant/)
-about one release (`"scope": "release"`).
+for, the channel's voice and signature, and the eight releases that went out
+or are booked closest to now, so this one is not built the way they were.
+That is the **Release meta** button on a release - an [assistant
+action](/kilna/guides/the-assistant/) about one release (`"scope": "release"`).
+
+Studio's method treats the channel's description template as a set of moves
+to choose from, not an order to fill in: a release takes two or three of
+them, and no two releases running are built of the same moves. It reads the
+recent ones as shapes - how each opened, how long it was, whether it said
+what the song is about, how it ended, how its pinned comment was made - and
+takes another; the habits that give a machine away (the same skeleton every
+time, *this song is about...*, a favourite line in every pinned comment, the
+emoji in the same place) are named so it avoids them. The title is the song's
+name alone; the tail is kilna's.
 
 It runs in the background. When the answer comes, **the fields nobody has
 written yet are filled** at once - you asked for them. The ones you had already
