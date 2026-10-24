@@ -46,6 +46,16 @@ limit?: number | null,
  */
 suffix?: string | null, 
 /**
+ * The tail instead of `suffix` when the release opens its song - the
+ * first of what was made from it to go out (v0.100.1): the audio track a
+ * song premieres with is "Song (Song premiere 2026)", the one that follows
+ * its clip keeps " (audio)". `{year}` reads the year it goes out. Kept by
+ * the release as `suffix` is, in the language of the title it ends: a
+ * title in Cyrillic letters takes the Russian word when there is one.
+ * Absent is the plain tail always. See ADR 0067.
+ */
+premiere?: Label | null, 
+/**
  * Whether a release cannot go out with this field empty (v0.97): a
  * video without a title, a newsletter without a subject. Kept on the
  * field rather than in a list on the kind, so a field taken out of the

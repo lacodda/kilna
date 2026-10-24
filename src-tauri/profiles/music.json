@@ -560,6 +560,10 @@
                 },
                 "limit": 205,
                 "suffix": " (audio)",
+                "premiere": {
+                  "en": " (Song premiere {year})",
+                  "ru": " (Премьера песни {year})"
+                },
                 "required": true
               },
               {
@@ -1135,7 +1139,8 @@
           }
         ],
         "cover": true,
-        "made_title": "{title} (short)"
+        "made_title": "{title} (short)",
+        "excerpt": true
       },
       {
         "key": "experiment",

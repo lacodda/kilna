@@ -78,6 +78,32 @@ pub fn video(conn: &Connection, profile_id: &str, title: &str) -> Work {
     work(conn, profile_id, "video", title)
 }
 
+/// An audio track titled `title`, made from a song whose clip already went
+/// out: it follows the clip, so its title keeps the plain tail of its door
+/// rather than a premiere's (ADR 0067).
+pub fn audio_after_its_clip(conn: &Connection, profile_id: &str, title: &str) -> Work {
+    let song = song(conn, profile_id, &format!("{title} - the song"));
+    let clip = video(conn, profile_id, &format!("{title} - the clip"));
+    let audio = work(conn, profile_id, "audio", title);
+    for made in [&clip, &audio] {
+        crate::link::create(
+            conn,
+            profile_id,
+            crate::link::NewLink {
+                work_id: made.id.clone(),
+                source_id: song.id.clone(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .expect("the link is made");
+    }
+    let out = release(conn, &clip.id, "youtube", Some("2026-01-07"));
+    release::mark_released(conn, &out.id, None, Some("2026-01-07".into()))
+        .expect("the clip went out");
+    audio
+}
+
 /// A version of a work in `role`, holding `body`.
 pub fn version(conn: &Connection, work_id: &str, role: &str, body: &str) -> Version {
     version::create(

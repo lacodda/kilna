@@ -298,7 +298,7 @@ const UPGRADE: &[Step] = &[
         carry: publication_vocabulary,
     },
     Step {
-        name: "what a release goes out under: a title reading the origin where it still read the work's own, a field's tail, a field of the work's own media",
+        name: "what a release goes out under: a title reading the origin where it still read the work's own, a field's tail and its premiere's, a kind that is an excerpt, a field of the work's own media",
         carry: going_out_words,
     },
     Step {
@@ -1298,10 +1298,11 @@ fn publication_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -
 /// says nothing or still says what shipped before (ADR 0051). A field's
 /// template still reading `{title}`, or nothing, where the shipped one now
 /// reads `{origin}`: since v0.90 a publication's own name is "Song (audio)",
-/// kilna's word for it, and the audience sees the song's. A field's tail,
-/// where the stored field keeps none. And a field of the work's own media -
-/// a length - where the stored one is still carried into what is made from
-/// it. Matched by key; a template the owner reworded stays theirs.
+/// kilna's word for it, and the audience sees the song's. A field's tail and
+/// its premiere's tail, and a kind's word that it is an excerpt (v0.100.1,
+/// ADR 0067), where the stored copy says none. And a field of the work's own
+/// media - a length - where the stored one is still carried into what is
+/// made from it. Matched by key; a template the owner reworded stays theirs.
 fn going_out_words(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     const TEMPLATE_BEFORE_V090: &str = "{title}";
     let mut changed = false;
@@ -1338,7 +1339,15 @@ fn going_out_words(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool 
                     field.suffix = shipped_field.suffix.clone();
                     changed = true;
                 }
+                if field.premiere.is_none() && shipped_field.premiere.is_some() {
+                    field.premiere = shipped_field.premiere.clone();
+                    changed = true;
+                }
             }
+        }
+        if !kind.excerpt && shipped_kind.excerpt {
+            kind.excerpt = true;
+            changed = true;
         }
     }
     for field in &mut config.work_meta_fields {

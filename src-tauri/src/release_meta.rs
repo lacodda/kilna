@@ -76,27 +76,82 @@ pub fn fields(conn: &Connection, release_id: &str) -> Result<Vec<Field>> {
         .collect())
 }
 
+/// Where a release stands, as far as the tails of its fields are concerned:
+/// whether it went out, and the day it goes out on.
+#[derive(Debug, Clone, Copy)]
+pub struct Standing<'a> {
+    pub released: bool,
+    /// The day it went out, or is booked for; None when it holds no day.
+    pub day: Option<&'a str>,
+    /// The moment of the write: its year is the year of a premiere that
+    /// holds no day yet.
+    pub at: &'a str,
+}
+
+impl<'a> Standing<'a> {
+    /// A release as it is stored, at the moment `at`.
+    pub fn of(release: &'a release::Release, at: &'a str) -> Self {
+        Self {
+            released: release.status == release::RELEASED,
+            day: release
+                .released_at
+                .as_deref()
+                .or(release.scheduled_at.as_deref()),
+            at,
+        }
+    }
+}
+
 /// `meta` as a release through `door` keeps it: every field of the door that
-/// keeps a tail ends with it (v0.90). And when the release moves to `door`
-/// from another place before it went out, the tails of the old door that the
-/// new one does not keep come off: a tail belongs to the place - a track's
-/// title on the streaming services is not "(audio)" there.
+/// keeps a tail ends with the right one (v0.90) - the premiere's, with its
+/// year, when the release opens its song, and the plain one otherwise
+/// (v0.100.1, ADR 0067). When the release moves to `door` from another place
+/// before it went out, the tails of the old door that the new one does not
+/// keep come off: a tail belongs to the place - a track's title on the
+/// streaming services is not "(audio)" there. A release that went out keeps
+/// the tail it went out under: that title is on the platform already.
 ///
-/// Called by the release itself on every write of its fields or its door
-/// (`release::create_minted`, `release::update_at`), so a title typed by
-/// hand, generated, proposed by an agent or replayed from the log ends the
-/// same way.
+/// Called by the release itself on every write of its fields, its door or
+/// its day (`release::create_minted`, `release::update_at`, and [`settle`]
+/// after the rest), so a title typed by hand, generated, proposed by an agent
+/// or replayed from the log ends the same way.
 pub fn keep_suffixes(
     conn: &Connection,
     work_id: &str,
     from: Option<&str>,
     door: &str,
+    standing: Standing<'_>,
     meta: &mut Map<String, Value>,
 ) -> Result<()> {
+    // A tail ends written words: with none, there is nothing to read the
+    // profile - a large document - for.
+    if !says_anything(meta) {
+        return Ok(());
+    }
     let Some(work) = work::get(conn, work_id)? else {
         return Ok(());
     };
     let config = crate::profile::config_for(conn, &work.profile_id)?;
+    keep_tails(conn, &config, &work, from, door, standing, meta)
+}
+
+/// Whether a release's meta holds any words a tail could end.
+fn says_anything(meta: &Map<String, Value>) -> bool {
+    meta.values()
+        .any(|value| value.as_str().is_some_and(|text| !text.trim().is_empty()))
+}
+
+/// [`keep_suffixes`] with the work and its profile already read: the profile
+/// is a large document, and [`settle`] walks a whole family with one.
+fn keep_tails(
+    conn: &Connection,
+    config: &crate::profile::config::ProfileConfig,
+    work: &work::Work,
+    from: Option<&str>,
+    door: &str,
+    standing: Standing<'_>,
+    meta: &mut Map<String, Value>,
+) -> Result<()> {
     let doors = &config.vocabulary(&work.kind).release_kinds;
     let fields_of = |key: &str| {
         doors
@@ -107,29 +162,197 @@ pub fn keep_suffixes(
     };
     let now = fields_of(door);
     if let Some(from) = from.filter(|from| *from != door) {
-        for field in fields_of(from) {
-            let Some(tail) = field.suffix() else {
-                continue;
-            };
-            let kept_here = now
-                .iter()
-                .any(|other| other.key == field.key && other.suffix() == Some(tail));
+        for field in fields_of(from).iter().filter(|field| field.keeps_a_tail()) {
+            let kept_here = now.iter().any(|other| {
+                other.key == field.key
+                    && other.suffix() == field.suffix()
+                    && other.premiere == field.premiere
+            });
             if kept_here {
                 continue;
             }
-            if let Some(Value::String(text)) = meta.get_mut(&field.key)
-                && let Some(bare) = text.strip_suffix(tail)
-            {
-                *text = bare.to_owned();
+            if let Some(Value::String(text)) = meta.get_mut(&field.key) {
+                *text = field.without_tail(text).to_owned();
             }
         }
     }
-    for field in now {
-        if field.suffix().is_none() {
+    let tailed: Vec<&ReleaseField> = now.iter().filter(|field| field.keeps_a_tail()).collect();
+    if tailed.is_empty() {
+        return Ok(());
+    }
+    let opens = if tailed.iter().any(|field| field.premiere.is_some()) {
+        opens_its_song(conn, config, work, standing)?
+    } else {
+        false
+    };
+    for field in tailed {
+        let Some(Value::String(text)) = meta.get_mut(&field.key) else {
+            continue;
+        };
+        let written = text.trim_end();
+        let bare = field.without_tail(written).to_owned();
+        if standing.released && bare.len() != written.len() {
             continue;
         }
-        if let Some(Value::String(text)) = meta.get_mut(&field.key) {
-            *text = field.with_suffix(text);
+        let tail = opens
+            .then(|| field.premiere_tail(year_of(standing), &bare))
+            .flatten()
+            .or_else(|| field.suffix().map(str::to_owned));
+        *text = match tail {
+            Some(tail) => field.with_tail(&bare, &tail),
+            None => bare,
+        };
+    }
+    Ok(())
+}
+
+/// The year a release goes out in: its day's, or the moment's when it holds
+/// none yet.
+fn year_of(standing: Standing<'_>) -> i32 {
+    standing
+        .day
+        .unwrap_or(standing.at)
+        .get(..4)
+        .and_then(|year| year.parse().ok())
+        .unwrap_or_default()
+}
+
+/// Whether the release of `work` opens its song: nothing else made from what
+/// it is all made from has gone out before it, or is booked for an earlier
+/// day. An excerpt never opens one and never stands in the way - a teaser cut
+/// from the track is not its premiere. What went out while this still waits
+/// came first, whatever day this one was booked for; otherwise what holds no
+/// day is not earlier than anything, and one day is a tie that both open. A
+/// work made from nothing opens itself. A work has one release (ADR 0051),
+/// so the work names it.
+fn opens_its_song(
+    conn: &Connection,
+    config: &crate::profile::config::ProfileConfig,
+    work: &work::Work,
+    standing: Standing<'_>,
+) -> Result<bool> {
+    if config.vocabulary(&work.kind).excerpt {
+        return Ok(false);
+    }
+    let Some(origin) = crate::publication::origin(conn, config, &work.id)? else {
+        return Ok(true);
+    };
+    for (id, _) in crate::link::descendants(conn, &origin.id)? {
+        if id == work.id {
+            continue;
+        }
+        let Some(other) = work::get(conn, &id)? else {
+            continue;
+        };
+        if config.vocabulary(&other.kind).excerpt {
+            continue;
+        }
+        let Some(theirs) = release::of_work(conn, &id)? else {
+            continue;
+        };
+        let them = Standing::of(&theirs, standing.at);
+        let out_while_this_waits = them.released && !standing.released;
+        let booked_earlier = match (them.day, standing.day) {
+            (Some(their_day), Some(own_day)) => day_of(their_day) < day_of(own_day),
+            _ => false,
+        };
+        if out_while_this_waits || booked_earlier {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// Settle the tails of every release of the song `work_id` belongs to - its
+/// own and its siblings', all made from the same origin - after a write that
+/// may have changed which of them opens it: a day booked or moved, a release
+/// made, marked out or taken back. `except` is the release the write itself
+/// already settled. What went out keeps its tails; what changes is written
+/// straight to the row, as the release's own derived word, and every writer
+/// that can change it calls this, so a replay or an undo of the write
+/// settles the same.
+pub fn settle(conn: &Connection, work_id: &str, except: Option<&str>, at: &str) -> Result<()> {
+    // First the releases that could change at all - not out yet, with words
+    // a tail could end - found through the links alone, everything made from
+    // the furthest work this one is made from. With none, there is nothing
+    // to read the profile, a large document, for.
+    let top = crate::link::ancestors(conn, work_id)?
+        .pop()
+        .unwrap_or_else(|| work_id.to_owned());
+    let mut related: Vec<String> = crate::link::descendants(conn, &top)?
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    related.push(top);
+    let mut waiting = Vec::new();
+    for id in &related {
+        if let Some(found) = release::of_work(conn, id)?
+            && Some(found.id.as_str()) != except
+            && found.status != release::RELEASED
+            && says_anything(&found.meta)
+        {
+            waiting.push(found);
+        }
+    }
+    if waiting.is_empty() {
+        return Ok(());
+    }
+    let Some(work) = work::get(conn, work_id)? else {
+        return Ok(());
+    };
+    let config = crate::profile::config_for(conn, &work.profile_id)?;
+    // Only a premiere's tail depends on where a release stands; a profile
+    // that names none has nothing here to settle.
+    let premieres = |kind: &str, door: &str| {
+        config
+            .vocabulary(kind)
+            .release_kinds
+            .iter()
+            .filter(|candidate| candidate.key == door)
+            .flat_map(|candidate| &candidate.fields)
+            .any(|field| field.premiere.is_some())
+    };
+    let anywhere = config.work_kinds.iter().any(|kind| {
+        kind.release_kinds
+            .iter()
+            .any(|door| premieres(&kind.key, &door.key))
+    });
+    if !anywhere {
+        return Ok(());
+    }
+    let origin = crate::publication::origin(conn, &config, &work.id)?;
+    let family: Vec<String> = match &origin {
+        Some(origin) => crate::link::descendants(conn, &origin.id)?
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect(),
+        None => vec![work.id.clone()],
+    };
+    for found in waiting {
+        if !family.contains(&found.work_id) {
+            continue;
+        }
+        let Some(made) = work::get(conn, &found.work_id)? else {
+            continue;
+        };
+        if !premieres(&made.kind, &found.kind) {
+            continue;
+        }
+        let mut meta = found.meta.clone();
+        keep_tails(
+            conn,
+            &config,
+            &made,
+            None,
+            &found.kind,
+            Standing::of(&found, at),
+            &mut meta,
+        )?;
+        if meta != found.meta {
+            conn.execute(
+                "UPDATE release SET meta = ?2, updated_at = ?3 WHERE id = ?1",
+                rusqlite::params![found.id, Value::Object(meta).to_string(), at],
+            )?;
         }
     }
     Ok(())
@@ -595,6 +818,130 @@ mod tests {
             generated.values["title"], "Tide",
             "the song's name, not \"Tide (audio)\""
         );
+    }
+
+    /// An audio track made from `song`, through its first door.
+    fn audio_of(conn: &Connection, song_id: &str) -> String {
+        made_of(conn, song_id, "audio")
+    }
+
+    fn made_of(conn: &Connection, source_id: &str, kind: &str) -> String {
+        crate::actions::work::derive(conn, source_id, kind, None, None, None)
+            .unwrap()
+            .release_id
+            .unwrap()
+    }
+
+    fn title_of(conn: &Connection, release_id: &str) -> String {
+        stored(
+            &release::get(conn, release_id).unwrap().unwrap().meta,
+            "title",
+        )
+    }
+
+    fn write_title(conn: &Connection, release_id: &str, title: &str) {
+        crate::actions::release::set_fields(
+            conn,
+            release_id,
+            &std::collections::BTreeMap::from([("title".to_owned(), title.to_owned())]),
+        )
+        .unwrap();
+    }
+
+    /// A song premieres with the first of its publications to go out: the
+    /// audio that opens it carries the premiere and its year, in the language
+    /// of its title, whatever tail the writer typed (ADR 0067).
+    #[test]
+    fn a_song_premieres_with_the_first_publication_to_go_out() {
+        let (conn, profile_id) = fixtures::workspace();
+        let tide = fixtures::song(&conn, &profile_id, "Tide");
+        let audio = audio_of(&conn, &tide.id);
+        release::schedule(&conn, &audio, "2026-11-04").unwrap();
+
+        write_title(&conn, &audio, "Tide");
+        assert_eq!(title_of(&conn, &audio), "Tide (Song premiere 2026)");
+
+        let tide_ru = fixtures::song(&conn, &profile_id, "Прилив");
+        let audio = audio_of(&conn, &tide_ru.id);
+        release::schedule(&conn, &audio, "2027-01-02").unwrap();
+        write_title(&conn, &audio, "Прилив (audio)");
+        assert_eq!(
+            title_of(&conn, &audio),
+            "Прилив (Премьера песни 2027)",
+            "the plain tail a writer typed is taken off, and the premiere speaks the title's language"
+        );
+    }
+
+    /// The audio that comes after its song's clip is not the premiere: it
+    /// keeps the plain tail of its door.
+    #[test]
+    fn an_audio_after_its_clip_keeps_the_plain_tail() {
+        let (conn, profile_id) = fixtures::workspace();
+        let tide = fixtures::song(&conn, &profile_id, "Tide");
+        let clip = made_of(&conn, &tide.id, "video");
+        release::schedule(&conn, &clip, "2026-11-01").unwrap();
+        release::mark_released(&conn, &clip, None, Some("2026-11-01".into())).unwrap();
+
+        let audio = audio_of(&conn, &tide.id);
+        release::schedule(&conn, &audio, "2026-11-08").unwrap();
+        write_title(&conn, &audio, "Tide (Song premiere 2026)");
+
+        assert_eq!(title_of(&conn, &audio), "Tide (audio)");
+    }
+
+    /// The tail follows the release through the calendar, and follows its
+    /// siblings: a year changed changes the year, a clip booked earlier takes
+    /// the premiere and gives it back when it leaves the day, and a release
+    /// that went out keeps the title it went out under.
+    #[test]
+    fn the_tail_follows_the_day_and_the_siblings() {
+        let (conn, profile_id) = fixtures::workspace();
+        let tide = fixtures::song(&conn, &profile_id, "Tide");
+        let audio = audio_of(&conn, &tide.id);
+        release::schedule(&conn, &audio, "2026-12-30").unwrap();
+        write_title(&conn, &audio, "Tide");
+        assert_eq!(title_of(&conn, &audio), "Tide (Song premiere 2026)");
+
+        release::schedule(&conn, &audio, "2027-01-06").unwrap();
+        assert_eq!(title_of(&conn, &audio), "Tide (Song premiere 2027)");
+
+        let clip = made_of(&conn, &tide.id, "video");
+        release::schedule(&conn, &clip, "2027-01-02").unwrap();
+        assert_eq!(
+            title_of(&conn, &audio),
+            "Tide (audio)",
+            "the clip booked earlier opens the song now"
+        );
+
+        release::unschedule(&conn, &clip).unwrap();
+        assert_eq!(title_of(&conn, &audio), "Tide (Song premiere 2027)");
+
+        release::mark_released(&conn, &audio, None, Some("2027-01-06".into())).unwrap();
+        release::schedule(&conn, &clip, "2027-01-01").unwrap();
+        assert_eq!(
+            title_of(&conn, &audio),
+            "Tide (Song premiere 2027)",
+            "what went out keeps the title it went out under"
+        );
+        write_title(&conn, &audio, "Tide (Song premiere 2027)");
+        assert_eq!(title_of(&conn, &audio), "Tide (Song premiere 2027)");
+    }
+
+    /// A teaser cut from the track, out before it, is an excerpt: it neither
+    /// opens the song nor takes the premiere from the track.
+    #[test]
+    fn a_teaser_does_not_take_the_premiere() {
+        let (conn, profile_id) = fixtures::workspace();
+        let tide = fixtures::song(&conn, &profile_id, "Tide");
+        let teaser = made_of(&conn, &tide.id, "short");
+        release::schedule(&conn, &teaser, "2026-11-01").unwrap();
+        release::mark_released(&conn, &teaser, None, Some("2026-11-01".into())).unwrap();
+
+        let audio = audio_of(&conn, &tide.id);
+        release::schedule(&conn, &audio, "2026-11-04").unwrap();
+        write_title(&conn, &audio, "Tide");
+
+        assert_eq!(title_of(&conn, &audio), "Tide (Song premiere 2026)");
     }
 
     /// A video with a YouTube release planned for it, and the plot its

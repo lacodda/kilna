@@ -259,6 +259,7 @@ fn apply_in(tx: &Connection, placements: &[Placement], at: &str) -> Result<usize
             "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1",
             params![placement.release_id, placement.date, timestamp],
         )?;
+        release::settle_song(tx, &placement.release_id, &timestamp)?;
     }
 
     Ok(placements.len())
@@ -276,6 +277,7 @@ pub fn take_back_at(conn: &Connection, placements: &[Placement], at: &str) -> Re
               WHERE id = ?1 AND status = ?3",
             params![placement.release_id, at, release::PLANNED],
         )?;
+        release::settle_song(conn, &placement.release_id, at)?;
     }
     Ok(())
 }
@@ -410,6 +412,7 @@ fn apply_shift_in(tx: &Connection, moves: &[Move], at: &str) -> Result<usize> {
             "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1",
             params![step.release_id, step.to, at],
         )?;
+        release::settle_song(tx, &step.release_id, at)?;
     }
     Ok(moves.len())
 }
@@ -425,6 +428,7 @@ pub fn shift_back_at(conn: &Connection, moves: &[Move], at: &str) -> Result<()> 
             "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1 AND status = ?4",
             params![step.release_id, step.from, at, release::PLANNED],
         )?;
+        release::settle_song(conn, &step.release_id, at)?;
     }
     Ok(())
 }

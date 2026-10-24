@@ -127,4 +127,11 @@ lab?: Lab | null,
  * the work. Added in v0.99 - a document without it is the same
  * document.
  */
-conception?: Conception | null, };
+conception?: Conception | null, 
+/**
+ * Whether a work of this kind is a piece of what it is made from - a
+ * short cut from a clip - rather than the whole of it. An excerpt never
+ * opens a song: a teaser out a day before the track leaves the track the
+ * premiere (v0.100.1, ADR 0067). Absent is a whole work.
+ */
+excerpt?: boolean, };

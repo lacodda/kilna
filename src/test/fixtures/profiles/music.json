@@ -3386,6 +3386,10 @@
                   "ru": "Заголовок"
                 },
                 "limit": 205,
+                "premiere": {
+                  "en": " (Song premiere {year})",
+                  "ru": " (Премьера песни {year})"
+                },
                 "required": true,
                 "suffix": " (audio)",
                 "template": "{origin}",
@@ -3739,6 +3743,7 @@
           }
         ],
         "cover": true,
+        "excerpt": true,
         "folder": "songs/{origin.title}",
         "key": "short",
         "label": {

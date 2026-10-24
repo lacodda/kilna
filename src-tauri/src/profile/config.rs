@@ -401,6 +401,12 @@ pub struct WorkKind {
     /// document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conception: Option<Conception>,
+    /// Whether a work of this kind is a piece of what it is made from - a
+    /// short cut from a clip - rather than the whole of it. An excerpt never
+    /// opens a song: a teaser out a day before the track leaves the track the
+    /// premiere (v0.100.1, ADR 0067). Absent is a whole work.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub excerpt: bool,
 }
 
 /// What a kind's Conception tab holds (v0.99, ADR 0065).
@@ -611,6 +617,7 @@ impl WorkKind {
             folder: None,
             lab: None,
             conception: None,
+            excerpt: false,
         }
     }
 
@@ -959,6 +966,17 @@ impl WorkKind {
                     problems.push(format!(
                         "{at} keeps the tail `{tail}`, which leaves no room within its limit of {limit}"
                     ));
+                }
+                if let Some(premiere) = &field.premiere {
+                    for word in premiere.words() {
+                        if let Some(limit) = field.limit
+                            && word.chars().count() >= limit as usize
+                        {
+                            problems.push(format!(
+                                "{at} keeps the premiere tail `{word}`, which leaves no room within its limit of {limit}"
+                            ));
+                        }
+                    }
                 }
                 let Some(template) = field.template() else {
                     continue;
@@ -2009,6 +2027,15 @@ pub struct ReleaseField {
     /// by hand cannot lose it. Absent is no tail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
+    /// The tail instead of `suffix` when the release opens its song - the
+    /// first of what was made from it to go out (v0.100.1): the audio track a
+    /// song premieres with is "Song (Song premiere 2026)", the one that follows
+    /// its clip keeps " (audio)". `{year}` reads the year it goes out. Kept by
+    /// the release as `suffix` is, in the language of the title it ends: a
+    /// title in Cyrillic letters takes the Russian word when there is one.
+    /// Absent is the plain tail always. See ADR 0067.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub premiere: Option<Label>,
     /// Whether a release cannot go out with this field empty (v0.97): a
     /// video without a title, a newsletter without a subject. Kept on the
     /// field rather than in a list on the kind, so a field taken out of the
@@ -2043,6 +2070,7 @@ impl ReleaseField {
             hint: None,
             limit: None,
             suffix: None,
+            premiere: None,
             required: None,
         }
     }
@@ -2059,11 +2087,7 @@ impl ReleaseField {
         let Some(text) = value.and_then(serde_json::Value::as_str) else {
             return false;
         };
-        let text = text.trim();
-        let body = match self.suffix() {
-            Some(tail) => text.strip_suffix(tail.trim()).unwrap_or(text),
-            None => text,
-        };
+        let body = self.without_tail(text.trim());
         // A list of words is filled when one of them is a word.
         match self.field_type {
             ReleaseFieldType::Tags => body.split(',').any(|word| !word.trim().is_empty()),
@@ -2084,9 +2108,55 @@ impl ReleaseField {
     /// wrote is not " (audio)". Within the limit, the tail is what stays: the
     /// words before it are cut to make room.
     pub fn with_suffix(&self, value: &str) -> String {
-        let Some(tail) = self.suffix() else {
-            return value.to_owned();
+        match self.suffix() {
+            Some(tail) => self.with_tail(value, tail),
+            None => value.to_owned(),
+        }
+    }
+
+    /// Whether the field keeps any tail at all: the plain one or a
+    /// premiere's.
+    pub fn keeps_a_tail(&self) -> bool {
+        self.suffix().is_some() || self.premiere.as_ref().is_some_and(|tail| !tail.is_blank())
+    }
+
+    /// The tail a premiere in `year` ends `title` with, in the title's own
+    /// language. None when the field names no premiere tail.
+    pub fn premiere_tail(&self, year: i32, title: &str) -> Option<String> {
+        let tail = self.premiere.as_ref().filter(|tail| !tail.is_blank())?;
+        let locale = if title.chars().any(is_cyrillic) {
+            "ru"
+        } else {
+            SOURCE_LOCALE
         };
+        Some(tail.in_locale(locale).replace("{year}", &year.to_string()))
+    }
+
+    /// `text` without the tail it ends with, when it ends with one this field
+    /// keeps: the plain tail, or a premiere's in any of its languages and
+    /// any year - what a release moving to another year, another door or
+    /// out of its premiere has to take off before it takes the right one.
+    pub fn without_tail<'t>(&self, text: &'t str) -> &'t str {
+        if let Some(tail) = self.suffix()
+            && let Some(body) = text.strip_suffix(tail.trim_start())
+        {
+            return body.trim_end();
+        }
+        if let Some(premiere) = &self.premiere {
+            for word in premiere.words() {
+                if let Some(body) = strip_dated(text, word) {
+                    return body.trim_end();
+                }
+            }
+        }
+        text
+    }
+
+    /// `value` ending with `tail`, on the terms of [`with_suffix`]: never on
+    /// an empty value, and within the limit the tail is what stays.
+    ///
+    /// [`with_suffix`]: Self::with_suffix
+    pub fn with_tail(&self, value: &str, tail: &str) -> String {
         let body = value.trim_end();
         if body.trim().is_empty() {
             return value.to_owned();
@@ -2122,6 +2192,25 @@ impl ReleaseField {
             .map(str::trim)
             .filter(|t| !t.is_empty())
     }
+}
+
+/// `text` without a tail written as `word` with any year in its `{year}`:
+/// " (Song premiere {year})" comes off "Tide (Song premiere 2026)" as it
+/// would off "Tide (Song premiere 2027)".
+fn strip_dated<'t>(text: &'t str, word: &str) -> Option<&'t str> {
+    let Some((before, after)) = word.split_once("{year}") else {
+        return text.strip_suffix(word.trim_start());
+    };
+    let rest = text.strip_suffix(after)?;
+    let digits = rest.len() - rest.trim_end_matches(|c: char| c.is_ascii_digit()).len();
+    if digits == 0 {
+        return None;
+    }
+    rest[..rest.len() - digits].strip_suffix(before.trim_start())
+}
+
+fn is_cyrillic(c: char) -> bool {
+    matches!(c, '\u{0400}'..='\u{04FF}' | '\u{0500}'..='\u{052F}')
 }
 
 impl ReleaseKind {
@@ -5173,6 +5262,7 @@ mod tests {
             hint: None,
             limit: Some(0),
             suffix: None,
+            premiere: None,
             required: None,
         }]);
 
@@ -5190,6 +5280,41 @@ mod tests {
                 .any(|problem| problem.contains("limited to no characters at all")),
             "{problems:?}"
         );
+    }
+
+    /// A premiere's tail comes off in any language it names and any year, so
+    /// a release moving into another year or out of its premiere loses the
+    /// old tail before it takes the new one; the plain tail comes off too,
+    /// and a title of nothing but a tail is not written.
+    #[test]
+    fn a_premiere_tail_is_known_in_every_year_and_every_language() {
+        let mut field = ReleaseField::new("title", "Title", ReleaseFieldType::Line);
+        field.suffix = Some(" (audio)".into());
+        field.premiere = Some(Label::PerLocale(BTreeMap::from([
+            ("en".to_owned(), " (Song premiere {year})".to_owned()),
+            ("ru".to_owned(), " (Премьера песни {year})".to_owned()),
+        ])));
+
+        assert_eq!(
+            field.premiere_tail(2026, "Tide").as_deref(),
+            Some(" (Song premiere 2026)")
+        );
+        assert_eq!(
+            field.premiere_tail(2027, "Прилив").as_deref(),
+            Some(" (Премьера песни 2027)"),
+            "the tail speaks the language of the title it ends"
+        );
+        assert_eq!(field.without_tail("Tide (Song premiere 2026)"), "Tide");
+        assert_eq!(field.without_tail("Прилив (Премьера песни 2031)"), "Прилив");
+        assert_eq!(field.without_tail("Tide (audio)"), "Tide");
+        assert_eq!(
+            field.without_tail("Tide (Song premiere)"),
+            "Tide (Song premiere)",
+            "no year is not the tail"
+        );
+        assert_eq!(field.without_tail("Tide 2026)"), "Tide 2026)");
+        assert!(!field.is_filled(Some(&serde_json::json!(" (Премьера песни 2026)"))));
+        assert!(field.is_filled(Some(&serde_json::json!("Tide (Song premiere 2026)"))));
     }
 
     #[test]

@@ -1015,7 +1015,7 @@ mod tests {
     #[test]
     fn a_mark_can_name_the_door_it_went_out_through_and_one_undo_takes_both_back() {
         let (conn, profile_id) = fixtures::workspace();
-        let audio = fixtures::work(&conn, &profile_id, "audio", "Tide (audio)");
+        let audio = fixtures::audio_after_its_clip(&conn, &profile_id, "Tide (audio)");
         let planned = fixtures::release(&conn, &audio.id, "youtube", Some("2026-10-01"));
         let titled = set_fields(
             &conn,
@@ -1060,5 +1060,43 @@ mod tests {
         assert_eq!(back.status, release::PLANNED);
         assert_eq!(back.kind, "youtube");
         assert_eq!(back.meta["title"], "Tide (audio)");
+    }
+
+    /// The premiere's year follows the day the release is moved to, and an
+    /// undo of the move puts the year back with the day: the tail is settled
+    /// by the same write the undo goes through (ADR 0067).
+    #[test]
+    fn an_undo_of_a_move_puts_the_premieres_year_back() {
+        let (conn, profile_id) = fixtures::workspace();
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Tide (audio)");
+        let planned = fixtures::release(&conn, &audio.id, "youtube", Some("2026-12-30"));
+        set_fields(
+            &conn,
+            &planned.id,
+            &BTreeMap::from([("title".to_owned(), "Tide".to_owned())]),
+        )
+        .unwrap();
+        let title = || {
+            release::get(&conn, &planned.id).unwrap().unwrap().meta["title"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        };
+        assert_eq!(title(), "Tide (Song premiere 2026)");
+
+        update(
+            &conn,
+            &planned.id,
+            ReleasePatch {
+                scheduled_at: Some(Some("2027-01-06".into())),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(title(), "Tide (Song premiere 2027)");
+
+        let offer = crate::undo::last(&conn).unwrap().unwrap();
+        crate::undo::undo(&conn, &offer.operation_id).unwrap();
+        assert_eq!(title(), "Tide (Song premiere 2026)");
     }
 }

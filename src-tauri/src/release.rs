@@ -214,7 +214,18 @@ pub fn create_minted(conn: &Connection, new: NewRelease, minted: Minted) -> Resu
     check_when(new.scheduled_time.as_deref(), new.time_zone.as_deref())?;
     let timestamp = minted.at().to_owned();
     let mut meta = new.meta.unwrap_or_default();
-    crate::release_meta::keep_suffixes(conn, &new.work_id, None, &new.kind, &mut meta)?;
+    crate::release_meta::keep_suffixes(
+        conn,
+        &new.work_id,
+        None,
+        &new.kind,
+        crate::release_meta::Standing {
+            released: false,
+            day: new.scheduled_at.as_deref(),
+            at: &timestamp,
+        },
+        &mut meta,
+    )?;
 
     conn.execute(
         "INSERT INTO release (id, work_id, kind, status, scheduled_at, meta, created_at, updated_at,
@@ -232,8 +243,20 @@ pub fn create_minted(conn: &Connection, new: NewRelease, minted: Minted) -> Resu
             new.time_zone,
         ],
     )?;
+    // A new publication may come before one of its siblings (ADR 0067).
+    crate::release_meta::settle(conn, &new.work_id, Some(&id), &timestamp)?;
 
     get(conn, &id)?.ok_or_else(|| Error::Internal("the release vanished after insert".into()))
+}
+
+/// Settle the tails of the song `id` goes out for, after a write that moved
+/// `id` in time or in or out of the world: which of its publications opens
+/// the song may have changed (ADR 0067).
+pub(crate) fn settle_song(conn: &Connection, id: &str, at: &str) -> Result<()> {
+    let Some(found) = get(conn, id)? else {
+        return Ok(());
+    };
+    crate::release_meta::settle(conn, &found.work_id, None, at)
 }
 
 /// The release a work goes out as, when it has one: a work has at most one
@@ -286,6 +309,7 @@ pub fn schedule_at(conn: &Connection, id: &str, slot: &str, at: &str) -> Result<
         "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1",
         params![id, slot, at],
     )?;
+    settle_song(conn, id, at)?;
 
     Ok(Scheduling {
         release: get(conn, id)?.ok_or_else(|| unknown_release(id))?,
@@ -511,6 +535,7 @@ pub fn unschedule_at(conn: &Connection, id: &str, at: &str) -> Result<Release> {
     {
         return Err(unknown_release(id));
     }
+    settle_song(conn, id, at)?;
 
     get(conn, id)?.ok_or_else(|| unknown_release(id))
 }
@@ -563,6 +588,7 @@ pub fn mark_released_at(
     {
         return Err(unknown_release(id));
     }
+    settle_song(conn, id, at)?;
 
     get(conn, id)?.ok_or_else(|| unknown_release(id))
 }
@@ -595,6 +621,7 @@ pub fn unmark_released_at(conn: &Connection, id: &str, at: &str) -> Result<Relea
     {
         return Err(unknown_release(id));
     }
+    settle_song(conn, id, at)?;
 
     get(conn, id)?.ok_or_else(|| unknown_release(id))
 }
@@ -633,22 +660,38 @@ pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Releas
 /// replaying, the log supplies the moment the first run recorded. See ADR 0014.
 pub fn update_at(conn: &Connection, id: &str, patch: ReleasePatch, at: &str) -> Result<Release> {
     let mut patch = patch;
-    // The fields keep the tails their door keeps, whoever wrote them and
-    // whichever door the release moves to (v0.90): normalised here, where
-    // every writer passes, rather than by each screen.
-    if patch.meta.is_some() || patch.kind.is_some() {
+    // The fields keep the tails their door keeps, whoever wrote them,
+    // whichever door the release moves to (v0.90) and whichever day it goes
+    // out on (ADR 0067): normalised here, where every writer passes, rather
+    // than by each screen.
+    let moves_in_time = patch.scheduled_at.is_some() || patch.status.is_some();
+    let mut song_of = None;
+    if patch.meta.is_some() || patch.kind.is_some() || moves_in_time {
         let found = get(conn, id)?.ok_or_else(|| unknown_release(id))?;
         let door = patch.kind.clone().unwrap_or_else(|| found.kind.clone());
         let mut meta = patch.meta.clone().unwrap_or_else(|| found.meta.clone());
+        let scheduled = patch
+            .scheduled_at
+            .clone()
+            .unwrap_or_else(|| found.scheduled_at.clone());
+        let status = patch.status.as_deref().unwrap_or(&found.status);
         crate::release_meta::keep_suffixes(
             conn,
             &found.work_id,
             Some(&found.kind),
             &door,
+            crate::release_meta::Standing {
+                released: status == RELEASED,
+                day: found.released_at.as_deref().or(scheduled.as_deref()),
+                at,
+            },
             &mut meta,
         )?;
         if patch.meta.is_some() || meta != found.meta {
             patch.meta = Some(meta);
+        }
+        if moves_in_time {
+            song_of = Some(found.work_id);
         }
     }
     let mut assignments: Vec<String> = Vec::new();
@@ -737,6 +780,9 @@ pub fn update_at(conn: &Connection, id: &str, patch: ReleasePatch, at: &str) -> 
 
     if conn.execute(&sql, params)? == 0 {
         return Err(unknown_release(id));
+    }
+    if let Some(work_id) = song_of {
+        crate::release_meta::settle(conn, &work_id, Some(id), at)?;
     }
 
     get(conn, id)?.ok_or_else(|| unknown_release(id))
@@ -1964,7 +2010,7 @@ mod tests {
     #[test]
     fn a_field_keeps_the_tail_its_door_keeps() {
         let (conn, profile_id) = fixtures::workspace();
-        let audio = fixtures::work(&conn, &profile_id, "audio", "Tide (audio)");
+        let audio = fixtures::audio_after_its_clip(&conn, &profile_id, "Tide (audio)");
         let release = create(
             &conn,
             NewRelease {
