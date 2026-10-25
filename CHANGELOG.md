@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.100.2] - 2026-10-25
+
+### Bug Fixes
+- Hand the generator plain quotation marks
+
+### Documentation
+- Describe drawn pools, titles for later and ADR 0068
+
+### Features
+- Draw a pool into a prompt and settle a section at once
+- Keep titles for later and write meta from drawn moves
+
 ## [0.100.1] - 2026-10-23
 
 ### Bug Fixes
