@@ -1108,7 +1108,7 @@ mod tests {
             "BACKGROUND: perfectly flat solid ink black",
             "DETAIL: a small black cat hides somewhere.",
             "CHANNEL MARK: a cat head with a tear in its eye, hidden somewhere in the picture, small.",
-            "TITLE: the words «Northern Light», spelled exactly, set huge across the full width behind the hero's head",
+            "TITLE: the words \"Northern Light\", spelled exactly, set huge across the full width behind the hero's head",
             "dry-brush hand lettering with rough bristle texture, fast strokes and ink splatter, in off-white.",
             "A large flat circle in hot pink (#FF2E63)",
         ] {

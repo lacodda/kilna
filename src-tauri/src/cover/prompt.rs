@@ -189,15 +189,32 @@ pub fn build(cover: &Cover, target: Target, shape: Shape, parts: &Ingredients) -
     }
 
     Prompts {
-        picture: picture
-            .into_iter()
-            .map(|paragraph| paragraph.trim().to_owned())
-            .filter(|paragraph| !paragraph.is_empty())
-            .collect::<Vec<_>>()
-            .join("\n\n"),
-        negative: negative(cover, target, parts),
-        typography,
+        picture: plain_quotes(
+            &picture
+                .into_iter()
+                .map(|paragraph| paragraph.trim().to_owned())
+                .filter(|paragraph| !paragraph.is_empty())
+                .collect::<Vec<_>>()
+                .join("\n\n"),
+        ),
+        negative: plain_quotes(&negative(cover, target, parts)),
+        typography: typography.map(|edit| plain_quotes(&edit)),
     }
+}
+
+/// A built prompt as a generator is handed it: every quotation mark a plain
+/// one (v0.100.2). A generator draws what it reads, and the guillemets or
+/// curly quotes around a title - or around a sign a scene names - come out
+/// on the picture as part of the words, whoever wrote the part they stand
+/// in: the title, a brick, the channel's captions, the cover's own words.
+fn plain_quotes(text: &str) -> String {
+    text.chars()
+        .map(|c| match c {
+            '«' | '»' | '“' | '”' | '„' | '‟' => '"',
+            '‹' | '›' | '‘' | '’' | '‚' | '‛' => '\'',
+            other => other,
+        })
+        .collect()
 }
 
 /// The values a slot is filled from: the channel's captions, the cover's own
@@ -252,7 +269,7 @@ fn lettering_paragraph(
             .map(|framing| format!(", {}", framing.place.setting(framing.column)))
             .unwrap_or_default();
         words.push(format!(
-            "TITLE: the words «{title}», spelled exactly{script}{setting}."
+            "TITLE: the words \"{title}\", spelled exactly{script}{setting}."
         ));
     }
     if let Some(typography) = parts.typography.as_deref() {
@@ -414,7 +431,7 @@ mod tests {
             "PLACEMENT: place the hero in the right third of the frame, vertically centred.",
             "COMPOSITION:",
             "SCENE: a lighthouse keeper polishes the lamp.",
-            "TITLE: the words «Northern Light», spelled exactly, set as a tall left-aligned block",
+            "TITLE: the words \"Northern Light\", spelled exactly, set as a tall left-aligned block",
             "No other text.",
         ];
         let mut from = 0;
@@ -434,6 +451,64 @@ mod tests {
         );
     }
 
+    /// A generator draws the marks it is handed: guillemets around a title
+    /// come out on the cover beside the letters. Every part of a built prompt
+    /// reaches it in plain quotes, whoever wrote the part; a cover written
+    /// by hand stays the words it was written in.
+    #[test]
+    fn a_built_prompt_quotes_in_plain_marks_whoever_wrote_the_part() {
+        let cover = Cover {
+            scene: "a sign over the door reads «Открыто»".into(),
+            negative: "no „curly“ marks".into(),
+            ..built()
+        };
+        let quoted = Ingredients {
+            title: "Хроники королей".into(),
+            typography: Some("letters like the “gothic” ones on a tomb".into()),
+            bans: vec!["no «text» on the walls".into()],
+            ..parts()
+        };
+        let prompts = build(&cover, Target::Cover, wide(), &quoted);
+        for text in [&prompts.picture, &prompts.negative] {
+            assert!(
+                !text.contains(['«', '»', '“', '”', '„']),
+                "a typographic quote reached the generator: {text}"
+            );
+        }
+        assert!(
+            prompts
+                .picture
+                .contains("TITLE: the words \"Хроники королей\"")
+        );
+        assert!(prompts.picture.contains("reads \"Открыто\""));
+        assert!(prompts.picture.contains("the \"gothic\" ones"));
+        assert!(prompts.negative.contains("no \"text\" on the walls"));
+        assert!(prompts.negative.contains("no \"curly\" marks"));
+
+        let apart = Cover {
+            lettering: Lettering {
+                apart: true,
+                ..Lettering::default()
+            },
+            typography: "in «stencil»".into(),
+            ..cover
+        };
+        let edit = build(&apart, Target::Cover, wide(), &quoted)
+            .typography
+            .expect("a second prompt");
+        assert!(edit.contains("\"Хроники королей\"") && edit.ends_with("in \"stencil\""));
+
+        let by_hand = Cover {
+            picture: "a sign reads «Открыто»".into(),
+            ..Cover::default()
+        };
+        assert_eq!(
+            build(&by_hand, Target::Cover, wide(), &quoted).picture,
+            "a sign reads «Открыто»",
+            "a cover written by hand is its words exactly"
+        );
+    }
+
     #[test]
     fn a_cyrillic_title_is_said_to_be_one() {
         let cyrillic = Ingredients {
@@ -444,7 +519,7 @@ mod tests {
         assert!(
             prompts
                 .picture
-                .contains("«Северный свет», spelled exactly, in Cyrillic letters")
+                .contains("\"Северный свет\", spelled exactly, in Cyrillic letters")
         );
     }
 
@@ -467,7 +542,7 @@ mod tests {
         );
         let edit = prompts.typography.expect("a second prompt");
         assert!(edit.starts_with("EDIT THE IMAGE: keep the picture exactly as it is."));
-        assert!(edit.contains("«Northern Light»"));
+        assert!(edit.contains("\"Northern Light\""));
         assert!(
             edit.ends_with("tight letter spacing"),
             "own words close it: {edit}"
