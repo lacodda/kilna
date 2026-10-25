@@ -302,6 +302,10 @@ const UPGRADE: &[Step] = &[
         carry: going_out_words,
     },
     Step {
+        name: "a door's fields shipped since it was stored, and a field's limit still as it shipped wrong",
+        carry: arriving_fields,
+    },
+    Step {
         name: "an action's method still reading as an earlier release shipped it",
         carry: rewritten_methods,
     },
@@ -1165,11 +1169,16 @@ const SECTIONS_BEFORE: [(&str, &str, &[config::Lens], Option<(&str, &str)>); 2] 
 /// section - a card kind the canon gave its sections - and never in one whose
 /// sections the owner wrote: appending shipped sections there would put two
 /// of one thing on a card under two names.
-const SECTIONS_ARRIVED: [(&str, &str, &str); 3] = [
+const SECTIONS_ARRIVED: [(&str, &str, &str); 6] = [
     ("channel", "picture_bans", "bans"),
     ("character", "picture_bans", "bans"),
     // v0.94: the channel's own phrases of sound, after its house styles.
     ("channel", "sound", "styles"),
+    // v0.100.2: the pools a release's text is drawn from, after the
+    // template that says what the text holds - each after the one before.
+    ("channel", "moves", "template"),
+    ("channel", "assemblies", "moves"),
+    ("channel", "pinned_forms", "assemblies"),
 ];
 
 /// A card kind's sections the stored copy already has, brought forward
@@ -1367,6 +1376,77 @@ fn going_out_words(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool 
     changed
 }
 
+/// Fields shipped after a door was stored, by kind of work and door, with the
+/// field each arrives after. One arrives only in a door that has that field,
+/// each after the one before it, and never twice: a field of its key already
+/// in the door is the owner's, whatever it says.
+///
+/// v0.100.2: an audio track's two titles for later, kept beside the title it
+/// premieres under - "Song (Song premiere 2026)" is the right title for a
+/// month and a stale one by spring.
+const FIELDS_ARRIVED: [(&str, &str, &str, &str); 2] = [
+    ("audio", "youtube", "alt_title_1", "title"),
+    ("audio", "youtube", "alt_title_2", "alt_title_1"),
+];
+
+/// Limits a field shipped with that were wrong, by the field's key and the
+/// limit it shipped with: a stored limit still reading exactly so follows
+/// the shipped one, a limit the owner typed stays theirs. A YouTube title
+/// takes 100 characters, and the titles of a clip and an audio track counted
+/// to 205 until v0.100.2 - a count that said a title fits when YouTube
+/// would cut it.
+const LIMITS_BEFORE: [(&str, u32); 1] = [("title", 205)];
+
+/// A door's fields newly shipped ([`FIELDS_ARRIVED`]), and a limit still as
+/// it shipped wrong ([`LIMITS_BEFORE`]).
+fn arriving_fields(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        for door in &mut kind.release_kinds {
+            let Some(shipped_door) = shipped_kind
+                .release_kinds
+                .iter()
+                .find(|candidate| candidate.key == door.key)
+            else {
+                continue;
+            };
+            for (of, at, key, after) in FIELDS_ARRIVED {
+                if of != kind.key
+                    || at != door.key
+                    || door.fields.iter().any(|field| field.key == key)
+                {
+                    continue;
+                }
+                let (Some(position), Some(arriving)) = (
+                    door.fields.iter().position(|field| field.key == after),
+                    shipped_door.fields.iter().find(|field| field.key == key),
+                ) else {
+                    continue;
+                };
+                door.fields.insert(position + 1, arriving.clone());
+                changed = true;
+            }
+            for field in &mut door.fields {
+                let Some(shipped_field) = shipped_door
+                    .fields
+                    .iter()
+                    .find(|candidate| candidate.key == field.key)
+                else {
+                    continue;
+                };
+                let as_shipped = LIMITS_BEFORE
+                    .iter()
+                    .any(|(key, before)| *key == field.key && field.limit == Some(*before));
+                if as_shipped && field.limit != shipped_field.limit {
+                    field.limit = shipped_field.limit;
+                    changed = true;
+                }
+            }
+        }
+    }
+    changed
+}
+
 /// Shipped profile names that changed, old to new. A stored copy still
 /// carrying the old one is renamed at the next start; see `carry_forward`.
 const RENAMED: [(&str, &str); 1] = [("Music", "Studio")];
@@ -1433,10 +1513,16 @@ const TEMPLATES_BEFORE_THE_RESEARCH: [(&str, &str); 4] = [
 /// never touched by the owner, and follows the shipped wording; one they
 /// rewrote stays theirs. Without it a method once stored never changes again:
 /// [`prompt_details`] only fills a method that is missing.
-const METHODS_BEFORE: [(&str, &str); 1] = [(
-    "release-meta",
-    include_str!("methods_before/release-meta-0.86.md"),
-)];
+const METHODS_BEFORE: [(&str, &str); 2] = [
+    (
+        "release-meta",
+        include_str!("methods_before/release-meta-0.86.md"),
+    ),
+    (
+        "release-meta",
+        include_str!("methods_before/release-meta-0.100.1.md"),
+    ),
+];
 
 /// A method still reading as an earlier release shipped it moves to the
 /// shipped wording; see [`METHODS_BEFORE`].
@@ -4073,6 +4159,131 @@ mod tests {
             Some("My own way of writing a release"),
             "a rewritten method stays the owner's"
         );
+    }
+
+    /// A workspace stored at v0.100.1: the audio track's titles for later
+    /// arrive after its title, the title's limit as it shipped wrong follows,
+    /// a limit the owner typed stays; the channel's pools arrive after its
+    /// template, drawn as they shipped; and the method as v0.100.1 shipped it
+    /// follows the new one.
+    #[test]
+    fn a_workspace_of_v0_100_1_takes_its_titles_for_later_and_its_pools() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        let before = METHODS_BEFORE
+            .iter()
+            .rfind(|(key, _)| *key == "release-meta")
+            .unwrap()
+            .1;
+        for prompt in &mut config.prompts {
+            if prompt.key == "release-meta" {
+                prompt.method = Some(before.to_owned());
+            }
+        }
+        for kind in &mut config.work_kinds {
+            for door in &mut kind.release_kinds {
+                door.fields
+                    .retain(|field| !field.key.starts_with("alt_title"));
+                for field in &mut door.fields {
+                    if field.key == "title" && field.limit.is_some() {
+                        field.limit = Some(if kind.key == "video" && door.key == "youtube" {
+                            150
+                        } else {
+                            205
+                        });
+                    }
+                }
+            }
+        }
+        for kind in &mut config.note_kinds {
+            kind.sections.retain(|section| {
+                !["moves", "assemblies", "pinned_forms"].contains(&section.key.as_str())
+            });
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap()
+            .config;
+        let door = |config: &ProfileConfig, kind: &str, key: &str| {
+            config
+                .vocabulary(kind)
+                .release_kinds
+                .iter()
+                .find(|door| door.key == key)
+                .unwrap()
+                .clone()
+        };
+        let audio = door(&config, "audio", "youtube");
+        let keys: Vec<&str> = audio
+            .fields
+            .iter()
+            .map(|field| field.key.as_str())
+            .collect();
+        assert_eq!(
+            keys[..3],
+            ["title", "alt_title_1", "alt_title_2"],
+            "the titles for later arrived after the title"
+        );
+        assert_eq!(audio.fields[1].suffix.as_deref(), Some(" (audio)"));
+        assert!(
+            audio.fields[1].premiere.is_none(),
+            "a later title never premieres"
+        );
+        assert_eq!(
+            audio.fields[0].limit,
+            Some(100),
+            "the limit as it shipped followed"
+        );
+        assert_eq!(
+            door(&config, "video", "premiere").fields[0].limit,
+            Some(100)
+        );
+        assert_eq!(
+            door(&config, "video", "youtube").fields[0].limit,
+            Some(150),
+            "a limit the owner typed stays"
+        );
+
+        let channel = config.card_kind("channel").unwrap();
+        let keys: Vec<&str> = channel.sections.iter().map(|s| s.key.as_str()).collect();
+        let at = keys.iter().position(|key| *key == "template").unwrap();
+        assert_eq!(
+            keys[at + 1..at + 4],
+            ["moves", "assemblies", "pinned_forms"]
+        );
+        assert_eq!(channel.section("moves").unwrap().draw, Some(8));
+
+        let method = config
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == "release-meta")
+            .and_then(|prompt| prompt.method());
+        let shipped_method = shipped
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == "release-meta")
+            .and_then(|prompt| prompt.method());
+        assert_eq!(method, shipped_method, "the method of v0.100.1 followed");
+        assert_ne!(method, Some(before.trim()));
     }
 
     /// A workspace whose actions predate methods: the shipped method

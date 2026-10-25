@@ -4688,14 +4688,40 @@ mod tests {
         );
         // The audio release and the clip both go out on YouTube, each with a
         // comment pinned under it, and each in the shape of a video's preview.
+        // The audio keeps two titles for later beside the one it premieres
+        // under (v0.100.2); a clip's title is the song's name for good.
         let audio = door_of("audio", "youtube");
         let clip = door_of("video", "youtube");
+        assert_eq!(
+            keys_of(&audio),
+            vec![
+                "title",
+                "alt_title_1",
+                "alt_title_2",
+                "description",
+                "tags",
+                "pinned"
+            ]
+        );
+        assert_eq!(
+            keys_of(&clip),
+            vec!["title", "description", "tags", "pinned"]
+        );
         for door in [&audio, &clip] {
-            assert_eq!(
-                keys_of(door),
-                vec!["title", "description", "tags", "pinned"]
-            );
             assert_eq!(door.cover_format.as_deref(), Some("16:9"));
+            assert_eq!(
+                door.fields[0].limit,
+                Some(100),
+                "a YouTube title is counted to the platform's own limit"
+            );
+        }
+        for later in &audio.fields[1..3] {
+            assert_eq!(later.suffix.as_deref(), Some(" (audio)"));
+            assert!(
+                later.premiere.is_none(),
+                "a title for later never premieres"
+            );
+            assert!(!later.is_required(), "a release goes out without one");
         }
         assert_eq!(
             door_of("short", "short").cover_format.as_deref(),
@@ -4710,7 +4736,7 @@ mod tests {
             "a clip's title is filled from the work rather than typed every time"
         );
         assert_eq!(
-            audio.fields[1].template(),
+            audio.fields[3].template(),
             Some("{donor:lyrics}"),
             "an audio release is described by the song's words, as the song's own door was"
         );
