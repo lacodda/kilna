@@ -130,6 +130,7 @@ pub fn reversible(kind: &str) -> bool {
             | "fact.create"
             | "fact.update"
             | "fact.reorder"
+            | "fact.settle"
             | "canonLink.create"
             | "canonLink.update"
             | "canonLink.delete"
@@ -364,6 +365,14 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let before: Vec<String> = from_params(params, "before")?;
             apply(conn, |tx| {
                 crate::canon::fact::reorder(tx, &note_id, &section, &before, &at)
+            })?;
+        }
+        // A section settled at once goes back to the drafts it settled - only
+        // those: a fact that was canon before stays canon.
+        "fact.settle" => {
+            let ids: Vec<String> = from_params(params, "ids")?;
+            apply(conn, |tx| {
+                crate::canon::fact::settle(tx, &ids, crate::canon::FactStatus::Draft, &at)
             })?;
         }
         // A relation has no drawer in the trash, like a link between works:

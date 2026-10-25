@@ -415,6 +415,24 @@ pub fn for_card(conn: &Connection, note_id: &str) -> Result<Vec<Fact>> {
 }
 
 /// The facts of one section of a card, in order.
+/// Give each of `ids` the status `status` at `at`: a section settled at once,
+/// or taken back to drafts by its undo. Each fact as its own edit would be,
+/// so its clock moves as one edit's does.
+pub fn settle(conn: &Connection, ids: &[String], status: FactStatus, at: &str) -> Result<()> {
+    for id in ids {
+        update_at(
+            conn,
+            id,
+            FactPatch {
+                status: Some(status),
+                ..FactPatch::default()
+            },
+            at,
+        )?;
+    }
+    Ok(())
+}
+
 pub fn in_section(conn: &Connection, note_id: &str, section: &str) -> Result<Vec<Fact>> {
     let mut statement = conn.prepare(&format!(
         "{SELECT} WHERE note_id = ?1 AND section = ?2 ORDER BY position, rowid"

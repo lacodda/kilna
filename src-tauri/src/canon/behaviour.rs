@@ -855,3 +855,128 @@ fn two_works_trashed_one_after_the_other_come_back_linked() {
         "the link was spent with the first entry"
     );
 }
+
+/// A pool of moves reaches a prompt a handful at a time, a different handful
+/// each time, while the card shows every one of them; a section holding
+/// fewer than its handful is read whole, as any other.
+#[test]
+fn a_drawn_section_hands_a_prompt_a_handful_and_the_card_keeps_them_all() {
+    let (conn, profile_id) = fixtures::workspace();
+    let channel = fixtures::card(&conn, &profile_id, "channel", "The channel");
+    for at in 1..=20 {
+        fixtures::fact(&conn, &channel.id, "moves", &format!("Move number {at}."));
+    }
+    fixtures::fact(
+        &conn,
+        &channel.id,
+        "assemblies",
+        "One scene, the whole text.",
+    );
+
+    let moves_in = |text: &str| {
+        text.lines()
+            .filter(|line| line.starts_with("- Move number "))
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
+    };
+    let first = view::render(&conn, &channel.id, Lens::Public).unwrap();
+    assert!(
+        first.contains("### Moves (8 of 20, drawn at random for this text)"),
+        "{first}"
+    );
+    let drawn = moves_in(&first);
+    assert_eq!(drawn.len(), 8, "{first}");
+    let mut unique = drawn.clone();
+    unique.sort();
+    unique.dedup();
+    assert_eq!(unique.len(), 8, "a move was drawn twice: {first}");
+    assert!(
+        first.contains("### Assemblies\n- One scene, the whole text."),
+        "a section with fewer entries than its handful is read whole: {first}"
+    );
+
+    let other = (0..5)
+        .map(|_| moves_in(&view::render(&conn, &channel.id, Lens::Public).unwrap()))
+        .any(|again| again != drawn);
+    assert!(other, "five prompts running were handed the same handful");
+
+    let card = view::card(&conn, &channel.id).unwrap();
+    assert_eq!(
+        card.facts
+            .iter()
+            .filter(|f| f.fact.section == "moves")
+            .count(),
+        20,
+        "the card shows the whole pool"
+    );
+}
+
+/// A section's drafts settle in one gesture, and one undo takes back only
+/// what it settled: a fact canon before stays canon, a live zone stays open.
+#[test]
+fn a_section_settles_at_once_and_one_undo_takes_back_what_it_settled() {
+    let (conn, profile_id) = fixtures::workspace();
+    let channel = fixtures::card(&conn, &profile_id, "channel", "The channel");
+    let settled = fixtures::fact(&conn, &channel.id, "moves", "Already canon.");
+    let mut drafts = Vec::new();
+    for body in ["A first draft.", "A second draft.", "A third draft."] {
+        drafts.push(
+            crate::actions::canon::add_fact(
+                &conn,
+                NewFact {
+                    note_id: channel.id.clone(),
+                    section: "moves".into(),
+                    body: body.into(),
+                    status: Some(FactStatus::Draft),
+                    ..NewFact::default()
+                },
+            )
+            .unwrap(),
+        );
+    }
+    let open = crate::actions::canon::add_fact(
+        &conn,
+        NewFact {
+            note_id: channel.id.clone(),
+            section: "moves".into(),
+            body: "Left open.".into(),
+            status: Some(FactStatus::Open),
+            ..NewFact::default()
+        },
+    )
+    .unwrap();
+    let status_of = |id: &str| fact::get(&conn, id).unwrap().unwrap().status;
+
+    assert_eq!(
+        crate::actions::canon::settle_section(&conn, &channel.id, "moves").unwrap(),
+        3
+    );
+    for draft in &drafts {
+        assert_eq!(status_of(&draft.id), FactStatus::Canon);
+    }
+    assert_eq!(
+        status_of(&open.id),
+        FactStatus::Open,
+        "a live zone is not a draft"
+    );
+    assert_eq!(
+        crate::actions::canon::settle_section(&conn, &channel.id, "moves").unwrap(),
+        0,
+        "nothing left to settle"
+    );
+
+    let offer = crate::undo::last(&conn).unwrap().unwrap();
+    crate::undo::undo(&conn, &offer.operation_id).unwrap();
+    for draft in &drafts {
+        assert_eq!(
+            status_of(&draft.id),
+            FactStatus::Draft,
+            "the undo took it back"
+        );
+    }
+    assert_eq!(
+        status_of(&settled.id),
+        FactStatus::Canon,
+        "canon before stays canon"
+    );
+}

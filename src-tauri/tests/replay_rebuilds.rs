@@ -613,6 +613,24 @@ fn a_canon_rebuilds_card_by_card_and_fact_by_fact() {
     .unwrap();
     actions::canon::unrelate(&source, &lives.id).unwrap();
     actions::canon::describe(&source, &wren.id, Some("a young woman".into()), None).unwrap();
+    for body in ["Hums when she reads.", "Keeps the tickets."] {
+        actions::canon::add_fact(
+            &source,
+            NewFact {
+                note_id: wren.id.clone(),
+                section: "tastes".into(),
+                body: body.into(),
+                status: Some(kilna_lib::canon::FactStatus::Draft),
+                ..NewFact::default()
+            },
+        )
+        .unwrap();
+    }
+    assert_eq!(
+        actions::canon::settle_section(&source, &wren.id, "tastes").unwrap(),
+        2,
+        "the two drafts settled, the fact already canon left as it was"
+    );
 
     let mut rebuilt = workspace();
     let report = replay::rebuild(&source, &mut rebuilt).unwrap();
@@ -623,7 +641,7 @@ fn a_canon_rebuilds_card_by_card_and_fact_by_fact() {
     want.remove("tombstone");
     got.remove("tombstone");
     assert_eq!(got, want, "the rebuilt canon is not the same canon");
-    assert_eq!(got["canon_fact"].as_array().unwrap().len(), 4);
+    assert_eq!(got["canon_fact"].as_array().unwrap().len(), 6);
     assert_eq!(got["canon_link"].as_array().unwrap().len(), 1);
 }
 

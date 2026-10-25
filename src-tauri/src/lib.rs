@@ -193,6 +193,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::canon::update_fact,
             commands::canon::retire_fact,
             commands::canon::reorder_facts,
+            commands::canon::settle_section,
             commands::canon::delete_fact,
             commands::canon::relate_cards,
             commands::canon::update_relation,

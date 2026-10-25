@@ -155,6 +155,35 @@ pub fn reorder_facts(
     })
 }
 
+/// Make every draft of one section of a card canon, in one gesture
+/// (v0.100.2), and say how many.
+///
+/// What an assistant proposes lands as drafts, so that nothing it wrote
+/// reaches a cover or a public text unread - and a pool of a hundred moves
+/// proposed at once is a hundred presses of "Make it canon". The person
+/// reads the section and settles it whole; one undo takes each of them back
+/// to a draft.
+pub fn settle_section(conn: &Connection, note_id: &str, section: &str) -> Result<usize> {
+    gesture(conn, "fact.settle", |act| {
+        let ids: Vec<String> = canon::fact::in_section(act, note_id, section)?
+            .into_iter()
+            .filter(|fact| fact.status == FactStatus::Draft)
+            .map(|fact| fact.id)
+            .collect();
+        if ids.is_empty() {
+            act.unchanged();
+            return Ok(0);
+        }
+        act.param("noteId", note_id);
+        act.param("section", section);
+        act.param("title", card_title(act, note_id));
+        act.json("ids", &ids)?;
+        act.stamped();
+        canon::fact::settle(act, &ids, FactStatus::Canon, act.at())?;
+        Ok(ids.len())
+    })
+}
+
 /// Draw a relation between two cards.
 pub fn relate(conn: &Connection, new: NewCanonLink) -> Result<CanonLink> {
     gesture(conn, "canonLink.create", |act| {

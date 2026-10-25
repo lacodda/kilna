@@ -723,6 +723,12 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::canon::fact::reorder(conn, &note_id, &section, &order, &at)?;
         }
 
+        "fact.settle" => {
+            let ids: Vec<String> = from_params(params, "ids")?;
+            let at = required(params, "at")?;
+            crate::canon::fact::settle(conn, &ids, crate::canon::FactStatus::Canon, &at)?;
+        }
+
         "canonLink.create" => {
             let new = from_params(params, "link")?;
             crate::canon::link::create_minted(conn, new, minted(params)?)?;

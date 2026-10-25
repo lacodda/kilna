@@ -44,6 +44,9 @@ export const retireFact = (id: string, reason: string) =>
   invoke<Fact>('retire_fact', { id, reason })
 export const reorderFacts = (noteId: string, section: string, ids: string[]) =>
   invoke<void>('reorder_facts', { noteId, section, ids })
+/** Every draft of a card's section made canon at once; how many it settled. */
+export const settleSection = (noteId: string, section: string) =>
+  invoke<number>('settle_section', { noteId, section })
 /** Returns the trash entry, which is what the undo on the toast restores. */
 export const deleteFact = (id: string) => invoke<string>('delete_fact', { id })
 export const relateCards = (link: NewCanonLink) => invoke<CanonLink>('relate_cards', { link })

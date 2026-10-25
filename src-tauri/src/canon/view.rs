@@ -464,9 +464,42 @@ pub fn render(conn: &Connection, note_id: &str, lens: Lens) -> Result<String> {
         if lines.is_empty() {
             continue;
         }
-        out.push_str(&format!("### {}\n{}\n", section.label, lines.join("\n")));
+        let mut heading = section.label.to_string();
+        if let Some(draw) = section.draw.map(usize::from)
+            && draw < lines.len()
+        {
+            heading = format!(
+                "{heading} ({draw} of {}, drawn at random for this text)",
+                lines.len()
+            );
+            lines = drawn(lines, draw, uuid::Uuid::new_v4().as_u128() as u64);
+        }
+        out.push_str(&format!("### {heading}\n{}\n", lines.join("\n")));
     }
     Ok(out.trim_end().to_owned())
+}
+
+/// `count` of `items`, picked by `seed`, in the order they were picked: the
+/// first of a list is the one a model reaches for, so the order is drawn
+/// too. A partial Fisher-Yates over splitmix64 - a pool of a hundred lines
+/// needs an even pick, not a cryptographic one.
+fn drawn<T>(mut items: Vec<T>, count: usize, seed: u64) -> Vec<T> {
+    let mut state = seed;
+    let mut next = move || {
+        state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    };
+    let count = count.min(items.len());
+    for at in 0..count {
+        let left = (items.len() - at) as u64;
+        let pick = at + (next() % left) as usize;
+        items.swap(at, pick);
+    }
+    items.truncate(count);
+    items
 }
 
 /// One fact as a line of a prompt.

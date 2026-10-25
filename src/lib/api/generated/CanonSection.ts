@@ -27,4 +27,13 @@ lenses?: Array<Lens>,
  * a person took part in apart from the people around them. Empty
  * gathers every relation no other section of the card claims.
  */
-kinds?: Array<string>, };
+kinds?: Array<string>, 
+/**
+ * How many of the section's entries a prompt is handed, drawn at random
+ * each time one is written (v0.100.2): a pool a text is built from - a
+ * hundred moves of a description - reaches every text as a different
+ * handful. A model handed the whole pool reaches for the same few every
+ * time, which is the sameness the pool is there to break. Absent hands
+ * over every entry; the card itself always shows them all.
+ */
+draw?: number | null, };

@@ -87,6 +87,16 @@ pub fn reorder_facts(
     actions::canon::reorder_facts(&state.conn(), &note_id, &section, &ids)
 }
 
+/// Make every draft of a card's section canon. Returns how many it settled.
+#[tauri::command]
+pub fn settle_section(
+    state: State<'_, AppState>,
+    note_id: String,
+    section: String,
+) -> Result<usize> {
+    actions::canon::settle_section(&state.conn(), &note_id, &section)
+}
+
 /// Move a fact to the trash, with its pictures. Returns the trash entry.
 #[tauri::command]
 pub fn delete_fact(state: State<'_, AppState>, id: String) -> Result<String> {

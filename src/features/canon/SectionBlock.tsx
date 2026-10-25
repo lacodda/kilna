@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { unrelateCards } from '@/lib/api/canon'
+import { settleSection, unrelateCards } from '@/lib/api/canon'
 import type { CanonSection, CardView, ReadFact, Relation } from '@/lib/api/types'
 import { factsIn, seenThrough, type LensChoice } from '@/lib/canon'
 import { announceEdited } from '@/lib/edited'
@@ -50,6 +50,23 @@ export function SectionBlock({ view, section, lens, onOpen, facts, panel = false
   })
   const shape = section.shape ?? 'facts'
   const hint = section.hint !== undefined && section.hint !== null ? sayLabel(section.hint) : null
+  // What an assistant proposed lands as drafts; a pool of them proposed at
+  // once is settled at once, after it is read, rather than one row at a time.
+  const settle = useAppMutation({
+    mutationFn: () => settleSection(view.card.id, section.key),
+    failure: 'canon.settleFailed',
+    onSuccess: (count: number) =>
+      announceEdited({
+        client,
+        message: t('canon.sectionSettled', { count }),
+        refresh: refresh.canon,
+      }),
+  })
+  const drafts =
+    shape === 'relations' || shape === 'appearances' || section.key === ''
+      ? 0
+      : (facts ?? factsIn(view.facts, section.key)).filter((read) => read.fact.status === 'draft')
+          .length
 
   const head = (
     <header className="mb-1 flex flex-wrap items-center gap-2">
@@ -65,6 +82,23 @@ export function SectionBlock({ view, section, lens, onOpen, facts, panel = false
         >
           {hint}
         </span>
+      )}
+      {/* A pool a prompt reads a handful of: the card shows every entry,
+          and says so, or a hundred moves read as a hundred things every
+          text is handed. */}
+      {section.draw != null && (
+        <span className="text-2xs text-faint">{t('canon.drawn', { count: section.draw })}</span>
+      )}
+      {drafts > 1 && (
+        <Button
+          size="xs"
+          variant="ghost"
+          className="ml-auto"
+          onClick={() => settle.mutate()}
+          disabled={settle.isPending}
+        >
+          {t('canon.settleSection', { count: drafts })}
+        </Button>
       )}
     </header>
   )

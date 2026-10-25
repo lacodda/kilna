@@ -1508,6 +1508,15 @@ impl NoteKind {
                     "{at} names kinds of card, which only a section of relations gathers by"
                 ));
             }
+            match section.draw {
+                Some(0) => problems.push(format!(
+                    "{at} draws none of its entries, and a prompt would never read it"
+                )),
+                Some(_) if !section.shape.holds_words() => problems.push(format!(
+                    "{at} draws from entries it does not hold: only a section of statements is drawn from"
+                )),
+                _ => {}
+            }
             if section.shape == SectionShape::Relations {
                 if section.kinds.is_empty() {
                     gathers_the_rest += 1;
@@ -1551,6 +1560,14 @@ pub struct CanonSection {
     /// gathers every relation no other section of the card claims.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub kinds: Vec<String>,
+    /// How many of the section's entries a prompt is handed, drawn at random
+    /// each time one is written (v0.100.2): a pool a text is built from - a
+    /// hundred moves of a description - reaches every text as a different
+    /// handful. A model handed the whole pool reaches for the same few every
+    /// time, which is the sameness the pool is there to break. Absent hands
+    /// over every entry; the card itself always shows them all.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub draw: Option<u16>,
 }
 
 impl CanonSection {
@@ -1562,6 +1579,7 @@ impl CanonSection {
             shape: SectionShape::Facts,
             lenses: Vec::new(),
             kinds: Vec::new(),
+            draw: None,
         }
     }
 
