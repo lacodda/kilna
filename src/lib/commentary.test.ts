@@ -21,6 +21,7 @@ function version(
     parent_version_id: null,
     created_at: '2026-09-01T00:00:00Z',
     is_current: false,
+    is_main: false,
     about_version_id: null,
     ...fields,
   }

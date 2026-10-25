@@ -465,7 +465,7 @@ pub fn request_sheet(conn: &Connection, work: &Work, request: &TrialRequest) -> 
     // The experiment's own texts - its brief, what was found so far - each
     // newest, under the craft's name for it: what the trials are for.
     for role in &config.vocabulary(&work.kind).version_roles {
-        if let Some(body) = crate::work::version::latest(conn, &work.id, &role.key)?
+        if let Some(body) = crate::work::version::for_role(conn, &work.id, &role.key)?
             .map(|version| version.body)
             .filter(|body| !body.trim().is_empty())
         {

@@ -639,6 +639,7 @@ function summary(studio: Studio, row: Version): VersionSummary {
     parent_version_id: row.parent_version_id,
     created_at: row.created_at,
     is_current: owner?.current_version_id === row.id,
+    is_main: false,
     about_version_id: null,
   }
 }

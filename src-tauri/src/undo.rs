@@ -102,6 +102,7 @@ pub fn reversible(kind: &str) -> bool {
             | "profile.update"
             | "version.create"
             | "version.edit"
+            | "version.setMain"
             | "collection.create"
             | "collection.update"
             | "collection.setContents"
@@ -654,6 +655,19 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let before = required(params, "before")?;
             apply(conn, |tx| {
                 crate::work::version::update_body_at(tx, &id, &before, &at).map(|_| ())
+            })?;
+        }
+        // The role's main version goes back to the one marked before - or to
+        // none, and the role reads its newest again.
+        "version.setMain" => {
+            let work_id = required(params, "workId")?;
+            let id = required(params, "id")?;
+            let before: Option<String> = from_params(params, "before")?;
+            apply(conn, |tx| {
+                let Some(role) = crate::work::version::get(tx, &id)?.map(|found| found.role) else {
+                    return Ok(());
+                };
+                crate::work::version::put_main_at(tx, &work_id, &role, before.as_deref(), &at)
             })?;
         }
 

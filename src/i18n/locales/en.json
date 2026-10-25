@@ -75,6 +75,8 @@
     "length": "{{count}} character",
     "length_other": "{{count}} characters",
     "makeCurrent": "Make this the current version",
+    "main": "main",
+    "makeMain": "Make this the main version",
     "delete": "Delete this version",
     "none": "No versions in this role yet.",
     "draftPlaceholder": "Paste or write a new draft — it is kept whole, not as a diff",
@@ -90,6 +92,7 @@
     "collapse": "Back to the card",
     "stageHint": "Esc steps back.",
     "setCurrent": "Make current",
+    "setMain": "Make main",
     "commentaryBeside": "What was written about this revision, beside it",
     "openSubject": "Open the revision this was written about",
     "noCommentary": "Nothing written about the text in this role yet.",
@@ -1752,6 +1755,7 @@
     "style.describe": "a style described from its references",
     "version.create": "adding a version",
     "version.edit": "an edit to a version",
+    "version.setMain": "choosing the main version",
     "collection.create": "adding a collection",
     "collection.update": "an edit to a collection",
     "release.create": "adding a release",
@@ -2343,7 +2347,8 @@
       "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}.",
       "parentNotSameRole": "Version “{{parent}}” is not a “{{role}}” version of this work, so nothing can be written from it.",
       "notOfWork": "Version “{{version}}” does not belong to work “{{work}}”.",
-      "notADraft": "A version of {{role}} is not a draft of the work, and cannot be its current text."
+      "notADraft": "A version of {{role}} is not a draft of the work, and cannot be its current text.",
+      "draftIsMadeCurrent": "A version of {{role}} is a draft of the work: it is made current, not main."
     },
     "release": {
       "unknownKind": "A {{kind}} does not go out as “{{releaseKind}}”. It goes out as: {{known}}.",

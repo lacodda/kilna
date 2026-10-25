@@ -1218,8 +1218,8 @@ pub fn run_tool(
             for v in versions {
                 by_role.entry(v.role.clone()).or_default().push(json!({
                     "id": v.id, "revision": v.revision, "label": v.label, "length": v.length,
-                    "is_current": v.is_current, "created_at": v.created_at,
-                    "parent": v.parent_version_id,
+                    "is_current": v.is_current, "is_main": v.is_main,
+                    "created_at": v.created_at, "parent": v.parent_version_id,
                 }));
             }
             let latest = score::latest(conn, &found.id)?;
@@ -1321,21 +1321,14 @@ pub fn run_tool(
                             .param("role", role.clone())
                             .param("kind", found.kind.clone()));
                     }
-                    // The current version when it is of this role; otherwise
-                    // the newest of the role — the same answer the panel gives.
-                    let current = found
-                        .current_version_id
-                        .as_deref()
-                        .and_then(|id| version::get(conn, id).ok().flatten())
-                        .filter(|v| v.role == role);
-                    match current {
-                        Some(v) => v,
-                        None => version::latest(conn, &found.id, &role)?.ok_or_else(|| {
-                            Error::refused("mcp.noVersionYet")
-                                .param("title", found.title.clone())
-                                .param("role", role.clone())
-                        })?,
-                    }
+                    // The version that stands for the role: the current one
+                    // when it is of this role, the one marked main, otherwise
+                    // the newest - the same answer the panel gives.
+                    version::for_role(conn, &found.id, &role)?.ok_or_else(|| {
+                        Error::refused("mcp.noVersionYet")
+                            .param("title", found.title.clone())
+                            .param("role", role.clone())
+                    })?
                 }
             };
             let reads = config

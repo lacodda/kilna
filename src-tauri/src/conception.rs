@@ -18,10 +18,11 @@ use crate::profile::config::{Conception, ProfileConfig};
 use crate::work::Work;
 use crate::work::version::{self, Version};
 
-/// The brief as it stands: its newest revision. A brief is never a work's
-/// current version, so the newest is the one being written.
+/// The brief as it stands: the one marked main, or its newest revision. A
+/// brief is never a work's current version, so with none marked the newest
+/// is the one being written.
 pub fn brief(conn: &Connection, work: &Work, conception: &Conception) -> Result<Option<Version>> {
-    Ok(version::latest(conn, &work.id, &conception.brief)?
+    Ok(version::for_role(conn, &work.id, &conception.brief)?
         .filter(|brief| !brief.body.trim().is_empty()))
 }
 
@@ -229,7 +230,7 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
     let roles = &config.vocabulary(&work.kind).version_roles;
     for key in &conception.with {
         let Some(text) =
-            version::latest(conn, &work.id, key)?.filter(|v| !v.body.trim().is_empty())
+            version::for_role(conn, &work.id, key)?.filter(|v| !v.body.trim().is_empty())
         else {
             continue;
         };

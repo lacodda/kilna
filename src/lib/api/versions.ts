@@ -14,4 +14,8 @@ export const createVersion = (workId: string, version: NewVersion) =>
   invoke<Version>('create_version', { workId, version })
 export const setCurrentVersion = (workId: string, versionId: string) =>
   invoke<void>('set_current_version', { workId, versionId })
+/** Mark the version of a role that is no draft - a style prompt - the one
+    that stands for its role. */
+export const setMainVersion = (workId: string, versionId: string) =>
+  invoke<VersionSummary>('set_main_version', { workId, versionId })
 export const deleteVersion = (id: string) => invoke<string>('delete_version', { id })

@@ -620,7 +620,9 @@ pub fn for_work(
 
     let mut rendered = render(template, &values);
 
-    // Every role the work has, latest revision, as {role:lyrics} and friends.
+    // Every role the work has, as {role:lyrics} and friends: the version that
+    // stands for the role - the current draft, the main style prompt - and
+    // the newest where nothing is chosen (v0.100.3).
     let roles = version::list(conn, work_id)?;
     let mut seen: Vec<String> = Vec::new();
     for summary in roles {
@@ -636,8 +638,8 @@ pub fn for_work(
             rendered = rendered.replace(&format!("{{role:{role}}}"), &named.body);
             continue;
         }
-        if let Some(latest) = version::latest(conn, work_id, role)? {
-            rendered = rendered.replace(&format!("{{role:{role}}}"), &latest.body);
+        if let Some(standing) = version::for_role(conn, work_id, role)? {
+            rendered = rendered.replace(&format!("{{role:{role}}}"), &standing.body);
         }
     }
     // A role of the kind the work has no version in yet is refused, not
@@ -673,7 +675,7 @@ pub fn for_work(
             &format!("“{}” ({})", donor.source_title, donor.source_kind),
         );
         for name in wanted.iter().filter_map(|w| w.strip_prefix("donor:")) {
-            let body = version::latest(conn, &donor.source_id, name)?
+            let body = version::for_role(conn, &donor.source_id, name)?
                 .map(|v| v.body)
                 .unwrap_or_default();
             rendered = rendered.replace(&format!("{{donor:{name}}}"), &body);
@@ -984,8 +986,9 @@ pub fn fields_sheet(config: &ProfileConfig, work: &work::Work) -> String {
 
 /// What a work was made from, for `{source}`: the donor's title and kind, its
 /// fields, and the text of every role that is the work itself - the lyrics,
-/// not the critique of them nor the style prompt. The donor's current
-/// version stands for its role; the other roles read their latest revision.
+/// not the critique of them nor the style prompt. Each role reads the version
+/// that stands for it: the donor's current version, the one marked main, the
+/// newest where nothing is chosen.
 pub fn source_sheet(conn: &Connection, config: &ProfileConfig, work_id: &str) -> Result<String> {
     let Some(donor) = link::sources(conn, work_id)?
         .into_iter()
@@ -1005,19 +1008,12 @@ pub fn source_sheet(conn: &Connection, config: &ProfileConfig, work_id: &str) ->
         source.title,
         fields_sheet(config, &source)
     );
-    let current = match &source.current_version_id {
-        Some(id) => version::get(conn, id)?,
-        None => None,
-    };
     for role in kind
         .version_roles
         .iter()
         .filter(|role| role.counts_as_a_version())
     {
-        let body = match &current {
-            Some(current) if current.role == role.key => Some(current.body.clone()),
-            _ => version::latest(conn, &source.id, &role.key)?.map(|latest| latest.body),
-        };
+        let body = version::for_role(conn, &source.id, &role.key)?.map(|standing| standing.body);
         let Some(body) = body.filter(|body| !body.trim().is_empty()) else {
             continue;
         };
@@ -1344,6 +1340,33 @@ mod tests {
         .unwrap();
 
         assert_eq!(prompt, "Text: the words\nStyle: slow indie folk");
+    }
+
+    /// `{role:style}` is the style prompt the song is made with: the one
+    /// marked main, not a newer one written to try something (ADR 0069).
+    #[test]
+    fn a_role_reads_its_main_version_over_a_newer_one() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Subject");
+        let style = |body: &str| {
+            version::create(
+                &conn,
+                &song.id,
+                NewVersion {
+                    role: "style".into(),
+                    body: body.into(),
+                    ..NewVersion::default()
+                },
+            )
+            .unwrap()
+        };
+        let sung = style("slow indie folk");
+        style("a faster try");
+        version::set_main_at(&conn, &song.id, &sung.id, "2026-10-25T00:00:00Z").unwrap();
+
+        let prompt = for_work(&conn, &song.id, "Style: {role:style}", Context::default()).unwrap();
+
+        assert_eq!(prompt, "Style: slow indie folk");
     }
 
     #[test]

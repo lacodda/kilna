@@ -276,6 +276,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0043_library.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 44,
+        name: "main_version",
+        sql: include_str!("../../migrations/0044_main_version.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.

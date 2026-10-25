@@ -43,6 +43,9 @@ pub struct VersionSummary {
     pub trial_id: Option<String>,
     pub created_at: String,
     pub is_current: bool,
+    /// Marked as the one that stands for its role, in a role that is no
+    /// draft - the style prompt the song is made with (v0.100.3, ADR 0069).
+    pub is_main: bool,
     /// For a version in a commenting role: the version it comments on, when
     /// it was written about one (`meta.about`). The versions tab pairs by
     /// this first, and by revision number only for commentary that has none.
@@ -234,7 +237,7 @@ pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
     let mut statement = conn.prepare(
         "SELECT v.id, v.work_id, v.role, v.revision, v.label, length(v.body), v.created_at,
                 v.id = coalesce(w.current_version_id, '') AS is_current, v.parent_version_id,
-                json_extract(v.meta, '$.about'), v.trial_id
+                json_extract(v.meta, '$.about'), v.trial_id, v.is_main
          FROM work_version v
          JOIN work w ON w.id = v.work_id
          WHERE v.work_id = ?1
@@ -251,6 +254,7 @@ pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
             length: row.get(5)?,
             created_at: row.get(6)?,
             is_current: row.get::<_, i64>(7)? == 1,
+            is_main: row.get::<_, i64>(11)? == 1,
             parent_version_id: row.get(8)?,
             about_version_id: row.get(9)?,
             trial_id: row.get(10)?,
@@ -273,6 +277,97 @@ pub fn latest(conn: &Connection, work_id: &str, role: &str) -> Result<Option<Ver
         .optional()?;
 
     raw.map(RawVersion::into_version).transpose()
+}
+
+/// The version that stands for a role of a work: the work's current one when
+/// it is of that role, the one marked main in a role that is no draft, and
+/// the newest otherwise (v0.100.3, ADR 0069).
+///
+/// What a reader of "the song's style prompt" or "the song's lyrics" asks
+/// for. The newest revision is not it: a person keeps six style prompts and
+/// sings one of them, and writes a seventh to try without giving up the one
+/// they sing.
+pub fn for_role(conn: &Connection, work_id: &str, role: &str) -> Result<Option<Version>> {
+    let raw = conn
+        .query_row(
+            "SELECT v.id, v.work_id, v.role, v.revision, v.label, v.body, v.meta, v.created_at,
+                    v.parent_version_id, v.trial_id
+               FROM work_version v JOIN work w ON w.id = v.work_id
+              WHERE v.work_id = ?1 AND v.role = ?2
+              ORDER BY v.id = coalesce(w.current_version_id, '') DESC, v.is_main DESC,
+                       v.revision DESC
+              LIMIT 1",
+            params![work_id, role],
+            read_row,
+        )
+        .optional()?;
+
+    raw.map(RawVersion::into_version).transpose()
+}
+
+/// Mark a version the main one of its role, and the one marked before it not;
+/// what was main before, if anything, comes back for an undo.
+///
+/// Refused for a draft: the text the work is, is chosen by making it current,
+/// and two marks saying which draft is the work would be two truths.
+pub fn set_main_at(
+    conn: &Connection,
+    work_id: &str,
+    version_id: &str,
+    at: &str,
+) -> Result<Option<String>> {
+    check_belongs(conn, work_id, version_id)?;
+    let role: String = conn.query_row(
+        "SELECT role FROM work_version WHERE id = ?1",
+        params![version_id],
+        |row| row.get(0),
+    )?;
+    if is_draft(conn, work_id, &role)? {
+        return Err(Error::refused("version.draftIsMadeCurrent").param("role", role));
+    }
+    let before: Option<String> = conn
+        .query_row(
+            "SELECT id FROM work_version WHERE work_id = ?1 AND role = ?2 AND is_main = 1",
+            params![work_id, role],
+            |row| row.get(0),
+        )
+        .optional()?;
+    put_main_at(conn, work_id, &role, Some(version_id), at)?;
+    Ok(before)
+}
+
+/// Make `version_id` the main one of `role`, or leave the role with none: an
+/// undo puts back what was main, including nothing. A version gone since is
+/// not marked - the role then reads its newest, as with none.
+pub fn put_main_at(
+    conn: &Connection,
+    work_id: &str,
+    role: &str,
+    version_id: Option<&str>,
+    at: &str,
+) -> Result<()> {
+    atomically(conn, |tx| {
+        // The old mark comes off first: the index allows one per role, and a
+        // second set before the first is cleared would be refused by it.
+        tx.execute(
+            "UPDATE work_version SET is_main = 0
+              WHERE work_id = ?1 AND role = ?2 AND is_main = 1 AND id IS NOT ?3",
+            params![work_id, role, version_id],
+        )?;
+        if let Some(id) = version_id {
+            tx.execute(
+                "UPDATE work_version SET is_main = 1
+                  WHERE id = ?1 AND work_id = ?2 AND role = ?3",
+                params![id, work_id, role],
+            )?;
+        }
+        // Which style prompt the song is made with is a change to the song.
+        tx.execute(
+            "UPDATE work SET updated_at = ?2 WHERE id = ?1",
+            params![work_id, at],
+        )?;
+        Ok(())
+    })
 }
 
 /// Point a work at one of its versions.
@@ -1058,5 +1153,105 @@ with no markers at all
             .unwrap()
             .expect("the child is still there");
         assert_eq!(child.parent_version_id, None);
+    }
+
+    fn mains(conn: &Connection, work_id: &str) -> Vec<String> {
+        list(conn, work_id)
+            .unwrap()
+            .into_iter()
+            .filter(|summary| summary.is_main)
+            .map(|summary| summary.id)
+            .collect()
+    }
+
+    /// The point of the mark: the style prompt a song is sung with stands for
+    /// the role, and a newer one written to try something does not replace
+    /// it until it is chosen.
+    #[test]
+    fn a_main_style_prompt_stands_for_its_role_over_a_newer_one() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let sung = create(&conn, &work_id, draft("style", "the one we sing")).unwrap();
+        create(&conn, &work_id, draft("style", "a second try")).unwrap();
+        assert_eq!(
+            for_role(&conn, &work_id, "style").unwrap().unwrap().body,
+            "a second try",
+            "with nothing marked the newest stands, as it always did"
+        );
+
+        let before = set_main_at(&conn, &work_id, &sung.id, &now()).unwrap();
+        create(&conn, &work_id, draft("style", "a third try")).unwrap();
+
+        assert_eq!(before, None);
+        assert_eq!(
+            for_role(&conn, &work_id, "style").unwrap().unwrap().id,
+            sung.id
+        );
+        assert_eq!(mains(&conn, &work_id), vec![sung.id]);
+    }
+
+    #[test]
+    fn marking_another_main_takes_the_mark_off_the_first() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let first = create(&conn, &work_id, draft("style", "one")).unwrap();
+        let second = create(&conn, &work_id, draft("style", "two")).unwrap();
+        set_main_at(&conn, &work_id, &first.id, &now()).unwrap();
+
+        let before = set_main_at(&conn, &work_id, &second.id, &now()).unwrap();
+
+        assert_eq!(before, Some(first.id));
+        assert_eq!(mains(&conn, &work_id), vec![second.id]);
+    }
+
+    #[test]
+    fn two_main_versions_of_one_role_is_not_a_state_the_schema_holds() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = a_work(&conn, &profile_id);
+        create(&conn, &work_id, draft("style", "one")).unwrap();
+        create(&conn, &work_id, draft("style", "two")).unwrap();
+
+        let both = conn.execute(
+            "UPDATE work_version SET is_main = 1 WHERE work_id = ?1 AND role = 'style'",
+            params![work_id],
+        );
+
+        assert!(both.is_err(), "the index holds one main per role");
+    }
+
+    #[test]
+    fn a_draft_is_made_current_not_main() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let lyric = create(&conn, &work_id, draft("lyrics", "verse")).unwrap();
+
+        let refused = set_main_at(&conn, &work_id, &lyric.id, &now()).unwrap_err();
+
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("version.draftIsMadeCurrent")
+        );
+        assert!(mains(&conn, &work_id).is_empty());
+    }
+
+    #[test]
+    fn a_draft_role_is_read_as_its_current_version_not_its_newest() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let kept = create(&conn, &work_id, draft("lyrics", "the text")).unwrap();
+        create(
+            &conn,
+            &work_id,
+            NewVersion {
+                make_current: false,
+                ..draft("lyrics", "an experiment")
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            for_role(&conn, &work_id, "lyrics").unwrap().unwrap().id,
+            kept.id
+        );
     }
 }

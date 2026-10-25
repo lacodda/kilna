@@ -37,9 +37,11 @@ export function BriefPanel({ work }: Props) {
   const client = useQueryClient()
   const role = briefRoleOf(config, work.kind)
   const versions = useQuery(queries.versions(work.id))
-  // The brief being written is its newest revision: the list comes newest
-  // first within a role.
-  const newest = (versions.data ?? []).find((version) => version.role === role?.key) ?? null
+  // The brief being written is the one marked main, or else its newest
+  // revision - the list comes newest first within a role - which is the one
+  // the conception reads too (v0.100.3).
+  const briefs = (versions.data ?? []).filter((version) => version.role === role?.key)
+  const newest = briefs.find((version) => version.is_main) ?? briefs[0] ?? null
   const [minted, setMinted] = useState<string | null>(null)
   const openId = minted ?? newest?.id ?? null
   const open = useQuery({

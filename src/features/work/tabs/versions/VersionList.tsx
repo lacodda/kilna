@@ -37,6 +37,9 @@ interface Props {
   /** Make a version the work's current text; absent for a lane whose
    *  versions cannot be - a style prompt, a review (v0.99). */
   onMakeCurrent?: (id: string) => void
+  /** Mark a version the main one of its role; present for a lane that is
+   *  neither a draft nor commentary - a style prompt (v0.100.3). */
+  onMakeMain?: (id: string) => void
   onDelete: (id: string) => void
   /** Start a new draft from this version's body. */
   onDeriveFrom: (id: string) => void
@@ -67,6 +70,7 @@ export function VersionList({
   onOpen,
   onCompare,
   onMakeCurrent,
+  onMakeMain,
   onDelete,
   onDeriveFrom,
 }: Props) {
@@ -183,7 +187,7 @@ export function VersionList({
               <GraphCell
                 row={row}
                 columns={graph.columns}
-                current={version.is_current}
+                current={version.is_current || version.is_main}
                 title={
                   parent === null
                     ? undefined
@@ -230,9 +234,9 @@ export function VersionList({
               }
               end={
                 <>
-                  {version.is_current && (
+                  {(version.is_current || version.is_main) && (
                     <span className="rounded bg-accent-soft px-1 text-2xs font-semibold uppercase tracking-caption text-accent-2">
-                      {t('versions.current')}
+                      {t(version.is_current ? 'versions.current' : 'versions.main')}
                     </span>
                   )}
                   {/* The score of the version that was judged, beside the version
@@ -304,6 +308,15 @@ export function VersionList({
                         key: 'current',
                         label: t('versions.makeCurrent'),
                         onSelect: () => onMakeCurrent(version.id),
+                      },
+                    ]),
+                ...(version.is_main || onMakeMain === undefined
+                  ? []
+                  : [
+                      {
+                        key: 'main',
+                        label: t('versions.makeMain'),
+                        onSelect: () => onMakeMain(version.id),
                       },
                     ]),
                 {

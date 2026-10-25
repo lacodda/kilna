@@ -723,7 +723,7 @@ pub fn parts_of_source(conn: &Connection, work_id: &str, role: &str) -> Result<u
         .into_iter()
         .find(|source| source.role == crate::link::DONOR)
         .ok_or_else(|| Error::refused("prompt.noDonor").param("title", work.title.clone()))?;
-    let body = crate::work::version::latest(conn, &donor.source_id, role)?
+    let body = crate::work::version::for_role(conn, &donor.source_id, role)?
         .map(|version| version.body)
         .unwrap_or_default();
     Ok(crate::work::version::sections(&body).len())
@@ -764,7 +764,7 @@ pub fn frame_from_text(
         .find(|source| source.role == crate::link::DONOR)
         .ok_or_else(|| Error::refused("prompt.noDonor").param("title", work.title.clone()))?;
 
-    let body = crate::work::version::latest(conn, &donor.source_id, role)?
+    let body = crate::work::version::for_role(conn, &donor.source_id, role)?
         .map(|version| version.body)
         .ok_or_else(|| {
             Error::refused("scene.sourceNoRole")

@@ -326,6 +326,13 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             version::update_body_at(conn, &id, &body, &at)?;
         }
 
+        "version.setMain" => {
+            let work_id = required(params, "workId")?;
+            let id = required(params, "id")?;
+            let at = required(params, "at")?;
+            version::set_main_at(conn, &work_id, &id, &at)?;
+        }
+
         "finding.dismiss" => {
             let profile_id = workspace_profile(conn, params)?;
             let key = from_params(params, "key")?;

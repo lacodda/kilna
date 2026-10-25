@@ -181,6 +181,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::versions::create_version,
             commands::versions::update_version_body,
             commands::versions::set_current_version,
+            commands::versions::set_main_version,
             commands::versions::delete_version,
             commands::canon::list_cards,
             commands::canon::read_card,

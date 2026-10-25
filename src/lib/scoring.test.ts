@@ -286,6 +286,7 @@ describe('judged versions', () => {
     parent_version_id: null,
     created_at,
     is_current,
+    is_main: false,
     about_version_id: null,
   })
 

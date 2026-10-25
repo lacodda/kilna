@@ -712,6 +712,64 @@ fn a_board_of_trials_rebuilds_with_its_harvest() {
     assert_eq!(got["trial"].as_array().unwrap().len(), 2);
 }
 
+/// The main style prompt rebuilds where it was left (ADR 0069): marked, moved
+/// to another, the second taken to the trash and brought back after the
+/// first was marked again - and it comes back as one of the role's versions,
+/// not as a second main.
+#[test]
+fn a_main_version_rebuilds_where_it_was_left() {
+    use kilna_lib::trash::Entity;
+    use kilna_lib::work::version::NewVersion;
+
+    let source = workspace();
+    let song = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+    let style = |body: &str| {
+        actions::version::create(
+            &source,
+            &song.id,
+            NewVersion {
+                role: "style".into(),
+                body: body.into(),
+                ..NewVersion::default()
+            },
+        )
+        .unwrap()
+    };
+    let sung = style("the one we sing");
+    let tried = style("a second try");
+
+    actions::version::set_main(&source, &song.id, &sung.id).unwrap();
+    actions::version::set_main(&source, &song.id, &tried.id).unwrap();
+    let entry = actions::trash::discard(&source, Entity::Version, &tried.id).unwrap();
+    actions::version::set_main(&source, &song.id, &sung.id).unwrap();
+    actions::trash::restore(&source, &entry).unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+    let mut want = contents(&source);
+    let mut got = contents(&rebuilt);
+    want.remove("tombstone");
+    got.remove("tombstone");
+    assert_eq!(got, want, "the rebuilt versions are not the same versions");
+    let main: Vec<String> = rebuilt
+        .prepare("SELECT id FROM work_version WHERE is_main = 1")
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<rusqlite::Result<_>>()
+        .unwrap();
+    assert_eq!(main, vec![sung.id]);
+}
+
 /// A board of a conception rebuilds card by card (ADR 0065): a card put on
 /// it, one of its fields written and another emptied, starred, dragged under
 /// a topic, the topic renamed onto another and merged, and a card taken to the

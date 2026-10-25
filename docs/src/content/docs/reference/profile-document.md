@@ -740,6 +740,14 @@ form or an agent asked, and a workspace whose current version was one of
 those points at its newest draft once it is opened. A workspace whose copy of
 a shipped role never said `counts_as_version` gains the shipped word.
 
+Such a role has a **main** version instead (v0.100.3): of six style prompts,
+the one the song is made with. *Make this the main version* in a row's menu,
+or the button above the open text, marks it; one version per role is main at
+most, and making another main takes the mark off the first. Wherever the role
+is read - `{role:style}`, a publication's source, an agent asking for the
+work's style - the main version stands for it, and with none marked the
+newest does, as before. A draft is not made main: it is made current.
+
 ## `marks`
 
 Flags a work can be given by hand, beside the status the app derives:
@@ -1444,8 +1452,10 @@ proposes.
 - `{title}`, `{kind}`, `{status}` — the work's own fields.
 - `{body}` — the current version's body, whatever role that happens to be; or,
   for an action started from the versions tab, the revision open there.
-- `{role:lyrics}`, `{role:style}`, … — the latest revision of a specific
-  version role, regardless of which one is current. This is what lets a
+- `{role:lyrics}`, `{role:style}`, … — the version that stands for a specific
+  version role: the current version when it is of that role, the
+  main one of a role that is no draft, and otherwise the latest
+  revision. This is what lets a
   prompt like Novel's "Check against the outline" pull in both `{role:text}`
   and `{role:outline}` at once. An action started on a revision reads that
   revision for its own role. A role the work has no version in yet is a

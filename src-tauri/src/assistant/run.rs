@@ -953,7 +953,7 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
             if let (Some(key), Some(idea)) = (conception.idea.as_deref(), idea) {
                 fields.insert(key.to_owned(), Value::from(idea));
             }
-            let from = crate::work::version::latest(conn, &work.id, &conception.brief)
+            let from = crate::work::version::for_role(conn, &work.id, &conception.brief)
                 .ok()
                 .flatten()
                 .map(|version| version.id);

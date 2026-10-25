@@ -237,6 +237,7 @@ function summary(over: Partial<VersionSummary> & Pick<VersionSummary, 'id'>): Ve
     parent_version_id: null,
     created_at: '2026-09-01T10:00:00Z',
     is_current: false,
+    is_main: false,
     about_version_id: null,
     ...over,
   }
@@ -262,6 +263,18 @@ describe('currentIn and previousOf', () => {
     expect(currentIn([first, second, third, style], 'lyrics')?.id).toBe('v3')
     expect(currentIn([first, style], 'style')?.id).toBe('s1')
     expect(currentIn([first], 'style')).toBeUndefined()
+  })
+
+  it('shows the main style prompt over a newer one', () => {
+    const sung = summary({ id: 's1', role: 'style', is_main: true })
+    const tried = summary({
+      id: 's2',
+      role: 'style',
+      revision: 2,
+      created_at: '2026-09-05T10:00:00Z',
+    })
+    expect(currentIn([first, sung, tried], 'style')?.id).toBe('s1')
+    expect(currentIn([first, { ...sung, is_main: false }, tried], 'style')?.id).toBe('s2')
   })
 
   it('compares with the version it was written from, else the revision before', () => {

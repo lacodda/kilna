@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BadgeCheck, BookOpen, CornerUpLeft, MessageSquareText, Plus } from 'lucide-react'
 import type { VersionSummary } from '@/lib/api/types'
-import { deleteVersion, setCurrentVersion } from '@/lib/api/versions'
+import { deleteVersion, setCurrentVersion, setMainVersion } from '@/lib/api/versions'
 import { commentaryOn, isCommentary, isDraft, subjectOf } from '@/lib/commentary'
 import { isBrief } from '@/lib/conception'
 import { formatDay } from '@/lib/format'
@@ -140,6 +140,9 @@ export function VersionPanel({ workId }: Props) {
   // Whether a version of the lane can be the work's current text: a draft
   // of it can, a style prompt or a review cannot (v0.99).
   const draftLane = isDraft(roles, lane)
+  // A lane that is neither has a main version instead: the style prompt the
+  // song is made with (v0.100.3). A review is about a revision, not a choice.
+  const mainLane = !draftLane && !commentaryLane
   const composition = commentaryLane ? undefined : compositionFor(config, kind, lane)
   // The profile's action that writes the picks up as prose for this role.
   const prose = composition === undefined ? undefined : proseActionFor(config, kind, lane)
@@ -260,6 +263,12 @@ export function VersionPanel({ workId }: Props) {
 
   const makeCurrent = useAppMutation({
     mutationFn: (versionId: string) => setCurrentVersion(workId, versionId),
+    failure: 'toast.versionSaveFailed',
+    refresh: refresh.version(workId),
+  })
+
+  const makeMain = useAppMutation({
+    mutationFn: (versionId: string) => setMainVersion(workId, versionId),
     failure: 'toast.versionSaveFailed',
     refresh: refresh.version(workId),
   })
@@ -400,6 +409,7 @@ export function VersionPanel({ workId }: Props) {
             }}
             onCompare={(id) => setComparedId(againstId === id ? null : id)}
             onMakeCurrent={draftLane ? (id) => makeCurrent.mutate(id) : undefined}
+            onMakeMain={mainLane ? (id) => makeMain.mutate(id) : undefined}
             onDelete={(id) => remove.mutate(id)}
             onDeriveFrom={(id) => void deriveFrom(id)}
           />
@@ -457,6 +467,18 @@ export function VersionPanel({ workId }: Props) {
               >
                 <BadgeCheck aria-hidden />
                 <span className="@max-2xl:sr-only">{t('versions.setCurrent')}</span>
+              </Button>
+            )}
+            {mainLane && openSummary !== null && !openSummary.is_main && (
+              <Button
+                variant="ghost"
+                size="sm"
+                title={t('versions.makeMain')}
+                disabled={makeMain.isPending}
+                onClick={() => makeMain.mutate(openSummary.id)}
+              >
+                <BadgeCheck aria-hidden />
+                <span className="@max-2xl:sr-only">{t('versions.setMain')}</span>
               </Button>
             )}
             {/* The profile's actions, on this very revision: a critique or a

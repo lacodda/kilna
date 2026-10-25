@@ -124,6 +124,14 @@ promoting it — scores and exports keep reading the version the work pointed
 at before, and *Make this the current version* in any row's menu promotes it
 later.
 
+Only a draft is the work's text, so a style prompt is never current. A role
+like that has a **main** version instead: *Make this the main version* in a
+row's menu, or **Make main** above the open text, marks the style prompt the
+song is made with, and the list labels it *main*. The assistant and the
+publications made from the song read the main one; with none marked they
+read the newest, so a seventh style prompt written to try something does not
+replace the one you sing until you say so.
+
 Text in the form is kept as you type, and is still there after you close
 kilna and open it again — a small *Draft kept* note says so. The draft
 disappears by becoming a version, and in no other way except your own
@@ -189,8 +197,8 @@ So a role's history is a tree, not a line — v5 may have been written from v2,
 beside v3 and v4 — and the list draws it in a narrow gutter on its left, the
 way a git client draws its graph: a dot per row, a line from each version down
 to the one it came from, a second column where two versions came from the same
-one. The current version's dot is in the accent. Hover a dot to read where it
-came from.
+one. The current version's dot is in the accent, and so is the main one's in a
+role like the style prompt. Hover a dot to read where it came from.
 
 kilna never guesses a parent. A version made before kilna kept track of this,
 or written from nothing, has none, and a role where no version names one has

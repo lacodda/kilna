@@ -284,7 +284,7 @@ pub fn experiment_from(
                 source_version_id: None,
             },
         )?;
-        let core = match crate::work::version::latest(conn, &source.id, &role)? {
+        let core = match crate::work::version::for_role(conn, &source.id, &role)? {
             Some(version) => Some(from_version(conn, &created.id, &version.id, series)?),
             None => None,
         };

@@ -13,6 +13,11 @@ length: number, parent_version_id: string | null,
  */
 trial_id: string | null, created_at: string, is_current: boolean, 
 /**
+ * Marked as the one that stands for its role, in a role that is no
+ * draft - the style prompt the song is made with (v0.100.3, ADR 0069).
+ */
+is_main: boolean, 
+/**
  * For a version in a commenting role: the version it comments on, when
  * it was written about one (`meta.about`). The versions tab pairs by
  * this first, and by revision number only for commentary that has none.

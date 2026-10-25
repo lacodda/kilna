@@ -46,6 +46,17 @@ pub fn set_current_version(
     actions::work::set_current_version(&state.conn(), &work_id, &version_id)
 }
 
+/// Mark a version the main one of its role: the style prompt the song is
+/// made with.
+#[tauri::command]
+pub fn set_main_version(
+    state: State<'_, AppState>,
+    work_id: String,
+    version_id: String,
+) -> Result<VersionSummary> {
+    actions::version::set_main(&state.conn(), &work_id, &version_id)
+}
+
 #[tauri::command]
 pub fn delete_version(state: State<'_, AppState>, id: String) -> Result<String> {
     actions::trash::discard(&state.conn(), Entity::Version, &id)

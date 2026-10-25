@@ -202,6 +202,57 @@ describe('the Versions tab', () => {
     )
   })
 
+  it('marks a style prompt main, and offers it only where a version is no draft', async () => {
+    // Since v0.99 a style prompt cannot be the work's current text, and with
+    // that went the only way to say which one the song is made with. A role
+    // that is no draft has a main version instead (v0.100.3).
+    const studio_ = studio()
+    const backend = mockBackend({
+      ...answersFor(studio_),
+      set_main_version: ({ versionId }) => ({ id: versionId }),
+    })
+    const { client } = renderApp(`/works/${IDS.song}/versions?version=${IDS.style}`)
+    await settled(client)
+    const main = await screen.findByRole('main')
+    await within(main).findByText('warm synth pop, slow build, airy female vocal')
+
+    fireEvent.click(within(main).getByRole('button', { name: en.versions.setMain }))
+    await settled(client)
+
+    expect(backend.argsOf('set_main_version')).toContainEqual({
+      workId: IDS.song,
+      versionId: IDS.style,
+    })
+    expect(within(main).queryByRole('button', { name: en.versions.setCurrent })).toBeNull()
+  })
+
+  it('labels the main style prompt and offers nothing more for it', async () => {
+    const studio_ = studio()
+    const answers = answersFor(studio_)
+    const listed = answers.list_versions
+    mockBackend({
+      ...answers,
+      list_versions: async (args) =>
+        ((await listed?.(args)) as { id: string; is_main: boolean }[]).map((version) => ({
+          ...version,
+          is_main: version.id === IDS.style,
+        })),
+    })
+    const { client } = renderApp(`/works/${IDS.song}/versions?version=${IDS.style}`)
+    await settled(client)
+    const main = await screen.findByRole('main')
+    await within(main).findByText('warm synth pop, slow build, airy female vocal')
+
+    expect(within(main).getByText(en.versions.main)).toBeInTheDocument()
+    expect(within(main).queryByRole('button', { name: en.versions.setMain })).toBeNull()
+  })
+
+  it('offers no main version on a draft', async () => {
+    await openVersions()
+    const main = await screen.findByRole('main')
+    expect(within(main).queryByRole('button', { name: en.versions.setMain })).toBeNull()
+  })
+
   it('offers the invitation, not a form, in a role of commentary with nothing in it', async () => {
     const { main } = await openVersions()
     const lanes = within(main).getByRole('group', { name: en.versions.lanes })

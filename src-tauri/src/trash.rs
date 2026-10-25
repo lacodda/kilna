@@ -744,6 +744,16 @@ fn restore_in(tx: &Connection, deletion_id: &str) -> Result<()> {
                     row.insert(column.to_owned(), Value::Null);
                 }
             }
+            // A main version thrown away and brought back while another was
+            // made main meanwhile comes back as one of the role's versions: a
+            // restore returns the version, it does not overrule the choice
+            // taken since - and the schema allows one main per role.
+            if capture.table == "work_version"
+                && row.get("is_main").and_then(Value::as_i64) == Some(1)
+                && another_main(tx, &row)?
+            {
+                row.insert("is_main".to_owned(), Value::from(0));
+            }
             insert_row(tx, capture.table, &row)?;
         }
     }
@@ -882,6 +892,24 @@ fn alive(conn: &Connection, table: &str, id: Option<&Value>) -> Result<bool> {
         .query_row(
             &format!("SELECT 1 FROM {table} WHERE id = ?1"),
             params![id],
+            |_| Ok(true),
+        )
+        .optional()?
+        .unwrap_or(false))
+}
+
+/// Whether the role a trashed version is of has another main version now.
+fn another_main(conn: &Connection, row: &Map<String, Value>) -> Result<bool> {
+    let (Some(work_id), Some(role)) = (
+        row.get("work_id").and_then(Value::as_str),
+        row.get("role").and_then(Value::as_str),
+    ) else {
+        return Ok(false);
+    };
+    Ok(conn
+        .query_row(
+            "SELECT 1 FROM work_version WHERE work_id = ?1 AND role = ?2 AND is_main = 1",
+            params![work_id, role],
             |_| Ok(true),
         )
         .optional()?

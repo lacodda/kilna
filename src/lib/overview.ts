@@ -296,16 +296,21 @@ function newestFirst(a: VersionSummary, b: VersionSummary): number {
 
 /**
  * The version of `role` the overview shows: the work's current version when it
- * is in this role, the newest of the role otherwise. A work has one current
- * version, and a song whose current version is its lyrics still has a style
- * prompt to show - the newest one.
+ * is in this role, the one marked main in a role that is no draft, the newest
+ * of the role otherwise. A work has one current version, and a song whose
+ * current version is its lyrics still has a style prompt to show - the one it
+ * is made with (v0.100.3), the same one the backend reads for `{role:style}`.
  */
 export function currentIn(
   versions: readonly VersionSummary[],
   role: string,
 ): VersionSummary | undefined {
   const own = versions.filter((version) => version.role === role)
-  return own.find((version) => version.is_current) ?? [...own].sort(newestFirst)[0]
+  return (
+    own.find((version) => version.is_current) ??
+    own.find((version) => version.is_main) ??
+    [...own].sort(newestFirst)[0]
+  )
 }
 
 /**
