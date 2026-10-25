@@ -462,6 +462,14 @@ went out keeps the title it went out under. The premiere's tail is the
 field's `premiere`, and a short is a kind with `excerpt`, in the profile
 document.
 
+A premiere is old news by spring, so Studio's audio keeps **two titles for
+later** beside the one it premieres under: the song's name and a hook after a
+dash - a line of it, an image, a mood, the genre - each built unlike the
+other, with the plain *" (audio)"* tail and never the premiere's. The
+assistant writes them with the rest; months on, copy one to the platform, and
+type it into the title if kilna should say what the track is listed under
+now. A title is counted to 100 characters, YouTube's own limit.
+
 ### Without the singer's marks
 
 A description that quotes the lyric — the audio's `{donor:lyrics}` — reads it
@@ -504,7 +512,10 @@ what the song is about, how it ended, how its pinned comment was made - and
 takes another; the habits that give a machine away (the same skeleton every
 time, *this song is about...*, a favourite line in every pinned comment, the
 emoji in the same place) are named so it avoids them. The title is the song's
-name alone; the tail is kilna's.
+name alone; the tail is kilna's. When the channel's card keeps pools of moves,
+assemblies and forms of a pinned comment, the method is handed a few of each
+drawn at random for this text, builds from them, and says which it took - see
+[the canon](/kilna/guides/the-canon/#through-the-eyes-of-a-task).
 
 It runs in the background. When the answer comes, **the fields nobody has
 written yet are filled** at once - you asked for them. The ones you had already

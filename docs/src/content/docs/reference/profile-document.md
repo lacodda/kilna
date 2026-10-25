@@ -628,6 +628,7 @@ A section:
 | `shape` | string, optional | What an entry of the section is (below). Statements when absent. |
 | `lenses` | list, optional | The outward tasks that read this section: `cover` (a picture — a cover, a frame) and `public` (what is said in public — a release's text, a reply). The work itself reads every section, so `work` need not be named. A section naming none is read by the work alone. |
 | `kinds` | list of strings, optional | For a section of relations: the kinds of card it gathers — Studio's character keeps the events she was part of apart from the people around her. Empty gathers every relation no other section of the card claims. |
+| `draw` | number, optional | How many of the section's entries a prompt is handed, drawn at random each time one is written: a pool a text is built from reaches every text as a different handful, because a model handed the whole pool reaches for the same few every time. The prompt heads the section *Moves (8 of 144, drawn at random for this text)*; the card always shows every entry and says how many a prompt reads. Only a section of statements (`facts`, `slots`, `bans`) is drawn from, and `0` is refused. Studio's channel draws 8 of its `moves`, 3 of its `assemblies` and 4 of its `pinned_forms`. Absent hands over every entry. Added in v0.100.2. |
 
 The shapes:
 
@@ -1370,6 +1371,13 @@ the short: it reads the release, what the work was made from, the channel and
 the canon a public text may see, and the releases that went out or are
 booked lately, so a new one is not built the way the last ones were: the
 channel's template is a set of moves to choose from, not an order to fill.
+When the channel's card holds pools of moves, assemblies and forms of a pinned
+comment (sections with [`draw`](#cards-of-the-canon)), the method builds from
+the handful drawn for this text and says which it took. The audio's YouTube
+door also asks for two titles for later - `alt_title_1` and `alt_title_2`, the
+name and a hook after a dash, with the plain `" (audio)"` tail and never a
+premiere's - to rename the track to once the premiere is old news. A YouTube
+title is counted to 100 characters, the platform's own limit.
 
 An action with `"scope": "cover"` and `"produces": "cover-ideas"` proposes
 ideas for a publication's cover. kilna appends the block to answer with - a

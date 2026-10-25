@@ -62,7 +62,10 @@ or a public text, whatever its facts say.
 - **Open** — a live zone, left open on purpose: the next song is meant to
   settle it. The works read it; a cover does not.
 - **Draft** — proposed and not settled yet. Everything the assistant
-  proposes arrives as a draft; **Make it canon** settles it.
+  proposes arrives as a draft; **Make it canon** settles it. A section
+  holding several drafts says **Make all N drafts canon** beside its name:
+  read them, and settle the section in one go - one undo takes them all back
+  to drafts, and a fact that was canon before stays canon.
 - **Retired** — no longer true. Retiring asks why, and the fact is kept
   crossed out with its reason, so the next picture or text does not bring
   it back. **Bring back into the canon** undoes it.
@@ -161,6 +164,16 @@ way (`{canon:public}` in the
 [profile document](/kilna/reference/profile-document/#template-placeholders)). **Show
 what a task receives** opens the very text the assistant is handed for the
 card through the lens chosen.
+
+A section may be a **pool** the profile draws from: Studio's channel keeps
+its moves of a description, the assemblies they are put together by and the
+forms of a pinned comment, a hundred-odd entries between them. A prompt is
+handed a few of each, drawn at random every time it is written - eight moves,
+three assemblies, four forms - so no two texts start from the same handful:
+a writer handed the whole pool reaches for the same few. The card shows every
+entry and says beside the section's name how many a prompt reads; the
+section's `draw` in [the profile
+document](/kilna/reference/profile-document/#cards-of-the-canon).
 
 ## The assistant proposes
 

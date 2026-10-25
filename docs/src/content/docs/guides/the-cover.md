@@ -186,6 +186,14 @@ Under each block, **your own words** for it, added at the end as written. A
 cover written by hand before the constructor existed is exactly its own words,
 and nothing is added to it until you choose something on the left.
 
+Every quotation mark in a built prompt is a plain one: *TITLE: the words
+"Harbour lights"*. A generator draws the marks it reads, and guillemets or
+curly quotes around a title - or around a sign the scene names - came out on
+the picture beside the letters. Whoever wrote the part they stood in, the
+title, a brick, the channel's captions or your own words, they reach the
+generator as `"` (since v0.100.2). A cover written by hand keeps its marks as
+you typed them.
+
 Copying keeps the prompt on the cover: what the picture was drawn from stays
 with it if the channel's card or a style changes later, and the tab says when
 the prompt has moved on since.
