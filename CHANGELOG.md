@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.100.3] - 2026-10-25
+
+### Bug Fixes
+- Write another take when a release already has words
+- Let the style prompt a song is made with be chosen again
+
 ## [0.100.2] - 2026-10-25
 
 ### Bug Fixes
