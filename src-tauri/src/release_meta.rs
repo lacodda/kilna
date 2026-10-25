@@ -546,8 +546,12 @@ pub fn merged(existing: &Map<String, Value>, values: &Map<String, Value>) -> Map
 }
 
 /// The release an action is about, for `{release}`: where it goes out, when,
-/// and every field its kind asks for with what is written there now - the
-/// fields a model is about to write, and the ones a person already started.
+/// and every field its kind asks for with what is written there now.
+///
+/// What is written is said to be an earlier take (v0.100.3). The action is
+/// run on a release that has words to get other words: shown as the fields'
+/// contents and nothing more, they were read as a draft to polish, and a run
+/// a week later came back with the same description, three words changed.
 pub fn sheet(conn: &Connection, release_id: &str) -> Result<String> {
     let (release, defined) = definition(conn, release_id)?;
     let work = work::get(conn, &release.work_id)?
@@ -565,6 +569,16 @@ pub fn sheet(conn: &Connection, release_id: &str) -> Result<String> {
         (None, None) => "not planned for a day yet".to_owned(),
     };
     let mut out = format!("The release: {door}, {when}.\n");
+    let written = defined
+        .iter()
+        .any(|field| !stored(&release.meta, &field.key).trim().is_empty());
+    if written {
+        out.push_str(
+            "\nWhat the fields hold now is an earlier take, not a draft to polish: \
+             the author asks for another one. It is shown so that nothing of it comes \
+             back.\n",
+        );
+    }
     for field in &defined {
         let value = stored(&release.meta, &field.key);
         if value.trim().is_empty() {
@@ -609,6 +623,11 @@ pub struct ProposedField {
 /// fields it would actually change: one the application already wrote on
 /// arrival is left out, and so is one whose text is what the field already
 /// says. A proposal with nothing left to change is not listed.
+///
+/// A proposed text is shown, and compared, as the field would keep it: with
+/// the tail the place adds - "(audio)", a premiere and its year - which a
+/// model is told never to write. Read raw, a title the model wrote right
+/// stood as a change beside the same title with its tail (v0.100.3).
 pub fn pending(conn: &Connection, release_id: &str) -> Result<Vec<ReleaseProposal>> {
     let ids: Vec<String> = conn
         .prepare(
@@ -620,6 +639,8 @@ pub fn pending(conn: &Connection, release_id: &str) -> Result<Vec<ReleaseProposa
         .query_map(rusqlite::params![release_id], |row| row.get(0))?
         .collect::<rusqlite::Result<_>>()?;
     let current = fields(conn, release_id)?;
+    let (release, _) = definition(conn, release_id)?;
+    let at = crate::time::now();
     let mut found = Vec::new();
     for id in ids {
         let Some(message) = crate::assistant::message(conn, &id)? else {
@@ -635,11 +656,24 @@ pub fn pending(conn: &Connection, release_id: &str) -> Result<Vec<ReleaseProposa
             continue;
         };
         let filled = crate::actions::proposal::filled_of(&message.meta);
+        let mut kept: Map<String, Value> = proposed
+            .iter()
+            .filter(|(_, value)| value.is_string())
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect();
+        keep_suffixes(
+            conn,
+            &release.work_id,
+            None,
+            &release.kind,
+            Standing::of(&release, &at),
+            &mut kept,
+        )?;
         let changes: Vec<ProposedField> = current
             .iter()
             .filter(|field| !filled.contains(&field.key))
             .filter_map(|field| {
-                let text = proposed.get(&field.key)?.as_str()?;
+                let text = kept.get(&field.key)?.as_str()?;
                 (text.trim() != field.value.trim()).then(|| ProposedField {
                     key: field.key.clone(),
                     label: field.label.clone(),
@@ -871,6 +905,99 @@ mod tests {
             "Прилив (Премьера песни 2027)",
             "the plain tail a writer typed is taken off, and the premiere speaks the title's language"
         );
+    }
+
+    /// An answer waiting in a chat on the release's work.
+    fn answered(conn: &Connection, profile_id: &str, release_id: &str, fields: Value) {
+        let release = release::get(conn, release_id).unwrap().unwrap();
+        let chat = crate::assistant::create(
+            conn,
+            profile_id,
+            crate::assistant::NewChat {
+                work_id: Some(release.work_id),
+                ..crate::assistant::NewChat::default()
+            },
+        )
+        .unwrap();
+        let proposal = Proposal::Release {
+            release_id: release_id.to_owned(),
+            fields: fields.as_object().cloned().unwrap(),
+            unknown: Vec::new(),
+        };
+        let mut meta = Map::new();
+        meta.insert("proposal".into(), serde_json::to_value(&proposal).unwrap());
+        crate::assistant::append(
+            conn,
+            &chat.id,
+            crate::assistant::ASSISTANT,
+            "the answer",
+            meta,
+        )
+        .unwrap();
+    }
+
+    /// A model is told never to write the tail; the field always ends with
+    /// it. Compared raw, the title it wrote right stood as a change beside
+    /// the same title with its premiere (v0.100.3).
+    #[test]
+    fn a_proposal_is_shown_and_compared_with_the_tail_the_place_adds() {
+        let (conn, profile_id) = fixtures::workspace();
+        let tide = fixtures::song(&conn, &profile_id, "Tide");
+        let audio = audio_of(&conn, &tide.id);
+        release::schedule(&conn, &audio, "2026-11-04").unwrap();
+        crate::actions::release::set_fields(
+            &conn,
+            &audio,
+            &std::collections::BTreeMap::from([
+                ("title".to_owned(), "Tide".to_owned()),
+                ("alt_title_1".to_owned(), "Tide - the old hook".to_owned()),
+            ]),
+        )
+        .unwrap();
+
+        answered(
+            &conn,
+            &profile_id,
+            &audio,
+            json!({ "title": "Tide", "alt_title_1": "Tide - a new hook" }),
+        );
+
+        let waiting = pending(&conn, &audio).unwrap();
+        assert_eq!(waiting.len(), 1);
+        assert_eq!(
+            waiting[0]
+                .fields
+                .iter()
+                .map(|field| (field.key.as_str(), field.proposed.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("alt_title_1", "Tide - a new hook (audio)")],
+            "the title is the same title; the one for later is shown as it will be kept"
+        );
+    }
+
+    /// What the fields hold reaches the model as an earlier take to stay away
+    /// from, not as a draft to polish - and an empty release is not told it
+    /// has one.
+    #[test]
+    fn the_release_sheet_calls_what_is_written_an_earlier_take() {
+        let (conn, profile_id) = fixtures::workspace();
+        let tide = fixtures::song(&conn, &profile_id, "Tide");
+        let audio = audio_of(&conn, &tide.id);
+        assert!(!sheet(&conn, &audio).unwrap().contains("earlier take"));
+
+        crate::actions::release::set_fields(
+            &conn,
+            &audio,
+            &std::collections::BTreeMap::from([(
+                "description".to_owned(),
+                "A ficus. Half a pack of buckwheat.".to_owned(),
+            )]),
+        )
+        .unwrap();
+
+        let told = sheet(&conn, &audio).unwrap();
+        assert!(told.contains("earlier take"), "{told}");
+        assert!(told.contains("A ficus. Half a pack of buckwheat."));
     }
 
     /// The audio that comes after its song's clip is not the premiere: it

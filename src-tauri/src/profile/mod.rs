@@ -1513,7 +1513,7 @@ const TEMPLATES_BEFORE_THE_RESEARCH: [(&str, &str); 4] = [
 /// never touched by the owner, and follows the shipped wording; one they
 /// rewrote stays theirs. Without it a method once stored never changes again:
 /// [`prompt_details`] only fills a method that is missing.
-const METHODS_BEFORE: [(&str, &str); 2] = [
+const METHODS_BEFORE: [(&str, &str); 3] = [
     (
         "release-meta",
         include_str!("methods_before/release-meta-0.86.md"),
@@ -1521,6 +1521,10 @@ const METHODS_BEFORE: [(&str, &str); 2] = [
     (
         "release-meta",
         include_str!("methods_before/release-meta-0.100.1.md"),
+    ),
+    (
+        "release-meta",
+        include_str!("methods_before/release-meta-0.100.2.md"),
     ),
 ];
 

@@ -521,7 +521,17 @@ It runs in the background. When the answer comes, **the fields nobody has
 written yet are filled** at once - you asked for them. The ones you had already
 started are not touched: what the answer says about them waits under the
 release, each field beside what you wrote, to take one at a time or all
-together, or to turn down. A clip, an audio release or a short made with
+together, or to turn down. A proposed field is shown with the tail the place
+adds, so a title that differs from yours only by *(audio)* or its premiere is
+not offered as a change.
+
+Running it again on a release that already has words asks for **another
+take**, not a polish. What the fields hold is handed over as an earlier take
+to stay away from: the new one is written from the song as it stands now -
+its current text, its fields, the card - with another opening,
+other details, other moves, another form of the pinned comment, other titles
+for later and the tags gathered again. Only the title stays the song's name.
+A clip, an audio release or a short made with
 **Make…** starts it on its first release by itself, and its Cover tab says
 while it is writing.
 
