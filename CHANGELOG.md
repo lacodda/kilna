@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.101.0] - 2026-10-27
+
+### Documentation
+- Describe the finished file, {n}, the cutter protocol and ADR 0070
+
+### Features
+- Know the file a work is finished as, and number a work in its family
+- Hand a cutter the whole short, with time, progress and a stop
+
+### Refactoring
+- Spell the refusal of a path outside the folder where the refusal gate reads it
+
+### Testing
+- Write the Studio fixture again for its folders and rules
+- Lay a workspace's kinds out by hand, as the disk has them
+
 ## [0.100.3] - 2026-10-25
 
 ### Bug Fixes
