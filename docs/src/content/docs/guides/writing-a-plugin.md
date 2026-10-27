@@ -117,6 +117,17 @@ exiting:
   would not find it by itself; a file the rule finds anyway - a new `v2.mp4`
   beside `v1.mp4` - changes nothing, so the next render made outside kilna is
   found too.
+- `suggestions` — what a command on the Cuts tab heard in the videos the
+  short is made from (v0.103). Optional. One object per video:
+  `source_id` (its id from `donors`), `file` (the file heard, whole, as kilna
+  handed it over), `boundaries` (seconds where its parts begin) and
+  `stretches` (`starts_at`, `ends_at`, `reason`, `score`, best first). kilna
+  keeps each only while that file is still the video's finished file, draws
+  the beginnings on its track for edges to land on, and offers the
+  stretches beside it - see
+  [Where to cut from](/kilna/guides/shorts/#where-to-cut-from). The reasons
+  kilna words are `chorus`, `loudest`, `repeats`, `lift` and `part`; any other
+  is shown as it is.
 - `error` — set this instead of the above to report failure without needing a
   non-zero exit code; kilna surfaces it as the command's error.
 

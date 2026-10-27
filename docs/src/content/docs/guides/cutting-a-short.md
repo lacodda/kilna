@@ -73,6 +73,15 @@ take for the short's file. When the cut is done kilna names the file, and the
 cut list shows it with how long it runs beside how long the stretches add up
 to - the cover's half second is the whole difference when all is well.
 
+## Finding the parts first
+
+The plugin's second command, **Find the parts**, listens instead of cutting:
+where each video the short is made from changes into its next part, and the
+parts worth a short, each with its reason. kilna draws them on the Cuts tab -
+see [Where to cut from](/kilna/guides/shorts/#where-to-cut-from). It takes a
+few seconds a video, and is worth running again after the clip is rendered
+again.
+
 ## When something is in the way
 
 The cut list says what stands in the way before you press anything: a video

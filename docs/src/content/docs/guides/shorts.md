@@ -68,6 +68,35 @@ beside how long its stretches add up to: the one check a cut needs before it
 goes out. The length is read from the file by the window's player; kilna
 itself never opens the video.
 
+## Where to cut from
+
+A short starts where a part of the song starts - a stretch that opens
+mid-phrase sounds cut rather than made - and its best stretch is usually a
+part that is loud and comes back. kilna says what it can of both before you
+take anything.
+
+**What was heard.** **Find the parts**, a command of
+[kilna-plugin-cut](/kilna/guides/cutting-a-short/), listens to each video the
+short is made from and cuts nothing. Where the video's parts begin is drawn
+on its track as thin lines, and an end you drag near one lands on it - hold
+**Alt** to leave it where you let go. The parts worth a short are drawn under
+the track, dashed, and listed with their reason: *loud, and it comes back -
+likely the chorus*, *the loudest part*, *it comes back*, *comes in louder
+after a quiet stretch*. What was heard belongs to the file it was heard in:
+render the clip again and the tab says so until it is listened to again.
+
+**What the words say.** A clip whose [scenes](/kilna/guides/scenes/) are
+timed and named by section offers, with nothing listened to, the chorus where
+the scenes play it and the sections whose lines come back elsewhere in the
+song - with the line each opens with.
+
+**What is taken.** The stretches the short's siblings took out of the same
+video are drawn grey under the track, and a part lying mostly in one says
+*in Tide (short 2) already*.
+
+**Take** makes a part a stretch like any other, at the end of the splice;
+**Ctrl+Z** takes it back. Nothing is chosen for you.
+
 ## The cover's prompt
 
 A short is picked off a wall of thumbnails, so its cover is built and reworked

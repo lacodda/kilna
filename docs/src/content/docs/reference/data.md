@@ -204,6 +204,13 @@ meant:
   workspace can be rebuilt from it: play the entries back into an empty
   database, and you have the same one.
 
+Beside them, two records belong to the machine rather than the workspace,
+and are kept out of the log, the export and any merge: the **media folder**
+each workspace keeps its files in on this computer, and **what was heard**
+in a video's finished file - where its parts begin and the parts worth a
+short (v0.103) - kept with the file's path, size and moment of last writing
+and offered only while the file stands as it was heard.
+
 All three name the **device** that made the change: an identity the workspace
 mints for itself the first time it is opened by this version, and keeps for
 life. A restored backup keeps it too — it is the same workspace, continued.
