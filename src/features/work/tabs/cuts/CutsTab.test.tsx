@@ -178,4 +178,23 @@ describe('a cutter', () => {
     expect(await screen.findByRole('button', { name: 'Cut the short' })).toBeVisible()
     expect(await screen.findByText(en.plugins.stopped)).toBeVisible()
   })
+
+  it('names the file a finished cut made the short’s finished file', async () => {
+    backend.answer('list_plugins', () => [CUTTER])
+    backend.answer('run_plugin', () => ({
+      message: null,
+      files: ['C:/logs/cut.log', 'C:/media/shorts/v2/video/v2.mp4'],
+      finished: 'C:/media/shorts/v2/video/v2.mp4',
+    }))
+    const { client } = renderApp(`/works/${IDS.short}/cuts`)
+    const cut = await screen.findByRole('button', { name: 'Cut the short' })
+    await settled(client)
+
+    fireEvent.click(cut)
+
+    expect(
+      await screen.findByText(en.plugins.madeFinished.replace('{{name}}', 'v2.mp4')),
+      'the finished file, not the first file named',
+    ).toBeVisible()
+  })
 })

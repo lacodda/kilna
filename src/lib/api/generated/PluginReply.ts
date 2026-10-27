@@ -13,6 +13,7 @@ message: string | null,
  */
 files: Array<string>, 
 /**
- * Whether one of them became the work's finished file.
+ * The one of them that is now the work's finished file - found by the
+ * kind's rule or chosen for it - when one is.
  */
-chosen: boolean, };
+finished: string | null, };

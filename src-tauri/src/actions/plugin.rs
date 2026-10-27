@@ -169,29 +169,30 @@ pub fn keep(
 /// When the person had chosen a file by hand, or the rule finds another, the
 /// new file becomes the choice, as the ordinary edit it is: undo takes it
 /// back. A file outside the folder is the plugin's business and changes
-/// nothing. Returns whether the choice changed.
-pub fn keep_files(conn: &Connection, id: &str, files: &[String]) -> Result<bool> {
+/// nothing. Returns the file made that is now the work's finished file,
+/// found by the rule or chosen for it - what the window says once a cut is
+/// done.
+pub fn keep_files(conn: &Connection, id: &str, files: &[String]) -> Result<Option<String>> {
     if files.is_empty() {
-        return Ok(false);
+        return Ok(None);
     }
     let found = work::get(conn, id)?.ok_or_else(|| Error::not_found("work", id))?;
     let config: ProfileConfig = crate::profile::config_for(conn, &found.profile_id)?;
     let place = crate::folder::locate(conn, &config, &found)?;
     let Some(folder) = place.path.as_deref() else {
-        return Ok(false);
+        return Ok(None);
     };
-    let Some(relative) = files
-        .iter()
-        .find_map(|file| inside_folder(Path::new(folder), Path::new(file)))
-    else {
-        return Ok(false);
+    let Some((made, relative)) = files.iter().find_map(|file| {
+        inside_folder(Path::new(folder), Path::new(file)).map(|relative| (file.clone(), relative))
+    }) else {
+        return Ok(None);
     };
     let found_by_rule =
         place.file.state == FileState::Found && place.file.relative.as_deref() == Some(&relative);
     let chosen_already =
         place.file.state == FileState::Chosen && place.file.relative.as_deref() == Some(&relative);
     if found_by_rule || chosen_already {
-        return Ok(false);
+        return Ok(Some(made));
     }
     super::work::update(
         conn,
@@ -201,7 +202,7 @@ pub fn keep_files(conn: &Connection, id: &str, files: &[String]) -> Result<bool>
             ..WorkPatch::default()
         },
     )?;
-    Ok(true)
+    Ok(Some(made))
 }
 
 /// Where `file` lies inside `folder`, `/` between the steps; `None` when it
@@ -311,8 +312,9 @@ mod tests {
         assert_eq!(subject["ordinal"], json!(1));
     }
 
-    /// A file the plugin made becomes the finished file only when the rule
-    /// would not find it; a file elsewhere changes nothing.
+    /// A file the plugin made is chosen as the finished file only when the
+    /// rule would not find it, and is the finished file either way; a file
+    /// elsewhere changes nothing.
     #[test]
     fn a_made_file_becomes_the_finished_file_when_the_rule_would_miss_it() {
         let (conn, _profile_id, root, _song, _clip, short) = a_family();
@@ -326,15 +328,36 @@ mod tests {
         let by_rule = folder.join("v1.mp4");
         std::fs::write(&by_rule, b"not really an mp4").unwrap();
 
-        assert!(
-            !keep_files(&conn, &short.id, &[by_rule.to_string_lossy().into_owned()]).unwrap(),
-            "the rule finds it by itself: nothing to choose"
+        let made = by_rule.to_string_lossy().into_owned();
+        assert_eq!(
+            keep_files(&conn, &short.id, std::slice::from_ref(&made)).unwrap(),
+            Some(made),
+            "the rule finds it by itself: it is the finished file"
         );
         assert_eq!(work::get(&conn, &short.id).unwrap().unwrap().file, None);
 
         let deeper = folder.join("drafts").join("cut.mp4");
         std::fs::write(&deeper, b"not really an mp4").unwrap();
-        assert!(keep_files(&conn, &short.id, &[deeper.to_string_lossy().into_owned()]).unwrap());
+        let log = folder.join("cut.log");
+        std::fs::write(&log, b"").unwrap();
+        let elsewhere = tempfile::tempdir().unwrap();
+        let note = elsewhere.path().join("note.txt");
+        std::fs::write(&note, b"").unwrap();
+        let made = deeper.to_string_lossy().into_owned();
+        assert_eq!(
+            keep_files(
+                &conn,
+                &short.id,
+                &[
+                    note.to_string_lossy().into_owned(),
+                    made.clone(),
+                    log.to_string_lossy().into_owned()
+                ]
+            )
+            .unwrap(),
+            Some(made),
+            "the first file inside the folder is the one"
+        );
         assert_eq!(
             work::get(&conn, &short.id)
                 .unwrap()
@@ -345,9 +368,11 @@ mod tests {
             "a file the rule would not find is chosen"
         );
 
-        let elsewhere = tempfile::tempdir().unwrap();
         let outside = elsewhere.path().join("cut.mp4");
         std::fs::write(&outside, b"not really an mp4").unwrap();
-        assert!(!keep_files(&conn, &short.id, &[outside.to_string_lossy().into_owned()]).unwrap());
+        assert_eq!(
+            keep_files(&conn, &short.id, &[outside.to_string_lossy().into_owned()]).unwrap(),
+            None
+        );
     }
 }

@@ -50,8 +50,9 @@ pub struct PluginReply {
     pub message: Option<String>,
     /// The files it says it made.
     pub files: Vec<String>,
-    /// Whether one of them became the work's finished file.
-    pub chosen: bool,
+    /// The one of them that is now the work's finished file - found by the
+    /// kind's rule or chosen for it - when one is.
+    pub finished: Option<String>,
 }
 
 /// Run a plugin command against a release or a work, and keep whatever it
@@ -120,12 +121,15 @@ pub fn run_plugin(
     let outcome = outcome?;
 
     actions::plugin::keep(&state.conn(), target, &id, &outcome.meta)?;
-    let chosen =
-        target.is_work() && actions::plugin::keep_files(&state.conn(), &id, &outcome.files)?;
+    let finished = if target.is_work() {
+        actions::plugin::keep_files(&state.conn(), &id, &outcome.files)?
+    } else {
+        None
+    };
     Ok(PluginReply {
         message: outcome.message,
         files: outcome.files,
-        chosen,
+        finished,
     })
 }
 

@@ -97,9 +97,8 @@ export function PluginBar({ target, id }: Props) {
     onSuccess: (reply: PluginReply) => {
       // Plugins report in their own words; an empty answer means "done".
       if (reply.message !== null && reply.message.trim() !== '') say.info(reply.message)
-      const first = reply.files.at(0)
-      if (reply.chosen && first !== undefined) {
-        say.ok(t('plugins.madeFinished', { name: nameOf(first) }))
+      if (reply.finished !== null) {
+        say.ok(t('plugins.madeFinished', { name: nameOf(reply.finished) }))
       } else if (reply.files.length > 0) {
         say.ok(t('plugins.madeFiles', { count: reply.files.length }))
       }
