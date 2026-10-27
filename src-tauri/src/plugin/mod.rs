@@ -4,6 +4,11 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+#[cfg(unix)]
+use process_wrap::std::ProcessGroup;
+use process_wrap::std::{ChildWrapper, CommandWrap};
+#[cfg(windows)]
+use process_wrap::std::{CreationFlags, JobObject};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
@@ -196,7 +201,7 @@ pub const PLUGIN_TIMEOUT: std::time::Duration =
 /// `on_progress` on this thread as they come; the rest are kept as the
 /// child's stderr.
 fn wait_within(
-    mut child: std::process::Child,
+    mut child: Box<dyn ChildWrapper>,
     limit: std::time::Duration,
     cancel: &std::sync::atomic::AtomicBool,
     on_progress: &mut dyn FnMut(Progress),
@@ -204,8 +209,8 @@ fn wait_within(
     use std::io::{BufRead, Read};
     use std::sync::atomic::Ordering;
 
-    let mut stdout = child.stdout.take();
-    let stderr = child.stderr.take();
+    let mut stdout = child.stdout().take();
+    let stderr = child.stderr().take();
     let read_out = std::thread::spawn(move || {
         let mut bytes = Vec::new();
         if let Some(pipe) = stdout.as_mut() {
@@ -297,17 +302,19 @@ pub struct Run<'a> {
 pub fn invoke(path: &Path, invocation: &Invocation<'_>, run: Run<'_>) -> Result<Outcome> {
     let payload = serde_json::to_vec(invocation)?;
 
-    let mut child = command(path)
+    let mut run_it = command(path);
+    run_it
         .arg("run")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = grouped(run_it)
         .spawn()
         .map_err(|error| Error::refused("plugin.spawnFailed").param("cause", error.to_string()))?;
 
     {
         let mut stdin = child
-            .stdin
+            .stdin()
             .take()
             .ok_or_else(|| Error::Internal("the plugin's stdin was not piped".into()))?;
         if let Err(error) = stdin.write_all(&payload) {
@@ -398,6 +405,31 @@ fn command(path: &Path) -> Command {
     command
 }
 
+/// A run's command, started in a group of its own with whatever it starts.
+///
+/// A plugin may run other programs - a cutter runs ffmpeg - and stopping the
+/// plugin alone would leave them running: on Windows a child outlives its
+/// parent, and a half-made file would go on growing with no one to finish
+/// it. So a run is a job object on Windows and a process group elsewhere,
+/// and stopping it, by hand or at its allowance, stops all of it. A plugin
+/// that finishes is let go as it is: what it leaves running on purpose, a
+/// browser it opened, is its own.
+fn grouped(command: Command) -> CommandWrap {
+    let mut wrapped = CommandWrap::from(command);
+    // The job object replaces the command's creation flags with its own, so
+    // the flag that keeps a console window from flashing is handed to it.
+    #[cfg(windows)]
+    {
+        wrapped.wrap(CreationFlags(
+            windows::Win32::System::Threading::CREATE_NO_WINDOW,
+        ));
+        wrapped.wrap(JobObject);
+    }
+    #[cfg(unix)]
+    wrapped.wrap(ProcessGroup::leader());
+    wrapped
+}
+
 /// Merge a plugin's returned fields into an existing `meta` object.
 ///
 /// A plugin adds and overwrites its own keys; it cannot clear the rest. Losing
@@ -432,7 +464,7 @@ mod tests {
     use super::*;
 
     /// A child that runs for a while and says nothing.
-    fn a_sleeper() -> std::process::Child {
+    fn a_sleeper() -> Box<dyn ChildWrapper> {
         #[cfg(windows)]
         let mut command = {
             let mut command = std::process::Command::new("cmd");
@@ -445,11 +477,8 @@ mod tests {
             command.arg("5");
             command
         };
-        command
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap()
+        command.stdout(Stdio::piped()).stderr(Stdio::piped());
+        grouped(command).spawn().unwrap()
     }
 
     /// A plugin that never answers is stopped, and says so, instead of
@@ -496,11 +525,8 @@ mod tests {
             command.args(["-c", "head -c 300000 /dev/zero"]);
             command
         };
-        let child = command
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
+        command.stdout(Stdio::piped()).stderr(Stdio::piped());
+        let child = grouped(command).spawn().unwrap();
 
         let output = wait_within(
             child,
@@ -547,6 +573,71 @@ mod tests {
         );
     }
 
+    /// What a plugin started is stopped with it: a cutter's ffmpeg must not
+    /// run on, writing its file, after the cut was stopped.
+    #[test]
+    fn what_a_stopped_plugin_started_is_stopped_with_it() {
+        let dir = tempfile::tempdir().unwrap();
+        // The plugin starts a program of its own that writes a file two
+        // seconds later, and then waits far longer than the test does.
+        // Scripts are named by their whole path: cmd may be told not to look
+        // in the current directory for what it runs.
+        #[cfg(windows)]
+        let mut command = {
+            std::fs::write(
+                dir.path().join("late.cmd"),
+                "@ping -n 3 127.0.0.1 >NUL\r\n@echo late> \"%~dp0late.txt\"\r\n",
+            )
+            .unwrap();
+            let plugin = dir.path().join("plugin.cmd");
+            std::fs::write(
+                &plugin,
+                "@start \"\" /B \"%~dp0late.cmd\"\r\n@ping -n 30 127.0.0.1 >NUL\r\n",
+            )
+            .unwrap();
+            let mut command = std::process::Command::new("cmd");
+            command.arg("/C").arg(&plugin);
+            command
+        };
+        #[cfg(not(windows))]
+        let mut command = {
+            let mut command = std::process::Command::new("sh");
+            command.args(["-c", "(sleep 2; echo late > late.txt) & sleep 30"]);
+            command
+        };
+        command
+            .current_dir(dir.path())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let raise = {
+            let cancel = cancel.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                cancel.store(true, std::sync::atomic::Ordering::SeqCst);
+            })
+        };
+
+        let stopped = wait_within(
+            grouped(command).spawn().unwrap(),
+            std::time::Duration::from_secs(60),
+            &cancel,
+            &mut |_| {},
+        );
+        raise.join().unwrap();
+        assert!(
+            stopped.is_err(),
+            "the wait gives up when asked: {:?}",
+            stopped.map(|output| String::from_utf8_lossy(&output.stderr).into_owned())
+        );
+        std::thread::sleep(std::time::Duration::from_secs(4));
+
+        assert!(
+            !dir.path().join("late.txt").exists(),
+            "what the plugin started was stopped before it wrote its file"
+        );
+    }
+
     /// Lines of progress on stderr are handed on as they come, and only the
     /// other lines are kept as what the plugin said.
     #[test]
@@ -572,11 +663,8 @@ mod tests {
             command.args(["-c", "cat \"$0\" >&2", &said.to_string_lossy()]);
             command
         };
-        let child = command
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
+        command.stdout(Stdio::piped()).stderr(Stdio::piped());
+        let child = grouped(command).spawn().unwrap();
         let mut seen = Vec::new();
 
         let output = wait_within(

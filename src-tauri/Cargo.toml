@@ -47,6 +47,14 @@ ts-rs = { version = "12", features = ["serde-json-impl"] }
 # forms, the frequency of their stems - are finite-state maps read where they
 # lie in the binary, with no loading and no second copy in memory (ADR 0053).
 fst = "0.4"
+# A plugin stopped by hand or at its allowance is stopped with whatever it
+# started - a cutter's ffmpeg would otherwise run on to the end: a job object
+# on Windows, a process group elsewhere.
+process-wrap = { version = "10", default-features = false, features = ["std", "job-object", "creation-flags", "process-group"] }
+
+[target.'cfg(windows)'.dependencies]
+# The flags a plugin is started with, kept beside its job object.
+windows = { version = "0.62", features = ["Win32_System_Threading"] }
 
 [dev-dependencies]
 tempfile = "3"
