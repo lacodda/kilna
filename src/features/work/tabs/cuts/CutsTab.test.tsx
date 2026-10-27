@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import type { Cut } from '@/lib/api/types'
+import { emit } from '@tauri-apps/api/event'
+import type { Cut, Plugin } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio, type Studio } from '@/test/workspace'
@@ -111,5 +112,70 @@ describe('the track', () => {
         { id: IDS.cut, patch: { starts_at: 18, ends_at: 36 } },
       ]),
     )
+  })
+})
+
+describe('a cutter', () => {
+  /** A plugin whose one command cuts a short, on this tab. */
+  const CUTTER: Plugin = {
+    executable: 'kilna-plugin-cut',
+    path: 'C:/plugins/kilna-plugin-cut.exe',
+    usable: true,
+    reason: null,
+    manifest: {
+      protocol_version: 1,
+      name: 'cut',
+      version: '0.1.0',
+      description: null,
+      commands: [
+        { key: 'cut', label: 'Cut the short', description: null, target: 'cuts', timeout: 900 },
+        { key: 'count', label: 'Count words', description: null, target: 'work' },
+      ],
+    },
+  }
+
+  it('stands on the tab, says how far it has got, and stops when asked', async () => {
+    let fail: (reason: unknown) => void = () => {}
+    backend.answer('list_plugins', () => [CUTTER])
+    backend.answer(
+      'run_plugin',
+      () =>
+        new Promise((_, reject) => {
+          fail = reject
+        }),
+    )
+    backend.answer('cancel_plugin', () => {
+      fail({ kind: 'refused', code: 'plugin.cancelled', message: 'The plugin was stopped.' })
+      return null
+    })
+    const { client } = renderApp(`/works/${IDS.short}/cuts`)
+    const cut = await screen.findByRole('button', { name: 'Cut the short' })
+    expect(
+      screen.queryByRole('button', { name: 'Count words' }),
+      "a command of a work's head is not a cutter",
+    ).toBeNull()
+    await settled(client)
+
+    fireEvent.click(cut)
+    await waitFor(() => expect(backend.argsOf('run_plugin')).toHaveLength(1))
+    const sent = backend.argsOf('run_plugin')[0]!
+    expect(sent).toMatchObject({
+      executable: 'kilna-plugin-cut',
+      command: 'cut',
+      target: 'cuts',
+      id: IDS.short,
+    })
+
+    // Another run's progress is not this one's.
+    await emit('plugin-progress', { run: 'someone-else', progress: 0.9, message: 'elsewhere' })
+    await emit('plugin-progress', { run: sent.run, progress: 0.4, message: 'cutting 2 of 3' })
+    expect(await screen.findByText('cutting 2 of 3')).toBeVisible()
+    expect(screen.queryByText('elsewhere')).toBeNull()
+    expect(screen.getByRole('progressbar')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: en.plugins.stop }))
+    await waitFor(() => expect(backend.argsOf('cancel_plugin')).toEqual([{ run: sent.run }]))
+    expect(await screen.findByRole('button', { name: 'Cut the short' })).toBeVisible()
+    expect(await screen.findByText(en.plugins.stopped)).toBeVisible()
   })
 })

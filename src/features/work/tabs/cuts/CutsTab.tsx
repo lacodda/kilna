@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { save } from '@tauri-apps/plugin-dialog'
-import { Film, Plus, Scissors, X } from 'lucide-react'
+import { CircleCheck, Film, Plus, Scissors, X } from 'lucide-react'
 import { createCut, deleteCut, reorderCuts, updateCut } from '@/lib/api/cuts'
 import { writeTextFile } from '@/lib/api/data'
 import type { Cut, Work } from '@/lib/api/types'
@@ -20,7 +20,9 @@ import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
+import { nameOf } from '@/lib/media'
 import { formatSeconds } from '@/lib/timecode'
+import { useMediaLength } from '@/lib/useMediaLength'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { cn } from '@/lib/utils'
@@ -33,6 +35,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Frame, Scroll } from '@/components/frame'
 import { CutFromThis } from '@/features/work/tabs/cuts/CutFromThis'
 import { CutTrack } from '@/features/work/tabs/cuts/CutTrack'
+import { PluginBar } from '@/features/work/PluginBar'
 
 interface Props {
   work: Work
@@ -53,8 +56,9 @@ interface Props {
  * cut and the keyboard finishes it: nobody drags to exactly 48.0.
  *
  * Nothing here opens a video file. The core keeps the boundaries and hands
- * them out (decision of 2026-09-11); the cutting plugin of v1.10 does the
- * cutting, and until it exists the list can be saved out for whatever does.
+ * them out (decision of 2026-09-11); a cutting plugin - its commands stand on
+ * this tab (v0.101) - does the cutting, and the list can be saved out for
+ * whatever else does.
  */
 export function CutsTab({ work }: Props) {
   const { t } = useTranslation()
@@ -218,7 +222,7 @@ export function CutsTab({ work }: Props) {
           <CutFromThis work={work} cuts={takenFromThis} derived={links.data?.derived ?? []} />
         )}
 
-        {spliced && <ShotList workId={work.id} title={work.title} />}
+        {spliced && <ShotList work={work} spliced={totalLength(splice)} />}
       </Scroll>
     </Frame>
   )
@@ -451,19 +455,27 @@ function Label({
 }
 
 /**
- * What a cutter is told to do, and what is still missing from it.
+ * What a cutter is told to do, what is still missing from it, and what came
+ * of it: the short's own finished file and how long it runs beside how long
+ * its stretches add up to (v0.101).
  *
- * The core's whole part in making the file. Until the plugin of v1.10 exists
- * the list is saved out as JSON, which is a file any cutter can be pointed
- * at — and which is the same thing the plugin will read.
+ * The core's whole part in making the file. A cutting plugin's commands
+ * stand here and are handed this list with everything else they need (ADR
+ * 0070); the list can also be saved out as JSON, which is a file any cutter
+ * can be pointed at - and the same thing the plugin reads.
  */
-function ShotList({ workId, title }: { workId: string; title: string }) {
+function ShotList({ work, spliced }: { work: Work; spliced: number }) {
   const { t } = useTranslation()
-  const shots = useQuery(queries.shots(workId))
+  const shots = useQuery(queries.shots(work.id))
+  const folder = useQuery(queries.folder(work.id))
   const saving = useRef(false)
+  const made = folder.data?.file
+  const madePath = made?.state === 'found' || made?.state === 'chosen' ? made.path : undefined
+  const length = useMediaLength(madePath)
 
   if (shots.data === undefined) return null
   const blocker = blockerOf(shots.data)
+  const title = work.title
 
   return (
     <Panel className="flex flex-wrap items-center gap-2.5 px-3 py-2.5">
@@ -474,6 +486,26 @@ function ShotList({ workId, title }: { workId: string; title: string }) {
         <p className={cn('mt-1 text-sm', blocker === null ? 'text-good' : 'text-dim')}>
           {blocker === null ? t('cuts.readyToCut') : t(`cuts.blocked.${blocker}`)}
         </p>
+        {madePath !== undefined && (
+          // The file the short is finished as, and whether it runs as long as
+          // its stretches say it should - the one check a cut needs before
+          // it goes out.
+          <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-dim">
+            <CircleCheck aria-hidden className="size-3.5 shrink-0 text-good" />
+            <span className="truncate font-mono text-xs" title={madePath}>
+              {nameOf(madePath)}
+            </span>
+            <span className="shrink-0 font-mono text-xs text-faint">
+              {length === null
+                ? t('cuts.madeLengthUnknown', { spliced: formatSeconds(spliced) })
+                : t('cuts.madeLength', {
+                    length: formatSeconds(length),
+                    spliced: formatSeconds(spliced),
+                  })}
+            </span>
+          </p>
+        )}
+        <PluginBar target="cuts" id={work.id} />
       </div>
       <Button
         size="sm"

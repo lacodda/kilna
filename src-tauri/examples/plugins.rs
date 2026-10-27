@@ -6,7 +6,7 @@
 //! reports, the invocation, and the metadata merged back into the work.
 
 use kilna_lib::plugin::{self, Invocation, manifest::Target};
-use kilna_lib::work::{self, WorkFilter, WorkPatch, version};
+use kilna_lib::work::{self, WorkFilter, WorkPatch};
 use kilna_lib::{db, profile};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -68,27 +68,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\nrunning `{}` on {}", command.label, target.title);
 
-    // The same subject the command builds: the row plus every role's body.
-    let mut subject = serde_json::to_value(target)?;
-    let mut bodies = serde_json::Map::new();
-    for summary in version::list(&conn, &target.id)? {
-        if bodies.contains_key(&summary.role) {
-            continue;
-        }
-        if let Some(full) = version::get(&conn, &summary.id)? {
-            bodies.insert(summary.role.clone(), serde_json::Value::String(full.body));
-        }
-    }
-    if let Some(object) = subject.as_object_mut() {
-        object.insert("bodies".into(), serde_json::Value::Object(bodies));
-    }
+    // The same subject the command builds: the row, every role's body, the
+    // folders, the finished files and the shot list.
+    let subject = kilna_lib::actions::plugin::subject(&conn, Target::Work, &target.id)?;
 
+    let cancel = std::sync::atomic::AtomicBool::new(false);
     let outcome = plugin::invoke(
         std::path::Path::new(&usable.path),
         &Invocation {
             command: &command.key,
             target: Target::Work,
             subject: subject.clone(),
+        },
+        plugin::Run {
+            limit: command.allowance(),
+            cancel: &cancel,
+            on_progress: &mut |step| println!("progress: {step:?}"),
         },
     )?;
 

@@ -7,4 +7,4 @@
  * so each one added is a commitment. More can be added; none can be quietly
  * removed.
  */
-export type Target = "release" | "work";
+export type Target = "release" | "work" | "cuts";

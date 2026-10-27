@@ -1080,7 +1080,19 @@
     "truncated": "Showing the first {{count}} files.",
     "open": "Open “{{name}}”",
     "reveal": "Show where it lies",
-    "copyIn": "Copy into the workspace"
+    "copyIn": "Copy into the workspace",
+    "number": "No.",
+    "finished": {
+      "found": "Finished file: {{file}} - the newest that matches {{rule}}.",
+      "chosen": "Finished file: {{file}}, chosen by hand.",
+      "chosenMissing": "The finished file chosen for this work, {{file}}, is not in the folder any more.",
+      "notYet": "No finished file yet: nothing in the folder matches {{rule}}.",
+      "noRule": "No finished file: works of this kind name no rule for it. Choose one here, on its tile.",
+      "backToRule": "Back to the rule",
+      "makeIt": "Make this the finished file",
+      "madeIt": "{{name}} is the finished file now",
+      "mark": "The finished file"
+    }
   },
   "player": {
     "play": "Play “{{name}}”",
@@ -1302,7 +1314,7 @@
   },
   "editor": {
     "folder": "Folder on disk",
-    "folderHint": "Where a work of this kind keeps its files, under the media folder: {title} is its title, {key} one of its fields, {origin.title} the title of what it is made from. Empty keeps no folder.",
+    "folderHint": "Where a work of this kind keeps its files, under the media folder: {title} is its title, {key} one of its fields, {origin.title} the title of what it is made from, {n} its number among the works of its kind made from that. Empty keeps no folder.",
     "folderAbsolute": "Name a folder under the media folder, as songs/{title}, not a place on a disk.",
     "folderEmptyStep": "There is an empty step between two slashes.",
     "folderClimbs": "A work's folder lies under the media folder, and . and .. step out of it.",
@@ -1398,7 +1410,12 @@
     "readinessRoles": "Versions",
     "readinessPicture": "Picture",
     "readinessFields": "Written",
-    "readinessOf": "Before it goes out through {{door}}"
+    "readinessOf": "Before it goes out through {{door}}",
+    "file": "Finished file",
+    "fileHint": "Which file in the folder the work is finished as - what a short is cut from: a path inside the folder, where * stands for any name and ? for one character, as video/*.mp4. The newest file it matches is taken, unless one is chosen in the Files tab. Empty takes only a chosen one.",
+    "fileAbsolute": "Name a file inside the work’s folder, as video/*.mp4, not a place on a disk.",
+    "fileClimbs": "The finished file lies inside the work’s folder, and . and .. step out of it.",
+    "fileForbidden": "“{{text}}” holds a character no file name may hold."
   },
   "fields": {
     "choiceNone": "Not set",
@@ -1406,7 +1423,13 @@
     "giveCodeHint": "Give this work the next code of “{{field}}”"
   },
   "plugins": {
-    "title": "Plugins"
+    "title": "Plugins",
+    "progress": "{{label}}: how far along",
+    "stop": "Stop",
+    "stopped": "Stopped.",
+    "madeFinished": "{{name}} is made, and is the finished file now",
+    "madeFiles_one": "The plugin made {{count}} file.",
+    "madeFiles_other": "The plugin made {{count}} files."
   },
   "error": {
     "database": "The workspace database refused that. Nothing was changed.",
@@ -1840,14 +1863,19 @@
     "readyToCut": "Every stretch has its file. This is what a cutter is handed.",
     "blocked": {
       "empty": "Nothing to cut yet: take a stretch out of the video above.",
-      "noFile": "A video this is cut from has no file attached yet, so there is nowhere to cut it out of."
+      "noFolder": "A video this is cut from has no folder on disk to find its file in: set the media folder, or name the folder of its kind.",
+      "notYet": "A video this is cut from has no finished file yet: nothing in its folder matches its kind’s rule.",
+      "noRule": "A video this is cut from has no finished file: its kind names no rule, so choose the file in its Files tab.",
+      "chosenMissing": "The file chosen for a video this is cut from is not in its folder any more: choose it again in its Files tab."
     },
     "save": "Save the cut list",
     "saved": "Cut list saved",
     "track": "Where the stretches fall on {{title}}",
     "move": "Drag to move it in the cut. Alt with an arrow does it from its fields.",
     "fromThis": "Cut from this",
-    "gone": "A work that is gone"
+    "gone": "A work that is gone",
+    "madeLength": "runs {{length}} · stretches {{spliced}}",
+    "madeLengthUnknown": "stretches {{spliced}}"
   },
   "cover": {
     "copied": "Copied",
@@ -2341,7 +2369,10 @@
       "unknownTier": "“{{tier}}” is not a tier of “{{kind}}”.",
       "pinNeedsReason": "A pinned tier needs a reason — say what the score does not know.",
       "noFrame": "A {{kind}} does not play under a frame.",
-      "noCover": "A {{kind}} does not go out under a cover."
+      "noCover": "A {{kind}} does not go out under a cover.",
+      "ordinalBelowOne": "A work’s number starts at 1, and {{number}} is below it.",
+      "ordinalTaken": "Number {{number}} is “{{title}}”’s: two works under one number would share one folder.",
+      "ordinalMadeFromNothing": "“{{title}}” is made from nothing, so it has no number among works made from the same one."
     },
     "version": {
       "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}.",
@@ -2416,7 +2447,8 @@
       "sendFailed": "Could not send the request to the plugin: {{cause}}",
       "failed": "The plugin: {{detail}}",
       "badReply": "Could not read the plugin's reply ({{cause}}): {{output}}",
-      "reported": "{{message}}"
+      "reported": "{{message}}",
+      "cancelled": "The plugin was stopped."
     },
     "comment": {
       "clipboardEmpty": "The clipboard held no picture.",
@@ -2438,7 +2470,8 @@
       "createFailed": "Could not make the folder “{{path}}”: {{cause}}",
       "noRoot": "No media folder is set for this workspace on this machine.",
       "noTemplate": "Works of this kind keep no folder on disk.",
-      "unfilled": "The folder's name reads “{{placeholder}}”, and this work leaves it empty."
+      "unfilled": "The folder's name reads “{{placeholder}}”, and this work leaves it empty.",
+      "fileOutside": "“{{path}}” is no file inside the work’s folder."
     },
     "asset": {
       "inlineNeedsNote": "A picture in a text belongs to a note.",

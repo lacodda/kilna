@@ -8,4 +8,10 @@ export type Command = { key: string, label: string, description: string | null,
 /**
  * Where in kilna this command belongs.
  */
-target: Target, };
+target: Target, 
+/**
+ * How many seconds the command may run before kilna stops it. Absent is
+ * [`DEFAULT_TIMEOUT_SECONDS`] - enough for a lookup or a rename; a
+ * command that renders a video says what it needs.
+ */
+timeout?: number, };

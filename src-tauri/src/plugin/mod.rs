@@ -141,31 +141,71 @@ pub struct Outcome {
     /// Set by a plugin that wants to report failure without a non-zero exit.
     #[serde(default)]
     pub error: Option<String>,
+    /// The files the command made, whole paths (v0.101). A file inside the
+    /// work's folder becomes its finished file when the kind's rule would not
+    /// find it by itself (ADR 0070).
+    #[serde(default)]
+    pub files: Vec<String>,
 }
 
-/// How long a plugin may take before it is stopped.
-///
-/// A plugin that never answered used to hold the command - and, before it ran
-/// off the main thread, the whole window - for as long as it liked. Two
-/// minutes is generous for what plugins do today (a word count, a lookup, a
-/// rename); a plugin that uploads or renders will need its own allowance in
-/// its manifest when one exists.
-pub const PLUGIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+/// One line of progress a plugin writes to stderr while it runs:
+/// `{"progress": 0.4, "message": "cutting 2 of 3"}` (v0.101). Both are
+/// optional; a line that is not a JSON object naming either is ordinary
+/// stderr, kept for the message if the plugin fails.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Progress {
+    /// How far along, from 0 to 1, when the plugin can say.
+    #[serde(default)]
+    pub progress: Option<f64>,
+    /// What it is doing now.
+    #[serde(default)]
+    pub message: Option<String>,
+}
+
+impl Progress {
+    /// A line of stderr read as progress, when it is one. A share outside 0..1
+    /// is held to it: a bar past its end says nothing a full bar does not.
+    pub fn of_line(line: &str) -> Option<Self> {
+        let line = line.trim();
+        if !line.starts_with('{') {
+            return None;
+        }
+        let mut progress: Self = serde_json::from_str(line).ok()?;
+        if progress.progress.is_none() && progress.message.is_none() {
+            return None;
+        }
+        progress.progress = progress
+            .progress
+            .filter(|share| share.is_finite())
+            .map(|share| share.clamp(0.0, 1.0));
+        Some(progress)
+    }
+}
+
+/// How long a plugin may take before it is stopped, when its command names no
+/// allowance of its own (see [`manifest::Command::allowance`]).
+pub const PLUGIN_TIMEOUT: std::time::Duration =
+    std::time::Duration::from_secs(manifest::DEFAULT_TIMEOUT_SECONDS);
 
 /// Wait for a child to finish, reading its output as it goes, and stop it if
-/// it runs past `limit`.
+/// it runs past `limit` or `cancel` is raised.
 ///
 /// The output is read on threads of its own: a child that writes more than a
 /// pipe holds blocks until someone reads, and waiting for it to exit first
-/// would wait for ever.
+/// would wait for ever. Lines of stderr that are progress are handed to
+/// `on_progress` on this thread as they come; the rest are kept as the
+/// child's stderr.
 fn wait_within(
     mut child: std::process::Child,
     limit: std::time::Duration,
+    cancel: &std::sync::atomic::AtomicBool,
+    on_progress: &mut dyn FnMut(Progress),
 ) -> Result<std::process::Output> {
-    use std::io::Read;
+    use std::io::{BufRead, Read};
+    use std::sync::atomic::Ordering;
 
     let mut stdout = child.stdout.take();
-    let mut stderr = child.stderr.take();
+    let stderr = child.stderr.take();
     let read_out = std::thread::spawn(move || {
         let mut bytes = Vec::new();
         if let Some(pipe) = stdout.as_mut() {
@@ -173,18 +213,44 @@ fn wait_within(
         }
         bytes
     });
+    let (sender, progress) = std::sync::mpsc::channel::<Progress>();
     let read_err = std::thread::spawn(move || {
-        let mut bytes = Vec::new();
-        if let Some(pipe) = stderr.as_mut() {
-            let _ = pipe.read_to_end(&mut bytes);
+        let mut kept = Vec::new();
+        let Some(pipe) = stderr else {
+            return kept;
+        };
+        let mut reader = std::io::BufReader::new(pipe);
+        let mut line = Vec::new();
+        // Split on the byte, not read as text: a plugin's stderr is in
+        // whatever encoding its system speaks, and one bad byte must not end
+        // the reading of the rest.
+        while let Ok(read) = reader.read_until(b'\n', &mut line) {
+            if read == 0 {
+                break;
+            }
+            match Progress::of_line(&String::from_utf8_lossy(&line)) {
+                Some(step) => {
+                    let _ = sender.send(step);
+                }
+                None => kept.extend_from_slice(&line),
+            }
+            line.clear();
         }
-        bytes
+        kept
     });
 
     let started = std::time::Instant::now();
     let status = loop {
+        while let Ok(step) = progress.try_recv() {
+            on_progress(step);
+        }
         match child.try_wait() {
             Ok(Some(status)) => break status,
+            Ok(None) if cancel.load(Ordering::SeqCst) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(Error::refused("plugin.cancelled"));
+            }
             Ok(None) if started.elapsed() >= limit => {
                 let _ = child.kill();
                 let _ = child.wait();
@@ -199,11 +265,28 @@ fn wait_within(
         }
     };
 
+    let stderr = read_err.join().unwrap_or_default();
+    // What the child said in its last moments, after the loop stopped
+    // looking: a bar that ends at 90 % reads as a plugin that gave up.
+    while let Ok(step) = progress.try_recv() {
+        on_progress(step);
+    }
     Ok(std::process::Output {
         status,
         stdout: read_out.join().unwrap_or_default(),
-        stderr: read_err.join().unwrap_or_default(),
+        stderr,
     })
+}
+
+/// How a run is let go of: how long it may take, and how it is stopped or
+/// followed while it runs.
+pub struct Run<'a> {
+    /// How long the command may take - its manifest's allowance.
+    pub limit: std::time::Duration,
+    /// Raised to stop the plugin before it finishes.
+    pub cancel: &'a std::sync::atomic::AtomicBool,
+    /// Told each line of progress the plugin writes.
+    pub on_progress: &'a mut dyn FnMut(Progress),
 }
 
 /// Run one command of one plugin.
@@ -211,7 +294,7 @@ fn wait_within(
 /// The invocation goes in over stdin as JSON and the outcome comes back over
 /// stdout, so a plugin can be written in any language. Plugins live for the
 /// duration of a call; nothing here starts a service.
-pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
+pub fn invoke(path: &Path, invocation: &Invocation<'_>, run: Run<'_>) -> Result<Outcome> {
     let payload = serde_json::to_vec(invocation)?;
 
     let mut child = command(path)
@@ -238,7 +321,7 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
         }
     }
 
-    let output = wait_within(child, PLUGIN_TIMEOUT)?;
+    let output = wait_within(child, run.limit, run.cancel, run.on_progress)?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -257,6 +340,7 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
             meta: Map::new(),
             message: None,
             error: None,
+            files: Vec::new(),
         });
     }
 
@@ -273,7 +357,7 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
     Ok(outcome)
 }
 
-/// Name a plugin is known by: the file name without its extension.
+// Name a plugin is known by: the file name without its extension.
 fn executable_name(path: &Path) -> Option<String> {
     if !path.is_file() {
         return None;
@@ -373,7 +457,12 @@ mod tests {
     #[test]
     fn a_plugin_that_does_not_answer_is_stopped() {
         let started = std::time::Instant::now();
-        let refused = wait_within(a_sleeper(), std::time::Duration::from_millis(300));
+        let refused = wait_within(
+            a_sleeper(),
+            std::time::Duration::from_millis(300),
+            &std::sync::atomic::AtomicBool::new(false),
+            &mut |_| {},
+        );
 
         let error = refused.expect_err("the wait gives up");
         assert_eq!(error.refusal().map(|r| r.code), Some("plugin.timedOut"));
@@ -413,13 +502,108 @@ mod tests {
             .spawn()
             .unwrap();
 
-        let output = wait_within(child, std::time::Duration::from_secs(30)).unwrap();
+        let output = wait_within(
+            child,
+            std::time::Duration::from_secs(30),
+            &std::sync::atomic::AtomicBool::new(false),
+            &mut |_| {},
+        )
+        .unwrap();
         assert!(output.status.success());
         assert!(
             output.stdout.len() > 100_000,
             "read {} bytes",
             output.stdout.len()
         );
+    }
+
+    /// A plugin stopped by hand is stopped at once, and says so, rather than
+    /// running out its allowance.
+    #[test]
+    fn a_plugin_is_stopped_when_asked() {
+        let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let raise = {
+            let cancel = cancel.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                cancel.store(true, std::sync::atomic::Ordering::SeqCst);
+            })
+        };
+        let started = std::time::Instant::now();
+
+        let stopped = wait_within(
+            a_sleeper(),
+            std::time::Duration::from_secs(60),
+            &cancel,
+            &mut |_| {},
+        );
+        raise.join().unwrap();
+
+        let error = stopped.expect_err("the wait gives up when asked");
+        assert_eq!(error.refusal().map(|r| r.code), Some("plugin.cancelled"));
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(4),
+            "stopped when asked, not when the child finished on its own"
+        );
+    }
+
+    /// Lines of progress on stderr are handed on as they come, and only the
+    /// other lines are kept as what the plugin said.
+    #[test]
+    fn progress_on_stderr_is_followed_and_the_rest_kept() {
+        // The lines are written to a file and printed from there: cmd's `echo`
+        // mangles quotes, and this is about kilna, not batch escaping.
+        let dir = tempfile::tempdir().unwrap();
+        let said = dir.path().join("stderr.txt");
+        std::fs::write(
+            &said,
+            "{\"progress\":0.5,\"message\":\"half\"}\nffmpeg says hello\n{\"progress\":7}\n",
+        )
+        .unwrap();
+        #[cfg(windows)]
+        let mut command = {
+            let mut command = std::process::Command::new("cmd");
+            command.args(["/C", "type", &said.to_string_lossy(), "1>&2"]);
+            command
+        };
+        #[cfg(not(windows))]
+        let mut command = {
+            let mut command = std::process::Command::new("sh");
+            command.args(["-c", "cat \"$0\" >&2", &said.to_string_lossy()]);
+            command
+        };
+        let child = command
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut seen = Vec::new();
+
+        let output = wait_within(
+            child,
+            std::time::Duration::from_secs(30),
+            &std::sync::atomic::AtomicBool::new(false),
+            &mut |step| seen.push(step),
+        )
+        .unwrap();
+
+        assert_eq!(
+            seen,
+            vec![
+                Progress {
+                    progress: Some(0.5),
+                    message: Some("half".into())
+                },
+                Progress {
+                    progress: Some(1.0),
+                    message: None
+                },
+            ],
+            "a share past the end is a full bar"
+        );
+        let said = String::from_utf8_lossy(&output.stderr);
+        assert!(said.contains("ffmpeg says hello"), "kept: {said:?}");
+        assert!(!said.contains("progress"), "progress is not kept: {said:?}");
     }
 
     #[test]
@@ -599,12 +783,24 @@ mod tests {
                 target: Target::Release,
                 subject: json!({ "id": "r1" }),
             };
-            let mut attempt = invoke(&path, &invocation);
+            let cancel = std::sync::atomic::AtomicBool::new(false);
+            let run = || {
+                invoke(
+                    &path,
+                    &invocation,
+                    Run {
+                        limit: PLUGIN_TIMEOUT,
+                        cancel: &cancel,
+                        on_progress: &mut |_| {},
+                    },
+                )
+            };
+            let mut attempt = run();
             for _ in 0..50 {
                 match &attempt {
                     Err(error) if error.to_string().contains("Text file busy") => {
                         std::thread::sleep(std::time::Duration::from_millis(20));
-                        attempt = invoke(&path, &invocation);
+                        attempt = run();
                     }
                     _ => break,
                 }
