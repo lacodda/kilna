@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.102.0] - 2026-10-27
+
+### Bug Fixes
+- Stop what a plugin started along with it
+- Name the file a finished cut made the work's finished file
+
+### Documentation
+- Add the guide to cutting a short with kilna-plugin-cut
+- Name the cutting plugin where the core hands it the shot list
+
 ## [0.101.0] - 2026-10-27
 
 ### Documentation
