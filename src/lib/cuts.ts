@@ -78,6 +78,61 @@ export function dragged(stretch: Stretch, grip: Grip, delta: number, duration: n
   return { starts_at, ends_at: tidy(clamp(ends_at + step, starts_at + SHORTEST_DRAG, last)) }
 }
 
+/**
+ * A dragged stretch with the end that moved on the nearest place a part of
+ * the donor begins, when one lies within `within` seconds (v0.103).
+ *
+ * People start a short where a part starts - a stretch that opens mid-phrase
+ * sounds cut rather than made - and on the owner's shorts nearly every start
+ * lies within a few seconds of where a part was heard to begin. So an edge
+ * let go near a beginning lands on it. A whole stretch lands by its start, or
+ * else by its end, keeping its length; an end never crosses the other.
+ */
+export function snapped(
+  stretch: Stretch,
+  grip: Grip,
+  marks: readonly number[],
+  within: number,
+): Stretch {
+  const nearest = (at: number): number | null => {
+    let best: number | null = null
+    for (const mark of marks) {
+      const off = Math.abs(mark - at)
+      if (off <= within && (best === null || off < Math.abs(best - at))) best = mark
+    }
+    return best
+  }
+  const { starts_at, ends_at } = stretch
+  if (grip === 'start') {
+    const mark = nearest(starts_at)
+    return mark === null || mark > ends_at - SHORTEST_DRAG
+      ? stretch
+      : { starts_at: tidy(mark), ends_at }
+  }
+  if (grip === 'end') {
+    const mark = nearest(ends_at)
+    return mark === null || mark < starts_at + SHORTEST_DRAG
+      ? stretch
+      : { starts_at, ends_at: tidy(mark) }
+  }
+  const length = ends_at - starts_at
+  const start = nearest(starts_at)
+  if (start !== null) return { starts_at: tidy(start), ends_at: tidy(start + length) }
+  const end = nearest(ends_at)
+  if (end !== null && end - length >= 0)
+    return { starts_at: tidy(end - length), ends_at: tidy(end) }
+  return stretch
+}
+
+/** How much of `stretch` lies inside `other`, as a share of `stretch`. */
+export function shareInside(stretch: Stretch, other: Stretch): number {
+  const length = stretch.ends_at - stretch.starts_at
+  if (length <= 0) return 0
+  const inside =
+    Math.min(stretch.ends_at, other.ends_at) - Math.max(stretch.starts_at, other.starts_at)
+  return Math.max(0, inside) / length
+}
+
 function clamp(value: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, value))
 }

@@ -1875,7 +1875,27 @@
     "fromThis": "Cut from this",
     "gone": "A work that is gone",
     "madeLength": "runs {{length}} · stretches {{spliced}}",
-    "madeLengthUnknown": "stretches {{spliced}}"
+    "madeLengthUnknown": "stretches {{spliced}}",
+    "parts": {
+      "title": "Parts of {{title}}",
+      "lane": "Where to cut from: parts offered, dashed; what other shorts took, grey",
+      "take": "Take",
+      "takeThis": "Take {{span}} as a stretch",
+      "takenBy": "Taken by {{title}}",
+      "alreadyIn": "in {{title}} already",
+      "unheard": "Not listened to yet: Find the parts, under the cut list, listens to it.",
+      "stale": "Rendered again since it was listened to: listen again to see its parts.",
+      "nothingHeard": "Listened to: nothing in it stands out as a part worth a short.",
+      "reason": {
+        "chorus": "Loud, and it comes back — likely the chorus",
+        "loudest": "The loudest part",
+        "repeats": "It comes back",
+        "lift": "Comes in louder after a quiet stretch",
+        "part": "A part of its own",
+        "wordsChorus": "The chorus, where the scenes play it",
+        "wordsHook": "Its lines come back"
+      }
+    }
   },
   "cover": {
     "copied": "Copied",

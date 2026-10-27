@@ -5,7 +5,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import type { Cut } from '@/lib/api/types'
-import { dragged, type Grip, type Stretch } from '@/lib/cuts'
+import { dragged, snapped, type Grip, type Stretch } from '@/lib/cuts'
 import { formatSeconds } from '@/lib/timecode'
 import { cn } from '@/lib/utils'
 import { Track, type TrackSegment } from '@/components/ui/track'
@@ -27,7 +27,17 @@ interface Props {
    */
   onMove?: (id: string, stretch: Stretch, done: boolean) => void
   disabled?: boolean
+  /**
+   * Seconds where the donor's parts begin, as a plugin heard them (v0.103):
+   * marked on the track, and an end let go near one lands on it - unless Alt
+   * is held, for the stretch that has to start mid-phrase.
+   */
+  marks?: readonly number[]
 }
+
+/** How near a beginning an end must come to land on it, in pixels: about
+    the width of the hit area an end is taken by. */
+const SNAP_PIXELS = 8
 
 /** What a stretch's body and each of its ends answer the pointer with. */
 type Handlers = Pick<
@@ -63,7 +73,15 @@ interface Hold {
  * `onMove`, and one change is made when it is let go: one write, one line of
  * history, one undo.
  */
-export function CutTrack({ cuts, duration, label, nameOf, onMove, disabled = false }: Props) {
+export function CutTrack({
+  cuts,
+  duration,
+  label,
+  nameOf,
+  onMove,
+  disabled = false,
+  marks = [],
+}: Props) {
   const surface = useRef<HTMLDivElement>(null)
   const hold = useRef<Hold | null>(null)
   // Only for the cursor: which stretch is in the hand.
@@ -91,7 +109,9 @@ export function CutTrack({ cuts, duration, label, nameOf, onMove, disabled = fal
     const current = hold.current
     if (current === null) return null
     const delta = ((event.clientX - current.x) / current.width) * duration
-    return dragged(current.from, current.grip, delta, duration)
+    const moved = dragged(current.from, current.grip, delta, duration)
+    if (event.altKey || marks.length === 0 || moved === current.from) return moved
+    return snapped(moved, current.grip, marks, (SNAP_PIXELS / current.width) * duration)
   }
 
   const letGo = (event: ReactPointerEvent<HTMLElement>) => {
@@ -148,6 +168,21 @@ export function CutTrack({ cuts, duration, label, nameOf, onMove, disabled = fal
         // than a line to read.
         className="h-7.5 rounded-md border border-line bg-bg"
       />
+      {/* Where the donor's parts begin: hairlines under the stretches' hands,
+          read by the eye and never in the pointer's way. */}
+      {marks.length > 0 && (
+        <div aria-hidden data-marks="" className="pointer-events-none absolute inset-px">
+          {marks
+            .filter((mark) => mark > 0 && mark < duration)
+            .map((mark) => (
+              <span
+                key={mark}
+                style={{ left: `${(mark / duration) * 100}%` }}
+                className="absolute inset-y-1 w-px bg-line-2"
+              />
+            ))}
+        </div>
+      )}
       {/* Over the Track's own segments, inside its border, at their places. */}
       <div ref={surface} aria-hidden className="absolute inset-px">
         {placed.map((geometry, index) => {

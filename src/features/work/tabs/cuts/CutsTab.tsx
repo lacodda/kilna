@@ -6,7 +6,7 @@ import { save } from '@tauri-apps/plugin-dialog'
 import { CircleCheck, Film, Plus, Scissors, X } from 'lucide-react'
 import { createCut, deleteCut, reorderCuts, updateCut } from '@/lib/api/cuts'
 import { writeTextFile } from '@/lib/api/data'
-import type { Cut, Work } from '@/lib/api/types'
+import type { Cut, DonorParts, Work } from '@/lib/api/types'
 import {
   blockerOf,
   lengthOf,
@@ -35,6 +35,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Frame, Scroll } from '@/components/frame'
 import { CutFromThis } from '@/features/work/tabs/cuts/CutFromThis'
 import { CutTrack } from '@/features/work/tabs/cuts/CutTrack'
+import { PartsLane, PartsList } from '@/features/work/tabs/cuts/Parts'
 import { PluginBar } from '@/features/work/PluginBar'
 
 interface Props {
@@ -68,6 +69,9 @@ export function CutsTab({ work }: Props) {
   const cuts = useQuery(queries.cuts(work.id))
   const links = useQuery(queries.links(work.id))
   const taken = useQuery(queries.cutsFrom(work.id))
+  // Where to cut from (v0.103): read beside the splice, never in its way -
+  // the tab works the same before anything was heard.
+  const parts = useQuery(queries.parts(work.id))
 
   const add = useAppMutation({
     mutationFn: (sourceId: string) => {
@@ -83,6 +87,13 @@ export function CutsTab({ work }: Props) {
         ends_at: from + DEFAULT_LENGTH,
       })
     },
+    refresh: refresh.cut,
+  })
+
+  /** A part offered, taken as a stretch at the end of the splice. */
+  const take = useAppMutation({
+    mutationFn: ({ sourceId, starts_at, ends_at }: { sourceId: string } & Stretch) =>
+      createCut({ work_id: work.id, source_id: sourceId, starts_at, ends_at }),
     refresh: refresh.cut,
   })
 
@@ -162,7 +173,16 @@ export function CutsTab({ work }: Props) {
   // telling it to name a donor would be telling it to become something else.
   // A work with neither says how a splice begins.
   const spliced = splice.length > 0 || donors.length > 0 || takenFromThis.length === 0
-  const busy = edit.isPending || rename.isPending || remove.isPending || reorder.isPending
+  const busy =
+    edit.isPending || rename.isPending || remove.isPending || reorder.isPending || take.isPending
+  const offered = parts.data ?? []
+  const partsOf = (sourceId: string): DonorParts | undefined =>
+    offered.find((donor) => donor.source_id === sourceId)
+  // A video the short is made from with nothing taken out of it yet has no
+  // track; what is offered for it stands on its own under the tracks.
+  const untracked = offered.filter(
+    (donor) => !tracks.some((track) => track.source_id === donor.source_id),
+  )
 
   return (
     <Frame>
@@ -196,8 +216,31 @@ export function CutsTab({ work }: Props) {
                 onRename={(id, label) => rename.mutate({ id, label })}
                 onRemove={(id) => remove.mutate(id)}
                 onReorder={(ids) => reorder.mutate(ids)}
+                offered={partsOf(track.source_id)}
+                onTake={(stretch) => take.mutate({ sourceId: track.source_id, ...stretch })}
                 busy={busy}
               />
+            ))}
+
+            {untracked.map((donor) => (
+              <section key={donor.source_id} className="flex flex-col gap-1.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Film aria-hidden className="size-3.5 shrink-0 text-faint" />
+                  <span className="min-w-0 truncate text-xs text-dim">{donor.source_title}</span>
+                  {donor.duration !== null && (
+                    <span className="font-mono text-xs text-faint">
+                      {formatSeconds(donor.duration)}
+                    </span>
+                  )}
+                </div>
+                {donor.duration !== null && <PartsLane parts={donor} duration={donor.duration} />}
+                <PartsList
+                  title={donor.source_title}
+                  parts={donor}
+                  onTake={(stretch) => take.mutate({ sourceId: donor.source_id, ...stretch })}
+                  busy={busy}
+                />
+              </section>
             ))}
 
             {donors.length > 0 && (
@@ -243,6 +286,8 @@ function DonorTrack({
   onRename,
   onRemove,
   onReorder,
+  offered,
+  onTake,
   busy,
 }: {
   track: ReturnType<typeof tracksOf>[number]
@@ -253,6 +298,9 @@ function DonorTrack({
   onRename: (id: string, label: string | null) => void
   onRemove: (id: string) => void
   onReorder: (ids: string[]) => void
+  /** What is offered for this video to be cut from (v0.103). */
+  offered: DonorParts | undefined
+  onTake: (stretch: Stretch) => void
   busy: boolean
 }) {
   const { t } = useTranslation()
@@ -298,6 +346,7 @@ function DonorTrack({
           duration={scale}
           label={t('cuts.track', { title: track.source_title })}
           disabled={busy}
+          marks={offered?.boundaries}
           onMove={(id, stretch, done) => {
             if (!done) {
               setMoving({ id, ...stretch })
@@ -314,6 +363,7 @@ function DonorTrack({
           }}
         />
       )}
+      {scale !== null && offered !== undefined && <PartsLane parts={offered} duration={scale} />}
 
       {/* The line where a stretch would land is drawn against this box, so
           it holds the list rather than standing inside it. */}
@@ -375,6 +425,9 @@ function DonorTrack({
         </ul>
         <ReorderIndicator offset={order.slotOffset} />
       </div>
+      {offered !== undefined && (
+        <PartsList title={track.source_title} parts={offered} onTake={onTake} busy={busy} />
+      )}
     </section>
   )
 }

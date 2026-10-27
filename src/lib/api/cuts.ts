@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { Cut, CutPatch, NewCut, Shot } from '@/lib/api/types'
+import type { Cut, CutPatch, DonorParts, NewCut, Shot } from '@/lib/api/types'
 
 // A short cut out of another work: its stretches and the list for the cutter.
 
@@ -16,3 +16,7 @@ export const reorderCuts = (workId: string, ids: string[]) =>
 /** The stretches in order, each beside the donor's file: what the cutting
     plugin is handed. The core never opens the file itself. */
 export const cutShotList = (workId: string) => invoke<Shot[]>('cut_shot_list', { workId })
+/** Where a short could be cut from, video by video: where its parts begin
+    and the parts worth a short, as a plugin heard them and as the words place
+    them, and what the short's siblings already took (v0.103). */
+export const cutParts = (workId: string) => invoke<DonorParts[]>('cut_parts', { workId })

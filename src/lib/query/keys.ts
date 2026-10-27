@@ -38,6 +38,8 @@ export const keys = {
   // What the cutter is told to do. Under the same prefix, because a stretch
   // moving changes it and so does a video arriving on the donor.
   shotsFor: (workId: string) => ['cuts', 'shots', workId] as const,
+  /** Under `cuts`: a stretch taken anywhere changes what a sibling sees as taken. */
+  partsFor: (workId: string) => ['cuts', 'parts', workId] as const,
   // The frames of a whole board in one key: the storyboard draws every scene
   // together, and a frame arriving changes the row it lands on and the
   // readiness of that row at the same time.

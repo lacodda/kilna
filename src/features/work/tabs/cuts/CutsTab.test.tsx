@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { emit } from '@tauri-apps/api/event'
-import type { Cut, Plugin } from '@/lib/api/types'
+import type { Cut, DonorParts, Plugin } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio, type Studio } from '@/test/workspace'
@@ -112,6 +112,114 @@ describe('the track', () => {
         { id: IDS.cut, patch: { starts_at: 18, ends_at: 36 } },
       ]),
     )
+  })
+
+  it('lands an end let go near where a part begins on it, unless Alt is held', async () => {
+    backend.answer('cut_parts', () => [heard({ boundaries: [0, 19, 100] })])
+    const { client, container } = renderApp(`/works/${IDS.short}/cuts`)
+    await screen.findAllByRole('textbox', { name: en.scenes.startsAt })
+    await settled(client)
+    await waitFor(() => expect(container.querySelector('[data-marks] span')).not.toBeNull())
+    const named = container.querySelectorAll('[title="Chorus · 0:12 – 0:30"]')
+    const hand = named[named.length - 1]!
+
+    // Six seconds on: the start would be at 18, a second short of a part.
+    fireEvent.pointerDown(hand, { button: 0, clientX: 20, pointerId: 1 })
+    fireEvent.pointerMove(hand, { clientX: 26, pointerId: 1 })
+    fireEvent.pointerUp(hand, { clientX: 26, pointerId: 1 })
+    await waitFor(() =>
+      expect(backend.argsOf('update_cut')).toEqual([
+        { id: IDS.cut, patch: { starts_at: 19, ends_at: 37 } },
+      ]),
+    )
+  })
+
+  it('leaves an end where Alt let it go', async () => {
+    backend.answer('cut_parts', () => [heard({ boundaries: [0, 19, 100] })])
+    const { client, container } = renderApp(`/works/${IDS.short}/cuts`)
+    await screen.findAllByRole('textbox', { name: en.scenes.startsAt })
+    await settled(client)
+    await waitFor(() => expect(container.querySelector('[data-marks] span')).not.toBeNull())
+    const named = container.querySelectorAll('[title="Chorus · 0:12 – 0:30"]')
+    const hand = named[named.length - 1]!
+
+    fireEvent.pointerDown(hand, { button: 0, clientX: 20, pointerId: 1 })
+    fireEvent.pointerMove(hand, { clientX: 26, pointerId: 1, altKey: true })
+    fireEvent.pointerUp(hand, { clientX: 26, pointerId: 1, altKey: true })
+    await waitFor(() =>
+      expect(backend.argsOf('update_cut')).toEqual([
+        { id: IDS.cut, patch: { starts_at: 18, ends_at: 36 } },
+      ]),
+    )
+  })
+})
+
+/** What was heard in the short's clip, and what else is offered for it. */
+function heard(over: Partial<DonorParts> = {}): DonorParts {
+  return {
+    source_id: IDS.video,
+    source_title: 'Paper Lanterns (video)',
+    duration: 204,
+    hearing: 'heard',
+    boundaries: [0, 60, 90, 100, 124],
+    parts: [],
+    taken: [],
+    ...over,
+  }
+}
+
+describe('where to cut from', () => {
+  it('offers the parts heard and placed by the words, and takes one as a stretch', async () => {
+    backend.answer('cut_parts', () => [
+      heard({
+        parts: [
+          { starts_at: 60, ends_at: 90, reason: 'chorus', detail: null, source: 'sound' },
+          {
+            starts_at: 100,
+            ends_at: 124,
+            reason: 'wordsChorus',
+            detail: 'Chorus 2: Hold the lantern',
+            source: 'words',
+          },
+        ],
+        taken: [
+          { work_id: 'w-sibling', title: 'Paper Lanterns (short 2)', starts_at: 98, ends_at: 126 },
+        ],
+      }),
+    ])
+    backend.answer('create_cut', ({ cut }) => ({
+      ...workspace.cuts[0]!,
+      ...(cut as object),
+      id: 'cut-new',
+    }))
+    const { client, container } = renderApp(`/works/${IDS.short}/cuts`)
+
+    expect(await screen.findByText(en.cuts.parts.reason.chorus)).toBeVisible()
+    expect(screen.getByText(en.cuts.parts.reason.wordsChorus)).toBeVisible()
+    expect(
+      screen.getByText(en.cuts.parts.alreadyIn.replace('{{title}}', 'Paper Lanterns (short 2)')),
+      'a part that lies in what a sibling took says so',
+    ).toBeVisible()
+    expect(container.querySelector('[data-lane]'), 'drawn under the track').not.toBeNull()
+    await settled(client)
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: en.cuts.parts.takeThis.replace('{{span}}', '1:00 – 1:30'),
+      }),
+    )
+
+    await waitFor(() =>
+      expect(backend.argsOf('create_cut')).toEqual([
+        { cut: { work_id: IDS.short, source_id: IDS.video, starts_at: 60, ends_at: 90 } },
+      ]),
+    )
+  })
+
+  it('says a video nobody listened to yet, and one rendered again since', async () => {
+    backend.answer('cut_parts', () => [heard({ hearing: 'unheard', boundaries: [] })])
+    renderApp(`/works/${IDS.short}/cuts`)
+    expect(await screen.findByText(en.cuts.parts.unheard)).toBeVisible()
   })
 })
 

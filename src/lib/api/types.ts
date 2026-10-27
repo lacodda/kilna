@@ -336,6 +336,11 @@ export type { Cut } from './generated/Cut'
 export type { NewCut } from './generated/NewCut'
 export type { CutPatch } from './generated/CutPatch'
 export type { Shot } from './generated/Shot'
+export type { DonorParts } from './generated/DonorParts'
+export type { OfferedPart } from './generated/OfferedPart'
+export type { PartSource } from './generated/PartSource'
+export type { TakenStretch } from './generated/TakenStretch'
+export type { HearingState } from './generated/HearingState'
 
 // Files.
 export type { Asset } from './generated/Asset'

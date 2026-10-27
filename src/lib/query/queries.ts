@@ -29,7 +29,7 @@ import {
   pendingCommentProposals,
   previewCommentTask,
 } from '@/lib/api/comments'
-import { cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
+import { cutParts, cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
 import { canExportPackage, logPath, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { listJournal, unreadJournal } from '@/lib/api/journal'
@@ -191,6 +191,8 @@ export const queries = {
     queryOptions({ queryKey: keys.cutsFrom(sourceId), queryFn: () => listCutsFrom(sourceId) }),
   shots: (workId: string) =>
     queryOptions({ queryKey: keys.shotsFor(workId), queryFn: () => cutShotList(workId) }),
+  parts: (workId: string) =>
+    queryOptions({ queryKey: keys.partsFor(workId), queryFn: () => cutParts(workId) }),
 
   scoreHistory: (workId: string) =>
     queryOptions({ queryKey: keys.scoreHistory(workId), queryFn: () => scoreHistory(workId) }),

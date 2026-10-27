@@ -1120,6 +1120,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_cuts: byWork(() => studio.cuts),
     list_cuts_from: ({ sourceId }) => studio.cuts.filter((c) => c.source_id === sourceId),
     cut_shot_list: () => [],
+    cut_parts: () => [],
     list_work_assets: () => noAssets,
     // No media folder is set in this studio, so every work's folder says so.
     // A test that wants files lays a folder over this answer.

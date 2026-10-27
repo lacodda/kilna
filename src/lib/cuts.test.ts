@@ -9,6 +9,8 @@ import {
   orderMoving,
   orderWithin,
   scaleOf,
+  shareInside,
+  snapped,
   totalLength,
   tracksOf,
 } from '@/lib/cuts'
@@ -109,6 +111,57 @@ describe('dragged', () => {
     expect(dragged(stretch, 'end', 1.26, 200)).toEqual({ starts_at: 10, ends_at: 23.3 })
     // Three tenths added one at a time are not 0.30000000000000004 in store.
     expect(dragged({ starts_at: 0.1, ends_at: 1 }, 'start', 0.2, 200).starts_at).toBe(0.3)
+  })
+})
+
+describe('snapped', () => {
+  const marks = [0, 20, 47.5, 90]
+
+  it('lands a moved end on the beginning within reach, and no other', () => {
+    expect(snapped({ starts_at: 19, ends_at: 40 }, 'start', marks, 1.5)).toEqual({
+      starts_at: 20,
+      ends_at: 40,
+    })
+    expect(snapped({ starts_at: 10, ends_at: 46.8 }, 'end', marks, 1.5)).toEqual({
+      starts_at: 10,
+      ends_at: 47.5,
+    })
+    expect(snapped({ starts_at: 17, ends_at: 40 }, 'start', marks, 1.5), 'too far').toEqual({
+      starts_at: 17,
+      ends_at: 40,
+    })
+  })
+
+  it('lands a whole stretch by its start, else its end, keeping its length', () => {
+    expect(snapped({ starts_at: 21, ends_at: 51 }, 'whole', marks, 1.5)).toEqual({
+      starts_at: 20,
+      ends_at: 50,
+    })
+    expect(snapped({ starts_at: 58.9, ends_at: 88.9 }, 'whole', marks, 1.5)).toEqual({
+      starts_at: 60,
+      ends_at: 90,
+    })
+  })
+
+  it('never leaves a stretch shorter than a drag may', () => {
+    expect(snapped({ starts_at: 19.8, ends_at: 20.5 }, 'end', marks, 1.5)).toEqual({
+      starts_at: 19.8,
+      ends_at: 20.5,
+    })
+  })
+
+  it('leaves a stretch alone with nothing heard', () => {
+    expect(snapped({ starts_at: 19, ends_at: 40 }, 'start', [], 1.5)).toEqual({
+      starts_at: 19,
+      ends_at: 40,
+    })
+  })
+})
+
+describe('shareInside', () => {
+  it('is how much of a stretch lies inside another', () => {
+    expect(shareInside({ starts_at: 0, ends_at: 10 }, { starts_at: 5, ends_at: 30 })).toBe(0.5)
+    expect(shareInside({ starts_at: 0, ends_at: 10 }, { starts_at: 20, ends_at: 30 })).toBe(0)
   })
 })
 
