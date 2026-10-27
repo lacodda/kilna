@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.104.0] - 2026-10-27
+
+### Bug Fixes
+- Restore the line continuation in the deadline query
+- Say a month short of the rhythm once the queue is known
+
+### Documentation
+- Describe rhythm gaps, deadlines in the layout, CSV plans and calendar files
+
+### Features
+- Lay out a collection due by a day first
+- Read a release plan from a CSV file into the layout's preview
+- Say a month short of the rhythm, and save the month and the calendar as files
+
 ## [0.103.0] - 2026-10-27
 
 ### Documentation
