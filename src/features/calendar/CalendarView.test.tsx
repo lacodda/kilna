@@ -396,4 +396,30 @@ describe('days and shifts (v0.96)', () => {
       { from: '2026-09-01', to: '2026-09-30', pinned: true },
     ])
   })
+
+  it('draws a plan read from a CSV file as the layout does, says what was left out, and books it', async () => {
+    backend.answer('plugin:dialog|open', () => 'C:/plans/november.csv')
+    backend.answer('read_plan_import', () => ({
+      placements: [{ release_id: IDS.audioRelease, date: '2026-10-06' }],
+      problems: [{ line: 3, text: '2026-10-07,Nobody,youtube', reason: 'noWork' }],
+    }))
+    backend.answer('apply_layout', () => 1)
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+
+    fireEvent.click(within(main).getByRole('button', { name: en.calendar.more }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.calendar.files.importPlan }))
+
+    expect(await within(main).findByText(/1 release would land/)).toBeVisible()
+    expect(backend.argsOf('read_plan_import')).toEqual([{ path: 'C:/plans/november.csv' }])
+    expect(within(main).getByText(en.calendar.files.reason.noWork)).toBeInTheDocument()
+    expect(backend.argsOf('apply_layout'), 'nothing is booked yet').toEqual([])
+
+    fireEvent.click(within(main).getByRole('button', { name: en.calendar.layoutApply }))
+    await settled(client)
+    expect(backend.argsOf('apply_layout')).toEqual([
+      { placements: [{ release_id: IDS.audioRelease, date: '2026-10-06' }] },
+    ])
+  })
 })

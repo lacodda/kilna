@@ -99,3 +99,17 @@ describe('the dashboard', () => {
     ).toBeTruthy()
   })
 })
+
+describe('a month short of the rhythm', () => {
+  it('is said beside the decisions and opens the calendar on its month', async () => {
+    const { client } = renderApp('/dashboard')
+    // 15 September, a rhythm of every three days, and nothing booked for
+    // October: eleven releases short of it, thirty-one days at one in three.
+    const gap = await screen.findByRole('button', { name: /October 2026: 11 releases short/ })
+    await settled(client)
+
+    fireEvent.click(gap)
+
+    expect(await screen.findByText('October 2026')).toBeVisible()
+  })
+})

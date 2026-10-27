@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router'
 import { startTask } from '@/lib/api/assistant'
 import type { Dismissal } from '@/lib/api/types'
 import { answeredOn, type Finding } from '@/lib/findings'
@@ -42,6 +43,7 @@ export function FindingsWidget({
   dismissing,
 }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const profile = useProfile()
 
   const start = useAppMutation({
@@ -70,17 +72,23 @@ export function FindingsWidget({
         <ul className="flex flex-col">
           {findings.map((finding) => (
             <li
-              key={`${finding.kind}:${finding.workId}`}
+              key={`${finding.kind}:${finding.workId}:${finding.complaint}`}
               className="flex min-w-0 flex-col items-start gap-1.5 border-b border-line py-2 first:pt-0 last:border-b-0"
             >
               {/* The complaint is the way to the work it names, so it is
                   pressed like a link; it reads as a sentence, and wraps. */}
               <Button
                 variant="link"
-                onClick={() => onSelect(finding.workId, answeredOn(finding.kind))}
+                onClick={() => {
+                  if (finding.to !== undefined) {
+                    void navigate(finding.to.path, { state: { day: finding.to.day } })
+                  } else {
+                    onSelect(finding.workId, answeredOn(finding.kind))
+                  }
+                }}
                 className="text-left text-sm whitespace-normal text-text"
               >
-                {t(`findings.kind.${finding.kind}`, { title: finding.title })}
+                {t(`findings.kind.${finding.kind}`, { title: finding.title, ...finding.params })}
               </Button>
               <div className="flex flex-wrap items-center gap-1.5">
                 {finding.action !== undefined && (

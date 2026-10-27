@@ -7,6 +7,7 @@ import {
   dismissalKey,
   findings,
   identify,
+  rhythmGaps,
   visible,
   type Finding,
   type FindingKind,
@@ -456,5 +457,39 @@ describe('findings after the day (v0.97)', () => {
   it('sends both to the overview, where the release is written and marked', () => {
     expect(answeredOn('no-link')).toBe('overview')
     expect(answeredOn('unmarked')).toBe('overview')
+  })
+})
+
+describe('a month short of the rhythm (v0.104)', () => {
+  // 28 August: three days left of it, from tomorrow, and all of September.
+  it('says how many releases each month is short, and how many wait', () => {
+    const calendar = [
+      release({ id: 'a', scheduled_at: '2026-09-02' }),
+      release({ id: 'b', scheduled_at: '2026-09-10', status: 'released' }),
+      release({ id: 'c', scheduled_at: '2026-08-20', status: 'released' }),
+    ]
+
+    const found = rhythmGaps(calendar, 7, 3, TODAY)
+
+    expect(found.map((f) => [f.complaint, f.params?.count, f.params?.queued])).toEqual([
+      ['rhythm-gap:2026-08:1', 1, 7],
+      ['rhythm-gap:2026-09:8', 8, 7],
+    ])
+    expect(found[1]!.to).toEqual({ path: '/calendar', day: '2026-09-01' })
+    expect(found[1]!.workId, 'about the plan, not a work').toBe('')
+  })
+
+  it('says nothing of a full month, or without a rhythm', () => {
+    const full = Array.from({ length: 10 }, (_, i) =>
+      release({ id: `r${i}`, scheduled_at: `2026-09-${String(i * 3 + 1).padStart(2, '0')}` }),
+    )
+    const gaps = rhythmGaps(
+      [...full, release({ id: 'aug', scheduled_at: '2026-08-30' })],
+      0,
+      3,
+      TODAY,
+    )
+    expect(gaps).toEqual([])
+    expect(rhythmGaps([], 3, null, TODAY)).toEqual([])
   })
 })

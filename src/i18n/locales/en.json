@@ -324,7 +324,9 @@
       "weak-scheduled": "“{{title}}” holds a slot while stronger work waits",
       "stale-draft": "“{{title}}” has not moved in a while",
       "no-link": "“{{title}}” went out, and no link is kept for it",
-      "unmarked": "“{{title}}”: its day has passed and it is not marked out"
+      "unmarked": "“{{title}}”: its day has passed and it is not marked out",
+      "rhythm-gap_one": "{{month}}: {{count}} release short of the rhythm, {{queued}} waiting in the queue",
+      "rhythm-gap_other": "{{month}}: {{count}} releases short of the rhythm, {{queued}} waiting in the queue"
     },
     "dismiss": "Heard it",
     "dismissHint": "Puts this complaint away. It comes back if it changes.",
@@ -335,7 +337,8 @@
       "weak-scheduled": "weak in a slot",
       "stale-draft": "draft has stalled",
       "no-link": "out without a link",
-      "unmarked": "day passed, not marked"
+      "unmarked": "day passed, not marked",
+      "rhythm-gap": "short of the rhythm"
     }
   },
   "focus": {
@@ -454,7 +457,35 @@
     "zoneNone": "No zone by that name.",
     "zoneHere": "{{time}} on your clock",
     "zoneHereOn": "{{time}} on your clock, {{date}}",
-    "useUsualTime": "Set {{time}}"
+    "useUsualTime": "Set {{time}}",
+    "files": {
+      "exportMonth": "Save the month as Markdown…",
+      "exportIcs": "Save the calendar for a phone (.ics)…",
+      "importPlan": "Read a plan from a CSV file…",
+      "date": "Date",
+      "time": "Time",
+      "work": "Work",
+      "kind": "Kind",
+      "door": "Door",
+      "status": "Status",
+      "link": "Link",
+      "planned": "planned",
+      "released": "out",
+      "saved": "Saved: {{path}}",
+      "nothingPlaced": "Nothing in the file can be placed. Nothing is booked.",
+      "leftOut_one": "{{count}} row left out",
+      "leftOut_other": "{{count}} rows left out",
+      "reason": {
+        "badDate": "not a day — write 2026-11-03 or 03.11.2026",
+        "noWork": "no work by that title",
+        "ambiguousWork": "two works have that title — name it by id",
+        "nothingWaiting": "nothing of it waits in the queue",
+        "ambiguousDoor": "it waits for more than one door — name the door",
+        "takenDay": "the day is taken",
+        "closedDay": "the day is closed",
+        "repeated": "already placed by an earlier row"
+      }
+    }
   },
   "releases": {
     "kind": "Place",

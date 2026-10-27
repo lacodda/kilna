@@ -41,6 +41,11 @@ interface Props {
   /** Keep, or free, every planned date of the period on screen. */
   onPinPeriod: (pinned: boolean) => void
   pinning: boolean
+  /** The month on screen as a Markdown table, every dated release as an
+      iCalendar file, and a plan read from a CSV file (v0.104). */
+  onExportMonth: () => void
+  onExportIcs: () => void
+  onImportPlan: () => void
   width: CalendarLayout
   onWidthChange: (width: CalendarLayout) => void
   /** Where a carried release goes back to the queue while the queue is hidden:
@@ -80,6 +85,9 @@ export function CalendarHead({
   onShift,
   onPinPeriod,
   pinning,
+  onExportMonth,
+  onExportIcs,
+  onImportPlan,
   width,
   onWidthChange,
   drop,
@@ -186,6 +194,10 @@ export function CalendarHead({
                 <MenuItem disabled={pinning} onClick={() => onPinPeriod(false)}>
                   {t(week ? 'calendar.unpinWeek' : 'calendar.unpinMonth')}
                 </MenuItem>
+                <MenuSeparator />
+                <MenuItem onClick={onExportMonth}>{t('calendar.files.exportMonth')}</MenuItem>
+                <MenuItem onClick={onExportIcs}>{t('calendar.files.exportIcs')}</MenuItem>
+                <MenuItem onClick={onImportPlan}>{t('calendar.files.importPlan')}</MenuItem>
               </MenuPopup>
             </Menu>
 

@@ -1,4 +1,6 @@
 import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork, Tier } from '@/lib/api/types'
+import { formatMonth } from '@/lib/format'
+import { daysInMonth, monthOf, shiftMonth } from '@/lib/month'
 import { daysBetween } from '@/lib/readiness'
 
 /**
@@ -45,6 +47,10 @@ export type FindingKind =
   /** Its day has passed and it is still planned: it went out unmarked, or it
    *  did not go out and needs another day (v0.97). */
   | 'unmarked'
+  /** A month holds fewer releases than the profile's rhythm makes room for
+   *  (v0.104). About the plan, not a work: it has no work and opens the
+   *  calendar on the month. */
+  | 'rhythm-gap'
 
 export interface Finding {
   kind: FindingKind
@@ -62,6 +68,10 @@ export interface Finding {
   complaint: string
   /** The profile action that would answer it, when one does. */
   action?: string
+  /** What the sentence says besides the title: a month, a count. */
+  params?: Record<string, string | number>
+  /** Where it is answered when that is not a work: the calendar, on a day. */
+  to?: { path: string; day: string }
 }
 
 /** How long a draft may sit untouched before it counts as stalled. */
@@ -314,6 +324,62 @@ export function answeredOn(kind: FindingKind): 'score' | 'overview' | undefined 
     case 'unmarked':
       return 'overview'
     case 'stale-draft':
+    case 'rhythm-gap':
       return undefined
   }
+}
+
+/**
+ * The months that hold fewer releases than the profile's rhythm makes room
+ * for (v0.104): what is left of this one, from tomorrow, and all of the next.
+ *
+ * A rhythm of every three days makes room for ten releases in a thirty-day
+ * month; a month with six booked - planned or already out - is four short.
+ * The finding says how many, and how many wait in the queue to fill them,
+ * because the answer is usually one press of the layout away. A month that
+ * is full, or a profile with no rhythm, says nothing. The count is in the
+ * complaint: a month put away comes back when it falls further behind or
+ * fills partly, which is news either way.
+ */
+export function rhythmGaps(
+  calendar: readonly ScheduledRelease[],
+  queued: number,
+  everyDays: number | null | undefined,
+  today: string,
+): Finding[] {
+  if (everyDays === null || everyDays === undefined || everyDays < 1) return []
+  const now = monthOf(today)
+  const found: Finding[] = []
+  for (const real of [now, shiftMonth(now, 1)]) {
+    const key = `${real.year}-${String(real.month).padStart(2, '0')}`
+    const first = `${key}-01`
+    const last = `${key}-${String(daysInMonth(real)).padStart(2, '0')}`
+    // Placement starts tomorrow (layout::plan): today is already underway.
+    const from = real === now ? addDays(today, 1) : first
+    if (from > last) continue
+    const days = daysBetween(from, last) + 1
+    const room = Math.ceil(days / everyDays)
+    const booked = calendar.filter(
+      (entry) =>
+        entry.scheduled_at !== null && entry.scheduled_at >= from && entry.scheduled_at <= last,
+    ).length
+    const missing = room - booked
+    if (missing <= 0) continue
+    found.push({
+      kind: 'rhythm-gap',
+      workId: '',
+      title: formatMonth(real.year, real.month),
+      complaint: `rhythm-gap:${key}:${missing}`,
+      params: { month: formatMonth(real.year, real.month), count: missing, queued },
+      to: { path: '/calendar', day: first },
+    })
+  }
+  return found
+}
+
+/** The ISO date `days` after `day`. */
+function addDays(day: string, days: number): string {
+  const [year, month, date] = day.split('-').map(Number) as [number, number, number]
+  const moved = new Date(Date.UTC(year, month - 1, date + days))
+  return moved.toISOString().slice(0, 10)
 }

@@ -1,7 +1,18 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import type { Placement, ScheduledRelease, ShiftPlan, TimeOff } from '@/lib/api/types'
+import { useLocation } from 'react-router'
+import type {
+  ImportProblem,
+  Placement,
+  ScheduledRelease,
+  ShiftPlan,
+  TimeOff,
+} from '@/lib/api/types'
+import { open, save } from '@tauri-apps/plugin-dialog'
+import { writeTextFile } from '@/lib/api/data'
+import { readPlanImport } from '@/lib/api/releases'
+import { calendarIcs, monthMarkdown } from '@/lib/calendarFiles'
 import { queries } from '@/lib/query/queries'
 import { CarriedLabel } from '@/components/CarriedLabel'
 import { Frame, ListDetail } from '@/components/frame'
@@ -44,7 +55,7 @@ interface Props {
  * picture of the calendar, and two pictures over one month answer nothing.
  */
 type Preview =
-  | { kind: 'layout'; placements: Placement[] }
+  | { kind: 'layout'; placements: Placement[]; problems?: ImportProblem[] }
   | { kind: 'shift'; plan: ShiftPlan; from: string; days: number }
   | null
 
@@ -68,12 +79,16 @@ type Preview =
  * carried chip (`useCalendarDrag`).
  */
 export function CalendarView({ onSelect }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const profile = useProfile()
   // What is waiting for a day: a queued release's id, or a work's.
   const [picked, setPicked] = useState<string | null>(null)
   // The day the screen is on. The views show its month or its week.
-  const [anchor, setAnchor] = useState(today)
+  // A finding that names a month opens the calendar on it (v0.104).
+  const location = useLocation()
+  const [anchor, setAnchor] = useState(
+    () => (location.state as { day?: string } | null)?.day ?? today(),
+  )
   const [view, setView] = useState<View>(loadView)
   const [source, setSource] = useState<PaneSource>('queue')
   // Which kinds the calendar is showing. The pane is deliberately not
@@ -123,6 +138,74 @@ export function CalendarView({ onSelect }: Props) {
       setDialog((current) => (current?.kind === 'fill' ? null : current))
     },
   })
+
+  /** The month on screen as a Markdown table, saved where the person picks. */
+  const exportMonth = async () => {
+    const month = anchor.slice(0, 7)
+    const path = await save({
+      defaultPath: `plan-${month}.md`,
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    })
+    if (path === null) return
+    const text = monthMarkdown(
+      slots.data ?? [],
+      month,
+      profile.config,
+      {
+        date: t('calendar.files.date'),
+        time: t('calendar.files.time'),
+        work: t('calendar.files.work'),
+        kind: t('calendar.files.kind'),
+        door: t('calendar.files.door'),
+        status: t('calendar.files.status'),
+        link: t('calendar.files.link'),
+        statusOf: (status) =>
+          status === 'released' ? t('calendar.files.released') : t('calendar.files.planned'),
+      },
+      i18n.language,
+    )
+    await writeTextFile(path, text).then(
+      () => say.ok(t('calendar.files.saved', { path })),
+      (cause: unknown) => say.failed(cause),
+    )
+  }
+
+  /** Every dated release as an iCalendar file, for a phone's calendar. */
+  const exportIcs = async () => {
+    const path = await save({
+      defaultPath: 'kilna.ics',
+      filters: [{ name: 'iCalendar', extensions: ['ics'] }],
+    })
+    if (path === null) return
+    const text = calendarIcs(
+      slots.data ?? [],
+      profile.config,
+      i18n.language,
+      new Date().toISOString(),
+    )
+    await writeTextFile(path, text).then(
+      () => say.ok(t('calendar.files.saved', { path })),
+      (cause: unknown) => say.failed(cause),
+    )
+  }
+
+  /** A plan read from a CSV file, drawn as the layout's ghosts: booked whole
+      with one press, or not at all. */
+  const importPlan = async () => {
+    const path = await open({
+      multiple: false,
+      filters: [{ name: 'CSV', extensions: ['csv', 'txt'] }],
+    })
+    if (path === null) return
+    try {
+      const plan = await readPlanImport(path)
+      setPreview({ kind: 'layout', placements: plan.placements, problems: plan.problems })
+      const first = plan.placements[0]
+      if (first !== undefined) setAnchor(first.date)
+    } catch (cause) {
+      say.failed(cause)
+    }
+  }
 
   /** Book a work on a day: a release of its first door, dated to it - what
    *  the day's `+` does, and what carrying a work onto a day does. */
@@ -273,6 +356,9 @@ export function CalendarView({ onSelect }: Props) {
             onTimeOff={() => setDialog({ kind: 'timeOff', start: {} })}
             onShift={() => onShiftFrom(today())}
             onPinPeriod={(pinned) => actions.pinPeriod.mutate({ ...period, pinned })}
+            onExportMonth={() => void exportMonth()}
+            onExportIcs={() => void exportIcs()}
+            onImportPlan={() => void importPlan()}
             pinning={actions.pinPeriod.isPending}
             width={width}
             onWidthChange={(next) => {
@@ -290,6 +376,7 @@ export function CalendarView({ onSelect }: Props) {
           {preview?.kind === 'layout' && (
             <LayoutPreview
               placements={preview.placements}
+              problems={preview.problems}
               onCancel={() => setPreview(null)}
               onBook={() => actions.book.mutate(preview.placements)}
               booking={actions.book.isPending}
