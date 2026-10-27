@@ -665,15 +665,15 @@ fn newest(folder: &Path, steps: &[String]) -> Option<(PathBuf, String)> {
 /// joined by `/`. Refused when it is a place on a disk or climbs out - the
 /// choice names a file of the folder and nothing else.
 pub fn inside(path: &str) -> Result<String> {
-    let refused = || Error::refused("folder.fileOutside").param("path", path);
+    let outside = || Error::refused("folder.fileOutside").param("path", path);
     let path = path.trim();
     if path.is_empty() || path.starts_with(['/', '\\']) || path.as_bytes().get(1) == Some(&b':') {
-        return Err(refused());
+        return Err(outside());
     }
     let mut steps = Vec::new();
     for step in path.split(['/', '\\']) {
         if step.is_empty() || step == "." || step == ".." || step.chars().any(is_forbidden) {
-            return Err(refused());
+            return Err(outside());
         }
         steps.push(step);
     }
