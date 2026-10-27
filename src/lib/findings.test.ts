@@ -7,6 +7,7 @@ import {
   dismissalKey,
   findings,
   identify,
+  linesDue,
   rhythmGaps,
   visible,
   type Finding,
@@ -491,5 +492,35 @@ describe('a month short of the rhythm (v0.104)', () => {
     )
     expect(gaps).toEqual([])
     expect(rhythmGaps([], 3, null, TODAY)).toEqual([])
+  })
+})
+
+describe('a line of the board whose day has come (v0.105)', () => {
+  const line = (id: string, due_on: string | null, work_id: string | null = null) => ({
+    id,
+    profile_id: 'p',
+    body: `line ${id}`,
+    work_id,
+    position: 0,
+    pinned_at: null,
+    due_on,
+    created_at: '2026-08-01T00:00:00Z',
+    updated_at: '2026-08-01T00:00:00Z',
+  })
+
+  it('is said on its day and after, with its work when it has one', () => {
+    const found = linesDue(
+      [
+        line('a', '2026-08-28', 'w1'),
+        line('b', '2026-08-20'),
+        line('c', '2026-08-29'),
+        line('d', null),
+      ],
+      TODAY,
+    )
+    expect(found.map((f) => [f.complaint, f.workId])).toEqual([
+      ['line-due:a:2026-08-28', 'w1'],
+      ['line-due:b:2026-08-20', ''],
+    ])
   })
 })

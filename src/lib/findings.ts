@@ -1,5 +1,12 @@
-import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork, Tier } from '@/lib/api/types'
-import { formatMonth } from '@/lib/format'
+import type {
+  Dismissal,
+  FocusNote,
+  ProfileConfig,
+  ScheduledRelease,
+  ScoredWork,
+  Tier,
+} from '@/lib/api/types'
+import { formatDay, formatMonth } from '@/lib/format'
 import { daysInMonth, monthOf, shiftMonth } from '@/lib/month'
 import { daysBetween } from '@/lib/readiness'
 
@@ -51,6 +58,9 @@ export type FindingKind =
    *  (v0.104). About the plan, not a work: it has no work and opens the
    *  calendar on the month. */
   | 'rhythm-gap'
+  /** A line of the board whose day has come (v0.105): written by the person,
+   *  said on the day. Opens its work when it has one. */
+  | 'line-due'
 
 export interface Finding {
   kind: FindingKind
@@ -325,6 +335,7 @@ export function answeredOn(kind: FindingKind): 'score' | 'overview' | undefined 
       return 'overview'
     case 'stale-draft':
     case 'rhythm-gap':
+    case 'line-due':
       return undefined
   }
 }
@@ -382,4 +393,22 @@ function addDays(day: string, days: number): string {
   const [year, month, date] = day.split('-').map(Number) as [number, number, number]
   const moved = new Date(Date.UTC(year, month - 1, date + days))
   return moved.toISOString().slice(0, 10)
+}
+
+/**
+ * The board's lines whose day has come (v0.105): due today or before, said
+ * on the board of findings until they are rubbed out or given another day.
+ * The day is in the complaint, so a line put away and given a new day is
+ * news again on that day.
+ */
+export function linesDue(notes: readonly FocusNote[], today: string): Finding[] {
+  return notes
+    .filter((note) => note.due_on !== null && note.due_on <= today)
+    .map((note) => ({
+      kind: 'line-due' as const,
+      workId: note.work_id ?? '',
+      title: note.body,
+      complaint: `line-due:${note.id}:${note.due_on ?? ''}`,
+      params: { day: formatDay(note.due_on as string) },
+    }))
 }

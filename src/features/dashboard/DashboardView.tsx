@@ -4,7 +4,7 @@ import { AlertTriangle, CalendarDays } from 'lucide-react'
 import { dismissFinding, restoreFinding } from '@/lib/api/focus'
 import type { Dismissal, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { aside, decide, isQuiet, summarise } from '@/lib/dashboard'
-import { dismissalKey, findings, rhythmGaps, visible, type Finding } from '@/lib/findings'
+import { dismissalKey, findings, linesDue, rhythmGaps, visible, type Finding } from '@/lib/findings'
 import { today } from '@/lib/month'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
@@ -99,6 +99,8 @@ function Summary({
   // How many wait to be laid out, for a month short of its rhythm to say.
   // Not awaited: the board stands without it, and the line arrives after.
   const queue = useQuery(queries.releaseQueue())
+  // The board's own lines, for the ones whose day has come (v0.105).
+  const lines = useQuery(queries.focusNotes())
 
   const hide = useAppMutation({
     mutationFn: (finding: Finding) => dismissFinding(dismissalKey(finding)),
@@ -123,6 +125,7 @@ function Summary({
       ...(queue.data === undefined
         ? []
         : rhythmGaps(slots, queue.data.length, profile.config.rhythm?.every_days, day)),
+      ...linesDue(lines.data ?? [], day),
     ],
     dismissed,
   )

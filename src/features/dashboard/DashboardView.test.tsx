@@ -113,3 +113,40 @@ describe('a month short of the rhythm', () => {
     expect(await screen.findByText('October 2026')).toBeVisible()
   })
 })
+
+describe('a line of the board with a day', () => {
+  it('stands under Today and among the findings on its day, and takes another day from its menu', async () => {
+    backend.answer('list_focus_notes', () => [
+      {
+        id: 'line-1',
+        profile_id: 'p',
+        body: 'Ask the label about the vinyl',
+        work_id: null,
+        position: 0,
+        pinned_at: null,
+        due_on: '2026-09-15',
+        created_at: NOW,
+        updated_at: NOW,
+      },
+    ])
+    backend.answer('update_focus_note', ({ id, patch }) => ({ id, ...(patch as object) }))
+    const { client } = renderApp('/dashboard')
+
+    const today = await screen.findByRole('region', { name: en.focus.today })
+    expect(within(today).getByText('Ask the label about the vinyl')).toBeVisible()
+    expect(
+      await screen.findByText(/“Ask the label about the vinyl” — its day was/),
+      'said among the findings',
+    ).toBeVisible()
+    await settled(client)
+
+    fireEvent.click(screen.getByRole('button', { name: en.focus.more }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.focus.dueTomorrow }))
+
+    await vi.waitFor(() =>
+      expect(backend.argsOf('update_focus_note')).toEqual([
+        { id: 'line-1', patch: { due_on: '2026-09-16' } },
+      ]),
+    )
+  })
+})

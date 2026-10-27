@@ -77,19 +77,25 @@ export function FindingsWidget({
             >
               {/* The complaint is the way to the work it names, so it is
                   pressed like a link; it reads as a sentence, and wraps. */}
-              <Button
-                variant="link"
-                onClick={() => {
-                  if (finding.to !== undefined) {
-                    void navigate(finding.to.path, { state: { day: finding.to.day } })
-                  } else {
-                    onSelect(finding.workId, answeredOn(finding.kind))
-                  }
-                }}
-                className="text-left text-sm whitespace-normal text-text"
-              >
-                {t(`findings.kind.${finding.kind}`, { title: finding.title, ...finding.params })}
-              </Button>
+              {finding.workId === '' && finding.to === undefined ? (
+                <span className="text-left text-sm text-text">
+                  {t(`findings.kind.${finding.kind}`, { title: finding.title, ...finding.params })}
+                </span>
+              ) : (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    if (finding.to !== undefined) {
+                      void navigate(finding.to.path, { state: { day: finding.to.day } })
+                    } else {
+                      onSelect(finding.workId, answeredOn(finding.kind))
+                    }
+                  }}
+                  className="text-left text-sm whitespace-normal text-text"
+                >
+                  {t(`findings.kind.${finding.kind}`, { title: finding.title, ...finding.params })}
+                </Button>
+              )}
               <div className="flex flex-wrap items-center gap-1.5">
                 {finding.action !== undefined && (
                   <Button
