@@ -69,7 +69,12 @@ draft you have since rewritten. The weakest work holding a slot while something
 stronger waits. A draft nobody has opened in a month. And, since v0.97, the
 day after a release: one whose day has passed and that is still not marked
 out, and one out for two days with no link kept for it - see
-[after the day](/kilna/guides/planning-a-release/#marking-released).
+[after the day](/kilna/guides/planning-a-release/#marking-released). Since
+v0.104, a month that holds fewer releases than the
+[rhythm](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout)
+makes room for, with how many wait in the queue; pressing it opens the
+calendar on the month. And since v0.105, one of [your own lines](#your-own-lines)
+whose day has come.
 
 **Nothing here changes anything.** A finding names a work and what is off about
 it; clicking the text opens the work at the tab that answers it. Where a profile
@@ -119,6 +124,24 @@ you are waiting on, a decision you want to sleep on.
 A note is yours, so it behaves the opposite way to a finding. It stays until you
 rub it out. You can drag it by its handle to put it where you want, and pin it
 to keep it at the top. The automation never removes one and never reorders one.
+
+The **⋯** of a line gives it a day - today, tomorrow, in a week, or none - and
+ties it to a work, or unties it. A line tied to a work is the way to it: its
+words open the work's card. A line with a day shows the day beside it, in the
+warning colour once it has come; and on its day:
+
+- it stands under **Today**, at the top of the board - at most three lines,
+  the oldest day first: the day's plan, not a second list;
+- it is said among the findings - *"Ask the label" - its day was Oct 27* -
+  until it is rubbed out or given another day.
+
+## Since your last visit
+
+The column's last widget lists what happened since you last marked the
+[history](/kilna/guides/the-history/) seen, newest first, and above it one
+line counts it: the events still unread, and the assistant's runs that ended
+meanwhile - and how many of them failed - which the history does not list
+one by one.
 
 ## When it is quiet
 

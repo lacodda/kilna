@@ -109,6 +109,18 @@ The one thing that does not change is your own vocabulary. Statuses, kinds and
 axis names come from your profile, and kilna does not translate the words you
 chose — the same rule as everywhere else in the interface.
 
+## A week as Markdown
+
+**Save the week as Markdown** writes this week so far, Monday on, as a short
+report: the works made, the versions written, the scores given and the
+releases out - each work by its title, with how many times when more than
+once - and how many notes and trials were made. For a weekly note, or to
+hand to an assistant.
+
+It is read from the workspace's log of everything you asked for, not from
+this feed: the feed forgets what you read a week ago, and a report of a week
+should not depend on what you happened to read.
+
 ## What gets swept
 
 History is the one place in kilna where something is removed for you:
