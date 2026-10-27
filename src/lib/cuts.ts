@@ -122,21 +122,34 @@ export function tracksOf(cuts: Cut[]): Track[] {
   return tracks
 }
 
-/** What stops a splice from being cut into a file, or nothing. */
-export type Blocker = 'empty' | 'noFile'
+/** What stops a splice from being cut into a file, or nothing: no
+ *  stretches, or a donor whose finished file is not to be had - its folder
+ *  is not there, nothing in it matches its kind's rule yet, its kind names
+ *  no rule, or the file chosen for it is gone (ADR 0070). */
+export type Blocker = 'empty' | 'noFolder' | 'notYet' | 'noRule' | 'chosenMissing'
 
 /**
  * Whether the plugin could cut this short right now.
  *
- * Two things stop it, and they are different problems with different fixes:
- * a splice with no stretches has nothing to cut, and a splice whose donor has
- * no video attached has nowhere to cut it from. Both are ordinary states of
- * work in progress, which is why this reports rather than refuses.
+ * Different problems with different fixes: a splice with no stretches has
+ * nothing to cut, and a splice whose donor has no finished file has nowhere
+ * to cut it from - and why it has none says where to look. All are ordinary
+ * states of work in progress, which is why this reports rather than refuses.
  */
 export function blockerOf(shots: Shot[]): Blocker | null {
   if (shots.length === 0) return 'empty'
-  if (shots.some((shot) => shot.path === null)) return 'noFile'
-  return null
+  const missing = shots.find((shot) => shot.path === null)
+  if (missing === undefined) return null
+  switch (missing.file_state) {
+    case 'notYet':
+    case 'noRule':
+    case 'chosenMissing':
+      return missing.file_state
+    // A file found or chosen always has a path; a line without one is a
+    // folder that could not be looked in.
+    default:
+      return 'noFolder'
+  }
 }
 
 /**

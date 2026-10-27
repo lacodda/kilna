@@ -13,7 +13,7 @@
 //! lands, then the chorus eight bars later. A pair of columns can hold the
 //! first and is silent about the second.
 //!
-//! The core never opens the file. Cutting belongs to the plugin of v1.10
+//! The core never opens the file. Cutting belongs to the plugin of v0.102
 //! (decision of 2026-09-11: no ffmpeg in the core), and what the plugin is
 //! handed is [`shot_list`] — the boundaries beside the path to the donor's
 //! video. Everything here is a record of intent.
@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::minted::Minted;
+use crate::profile::config::ProfileConfig;
 use crate::time::now;
 
 /// One stretch of a source, as the track draws it.
@@ -250,36 +251,45 @@ pub struct Shot {
     pub ends_at: f64,
     pub source_id: String,
     pub source_title: String,
-    /// The donor's video on disk. `None` when no video is attached to the
-    /// donor, which is the one thing that stops a splice from being cuttable.
+    /// The donor's finished file on disk. `None` when the donor has none yet,
+    /// which is the one thing that stops a splice from being cuttable.
     pub path: Option<String>,
+    /// How the donor's finished file was found, or why it was not - what the
+    /// screen says beside a line that has no file.
+    pub file_state: crate::folder::FileState,
 }
 
 /// What a short is, told to something that can cut video: the stretches in
 /// order, each beside the file it comes out of.
 ///
-/// This is the whole of the core's part in making the file. The plugin of
-/// v1.10 reads this and runs ffmpeg; the core does not, and this function is
-/// the seam between them (decision of 2026-09-11). It is also why `path` is
-/// an `Option` rather than an error: a splice written before the donor's
-/// video has been rendered is an ordinary half-finished short, and the screen
-/// says which line is missing its file rather than refusing to show the list.
+/// This is the whole of the core's part in making the file. The cutting
+/// plugin of v0.102 reads this and runs ffmpeg; the core does not, and this
+/// function is the seam between them (decision of 2026-09-11). It is also why
+/// `path` is an `Option` rather than an error: a splice written before the
+/// donor's video has been rendered is an ordinary half-finished short, and
+/// the screen says which line is missing its file rather than refusing to
+/// show the list.
 ///
-/// The donor's video is its chosen clip — a `video` asset of the work. Where
-/// a donor has several, the most recent is taken: a second render of the
-/// same video is a replacement, not a rival.
-pub fn shot_list(conn: &Connection, work_id: &str) -> Result<Vec<Shot>> {
+/// The donor's file is its finished file (ADR 0070): the one the person chose
+/// in its Files tab, else the newest its kind's rule matches in its folder.
+/// It used to be the newest `video` asset of the donor - which only the
+/// scenes board ever writes, as the animation of one scene - so on the
+/// owner's 145 spliced shorts every line had no file.
+pub fn shot_list(conn: &Connection, config: &ProfileConfig, work_id: &str) -> Result<Vec<Shot>> {
     let cuts = for_work(conn, work_id)?;
+    let mut files: std::collections::BTreeMap<String, crate::folder::FinishedFile> =
+        Default::default();
     let mut shots = Vec::with_capacity(cuts.len());
     for cut in cuts {
-        let path: Option<String> = conn
-            .query_row(
-                "SELECT path FROM asset WHERE work_id = ?1 AND kind = ?2 \
-                 ORDER BY created_at DESC, rowid DESC LIMIT 1",
-                params![cut.source_id, crate::scene_frame::VIDEO],
-                |row| row.get(0),
-            )
-            .optional()?;
+        if !files.contains_key(&cut.source_id) {
+            let source = crate::work::get(conn, &cut.source_id)?
+                .ok_or_else(|| Error::not_found("work", cut.source_id.clone()))?;
+            files.insert(
+                cut.source_id.clone(),
+                crate::folder::finished(conn, config, &source)?,
+            );
+        }
+        let file = &files[&cut.source_id];
         shots.push(Shot {
             cut_id: cut.id,
             position: cut.position,
@@ -287,7 +297,8 @@ pub fn shot_list(conn: &Connection, work_id: &str) -> Result<Vec<Shot>> {
             ends_at: cut.ends_at,
             source_id: cut.source_id,
             source_title: cut.source_title,
-            path,
+            path: file.path.clone(),
+            file_state: file.state,
         });
     }
     Ok(shots)
@@ -801,35 +812,62 @@ mod tests {
         )
         .unwrap();
 
-        let unrendered = shot_list(&conn, &short).unwrap();
+        let config = profile::config_for(&conn, &profile_id).unwrap();
+        let root = tempfile::tempdir().unwrap();
+        crate::folder::set_root(
+            &conn,
+            &profile_id,
+            Some(&root.path().to_string_lossy()),
+            "2026-10-26T00:00:00.000Z",
+        )
+        .unwrap();
+
+        let unrendered = shot_list(&conn, &config, &short).unwrap();
         assert_eq!(unrendered.len(), 1);
         assert_eq!(
             unrendered[0].path, None,
             "a splice written before the donor is rendered is an ordinary half-finished short"
         );
 
-        let media = tempfile::tempdir().unwrap();
+        // A still of one scene, attached to the donor, is not its video: it is
+        // what the scenes board writes, and the shot list once took it.
         let source = tempfile::tempdir().unwrap();
-        let file = source.path().join("harbour.mp4");
-        std::fs::write(&file, b"not really an mp4").unwrap();
+        let still = source.path().join("scene-3.mp4");
+        std::fs::write(&still, b"an animated still").unwrap();
         crate::asset::attach(
             &conn,
             &profile_id,
-            media.path(),
-            &file,
+            root.path(),
+            &still,
             crate::asset::NewAsset {
-                work_id: Some(donor),
+                work_id: Some(donor.clone()),
                 kind: Some(crate::scene_frame::VIDEO.into()),
                 ..crate::asset::NewAsset::default()
             },
         )
         .unwrap();
-
-        let ready = shot_list(&conn, &short).unwrap();
-        assert!(
-            ready[0].path.is_some(),
-            "once the donor has a video, every line has its file"
+        assert_eq!(
+            shot_list(&conn, &config, &short).unwrap()[0].path,
+            None,
+            "an animated scene is not the finished video"
         );
+
+        // The shipped Studio rule: the newest `.mp4` in the video's folder.
+        let folder = root
+            .path()
+            .join("songs")
+            .join("Harbour lights")
+            .join("video");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("harbour.mp4"), b"not really an mp4").unwrap();
+
+        let ready = shot_list(&conn, &config, &short).unwrap();
+        assert_eq!(
+            ready[0].path.as_deref(),
+            Some(folder.join("harbour.mp4").to_string_lossy().as_ref()),
+            "once the donor has its finished file, every line has it"
+        );
+        assert_eq!(ready[0].file_state, crate::folder::FileState::Found);
         assert_eq!((ready[0].starts_at, ready[0].ends_at), (48.0, 61.5));
     }
 

@@ -42,3 +42,25 @@ export function folderProblem(text: string, t: TFunction): string | null {
   }
   return null
 }
+
+/** A character no file name may hold, the stars and marks of a rule aside. */
+// eslint-disable-next-line no-control-regex
+const FORBIDDEN_IN_RULE = /[<>:"|\u0000-\u001f]/
+
+/**
+ * What is wrong with a kind's rule for its finished file (ADR 0070), or
+ * `null` when it can name one (an empty one removes it): a path inside the
+ * work's folder whose steps may hold `*` and `?`, as `video/*.mp4`. The
+ * backend's `folder::rule_problem`, checked as it is typed.
+ */
+export function fileRuleProblem(text: string, t: TFunction): string | null {
+  const rule = text.trim()
+  if (rule === '') return null
+  if (/^[\\/]/.test(rule) || /^[A-Za-z]:/.test(rule)) return t('editor.fileAbsolute')
+  for (const step of rule.split(/[\\/]/)) {
+    if (step === '') return t('editor.folderEmptyStep')
+    if (step === '.' || step === '..') return t('editor.fileClimbs')
+    if (FORBIDDEN_IN_RULE.test(step)) return t('editor.fileForbidden', { text: step })
+  }
+  return null
+}

@@ -7,4 +7,11 @@ import type { JsonValue } from "./serde_json/JsonValue";
  * `Default` so a caller — a test, an importer — names only what it means and
  * is not rewritten every time the shape gains a field.
  */
-export type NewWork = { kind: string, title: string, tags?: Array<string>, marks?: Array<string>, status?: string, collection_id?: string, meta?: { [key in string]: JsonValue }, };
+export type NewWork = { kind: string, title: string, tags?: Array<string>, marks?: Array<string>, status?: string, collection_id?: string, meta?: { [key in string]: JsonValue }, 
+/**
+ * Its number among the works of its kind made from the same origin.
+ * Given by `actions::work::derive` before the work is logged, so a
+ * replay writes the number the work was given rather than counting
+ * again (ADR 0070).
+ */
+ordinal?: number, };

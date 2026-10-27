@@ -459,15 +459,19 @@ pub fn derive(
             })
             .map(|(key, value)| (key.clone(), value.clone()))
             .collect();
+        // The number is given whether or not a title is: a short named by
+        // hand is still the third short of its song, and its folder says so
+        // (ADR 0070).
+        let (made, ordinal) = crate::publication::made_title(
+            conn,
+            &config,
+            kind,
+            &source,
+            locale.unwrap_or(crate::profile::config::SOURCE_LOCALE),
+        )?;
         let title = match title.map(str::trim).filter(|title| !title.is_empty()) {
             Some(title) => title.to_owned(),
-            None => crate::publication::made_title(
-                conn,
-                &config,
-                kind,
-                &source,
-                locale.unwrap_or(crate::profile::config::SOURCE_LOCALE),
-            )?,
+            None => made,
         };
         let door = match door {
             Some(asked) => {
@@ -485,6 +489,7 @@ pub fn derive(
                 kind: kind.to_owned(),
                 title,
                 meta: Some(meta),
+                ordinal: Some(ordinal),
                 ..NewWork::default()
             },
         )?;

@@ -37,6 +37,10 @@ use crate::work::Work;
 /// What a placeholder reads off the work it is about: its title, or a field.
 const TITLE: &str = "title";
 
+/// The placeholder for a work's number among the works of its kind made from
+/// the same origin - the 2 of "Song (short 2)" (ADR 0070): `shorts/v{n}`.
+const NUMBER: &str = "n";
+
 /// The prefix that turns a placeholder to what the work is all made from.
 const ORIGIN: &str = "origin.";
 
@@ -267,11 +271,14 @@ fn as_name(value: &str) -> String {
     name
 }
 
-/// What a placeholder reads off a work: its title, or a field that holds a
-/// word or a number. A list, a yes-or-no or an empty field names no folder.
+/// What a placeholder reads off a work: its title, its number among the works
+/// of its kind made from the same origin, or a field that holds a word or a
+/// number. A list, a yes-or-no or an empty field names no folder.
 fn value_of(work: &Work, name: &str) -> Option<String> {
     let raw = if name == TITLE {
         work.title.clone()
+    } else if name == NUMBER {
+        work.ordinal?.to_string()
     } else {
         match work.meta.get(name)? {
             Value::String(text) => text.clone(),
@@ -403,6 +410,8 @@ pub struct WorkFolder {
     pub files: Vec<FolderFile>,
     /// Whether there were more files than a listing goes to.
     pub truncated: bool,
+    /// The work's finished file, and how it was found.
+    pub file: FinishedFile,
 }
 
 impl WorkFolder {
@@ -415,12 +424,264 @@ impl WorkFolder {
             unfilled: None,
             files: Vec::new(),
             truncated: false,
+            file: FinishedFile::stated(FileState::NoFolder, None),
+        }
+    }
+}
+
+/// How a work's finished file was found, or why it was not (ADR 0070).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub enum FileState {
+    /// The work's folder is not there to look in.
+    NoFolder,
+    /// The kind names no rule, and nothing was chosen by hand.
+    NoRule,
+    /// The rule matches nothing in the folder yet.
+    NotYet,
+    /// Found by the kind's rule: the newest file the pattern matches.
+    Found,
+    /// Chosen by hand in the Files tab.
+    Chosen,
+    /// Chosen by hand, and no longer there. Not replaced by what the rule
+    /// finds: the person said which file, and cutting another one in its name
+    /// would be a guess.
+    ChosenMissing,
+}
+
+/// The file a work is finished as - the clip a short is cut from, the short
+/// a plugin made - found in the work's folder, never copied (ADR 0070).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+pub struct FinishedFile {
+    pub state: FileState,
+    /// The kind's rule, for saying what was looked for.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub rule: Option<String>,
+    /// Where it is inside the work's folder, `/` between the steps - also
+    /// the choice that is no longer there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub relative: Option<String>,
+    /// Where it is, whole, when it is there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub path: Option<String>,
+}
+
+impl FinishedFile {
+    fn stated(state: FileState, rule: Option<String>) -> Self {
+        Self {
+            state,
+            rule,
+            relative: None,
+            path: None,
         }
     }
 }
 
 /// Find a work's folder and list it.
 pub fn of_work(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkFolder> {
+    let mut found = locate(conn, config, work)?;
+    if found.state == FolderState::Found
+        && let Some(path) = found.path.as_deref()
+    {
+        let (files, truncated) = list(Path::new(path));
+        found.files = files;
+        found.truncated = truncated;
+    }
+    Ok(found)
+}
+
+/// A work's finished file: the one chosen by hand when there is one, else the
+/// newest file the kind's rule matches in the work's folder.
+pub fn finished(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<FinishedFile> {
+    Ok(locate(conn, config, work)?.file)
+}
+
+/// Where a work's folder is and what its finished file is, without listing
+/// the folder.
+pub fn locate(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkFolder> {
+    let mut found = place(conn, config, work)?;
+    let rule = config
+        .work_kinds
+        .iter()
+        .find(|kind| kind.key == work.kind)
+        .and_then(|kind| kind.file.clone());
+    found.file = match (found.state, found.path.as_deref()) {
+        (FolderState::Found, Some(folder)) => finished_in(Path::new(folder), work, rule),
+        _ => FinishedFile::stated(FileState::NoFolder, rule),
+    };
+    Ok(found)
+}
+
+/// The finished file inside a folder that is there.
+fn finished_in(folder: &Path, work: &Work, rule: Option<String>) -> FinishedFile {
+    if let Some(chosen) = &work.file {
+        let path = chosen
+            .split('/')
+            .fold(folder.to_path_buf(), |path, step| path.join(step));
+        let there = path.is_file();
+        return FinishedFile {
+            state: if there {
+                FileState::Chosen
+            } else {
+                FileState::ChosenMissing
+            },
+            rule,
+            relative: Some(chosen.clone()),
+            path: there.then(|| path.to_string_lossy().into_owned()),
+        };
+    }
+    let Some(pattern) = rule.as_deref().and_then(|rule| steps_of(rule).ok()) else {
+        return FinishedFile::stated(FileState::NoRule, rule);
+    };
+    match newest(folder, &pattern) {
+        Some((path, relative)) => FinishedFile {
+            state: FileState::Found,
+            rule,
+            relative: Some(relative),
+            path: Some(path.to_string_lossy().into_owned()),
+        },
+        None => FinishedFile::stated(FileState::NotYet, rule),
+    }
+}
+
+/// The steps of a rule for a finished file - `video/*.mp4` - or what is
+/// wrong with it. A step may hold `*` for any run of characters and `?` for
+/// one; a rule names a file inside the work's folder and nothing else.
+fn steps_of(rule: &str) -> std::result::Result<Vec<String>, String> {
+    let rule = rule.trim();
+    if rule.is_empty() {
+        return Err("is empty".into());
+    }
+    if rule.starts_with(['/', '\\']) || rule.as_bytes().get(1) == Some(&b':') {
+        return Err(
+            "is a place on a disk; it names a file inside the work's folder, as `video/*.mp4`"
+                .into(),
+        );
+    }
+    let mut steps = Vec::new();
+    for step in rule.split(['/', '\\']) {
+        if step.is_empty() {
+            return Err("has an empty step between two slashes".into());
+        }
+        if step == "." || step == ".." {
+            return Err(format!(
+                "steps `{step}`; a finished file lies inside the work's folder"
+            ));
+        }
+        if step
+            .chars()
+            .any(|c| c != '*' && c != '?' && is_forbidden(c))
+        {
+            return Err(format!(
+                "writes `{step}`, which no file can be called on every system"
+            ));
+        }
+        steps.push(step.to_owned());
+    }
+    Ok(steps)
+}
+
+/// What is wrong with a rule for a finished file, for the profile's
+/// validation; `None` when it can name one.
+pub fn rule_problem(rule: &str) -> Option<String> {
+    steps_of(rule).err()
+}
+
+/// Whether a name matches one step of a rule: `*` any run of characters, `?`
+/// any one, everything else itself whatever its case - the systems a person
+/// keeps media on mostly do not tell `V1.MP4` from `v1.mp4`.
+fn step_matches(step: &str, name: &str) -> bool {
+    let step: Vec<char> = step.to_lowercase().chars().collect();
+    let name: Vec<char> = name.to_lowercase().chars().collect();
+    // The classic two-pointer match with one remembered star: linear, and no
+    // recursion for a name full of stars to blow up.
+    let (mut s, mut n) = (0, 0);
+    let mut star: Option<(usize, usize)> = None;
+    while n < name.len() {
+        if s < step.len() && (step[s] == '?' || step[s] == name[n]) {
+            s += 1;
+            n += 1;
+        } else if s < step.len() && step[s] == '*' {
+            star = Some((s, n));
+            s += 1;
+        } else if let Some((at, from)) = star {
+            s = at + 1;
+            n = from + 1;
+            star = Some((at, from + 1));
+        } else {
+            return false;
+        }
+    }
+    step[s..].iter().all(|c| *c == '*')
+}
+
+/// The newest file under `folder` the steps match, and where it is inside the
+/// folder: last changed first, the greater path when two changed at once.
+fn newest(folder: &Path, steps: &[String]) -> Option<(PathBuf, String)> {
+    let mut places = vec![(folder.to_path_buf(), String::new())];
+    for (index, step) in steps.iter().enumerate() {
+        let last = index + 1 == steps.len();
+        let mut next = Vec::new();
+        for (dir, relative) in places {
+            let Ok(entries) = std::fs::read_dir(&dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if is_the_systems(&name) || !step_matches(step, &name) {
+                    continue;
+                }
+                let Ok(kind) = entry.file_type() else {
+                    continue;
+                };
+                if (last && kind.is_file()) || (!last && kind.is_dir()) {
+                    let relative = if relative.is_empty() {
+                        name
+                    } else {
+                        format!("{relative}/{name}")
+                    };
+                    next.push((entry.path(), relative));
+                }
+            }
+        }
+        places = next;
+    }
+    places
+        .into_iter()
+        .map(|(path, relative)| {
+            let changed = std::fs::metadata(&path)
+                .and_then(|metadata| metadata.modified())
+                .ok();
+            (changed, relative, path)
+        })
+        .max_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)))
+        .map(|(_, relative, path)| (path, relative))
+}
+
+/// A path a person chose inside a work's folder, as it is kept: the steps
+/// joined by `/`. Refused when it is a place on a disk or climbs out - the
+/// choice names a file of the folder and nothing else.
+pub fn inside(path: &str) -> Result<String> {
+    let refused = || Error::refused("folder.fileOutside").param("path", path);
+    let path = path.trim();
+    if path.is_empty() || path.starts_with(['/', '\\']) || path.as_bytes().get(1) == Some(&b':') {
+        return Err(refused());
+    }
+    let mut steps = Vec::new();
+    for step in path.split(['/', '\\']) {
+        if step.is_empty() || step == "." || step == ".." || step.chars().any(is_forbidden) {
+            return Err(refused());
+        }
+        steps.push(step);
+    }
+    Ok(steps.join("/"))
+}
+
+/// Where a work's folder is, and whether it is there.
+fn place(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkFolder> {
     let Some(root) = root(conn, &work.profile_id)? else {
         return Ok(WorkFolder::stated(FolderState::NoRoot));
     };
@@ -453,9 +714,6 @@ pub fn of_work(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result
             found.path = Some(path.to_string_lossy().into_owned());
             if path.is_dir() {
                 found.state = FolderState::Found;
-                let (files, truncated) = list(&path);
-                found.files = files;
-                found.truncated = truncated;
             } else {
                 found.state = FolderState::Absent;
             }
@@ -854,5 +1112,146 @@ mod tests {
         );
         let refused = create(&conn, &config, &song).unwrap_err();
         assert_eq!(refused.refusal().map(|r| r.code), Some("folder.noTemplate"));
+    }
+
+    /// `{n}` reads the work's number among its kind made from the same
+    /// origin: the second short of a song lies in `shorts/v2`, and a work
+    /// with no number says the placeholder it could not fill.
+    #[test]
+    fn a_number_names_a_folder_of_its_own() {
+        let root = Path::new("/media");
+        let song = work("Tide", json!({}));
+        let mut short = work("Tide (short 2)", json!({}));
+        short.ordinal = Some(2);
+
+        assert_eq!(
+            resolve(root, "songs/{origin.title}/shorts/v{n}", &short, &song).unwrap(),
+            at(root, &["songs", "Tide", "shorts", "v2"])
+        );
+        short.ordinal = None;
+        assert_eq!(
+            resolve(root, "songs/{origin.title}/shorts/v{n}", &short, &song).unwrap(),
+            Resolved::Unfilled("n".into()),
+            "a hole in the path would show the shorts folder of every short"
+        );
+    }
+
+    /// A step of a rule holds `*` and `?`, whatever the case of the name.
+    #[test]
+    fn a_rule_step_matches_by_stars_and_marks() {
+        assert!(step_matches("*.mp4", "v1.mp4"));
+        assert!(
+            step_matches("*.mp4", "TAKE 2.MP4"),
+            "case is not a difference"
+        );
+        assert!(step_matches("v*", "v12"));
+        assert!(step_matches("v?", "v3"));
+        assert!(!step_matches("v?", "v12"), "one mark is one character");
+        assert!(!step_matches("*.mp4", "v1.mp4.part"));
+        assert!(step_matches("*a*b*", "xxaxxbxx"));
+        assert!(!step_matches("*a*b", "xxaxxbxxc"));
+        assert!(step_matches("*", ""));
+    }
+
+    /// A rule names a file inside the work's folder and nothing else.
+    #[test]
+    fn a_rule_that_leaves_the_folder_is_refused() {
+        assert_eq!(rule_problem("v*/video/*.mp4"), None);
+        for rule in [
+            "",
+            "/video/*.mp4",
+            "C:/video/*.mp4",
+            "../*.mp4",
+            "video//*.mp4",
+            "a|b",
+        ] {
+            assert!(rule_problem(rule).is_some(), "{rule:?} is refused");
+        }
+        assert_eq!(inside(r"v1\video\v2.mp4").unwrap(), "v1/video/v2.mp4");
+        for path in ["", "/v1.mp4", r"C:\v1.mp4", "../v1.mp4", "v1/./v2.mp4"] {
+            assert_eq!(
+                inside(path).unwrap_err().refusal().map(|r| r.code),
+                Some("folder.fileOutside"),
+                "{path:?} is no file of the folder"
+            );
+        }
+    }
+
+    /// The finished file: the newest the rule matches - only where the rule
+    /// says, never an animated scene beside it - and a file chosen by hand
+    /// over the rule, which is not replaced by a guess when it goes.
+    #[test]
+    fn the_finished_file_is_the_newest_the_rule_matches_or_the_one_chosen() {
+        let (conn, profile_id) = crate::fixtures::workspace();
+        let dir = tempfile::tempdir().unwrap();
+        set_root(
+            &conn,
+            &profile_id,
+            Some(&dir.path().to_string_lossy()),
+            "2030-01-01T00:00:00.000Z",
+        )
+        .unwrap();
+        let mut config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        for kind in &mut config.work_kinds {
+            kind.folder = Some("clips/{title}".into());
+            kind.file = Some("v*/video/*.mp4".into());
+        }
+        let mut clip = crate::fixtures::video(&conn, &profile_id, "Harbour lights");
+        let folder = dir.path().join("clips").join("Harbour lights");
+
+        assert_eq!(
+            finished(&conn, &config, &clip).unwrap().state,
+            FileState::NoFolder
+        );
+        std::fs::create_dir_all(folder.join("v1/video/hd")).unwrap();
+        std::fs::create_dir_all(folder.join("v2/video")).unwrap();
+        assert_eq!(
+            finished(&conn, &config, &clip).unwrap().state,
+            FileState::NotYet
+        );
+
+        let write = |relative: &str, minutes_ago: u64| {
+            let path = folder.join(relative);
+            std::fs::write(&path, b"not really an mp4").unwrap();
+            let at =
+                std::time::SystemTime::now() - std::time::Duration::from_secs(minutes_ago * 60);
+            std::fs::File::options()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_modified(at)
+                .unwrap();
+        };
+        write("v1/video/v9.mp4", 30);
+        write("v1/video/v2.mp4", 20);
+        write("v1/video/hd/scene-4.mp4", 1);
+        write("v2/video/notes.txt", 1);
+
+        let found = finished(&conn, &config, &clip).unwrap();
+        assert_eq!(found.state, FileState::Found);
+        assert_eq!(
+            found.relative.as_deref(),
+            Some("v1/video/v2.mp4"),
+            "the newest render - not the greatest name, nor the scene animated a minute ago one step deeper"
+        );
+
+        clip.file = Some("v1/video/v9.mp4".into());
+        let chosen = finished(&conn, &config, &clip).unwrap();
+        assert_eq!(chosen.state, FileState::Chosen);
+        assert_eq!(chosen.relative.as_deref(), Some("v1/video/v9.mp4"));
+
+        std::fs::remove_file(folder.join("v1/video/v9.mp4")).unwrap();
+        let gone = finished(&conn, &config, &clip).unwrap();
+        assert_eq!(gone.state, FileState::ChosenMissing);
+        assert_eq!(gone.path, None, "the rule does not stand in for a choice");
+
+        clip.file = None;
+        for kind in &mut config.work_kinds {
+            kind.file = None;
+        }
+        assert_eq!(
+            finished(&conn, &config, &clip).unwrap().state,
+            FileState::NoRule
+        );
     }
 }

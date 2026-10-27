@@ -16,6 +16,13 @@ import { keys } from '@/lib/query/keys'
 export const refresh = {
   /** A work's fields, stage, star, tags or tier: the lists that show works. */
   work: [keys.works, keys.catalogue, keys.pictures] as readonly QueryKey[],
+  /** A work's finished file or its number (ADR 0070): the work, its folder,
+   *  and every shot list - a short cut from it hands its file to a cutter. */
+  finishedFile: (workId: string): readonly QueryKey[] => [
+    keys.work(workId),
+    keys.folderFor(workId),
+    keys.cuts,
+  ],
   /** A work made or gone: everything that counts or places works. */
   works: [
     keys.works,

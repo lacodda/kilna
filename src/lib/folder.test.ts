@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TFunction } from 'i18next'
-import { folderProblem } from '@/lib/folder'
+import { fileRuleProblem, folderProblem } from '@/lib/folder'
 
 // The key the check answers with, so a test reads which rule spoke.
 const t = ((key: string) => key) as unknown as TFunction
@@ -34,6 +34,28 @@ describe('a folder template', () => {
     ]
     for (const [template, reason] of cases) {
       expect(folderProblem(template, t), template).toBe(reason)
+    }
+  })
+})
+
+describe("a rule for a work's finished file", () => {
+  it('names a file inside the folder, stars and marks allowed', () => {
+    for (const rule of ['', 'video/*.mp4', 'v*/video/*.mp4', 'take-?.wav', 'v1\\video\\*.mp4']) {
+      expect(fileRuleProblem(rule, t), rule).toBeNull()
+    }
+  })
+
+  it('is refused where the profile would refuse it, with the reason', () => {
+    const cases: [string, string][] = [
+      ['/video/*.mp4', 'editor.fileAbsolute'],
+      ['\\video\\*.mp4', 'editor.fileAbsolute'],
+      ['D:/video/*.mp4', 'editor.fileAbsolute'],
+      ['video//*.mp4', 'editor.folderEmptyStep'],
+      ['../*.mp4', 'editor.fileClimbs'],
+      ['video/a|b.mp4', 'editor.fileForbidden'],
+    ]
+    for (const [rule, reason] of cases) {
+      expect(fileRuleProblem(rule, t), rule).toBe(reason)
     }
   })
 })

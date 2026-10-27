@@ -43,4 +43,15 @@ cover?: Cover | null,
  * Replaces the whole frame, for the cover's reason: the screen sends it
  * whole, so the log's `before` holds the frame as it was.
  */
-frame?: Frame | null, };
+frame?: Frame | null, 
+/**
+ * The work's number among those of its kind made from the same origin;
+ * `Some(None)` takes it away. A number a sibling already has is
+ * refused: two works under one number would share one folder.
+ */
+ordinal?: number | null | null, 
+/**
+ * The finished file chosen by hand, inside the work's folder;
+ * `Some(None)` gives the choice back to the kind's rule.
+ */
+file?: string | null | null, };

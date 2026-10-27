@@ -29,7 +29,8 @@
           "en": "Video",
           "ru": "Видео"
         },
-        "folder": "songs/{origin.title}",
+        "folder": "songs/{origin.title}/video",
+        "file": "*.mp4",
         "axes": [
           {
             "key": "dynamics",
@@ -517,7 +518,8 @@
           "en": "Audio",
           "ru": "Аудио"
         },
-        "folder": "songs/{origin.title}",
+        "folder": "songs/{origin.title}/audio",
+        "file": "*.mp4",
         "version_roles": [
           {
             "key": "plot",
@@ -738,7 +740,8 @@
           "en": "Short",
           "ru": "Шортс"
         },
-        "folder": "songs/{origin.title}",
+        "folder": "songs/{origin.title}/shorts/{n}",
+        "file": "*.mp4",
         "axes": [
           {
             "key": "dynamics",

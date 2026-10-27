@@ -101,6 +101,14 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         if let Some(stage) = work.stage {
             push_field(&mut page, "stage", &stage.to_string());
         }
+        // Its number in its family and the file it is finished as (ADR 0070):
+        // facts of the work a folder of its own is named and found by.
+        if let Some(ordinal) = work.ordinal {
+            push_field(&mut page, "number", &ordinal.to_string());
+        }
+        if let Some(file) = &work.file {
+            push_field(&mut page, "finished_file", file);
+        }
         for (key, value) in &work.meta {
             // A JSON string carries its own quotes; taking them along would
             // export `"ru"` as `"\"ru\""`.

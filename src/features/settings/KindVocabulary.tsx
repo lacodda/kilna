@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { WorkKind } from '@/lib/api/types'
-import { folderProblem } from '@/lib/folder'
+import { fileRuleProblem, folderProblem } from '@/lib/folder'
 import { say as sayLabel } from '@/lib/useProfile'
 import { AxesEditor } from '@/features/settings/AxesEditor'
 import { CheckedInput } from '@/features/settings/CheckedInput'
@@ -69,6 +69,18 @@ export function KindVocabulary({
         value={kind.folder ?? ''}
         check={(text) => folderProblem(text, t)}
         onCommit={(text) => onChange({ folder: text.trim() === '' ? null : text.trim() })}
+      />
+      {/* Which file in that folder the work is finished as (v0.101, ADR
+          0070): the newest the pattern matches, unless one is chosen in the
+          Files tab. What a cutter cuts a short from. */}
+      <CheckedInput
+        label={t('editor.file')}
+        help={t('editor.fileHint')}
+        className="font-mono"
+        placeholder="video/*.mp4"
+        value={kind.file ?? ''}
+        check={(text) => fileRuleProblem(text, t)}
+        onCommit={(text) => onChange({ file: text.trim() === '' ? null : text.trim() })}
       />
       {/* The storyboard's words, for a kind that has any: a song lists none
           and shows nothing here. Keys, as everywhere on this screen, come

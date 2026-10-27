@@ -282,6 +282,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0044_main_version.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 45,
+        name: "work_ordinal_and_file",
+        sql: include_str!("../../migrations/0045_work_ordinal_and_file.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.

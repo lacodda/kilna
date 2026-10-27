@@ -39,6 +39,7 @@ const FOUND: WorkFolder = {
     file('still.png'),
   ],
   truncated: false,
+  file: { state: 'noFolder' },
 }
 
 let backend: Backend
@@ -113,7 +114,7 @@ describe("a work's folder on disk", () => {
   })
 
   it('sends a workspace with no media folder to choose one', async () => {
-    folder = { state: 'noRoot', files: [], truncated: false }
+    folder = { state: 'noRoot', files: [], truncated: false, file: { state: 'noFolder' } }
     renderApp(`/works/${IDS.song}/files`)
     const section = await screen.findByRole('region', { name: en.folder.heading })
     expect(await within(section).findByText(en.folder.noRoot, { exact: false })).toBeVisible()
@@ -128,6 +129,7 @@ describe("a work's folder on disk", () => {
       unfilled: 'code',
       files: [],
       truncated: false,
+      file: { state: 'noFolder' },
     }
     renderApp(`/works/${IDS.song}/files`)
     const section = await screen.findByRole('region', { name: en.folder.heading })
@@ -174,6 +176,77 @@ describe("the card's player", () => {
     expect(
       screen.queryByRole('button', { name: new RegExp(en.player.play.split('“')[0]!) }),
     ).toBeNull()
+  })
+})
+
+describe("a work's finished file", () => {
+  const take = `${FOLDER}\\clip\\v1\\take-2.mp4`
+
+  it('says which file the rule found, marks its tile, and lets another be chosen', async () => {
+    folder = {
+      ...FOUND,
+      file: { state: 'found', rule: 'clip/*/*.mp4', relative: 'clip/v1/take-2.mp4', path: take },
+    }
+    backend = mockBackend({
+      ...answersFor(studio()),
+      work_folder: () => folder,
+      update_work: ({ id }) => studio().works.find((one) => one.id === id)!,
+    })
+    const { client } = renderApp(`/works/${IDS.song}/files`)
+    const section = await screen.findByRole('region', { name: en.folder.heading })
+    expect(
+      await within(section).findByText(
+        en.folder.finished.found
+          .replace('{{file}}', 'clip/v1/take-2.mp4')
+          .replace('{{rule}}', 'clip/*/*.mp4'),
+      ),
+    ).toBeVisible()
+    await settled(client)
+
+    const marked = within(section).getByText('take-2.mp4').closest('li')!
+    expect(within(marked).getByLabelText(en.folder.finished.mark)).toBeVisible()
+    expect(
+      within(marked).queryByRole('button', { name: en.folder.finished.makeIt }),
+      'the finished file is not offered to itself',
+    ).toBeNull()
+    const picture = within(section).getByText('still.png').closest('li')!
+    expect(
+      within(picture).queryByRole('button', { name: en.folder.finished.makeIt }),
+      'a still is not what a work is finished as',
+    ).toBeNull()
+
+    const rough = within(section).getByText('mix-rough.wav').closest('li')!
+    fireEvent.click(within(rough).getByRole('button', { name: en.folder.finished.makeIt }))
+    await waitFor(() =>
+      expect(backend.argsOf('update_work')).toEqual([
+        { id: IDS.song, patch: { file: 'audio-release/v1/mix-rough.wav' } },
+      ]),
+    )
+  })
+
+  it('says a chosen file is gone, and gives the choice back to the rule', async () => {
+    folder = {
+      ...FOUND,
+      file: { state: 'chosenMissing', rule: 'clip/*/*.mp4', relative: 'clip/v1/take-1.mp4' },
+    }
+    backend = mockBackend({
+      ...answersFor(studio()),
+      work_folder: () => folder,
+      update_work: ({ id }) => studio().works.find((one) => one.id === id)!,
+    })
+    const { client } = renderApp(`/works/${IDS.song}/files`)
+    const section = await screen.findByRole('region', { name: en.folder.heading })
+    expect(
+      await within(section).findByText(
+        en.folder.finished.chosenMissing.replace('{{file}}', 'clip/v1/take-1.mp4'),
+      ),
+    ).toBeVisible()
+    await settled(client)
+
+    fireEvent.click(within(section).getByRole('button', { name: en.folder.finished.backToRule }))
+    await waitFor(() =>
+      expect(backend.argsOf('update_work')).toEqual([{ id: IDS.song, patch: { file: null } }]),
+    )
   })
 })
 

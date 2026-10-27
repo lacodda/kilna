@@ -3,17 +3,20 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
-import { Copy, FolderOpen, FolderPlus, Play, RefreshCw } from 'lucide-react'
+import { CircleCheck, Copy, FolderOpen, FolderPlus, Play, RefreshCw, Undo2 } from 'lucide-react'
 import { attachAsset } from '@/lib/api/assets'
 import { createWorkFolder, openMedia } from '@/lib/api/folders'
-import type { FolderFile, Work, WorkFolder } from '@/lib/api/types'
+import type { FinishedFile, FolderFile, Work, WorkFolder } from '@/lib/api/types'
+import { updateWork } from '@/lib/api/works'
 import { extensionOf, mediaKindOf } from '@/lib/media'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { InlineField, numberCodec } from '@/components/ui/inline-field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MediaPreview } from '@/components/MediaPreview'
 import { usePlayer } from '@/features/work/player'
@@ -58,6 +61,7 @@ export function FolderSection({ work }: { work: Work }) {
             {path}
           </span>
         )}
+        {work.ordinal !== null && <Ordinal work={work} />}
         <span className="ml-auto flex items-center gap-1">
           {found && path !== undefined && (
             <Button
@@ -83,6 +87,8 @@ export function FolderSection({ work }: { work: Work }) {
           </Button>
         </span>
       </header>
+
+      {found && folder.data !== undefined && <FinishedLine work={work} file={folder.data.file} />}
 
       {folder.isPending ? (
         <Skeleton className="h-26 w-full" />
@@ -161,7 +167,12 @@ function FolderBody({
       return folder.files.length === 0 ? (
         <Said>{t('folder.empty')}</Said>
       ) : (
-        <FolderFiles files={folder.files} truncated={folder.truncated} work={work} />
+        <FolderFiles
+          files={folder.files}
+          truncated={folder.truncated}
+          work={work}
+          finished={folder.file}
+        />
       )
   }
 }
@@ -170,15 +181,114 @@ function Said({ children }: { children: ReactNode }) {
   return <p className="text-sm text-dim">{children}</p>
 }
 
+/**
+ * The work's number among the works of its kind made from the same origin -
+ * the 2 of "Song (short 2)", which `{n}` reads in its folder (ADR 0070). Given
+ * when the work was made; typed over when the folder on disk says otherwise.
+ */
+function Ordinal({ work }: { work: Work }) {
+  const { t } = useTranslation()
+  const renumber = useAppMutation({
+    mutationFn: (ordinal: number) => updateWork(work.id, { ordinal }),
+    refresh: refresh.finishedFile(work.id),
+  })
+
+  return (
+    <span className="flex items-center gap-1 text-xs text-faint">
+      {t('folder.number')}
+      <InlineField
+        className="w-12"
+        label={t('folder.number')}
+        labelHidden
+        codec={numberCodec}
+        value={work.ordinal}
+        disabled={renumber.isPending}
+        onCommit={(next) => {
+          // A number is whole and above nought; anything else goes back to
+          // the stored one, which is certainly true.
+          if (next === null || !Number.isInteger(next) || next < 1 || next === work.ordinal) {
+            return false
+          }
+          renumber.mutate(next)
+        }}
+      />
+    </span>
+  )
+}
+
+/**
+ * Which file the work is finished as (ADR 0070): the newest the kind's rule
+ * matches, or the one chosen by hand - and, for a choice, the way back to the
+ * rule. What a cutter cuts a short from.
+ */
+function FinishedLine({ work, file }: { work: Work; file: FinishedFile }) {
+  const { t } = useTranslation()
+  const back = useAppMutation({
+    mutationFn: () => updateWork(work.id, { file: null }),
+    refresh: refresh.finishedFile(work.id),
+  })
+  const rule = file.rule ?? ''
+  const said = finishedSaying(file, rule, t)
+  if (said === null) return null
+
+  return (
+    <p
+      className={cn(
+        'flex flex-wrap items-center gap-x-2 text-sm',
+        file.state === 'chosenMissing' ? 'text-warn' : 'text-dim',
+      )}
+    >
+      <CircleCheck
+        aria-hidden
+        className={cn(
+          'size-3.5 shrink-0',
+          file.state === 'found' || file.state === 'chosen' ? 'text-good' : 'text-faint',
+        )}
+      />
+      <span className="min-w-0">{said}</span>
+      {(file.state === 'chosen' || file.state === 'chosenMissing') && (
+        <Button size="xs" variant="ghost" disabled={back.isPending} onClick={() => back.mutate()}>
+          <Undo2 aria-hidden />
+          {t('folder.finished.backToRule')}
+        </Button>
+      )}
+    </p>
+  )
+}
+
+/** The line that says how the finished file was found, or why it was not. */
+function finishedSaying(
+  file: FinishedFile,
+  rule: string,
+  t: ReturnType<typeof useTranslation>['t'],
+): string | null {
+  switch (file.state) {
+    case 'found':
+      return t('folder.finished.found', { file: file.relative ?? '', rule })
+    case 'chosen':
+      return t('folder.finished.chosen', { file: file.relative ?? '' })
+    case 'chosenMissing':
+      return t('folder.finished.chosenMissing', { file: file.relative ?? '' })
+    case 'notYet':
+      return t('folder.finished.notYet', { rule })
+    case 'noRule':
+      return t('folder.finished.noRule')
+    case 'noFolder':
+      return null
+  }
+}
+
 /** The files in groups by the folder they lie in, the work's own first. */
 function FolderFiles({
   files,
   truncated,
   work,
+  finished,
 }: {
   files: FolderFile[]
   truncated: boolean
   work: Work
+  finished: FinishedFile
 }) {
   const { t } = useTranslation()
   const groups = useMemo(() => byFolder(files), [files])
@@ -192,7 +302,12 @@ function FolderFiles({
           </h4>
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2.5">
             {group.files.map((file) => (
-              <FolderTile key={file.path} file={file} work={work} />
+              <FolderTile
+                key={file.path}
+                file={file}
+                work={work}
+                finished={finished.path === file.path}
+              />
             ))}
           </ul>
         </section>
@@ -222,11 +337,20 @@ export function byFolder(files: FolderFile[]): { folder: string; files: FolderFi
  * One file of the folder: what it looks like, what it is called, and what can
  * be done with it - opened, played, shown where it lies, copied in.
  */
-function FolderTile({ file, work }: { file: FolderFile; work: Work }) {
+function FolderTile({ file, work, finished }: { file: FolderFile; work: Work; finished: boolean }) {
   const { t } = useTranslation()
   const player = usePlayer()
   const name = file.relative.split('/').at(-1) ?? file.relative
   const kind = mediaKindOf(file.path)
+  // A clip or a sound can be what a work is finished as; a picture or a note
+  // beside it cannot be cut or played as the work.
+  const finishable = kind === 'clip' || kind === 'sound'
+
+  const choose = useAppMutation({
+    mutationFn: () => updateWork(work.id, { file: file.relative }),
+    refresh: refresh.finishedFile(work.id),
+    onSuccess: () => say.ok(t('folder.finished.madeIt', { name })),
+  })
 
   const copyIn = useAppMutation({
     mutationFn: () => attachAsset(file.path, { work_id: work.id }),
@@ -272,8 +396,14 @@ function FolderTile({ file, work }: { file: FolderFile; work: Work }) {
           />
         )}
       </button>
-      <p className="truncate px-2 py-1.5 text-xs" title={file.relative}>
-        {name}
+      <p className="flex items-center gap-1 px-2 py-1.5 text-xs" title={file.relative}>
+        {finished && (
+          <CircleCheck
+            aria-label={t('folder.finished.mark')}
+            className="size-3.5 shrink-0 text-good"
+          />
+        )}
+        <span className="truncate">{name}</span>
       </p>
       <span
         className={cn(
@@ -293,6 +423,19 @@ function FolderTile({ file, work }: { file: FolderFile; work: Work }) {
         >
           <FolderOpen aria-hidden />
         </Button>
+        {finishable && !finished && (
+          <Button
+            variant="icon"
+            size="icon-xs"
+            title={t('folder.finished.makeIt')}
+            aria-label={t('folder.finished.makeIt')}
+            disabled={choose.isPending}
+            className="rounded-sm bg-raise/85 shadow-lift not-data-disabled:hover:bg-raise"
+            onClick={() => choose.mutate()}
+          >
+            <CircleCheck aria-hidden />
+          </Button>
+        )}
         <Button
           variant="icon"
           size="icon-xs"

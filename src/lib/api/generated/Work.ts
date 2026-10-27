@@ -54,4 +54,17 @@ cover: Cover,
  * its whole length (v0.86, ADR 0046). A frame at its starting settings
  * for every other work, and for every work made before it existed.
  */
-frame: Frame, created_at: string, updated_at: string, };
+frame: Frame, 
+/**
+ * Its number among the works of its kind made from the same origin -
+ * the 2 of "Song (short 2)" - given when it is made from another, past
+ * the greatest one already given (ADR 0070). `{n}` reads it in a title
+ * and in a folder. `None` for a work made from nothing.
+ */
+ordinal: number | null, 
+/**
+ * The finished file a person chose by hand, as a path inside the work's
+ * folder (`v1/video/v2.mp4`). `None` lets the kind's rule find it - the
+ * newest file its pattern matches (ADR 0070).
+ */
+file: string | null, created_at: string, updated_at: string, };

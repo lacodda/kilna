@@ -38,6 +38,7 @@ function shot(over: Partial<Shot> = {}): Shot {
     source_id: 's1',
     source_title: 'Harbour lights',
     path: '/media/harbour.mp4',
+    file_state: 'found',
     ...over,
   }
 }
@@ -125,10 +126,14 @@ describe('tracksOf', () => {
 })
 
 describe('blockerOf', () => {
-  it('tells an empty splice from one whose donor has no video yet', () => {
+  it('tells an empty splice from one whose donor has no finished file, and why', () => {
     expect(blockerOf([])).toBe('empty')
-    expect(blockerOf([shot({ path: null })])).toBe('noFile')
-    expect(blockerOf([shot(), shot({ cut_id: 'c2', path: null })])).toBe('noFile')
+    expect(blockerOf([shot({ path: null, file_state: 'notYet' })])).toBe('notYet')
+    expect(
+      blockerOf([shot(), shot({ cut_id: 'c2', path: null, file_state: 'chosenMissing' })]),
+    ).toBe('chosenMissing')
+    expect(blockerOf([shot({ path: null, file_state: 'noRule' })])).toBe('noRule')
+    expect(blockerOf([shot({ path: null, file_state: 'noFolder' })])).toBe('noFolder')
     expect(blockerOf([shot()])).toBeNull()
   })
 })

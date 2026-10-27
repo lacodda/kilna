@@ -13,6 +13,13 @@ pub fn create(conn: &Connection, new: NewLink) -> Result<Link> {
         act.json("link", &new)?;
         let minted = act.mint();
         let created = link::create_minted(act, act.profile_id(), new, minted)?;
+        // A work made from another by hand - linked after it was made - is
+        // given its number among its kind in the family now, as `derive`
+        // gives it at birth; the log keeps the number, so a replay writes it
+        // rather than counting again (ADR 0070).
+        if let Some(number) = crate::ordinal::give_if_missing(act, &created)? {
+            act.param("ordinal", number);
+        }
         // A song whose status is its publications' gained one (v0.86).
         super::restate_linked(act, act.profile_id(), &created.work_id, &created.source_id);
         act.journal(

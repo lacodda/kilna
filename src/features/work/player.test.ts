@@ -32,6 +32,7 @@ const FOLDER: WorkFolder = {
     { path: 'D:/s/take.flac', relative: 'take.flac', size: 1 },
   ],
   truncated: false,
+  file: { state: 'noRule' },
 }
 
 describe("the card's sounds", () => {

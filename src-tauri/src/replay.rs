@@ -482,7 +482,10 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
         "link.create" => {
             let profile_id = workspace_profile(conn, params)?;
             let new = from_params(params, "link")?;
-            link::create_minted(conn, &profile_id, new, minted(params)?)?;
+            let created = link::create_minted(conn, &profile_id, new, minted(params)?)?;
+            if let Some(number) = params.get("ordinal").and_then(serde_json::Value::as_i64) {
+                crate::ordinal::write(conn, &created.work_id, number)?;
+            }
         }
 
         "link.delete" => {

@@ -216,39 +216,31 @@ pub fn origin_title(conn: &Connection, config: &ProfileConfig, work: &Work) -> R
     Ok(origin(conn, config, &work.id)?.map_or_else(|| work.title.clone(), |found| found.title))
 }
 
-/// The title a work of `kind` takes when it is made from `source`: the
-/// kind's `made_title` read against the title of what it is all made from,
-/// numbered among the works of that kind already made from it - "Song
-/// (short 3)" for the third short, whether it was cut from the clip or the
-/// audio - and never a title one of them already has.
+/// The title a work of `kind` takes when it is made from `source`, and the
+/// number it is given: the kind's `made_title` read against the title of what
+/// it is all made from, numbered past the greatest number of that kind
+/// already given in the family (`crate::ordinal::next`) - "Song (short 3)"
+/// for the third short, whether it was cut from the clip or the audio - and
+/// never a title one of them already has. The number in the title and the
+/// work's `ordinal` are one count (ADR 0070).
 pub fn made_title(
     conn: &Connection,
     config: &ProfileConfig,
     kind: &str,
     source: &Work,
     locale: &str,
-) -> Result<String> {
-    // The source is the origin itself when it never goes out (a song), or
-    // stands on one (a short cut from a clip).
-    let root = if config.vocabulary(&source.kind).has_doors() {
-        origin(conn, config, &source.id)?.unwrap_or_else(|| source.clone())
-    } else {
-        source.clone()
-    };
-    let mut siblings: BTreeSet<String> = BTreeSet::new();
-    for (id, _) in link::descendants(conn, &root.id)? {
-        if let Some(found) = work::get(conn, &id)?
-            && found.kind == kind
-        {
-            siblings.insert(found.title);
-        }
-    }
+) -> Result<(String, i64)> {
+    let root = crate::ordinal::root_of(conn, config, source)?;
+    let taken: BTreeSet<String> = crate::ordinal::siblings(conn, &root, kind)?
+        .into_iter()
+        .map(|sibling| sibling.title)
+        .collect();
     let vocabulary = config.vocabulary(kind);
-    let mut number = siblings.len() + 1;
+    let mut number = crate::ordinal::next(conn, &root, kind, None)?;
     loop {
-        let title = vocabulary.title_made_from(&root.title, locale, number);
-        if !siblings.contains(&title) {
-            return Ok(title);
+        let title = vocabulary.title_made_from(&root.title, locale, number as usize);
+        if !taken.contains(&title) {
+            return Ok((title, number));
         }
         number += 1;
     }
@@ -698,7 +690,7 @@ mod tests {
         let config = profile::config_for(&conn, &profile_id).unwrap();
         let song = fixtures::song(&conn, &profile_id, "Tide");
         let name = |kind: &str, source: &Work, locale: &str| {
-            made_title(&conn, &config, kind, source, locale).unwrap()
+            made_title(&conn, &config, kind, source, locale).unwrap().0
         };
         assert_eq!(name("video", &song, "ru"), "Tide (video)");
         assert_eq!(name("audio", &song, "en"), "Tide (audio)");
@@ -731,7 +723,7 @@ mod tests {
         link(&conn, &profile_id, &third.id, &song.id);
 
         assert_eq!(
-            made_title(&conn, &config, "short", &song, "en").unwrap(),
+            made_title(&conn, &config, "short", &song, "en").unwrap().0,
             "Tide (short 3)"
         );
     }

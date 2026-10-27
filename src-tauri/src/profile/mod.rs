@@ -313,6 +313,12 @@ const UPGRADE: &[Step] = &[
         name: "the folder a kind keeps its files in on disk",
         carry: kind_folders,
     },
+    // After the folders: a rule arrives only beside the folder it was
+    // written for.
+    Step {
+        name: "the rule a kind finds its finished file by",
+        carry: kind_files,
+    },
     Step {
         name: "a kind's board of trials and the role its kept trials go into",
         carry: lab_boards,
@@ -671,6 +677,33 @@ fn kind_folders(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
             continue;
         };
         kind.folder = Some(folder);
+        changed = true;
+    }
+    changed
+}
+
+/// The rule a kind finds its finished file by (v0.101, ADR 0070), where the
+/// stored kind names none - and only while the kind keeps its files where
+/// the shipped profile does: a rule is a path inside the folder its kind's
+/// template names, and under a folder the owner laid out themselves it would
+/// point at nothing, or at the wrong file.
+fn kind_files(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for kind in &mut config.work_kinds {
+        if kind.file.is_some() {
+            continue;
+        }
+        let Some(candidate) = shipped
+            .work_kinds
+            .iter()
+            .find(|candidate| candidate.key == kind.key)
+        else {
+            continue;
+        };
+        if candidate.file.is_none() || candidate.folder != kind.folder {
+            continue;
+        }
+        kind.file = candidate.file.clone();
         changed = true;
     }
     changed

@@ -42,6 +42,10 @@ impl AppState {
         // After the seed on purpose: the carry-forward is what gives a stored
         // field its tail.
         crate::publication::upgrade(&mut conn)?;
+        // Every work made from another before v0.101 given the number its
+        // title carries, once (ADR 0070). After the renaming above: the
+        // numbers are read off the titles v0.90 gave.
+        crate::ordinal::upgrade(&mut conn)?;
         // A work whose current version is no draft of it - a style prompt, a
         // brief - points at its newest draft instead (v0.99). After the seed:
         // what a role is, is read off the carried-forward profile.

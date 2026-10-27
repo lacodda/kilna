@@ -45,9 +45,13 @@ pub fn delete_cut(state: State<'_, AppState>, id: String) -> Result<String> {
 }
 
 /// What a short is, told to something that can cut video: the stretches in
-/// order, each beside the donor's video on disk. The core does not run ffmpeg
-/// (decision of 2026-09-11).
+/// order, each beside the donor's finished file on disk (ADR 0070). The core
+/// does not run ffmpeg (decision of 2026-09-11).
 #[tauri::command]
 pub fn cut_shot_list(state: State<'_, AppState>, work_id: String) -> Result<Vec<Shot>> {
-    cut::shot_list(&state.conn(), &work_id)
+    let conn = state.conn();
+    let work = crate::work::get(&conn, &work_id)?
+        .ok_or_else(|| crate::error::Error::not_found("work", work_id.clone()))?;
+    let config = crate::profile::config_for(&conn, &work.profile_id)?;
+    cut::shot_list(&conn, &config, &work_id)
 }

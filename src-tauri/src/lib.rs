@@ -31,6 +31,7 @@ pub mod mcp;
 pub mod minted;
 pub mod note;
 pub mod operation;
+pub mod ordinal;
 pub mod phrase;
 pub mod plugin;
 pub mod profile;
@@ -438,6 +439,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::data::import_legacy,
             commands::plugins::list_plugins,
             commands::plugins::run_plugin,
+            commands::plugins::cancel_plugin,
         ])
         .build(tauri::generate_context!())
         .expect("failed to start kilna")

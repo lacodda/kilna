@@ -384,6 +384,15 @@ pub struct WorkKind {
     /// document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<String>,
+    /// Where a work of this kind keeps the file it is finished as - the clip
+    /// a short is cut from, the short a cutter made - inside its folder: a
+    /// pattern whose steps may hold `*` for any run of characters and `?`
+    /// for one, as `video/*.mp4`. The newest file it matches is the work's,
+    /// unless the person chose one in the Files tab (ADR 0070). Absent is no
+    /// rule: only a file chosen by hand. Added in v0.101 - a document without
+    /// it is the same document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
     /// Whether a work of this kind is an experiment - a board of trials,
     /// each tried out somewhere outside, heard, and kept or thrown away -
     /// and where what is kept goes (v0.95, ADR 0061). A cover gives a
@@ -614,6 +623,7 @@ impl WorkKind {
             frame: false,
             made_title: None,
             open_on: None,
+            file: None,
             folder: None,
             lab: None,
             conception: None,
@@ -853,6 +863,15 @@ impl WorkKind {
         {
             problems.push(format!(
                 "{place}: the folder of a work, `{template}`, {problem}"
+            ));
+        }
+        // A rule for the finished file names a file inside the work's folder
+        // and nothing else, for the folder's reason.
+        if let Some(rule) = &self.file
+            && let Some(problem) = crate::folder::rule_problem(rule)
+        {
+            problems.push(format!(
+                "{place}: the finished file of a work, `{rule}`, {problem}"
             ));
         }
 

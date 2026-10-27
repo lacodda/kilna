@@ -58,6 +58,15 @@ pub struct Work {
     /// its whole length (v0.86, ADR 0046). A frame at its starting settings
     /// for every other work, and for every work made before it existed.
     pub frame: frame::Frame,
+    /// Its number among the works of its kind made from the same origin -
+    /// the 2 of "Song (short 2)" - given when it is made from another, past
+    /// the greatest one already given (ADR 0070). `{n}` reads it in a title
+    /// and in a folder. `None` for a work made from nothing.
+    pub ordinal: Option<i64>,
+    /// The finished file a person chose by hand, as a path inside the work's
+    /// folder (`v1/video/v2.mp4`). `None` lets the kind's rule find it - the
+    /// newest file its pattern matches (ADR 0070).
+    pub file: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -84,6 +93,12 @@ pub struct NewWork {
     pub collection_id: Option<String>,
     #[serde(default)]
     pub meta: Option<Map<String, Value>>,
+    /// Its number among the works of its kind made from the same origin.
+    /// Given by `actions::work::derive` before the work is logged, so a
+    /// replay writes the number the work was given rather than counting
+    /// again (ADR 0070).
+    #[serde(default)]
+    pub ordinal: Option<i64>,
 }
 
 /// Fields that may be changed. A field left as `None` is untouched, which is
@@ -147,6 +162,23 @@ pub struct WorkPatch {
     /// whole, so the log's `before` holds the frame as it was.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frame: Option<frame::Frame>,
+    /// The work's number among those of its kind made from the same origin;
+    /// `Some(None)` takes it away. A number a sibling already has is
+    /// refused: two works under one number would share one folder.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ordinal: Option<Option<i64>>,
+    /// The finished file chosen by hand, inside the work's folder;
+    /// `Some(None)` gives the choice back to the kind's rule.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub file: Option<Option<String>>,
 }
 
 /// Narrowing applied to a listing. Every field may be left out - serde
@@ -163,8 +195,8 @@ pub struct WorkFilter {
 
 const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
      status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at, \
-     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage, cover, frame \
-     FROM work";
+     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage, cover, frame, ordinal, \
+     file FROM work";
 
 /// Create a work in the given profile.
 ///
@@ -208,8 +240,8 @@ pub fn create_minted(
     };
 
     conn.execute(
-        "INSERT INTO work (id, profile_id, collection_id, kind, title, status, meta, tags, marks, position, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
+        "INSERT INTO work (id, profile_id, collection_id, kind, title, status, meta, tags, marks, position, created_at, updated_at, ordinal)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12)",
         params![
             id,
             profile_id,
@@ -222,6 +254,7 @@ pub fn create_minted(
             marks,
             position,
             timestamp,
+            new.ordinal,
         ],
     )?;
 
@@ -503,6 +536,21 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
         );
     }
 
+    if let Some(ordinal) = patch.ordinal {
+        if let Some(number) = ordinal {
+            let before = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
+            crate::ordinal::check(conn, &before, number)?;
+        }
+        set(&mut assignments, &mut values, "ordinal", Box::new(ordinal));
+    }
+    if let Some(file) = patch.file {
+        let file = match file {
+            Some(path) => Some(crate::folder::inside(&path)?),
+            None => None,
+        };
+        set(&mut assignments, &mut values, "file", Box::new(file));
+    }
+
     if assignments.is_empty() {
         return get(conn, id)?.ok_or_else(|| unknown_work(id));
     }
@@ -690,6 +738,8 @@ struct RawWork {
     stage: Option<i64>,
     cover: String,
     frame: String,
+    ordinal: Option<i64>,
+    file: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
@@ -715,6 +765,8 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         stage: row.get(18)?,
         cover: row.get(19)?,
         frame: row.get(20)?,
+        ordinal: row.get(21)?,
+        file: row.get(22)?,
     })
 }
 
@@ -740,6 +792,8 @@ impl RawWork {
             tier_pin_reason: self.tier_pin_reason,
             bookmarked_at: self.bookmarked_at,
             stage: self.stage,
+            ordinal: self.ordinal,
+            file: self.file,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })

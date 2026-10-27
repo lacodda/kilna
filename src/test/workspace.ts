@@ -139,6 +139,8 @@ function work(fields: Partial<Work> & Pick<Work, 'id' | 'kind' | 'title'>): Work
     tier_pin_reason: null,
     bookmarked_at: null,
     stage: null,
+    ordinal: null,
+    file: null,
     cover: coverOf(),
     frame: {
       still: '',
@@ -1122,7 +1124,12 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     // No media folder is set in this studio, so every work's folder says so.
     // A test that wants files lays a folder over this answer.
     media_root: () => null,
-    work_folder: () => ({ state: 'noRoot', files: [], truncated: false }),
+    work_folder: () => ({
+      state: 'noRoot',
+      files: [],
+      truncated: false,
+      file: { state: 'noFolder' },
+    }),
     media_directory: () => 'C:\\Users\\someone\\AppData\\Roaming\\kilna\\media',
 
     list_notes: ({ filter }) => {

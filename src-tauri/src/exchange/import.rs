@@ -119,6 +119,7 @@ fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportRe
                 // status would put words in the author's mouth.
                 tags: Vec::new(),
                 marks: Vec::new(),
+                ordinal: None,
             },
         )?;
         report.works += 1;

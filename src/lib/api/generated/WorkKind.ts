@@ -110,6 +110,16 @@ open_on?: string | null,
  */
 folder?: string | null, 
 /**
+ * Where a work of this kind keeps the file it is finished as - the clip
+ * a short is cut from, the short a cutter made - inside its folder: a
+ * pattern whose steps may hold `*` for any run of characters and `?`
+ * for one, as `video/*.mp4`. The newest file it matches is the work's,
+ * unless the person chose one in the Files tab (ADR 0070). Absent is no
+ * rule: only a file chosen by hand. Added in v0.101 - a document without
+ * it is the same document.
+ */
+file?: string | null, 
+/**
  * Whether a work of this kind is an experiment - a board of trials,
  * each tried out somewhere outside, heard, and kept or thrown away -
  * and where what is kept goes (v0.95, ADR 0061). A cover gives a
