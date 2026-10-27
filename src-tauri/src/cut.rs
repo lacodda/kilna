@@ -13,7 +13,7 @@
 //! lands, then the chorus eight bars later. A pair of columns can hold the
 //! first and is silent about the second.
 //!
-//! The core never opens the file. Cutting belongs to the plugin of v0.102
+//! The core never opens the file. Cutting belongs to a plugin - kilna-plugin-cut
 //! (decision of 2026-09-11: no ffmpeg in the core), and what the plugin is
 //! handed is [`shot_list`] — the boundaries beside the path to the donor's
 //! video. Everything here is a record of intent.
@@ -263,7 +263,7 @@ pub struct Shot {
 /// order, each beside the file it comes out of.
 ///
 /// This is the whole of the core's part in making the file. The cutting
-/// plugin of v0.102 reads this and runs ffmpeg; the core does not, and this
+/// plugin (kilna-plugin-cut) reads this and runs ffmpeg; the core does not, and this
 /// function is the seam between them (decision of 2026-09-11). It is also why
 /// `path` is an `Option` rather than an error: a splice written before the
 /// donor's video has been rendered is an ordinary half-finished short, and
