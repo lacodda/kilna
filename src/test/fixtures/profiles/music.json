@@ -3102,7 +3102,8 @@
           }
         ],
         "cover": true,
-        "folder": "songs/{origin.title}",
+        "file": "*.mp4",
+        "folder": "songs/{origin.title}/video",
         "key": "video",
         "label": {
           "en": "Video",
@@ -3408,7 +3409,8 @@
       },
       {
         "cover": true,
-        "folder": "songs/{origin.title}",
+        "file": "*.mp4",
+        "folder": "songs/{origin.title}/audio",
         "frame": true,
         "key": "audio",
         "label": {
@@ -3817,7 +3819,8 @@
         ],
         "cover": true,
         "excerpt": true,
-        "folder": "songs/{origin.title}",
+        "file": "*.mp4",
+        "folder": "songs/{origin.title}/shorts/{n}",
         "key": "short",
         "label": {
           "en": "Short",
