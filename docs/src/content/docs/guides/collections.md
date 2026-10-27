@@ -42,7 +42,10 @@ others stay a click away. The open collection is part of the address, so
 At the top, the name - click it to rename - and the kind. Under it:
 
 - **Goal** - *Meant to hold* (a count) and *Done by* (a day), each changed in
-  place; the bar and the sentence under them follow.
+  place; the bar and the sentence under them follow. A collection with a day
+  to be done by goes first when the queue is
+  [laid out](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout),
+  the nearest deadline first - its works and what is made from them.
 - **By the scores** - the average, of how many scored works, and the weakest
   and the strongest work by name, a click from their cards.
 - **Description** - a line on what holds it together.

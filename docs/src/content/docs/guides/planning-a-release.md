@@ -88,7 +88,7 @@ slot claimed by hand, a release scheduled from its card — the whole plan is
 refused rather than partially applied, and you preview again from what the
 calendar holds now.
 
-The layout follows five rules, in this order:
+The layout follows six rules, in this order:
 
 - **Nothing already on the calendar moves.** Booked days, pinned or not, are
   ground the layout builds around — it fills empty days only, and never puts
@@ -102,6 +102,11 @@ The layout follows five rules, in this order:
 - **Scatter.** Two releases of the same work never land on neighbouring days.
   With a rhythm of two days or more, spacing already guarantees this; on a
   daily rhythm it is what keeps one work from occupying a whole week.
+- **Deadlines first.** A release whose work - or the song it is made from -
+  belongs to a [collection](/kilna/guides/collections/) with a day it is
+  meant to be done by is walked before the rest, the nearest deadline first.
+  An album due in three weeks is a promise; strength decides among the works
+  nobody promised.
 - **Order.** The queue is walked strongest first, each release taking the
   earliest day the rules allow.
 
@@ -111,6 +116,52 @@ today is already underway. Applying writes one line to
 [statuses](/kilna/guides/statuses/) catch up silently, the way the mass
 resync does it. A booked plan is one step back: **Undo** (or `Ctrl+Z`)
 returns everything it placed to the queue.
+
+**A month short of its rhythm** is said on the
+[dashboard](/kilna/guides/the-dashboard/): a rhythm of every three days
+makes room for ten releases in a thirty-day month, and a month with six
+booked - planned or already out - is four short. The rest of this month,
+from tomorrow, and all of the next are looked at; the line says how many
+releases wait in the queue to fill the gap, and pressing it opens the
+calendar on that month.
+
+### A plan from a spreadsheet
+
+A plan kept in a spreadsheet comes in through the calendar's **⋯** menu,
+**Read a plan from a CSV file**. Each row is a day, a work and, optionally,
+the door it goes out on:
+
+```csv
+Date,Work,Door
+2026-11-03,Tide (audio),YouTube
+10.11.2026,Harbour (short 2),
+```
+
+A first row that is not a day is a header. Cells may be separated by commas
+or semicolons and quoted; a file saved by a spreadsheet in a Russian locale
+reads as it is. A work is named by its title, or by its id when two share
+one; a door by its key or its name in either language, and only when the
+work waits to go out on more than one.
+
+The file becomes the same preview the auto-layout makes - ghosts on the
+days, the count in the bar - and **Book it** books it whole, with one undo.
+A row that cannot be placed is listed under the bar with its line and why: a
+day that is not a day, a work the workspace does not have, nothing of the
+work waiting in the queue, a day already taken or closed. The import places
+what waits in the queue and nothing else: it moves nothing already booked
+and makes no releases.
+
+### The month as a table, the calendar on a phone
+
+The same menu saves what the calendar holds:
+
+- **Save the month as Markdown** - the month on screen as a table of its
+  releases in day order: date, time, work, kind, door, status, link, headed
+  in the window's language. For the plans kept in notes.
+- **Save the calendar for a phone (.ics)** - every dated release as an
+  iCalendar file any calendar app imports: a day-long event, or a timed one
+  in the release's own time zone. A release keeps its id as the event's, so
+  importing a newer file again updates the events rather than doubling them.
 
 ## Month, week and agenda
 
