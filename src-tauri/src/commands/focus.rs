@@ -53,3 +53,18 @@ pub fn reorder_focus_notes(state: State<'_, AppState>, order: Vec<String>) -> Re
 pub fn delete_focus_note(state: State<'_, AppState>, id: String) -> Result<()> {
     actions::focus::delete_note(&state.conn(), &id)
 }
+
+/// What the seven days from `from` came to, read from the operations log
+/// (v0.105): works made, versions, scores, releases out, notes, trials.
+#[tauri::command(async)]
+pub fn week_report(state: State<'_, AppState>, from: String) -> Result<crate::report::WeekReport> {
+    let conn = state.conn();
+    crate::report::week(&conn, &active(&conn)?, &from)
+}
+
+/// What happened since the history was last marked seen (v0.105).
+#[tauri::command]
+pub fn since_visit(state: State<'_, AppState>) -> Result<crate::report::SinceVisit> {
+    let conn = state.conn();
+    crate::report::since_visit(&conn, &active(&conn)?)
+}

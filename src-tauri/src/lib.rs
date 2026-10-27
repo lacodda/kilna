@@ -44,6 +44,7 @@ pub mod register;
 pub mod release;
 pub mod release_meta;
 pub mod replay;
+pub mod report;
 pub mod reversal;
 pub mod scene;
 pub mod scene_frame;
@@ -299,6 +300,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::focus::dismiss_finding,
             commands::focus::restore_finding,
             commands::focus::list_focus_notes,
+            commands::focus::week_report,
+            commands::focus::since_visit,
             commands::focus::create_focus_note,
             commands::focus::update_focus_note,
             commands::focus::reorder_focus_notes,
