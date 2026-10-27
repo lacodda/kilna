@@ -97,7 +97,7 @@ function Summary({
   const { t } = useTranslation()
   const profile = useProfile()
   // How many wait to be laid out, for a month short of its rhythm to say.
-  // Not awaited: the board stands without it, and the count arrives after.
+  // Not awaited: the board stands without it, and the line arrives after.
   const queue = useQuery(queries.releaseQueue())
 
   const hide = useAppMutation({
@@ -118,7 +118,11 @@ function Summary({
   const standing = visible(
     [
       ...findings(works, slots, profile.config, day),
-      ...rhythmGaps(slots, queue.data?.length ?? 0, profile.config.rhythm?.every_days, day),
+      // Said once the queue is known: "none wait" while it is on its way
+      // would be a sentence that is not true.
+      ...(queue.data === undefined
+        ? []
+        : rhythmGaps(slots, queue.data.length, profile.config.rhythm?.every_days, day)),
     ],
     dismissed,
   )
