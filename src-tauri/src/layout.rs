@@ -32,6 +32,8 @@ struct Queued {
     work_title: String,
     total: Option<f64>,
     created_at: String,
+    /// The nearest day a collection it belongs to is meant to be done by.
+    due: Option<String>,
 }
 
 /// Where the queue would land, laid out to the rhythm.
@@ -63,6 +65,11 @@ struct Queued {
 /// * **Order**: the queue is walked strongest-first, each release taking the
 ///   earliest day the rules allow. Everything queued is placed — the preview
 ///   is where a person decides whether they meant that.
+/// * **Deadlines first** (v0.104): a release whose work - or the work it is
+///   made from, the song of an album's clip - belongs to a collection with a
+///   day it is meant to be done by is walked before the rest, the nearest
+///   deadline first, and only then by strength. An album due in three weeks
+///   is a promise; strength decides among the works nobody promised.
 ///
 /// Placement starts tomorrow: today is already underway, and a slot invented
 /// for it would arrive pre-warned as "not ready".
@@ -116,9 +123,17 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
         }
     }
 
+    let deadlines = deadlines(conn, profile_id)?;
+    let due_of = |work_id: &str| -> Option<String> {
+        std::iter::once(work_id.to_owned())
+            .chain(sources.get(work_id).into_iter().flatten().cloned())
+            .filter_map(|id| deadlines.get(&id).cloned())
+            .min()
+    };
     let mut remaining: Vec<Queued> = release::queue(conn, profile_id)?
         .into_iter()
         .map(|entry| Queued {
+            due: due_of(&entry.release.work_id),
             id: entry.release.id,
             work_id: entry.release.work_id,
             work_title: entry.work_title,
@@ -134,9 +149,11 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     // anyone reads, but one every device computes alike. That is why the
     // tie-break lives here and not in the query.
     remaining.sort_by(|a, b| {
-        a.total
+        a.due
             .is_none()
-            .cmp(&b.total.is_none())
+            .cmp(&b.due.is_none())
+            .then_with(|| a.due.cmp(&b.due))
+            .then_with(|| a.total.is_none().cmp(&b.total.is_none()))
             .then_with(|| b.total.partial_cmp(&a.total).unwrap_or(Ordering::Equal))
             .then_with(|| a.work_title.cmp(&b.work_title))
             .then_with(|| a.created_at.cmp(&b.created_at))
@@ -211,6 +228,20 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     }
 
     Ok(placements)
+}
+
+/// The day each work is due by, for the works in a collection that names
+/// one.
+fn deadlines(conn: &Connection, profile_id: &str) -> Result<BTreeMap<String, String>> {
+    let mut statement = conn.prepare(
+        "SELECT w.id, c.due_on FROM work w JOIN collection c ON c.id = w.collection_id          WHERE w.profile_id = ?1 AND c.due_on IS NOT NULL",
+    )?;
+    let rows = statement
+        .query_map(params![profile_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<rusqlite::Result<BTreeMap<_, _>>>()?;
+    Ok(rows)
 }
 
 /// Book exactly what [`plan`] proposed and a person approved.
@@ -581,6 +612,52 @@ mod tests {
             .find(|entry| entry.work_title == "Best")
             .unwrap();
         assert_eq!(plan[0].release_id, best.release.id);
+    }
+
+    /// A song of an album due by a day goes before stronger work nobody
+    /// promised, the nearest deadline first; strength still orders the rest.
+    #[test]
+    fn a_collection_due_by_a_day_is_laid_out_first() {
+        let (conn, profile_id) = workspace(3);
+        queued(&conn, &profile_id, "Best", 9.0, 1);
+        queued(&conn, &profile_id, "Late album", 4.0, 1);
+        queued(&conn, &profile_id, "Soon album", 3.0, 1);
+        for (title, due) in [("Late album", "2026-12-01"), ("Soon album", "2026-10-01")] {
+            let album = crate::collection::create(
+                &conn,
+                &profile_id,
+                crate::collection::NewCollection {
+                    kind: "album".into(),
+                    title: title.into(),
+                    description: None,
+                    meta: None,
+                    target_size: None,
+                    due_on: Some(due.into()),
+                },
+            )
+            .unwrap();
+            // The song is in the album; its audio release is what is queued.
+            conn.execute(
+                "UPDATE work SET collection_id = ?1 WHERE kind = 'song' AND title = ?2",
+                params![album.id, title],
+            )
+            .unwrap();
+        }
+
+        let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
+
+        let order: Vec<String> = plan
+            .iter()
+            .map(|placement| {
+                release::queue(&conn, &profile_id)
+                    .unwrap()
+                    .into_iter()
+                    .find(|entry| entry.release.id == placement.release_id)
+                    .unwrap()
+                    .work_title
+            })
+            .collect();
+        assert_eq!(order, ["Soon album", "Late album", "Best"]);
     }
 
     /// The rhythm counts every release with a date, not only plans: something
