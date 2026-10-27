@@ -39,18 +39,32 @@ convincing as a real one. Set the duration on the donor's Overview tab.
 ## The cut list
 
 At the bottom of the tab is the **cut list**: the stretches in order, each
-beside the donor's video file. It says one of three things.
+beside the donor's [finished file](/kilna/guides/files-and-covers/#the-finished-file) -
+the clip in the video's folder on disk, found by its kind's rule or chosen on
+its Files tab. It says what stands in the way, or that nothing does:
 
 - *Nothing to cut yet* — the splice is empty.
-- *A video this is cut from has no file attached yet* — attach the rendered
-  video to the donor on its [Files](/kilna/guides/files-and-covers/) tab.
+- *No folder on disk to find its file in* — set the media folder in
+  **Settings → Data**, or name the folder of the video's kind.
+- *No finished file yet* — nothing in the video's folder matches its kind's
+  rule: the clip is not rendered, or lies somewhere the rule does not look.
+- *Its kind names no rule* — choose the clip on the video's Files tab.
+- *The file chosen for it is gone* — choose it again.
 - *Every stretch has its file* — and **Save the cut list** writes it out as
   JSON.
 
 kilna does not cut the file. It keeps the boundaries and hands them out; the
-cutting is a [plugin's](/kilna/guides/writing-a-plugin/) job, and until one
-is installed the saved list is a file you can point anything at. The plugin
-reads exactly the same list.
+cutting is a [plugin's](/kilna/guides/writing-a-plugin/) job. A cutting
+plugin's commands stand right here, under the list: it is handed the list, the
+short's folder, the song's name and the short's cover in one call, shows how
+far it has got while it runs, and can be stopped. Without one, the saved list
+is a file you can point anything at - the plugin reads exactly the same list.
+
+When the short has a finished file of its own - one a plugin made, or one
+rendered elsewhere into its folder - the list names it, with how long it runs
+beside how long its stretches add up to: the one check a cut needs before it
+goes out. The length is read from the file by the window's player; kilna
+itself never opens the video.
 
 ## The cover's prompt
 

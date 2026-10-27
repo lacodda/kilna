@@ -138,17 +138,28 @@ Two things say where it is:
   `folder` in the [profile document](/kilna/reference/profile-document/#a-works-folder-on-disk).
   `{title}` reads the work's title, `{key}` one of its fields, and
   `{origin.title}` or `{origin.key}` the same of what it is made from - the
-  song, for its clip and its shorts.
+  song, for its clip and its shorts. `{n}` is the work's number among the
+  works of its kind made from the same song - the 2 of *Tide (short 2)* - so
+  each short can keep a folder of its own.
 
-Studio ships `songs/{origin.title}` for every kind, so a song and everything
-made from it share one folder. A layout of your own is one template away:
+Studio ships a folder per song with one inside it for each thing made from
+it: `songs/{origin.title}` for the song, `.../video` for its clip,
+`.../audio` for its audio release and `.../shorts/{n}` for each short. A
+layout of your own is one template away:
 
 | Kind | Folder | A song with the field `code` = `h042` |
 | --- | --- | --- |
 | Song | `songs/{code}` | `songs/h042` |
 | Video | `songs/{origin.code}/clip` | `songs/h042/clip` |
 | Audio | `songs/{origin.code}/audio` | `songs/h042/audio` |
-| Short | `songs/{origin.code}/shorts` | `songs/h042/shorts` |
+| Short | `songs/{origin.code}/shorts/v{n}` | `songs/h042/shorts/v2` |
+
+A work's number is given when it is made from another, past the greatest one
+given in its family - a short deleted leaves a gap, never a number given
+twice, so a folder named after it is never another short's. The works made
+before v0.101 took the number their title carried. When the folders on disk
+say otherwise - the second short's files lie in `v3` - type the number over
+beside the folder's path on the Files tab.
 
 The code can be one kilna gives by itself. A
 [numbered field](/kilna/reference/profile-document/#numbered-fields) -
@@ -180,6 +191,29 @@ come back to the window, so a render finished in another program is there
 when you return.
 
 See [ADR 0057](https://github.com/lacodda/kilna/blob/main/docs/adr/0057-a-works-folder-on-disk-is-found-and-looked-at.md).
+
+## The finished file
+
+Of everything in a work's folder, one file is the work itself: the rendered
+clip a short is cut from, the short a cutter made, the mixed track. Since
+v0.101 kilna knows which.
+
+- **The kind's rule** finds it: **Finished file** in the profile editor, or
+  `file` in the [profile document](/kilna/reference/profile-document/#a-works-finished-file) -
+  a path inside the work's folder where `*` stands for any name and `?` for
+  one character. The newest file it matches is taken. Studio ships `*.mp4`
+  for a clip, an audio release and a short; a clip kept as
+  `clip/v1/video/v2.mp4` is `v*/video/*.mp4`.
+- **Your choice** stands over the rule: **Make this the finished file** on a
+  clip's or a sound's tile. A chosen file that is gone is said, not replaced
+  by a guess; **Back to the rule** gives the choice back.
+
+The Files tab says above the files which one it is and how it was found, and
+marks its tile. A short's [cut list](/kilna/guides/shorts/#the-cut-list)
+hands the donor's finished file to a cutter, and a file a cutter made becomes
+the short's own when the rule would not have found it.
+
+See [ADR 0070](https://github.com/lacodda/kilna/blob/main/docs/adr/0070-a-work-is-finished-as-a-file-in-its-folder.md).
 
 ## The player
 

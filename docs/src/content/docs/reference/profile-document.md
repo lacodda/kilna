@@ -99,6 +99,7 @@ A work kind may also say:
 | `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the title of what it is all made from - the song, even for a short cut from its clip - and `{n}` its number among the works of this kind made from it. Studio's are one string for every language: `"{title} (video)"`, `"{title} (audio)"`, `"{title} (short)"`. A template without `{n}` numbers only the second and later ones, inside a closing bracket when it ends with one: *Tide (short)*, *Tide (short 2)*. A title one of them already has is skipped. A map per language is still read, in the window's language. Absent means the source's title as it is. |
 | `open_on` | string, optional | The tab a work of this kind opens on when the address names none - from the catalogue, the calendar, a search hit: `versions`, `score`, `scenes`, `cover`, `frame`, `files`, `links`, `notes`, `comments`, `assistant`, `history` or `overview`. Studio's song could open on `versions`, its short on `scenes`. kilna writes it when you choose in **Settings › The work card**. A tab the kind's works do not have, or a word this build does not know, opens the Overview; absent is the Overview. Added in v0.90.1 - before, one tab for every card was kept on the machine. |
 | `folder` | string, optional | Where a work of this kind keeps its files on disk, under the media folder this machine names for the workspace (**Settings › Data**): `songs/{origin.title}`. See [A work's folder on disk](#a-works-folder-on-disk). Absent is no folder. Added in v0.93. |
+| `file` | string, optional | Which file in that folder a work of this kind is finished as - what a short is cut from, what a cutter made: `video/*.mp4`. See [A work's finished file](#a-works-finished-file). Absent is no rule: only a file chosen by hand. Added in v0.101. |
 | `excerpt` | boolean, optional | A work of this kind is a piece of what it is made from - Studio's short - rather than the whole of it. An excerpt never opens a song: a teaser out before the track leaves the track the [premiere](#what-a-release-goes-out-as). Absent is a whole work. Added in v0.100.1. |
 
 The window's order of `work_kinds` is the order the **Make…** menu lists
@@ -120,6 +121,9 @@ its files in - found by that name and looked at, never attached or owned (see
 - `{origin.title}` and `{origin.key}` read the same off what the work is all
   made from - the song, for its clip and a short cut from the clip - and off
   the work itself when it is made from nothing.
+- `{n}` reads the work's number among the works of its kind made from the
+  same origin - the 2 of *Tide (short 2)*: `songs/{origin.title}/shorts/{n}`.
+  A work made from nothing has none, and its folder says so.
 - `/` (or `\`) separates the folders. A template is refused when it is a
   place on a disk (`C:/…`, `/…`), steps out with `.` or `..`, has an empty
   step, writes a character no folder may hold, or a placeholder that is none
@@ -132,6 +136,23 @@ no folder, and the Files tab says which.
 
 The media folder itself is not in the profile: it is a place on one machine,
 kept out of exports and of the profile you might share.
+
+### A work's finished file
+
+`file` names, inside the work's folder, the file the work is finished as (see
+[Files and covers](/kilna/guides/files-and-covers/#the-finished-file)).
+
+- `/` (or `\`) separates the steps; each step is matched against one name,
+  whatever its case. `*` stands for any run of characters and `?` for one:
+  `v*/video/*.mp4` finds `v1/video/v2.mp4` and never `v1/video/hd/scene.mp4`.
+- The newest file the rule matches - by when it last changed - is the work's,
+  unless one was chosen on the Files tab.
+- A rule is refused when it is a place on a disk, steps out with `.` or `..`,
+  has an empty step or writes a character no file may hold.
+
+A workspace whose kind keeps its folder where the shipped profile does is
+given the shipped rule when it opens; one whose folders are laid out its own
+way is not, since the rule is a path inside a folder it did not name.
 
 ### Labels in more than one language
 

@@ -1,6 +1,6 @@
 ---
 title: Writing a plugin
-description: The plugin protocol — --manifest, run with JSON on stdin, the outcome shape, and how returned metadata is merged.
+description: The plugin protocol — --manifest, run with JSON on stdin, what a work is handed, the outcome shape, progress on stderr, and how returned metadata and files are kept.
 ---
 
 Integrations in kilna are ordinary executables, not a plugin API kilna's
@@ -39,6 +39,12 @@ to stdout and exit successfully:
       "label": "Count words",
       "description": "Adds a word count to the work's metadata.",
       "target": "work"
+    },
+    {
+      "key": "cut",
+      "label": "Cut the short",
+      "target": "cuts",
+      "timeout": 900
     }
   ]
 }
@@ -47,8 +53,14 @@ to stdout and exit successfully:
 `protocol_version` must match the version kilna speaks — currently `1`. A
 mismatch doesn't crash anything; the plugin is listed but marked unusable,
 with the mismatch shown rather than hidden. Each entry in `commands` becomes a
-button wherever its `target` is drawn: `"work"` on a work's screen,
-`"release"` on a release's.
+button wherever its `target` is drawn: `"work"` in the head of a work's
+Overview, `"release"` on a release, `"cuts"` on a work's
+[Cuts tab](/kilna/guides/shorts/#the-cut-list) - where a cutter belongs.
+
+`timeout` is how many seconds the command may run - see
+[How long a plugin may take](#how-long-a-plugin-may-take). Every field added
+since the first protocol is optional on both sides, which is why the version
+is still `1`.
 
 ## Running a command: `run`
 
@@ -63,11 +75,25 @@ When the user triggers a command, kilna runs the plugin again with a single
 }
 ```
 
-`subject` is the row the command was invoked on, as the frontend sees it. For
-a work, kilna adds a `bodies` object keyed by version role — the latest
-revision of each — because a plugin acting on a work almost always wants its
-text, and making every plugin ask for the body back separately would be
-needless round-tripping.
+`subject` is the row the command was invoked on, as the frontend sees it. A
+work - for a `work` or a `cuts` command - travels with everything a plugin
+would otherwise have to ask for back:
+
+| Field | What it holds |
+| --- | --- |
+| `bodies` | The latest version of each role, keyed by role. |
+| `ordinal` | The work's number among the works of its kind made from the same origin - the 2 of *Tide (short 2)*. `null` for a work made from nothing. |
+| `folder` | The work's [folder on disk](/kilna/guides/files-and-covers/#the-works-folder-on-disk), whole, when its kind names one - whether or not it is there yet. |
+| `file` | Its [finished file](/kilna/guides/files-and-covers/#the-finished-file): `state` (`found`, `chosen`, `chosenMissing`, `notYet`, `noRule`, `noFolder`), the kind's `rule`, the `relative` path inside the folder and the whole `path`. |
+| `shots` | The stretches it is spliced from, in order: `starts_at`, `ends_at`, `source_id`, `source_title`, and `path` - the donor's finished file, `null` when it has none, with `file_state` saying why. |
+| `donors` | What it was made from, each with `id`, `title`, `kind`, `folder` and `file`. |
+| `chain` | The titles up the chain "made from", nearest first: a short's clip, then the song. |
+| `origin` | What it is all made from - the song, for a short - as `id`, `title`, `kind`. |
+| `cover` | The picture it goes out under, a whole path, or `null`. |
+
+A cutter has what it needs in one call: the stretches and the file each comes
+out of, where to put what it makes, the song's name to letter the frame with,
+and the cover to end on.
 
 The plugin does its work and prints one JSON **outcome** to stdout before
 exiting:
@@ -82,6 +108,11 @@ exiting:
 - `meta` — fields to merge into the subject's `meta`. Optional; omit or leave
   empty if the plugin has nothing to add.
 - `message` — a line shown to the user. Optional.
+- `files` — the files the command made, whole paths. Optional. The first one
+  inside the work's folder becomes its finished file when the kind's rule
+  would not find it by itself; a file the rule finds anyway - a new `v2.mp4`
+  beside `v1.mp4` - changes nothing, so the next render made outside kilna is
+  found too.
 - `error` — set this instead of the above to report failure without needing a
   non-zero exit code; kilna surfaces it as the command's error.
 
@@ -102,9 +133,29 @@ is recorded like any other edit: `Ctrl+Z` takes back what the plugin wrote.
 
 ## How long a plugin may take
 
-A plugin has **two minutes** to answer. One that runs past that is stopped,
-and kilna says so; its output is discarded. kilna keeps working while a
-plugin runs.
+A command has **two minutes** to answer unless its manifest says otherwise:
+`"timeout": 900` gives it fifteen, and an hour is the most a manifest can
+claim. One that runs past its allowance is stopped, and kilna says so; its
+output is discarded. kilna keeps working while a plugin runs.
+
+## Saying how far along you are
+
+While it runs, a plugin may write lines of JSON to **stderr**:
+
+```jsonc
+{"progress": 0.4, "message": "cutting 2 of 3"}
+```
+
+Both fields are optional. `progress` runs from 0 to 1 and is drawn as a bar
+under the command; `message` is shown beside it. A bar with no `progress` yet
+moves without filling, which is the honest picture of "working, nobody knows
+how long". Any other line of stderr - what ffmpeg says, say - is kept, and
+shown only if the plugin fails.
+
+**Stop**, beside the bar, kills the plugin's process at once; kilna says the
+run was stopped and keeps nothing it might have half-written to the
+workspace. Files it already wrote to disk are yours to tidy - a cutter should
+write to a new name and only then report it.
 
 ## What a plugin should not assume
 
