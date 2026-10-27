@@ -234,7 +234,8 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
 /// one.
 fn deadlines(conn: &Connection, profile_id: &str) -> Result<BTreeMap<String, String>> {
     let mut statement = conn.prepare(
-        "SELECT w.id, c.due_on FROM work w JOIN collection c ON c.id = w.collection_id          WHERE w.profile_id = ?1 AND c.due_on IS NOT NULL",
+        "SELECT w.id, c.due_on FROM work w JOIN collection c ON c.id = w.collection_id \
+         WHERE w.profile_id = ?1 AND c.due_on IS NOT NULL",
     )?;
     let rows = statement
         .query_map(params![profile_id], |row| {
