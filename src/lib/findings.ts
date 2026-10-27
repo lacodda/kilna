@@ -7,7 +7,7 @@ import type {
   Tier,
 } from '@/lib/api/types'
 import { formatDay, formatMonth } from '@/lib/format'
-import { daysInMonth, monthOf, shiftMonth } from '@/lib/month'
+import { addDays, daysInMonth, monthOf, shiftMonth } from '@/lib/month'
 import { daysBetween } from '@/lib/readiness'
 
 /**
@@ -386,13 +386,6 @@ export function rhythmGaps(
     })
   }
   return found
-}
-
-/** The ISO date `days` after `day`. */
-function addDays(day: string, days: number): string {
-  const [year, month, date] = day.split('-').map(Number) as [number, number, number]
-  const moved = new Date(Date.UTC(year, month - 1, date + days))
-  return moved.toISOString().slice(0, 10)
 }
 
 /**

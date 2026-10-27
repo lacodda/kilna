@@ -5,7 +5,7 @@ import { save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile } from '@/lib/api/data'
 import { markJournalRead, weekReport } from '@/lib/api/journal'
 import { formatDay } from '@/lib/format'
-import { today } from '@/lib/month'
+import { addDays, today } from '@/lib/month'
 import { say } from '@/lib/toast'
 import { mondayOf, weekMarkdown } from '@/lib/weekReport'
 import { needsALook } from '@/lib/journalLook'
@@ -44,12 +44,10 @@ export function JournalView() {
     if (path === null) return
     try {
       const report = await weekReport(from)
-      const last = new Date(`${report.until}T00:00:00Z`)
-      last.setUTCDate(last.getUTCDate() - 1)
       const text = weekMarkdown(report, {
         title: t('journal.week.title', {
           from: formatDay(report.from),
-          to: formatDay(last.toISOString().slice(0, 10)),
+          to: formatDay(addDays(report.until, -1)),
         }),
         made: t('journal.week.made'),
         versions: t('journal.week.versions'),

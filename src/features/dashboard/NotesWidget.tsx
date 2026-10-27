@@ -5,7 +5,7 @@ import { GripVertical, MoreHorizontal, Pin, PinOff, X } from 'lucide-react'
 import { deleteFocusNote, reorderFocusNotes, updateFocusNote } from '@/lib/api/focus'
 import type { FocusNote, FocusNotePatch } from '@/lib/api/types'
 import { formatDay } from '@/lib/format'
-import { today } from '@/lib/month'
+import { addDays, today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -204,12 +204,12 @@ function NoteList({ notes, onSelect }: { notes: readonly FocusNote[] } & Props) 
                   {t('focus.dueToday')}
                 </MenuItem>
                 <MenuItem
-                  onClick={() => edit.mutate({ id: note.id, patch: { due_on: plusDays(day, 1) } })}
+                  onClick={() => edit.mutate({ id: note.id, patch: { due_on: addDays(day, 1) } })}
                 >
                   {t('focus.dueTomorrow')}
                 </MenuItem>
                 <MenuItem
-                  onClick={() => edit.mutate({ id: note.id, patch: { due_on: plusDays(day, 7) } })}
+                  onClick={() => edit.mutate({ id: note.id, patch: { due_on: addDays(day, 7) } })}
                 >
                   {t('focus.dueWeek')}
                 </MenuItem>
@@ -286,10 +286,4 @@ function DueMark({ due, day }: { due: string; day: string }) {
       {formatDay(due)}
     </span>
   )
-}
-
-/** The ISO date `days` after `day`. */
-function plusDays(day: string, days: number): string {
-  const [year, month, date] = day.split('-').map(Number) as [number, number, number]
-  return new Date(Date.UTC(year, month - 1, date + days)).toISOString().slice(0, 10)
 }

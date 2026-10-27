@@ -105,3 +105,9 @@ export function byDate<T>(
 
   return grouped
 }
+
+/** The ISO date `days` after `day` (before it, for a negative count). */
+export function addDays(day: string, days: number): string {
+  const [year, month, date] = day.split('-').map(Number) as [number, number, number]
+  return new Date(Date.UTC(year, month - 1, date + days)).toISOString().slice(0, 10)
+}
