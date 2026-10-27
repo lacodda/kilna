@@ -87,6 +87,10 @@ pub fn run_plugin(
         .as_ref()
         .and_then(|manifest| manifest.commands.iter().find(|one| one.key == command))
         .map_or(plugin::PLUGIN_TIMEOUT, plugin::manifest::Command::allowance);
+    let heard_by = match found.manifest.as_ref() {
+        Some(manifest) => format!("{} {}", found.executable, manifest.version),
+        None => found.executable.clone(),
+    };
 
     let subject = actions::plugin::subject(&state.conn(), target, &id)?;
     let cancel = Arc::new(AtomicBool::new(false));
@@ -126,6 +130,9 @@ pub fn run_plugin(
     } else {
         None
     };
+    if target == Target::Cuts {
+        actions::plugin::keep_heard(&state.conn(), &id, &heard_by, &outcome.suggestions)?;
+    }
     Ok(PluginReply {
         message: outcome.message,
         files: outcome.files,

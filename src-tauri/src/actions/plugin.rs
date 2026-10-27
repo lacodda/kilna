@@ -205,6 +205,63 @@ pub fn keep_files(conn: &Connection, id: &str, files: &[String]) -> Result<Optio
     Ok(Some(made))
 }
 
+/// Keep what a plugin heard in the videos `short_id` is made from (ADR 0071),
+/// and say how many were kept.
+///
+/// Only a video the short is made from is kept, and only for the file kilna
+/// handed over as its finished file - still that file now: a plugin naming
+/// another work, or a file rendered again while it listened, keeps nothing.
+/// Written past the log: what was heard is a record of a file, rebuilt by
+/// listening again, which no replay could rebuild (see the migration).
+pub fn keep_heard(
+    conn: &Connection,
+    short_id: &str,
+    heard_by: &str,
+    suggestions: &[crate::plugin::Suggestion],
+) -> Result<usize> {
+    if suggestions.is_empty() {
+        return Ok(0);
+    }
+    let short = work::get(conn, short_id)?.ok_or_else(|| Error::not_found("work", short_id))?;
+    let config: ProfileConfig = crate::profile::config_for(conn, &short.profile_id)?;
+    let mut donors: Vec<String> = crate::link::sources(conn, short_id)?
+        .into_iter()
+        .filter(|link| link.role != crate::link::LAB)
+        .map(|link| link.source_id)
+        .collect();
+    donors.extend(crate::cut::sources_of(conn, short_id)?);
+    let at = crate::time::now();
+    let mut kept = 0;
+    for heard in suggestions {
+        if !donors.contains(&heard.source_id) {
+            continue;
+        }
+        let Some(donor) = work::get(conn, &heard.source_id)? else {
+            continue;
+        };
+        let file = crate::folder::finished(conn, &config, &donor)?;
+        if file.path.as_deref() != Some(heard.file.as_str()) {
+            continue;
+        }
+        let Some(stamp) = crate::donor_map::Stamp::of(Path::new(&heard.file)) else {
+            continue;
+        };
+        crate::donor_map::keep_heard(
+            conn,
+            &donor.profile_id,
+            &donor.id,
+            &heard.file,
+            &stamp,
+            &heard.boundaries,
+            &heard.stretches,
+            heard_by,
+            &at,
+        )?;
+        kept += 1;
+    }
+    Ok(kept)
+}
+
 /// Where `file` lies inside `folder`, `/` between the steps; `None` when it
 /// lies elsewhere or is not there.
 fn inside_folder(folder: &Path, file: &Path) -> Option<String> {
@@ -374,5 +431,46 @@ mod tests {
             keep_files(&conn, &short.id, &[outside.to_string_lossy().into_owned()]).unwrap(),
             None
         );
+    }
+
+    /// What a plugin heard is kept for a video the short is made from, and
+    /// only for the file kilna handed over as its finished file; a work the
+    /// short is not made from, or another file, keeps nothing.
+    #[test]
+    fn only_what_was_heard_in_a_donors_finished_file_is_kept() {
+        let (conn, _profile_id, root, song, clip, short) = a_family();
+        let clip_folder = root.path().join("songs").join("Tide").join("video");
+        std::fs::create_dir_all(&clip_folder).unwrap();
+        let render = clip_folder.join("v1.mp4");
+        std::fs::write(&render, b"not really an mp4").unwrap();
+        let heard = |source_id: &str, file: &std::path::Path| crate::plugin::Suggestion {
+            source_id: source_id.into(),
+            file: file.to_string_lossy().into_owned(),
+            boundaries: vec![0.0, 21.5],
+            stretches: vec![crate::donor_map::HeardPart {
+                starts_at: 21.5,
+                ends_at: 50.0,
+                reason: "chorus".into(),
+                score: 0.8,
+            }],
+        };
+
+        let kept = keep_heard(
+            &conn,
+            &short.id,
+            "kilna-plugin-cut 0.2.0",
+            &[
+                heard(&clip.id, &render),
+                heard(&song.id, &render),
+                heard(&clip.id, &clip_folder.join("old.mp4")),
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(kept, 1, "only the donor, only its finished file");
+        let config = crate::profile::config_for(&conn, &short.profile_id).unwrap();
+        let offered = crate::parts::for_short(&conn, &config, &short.id).unwrap();
+        assert_eq!(offered[0].hearing, crate::parts::HearingState::Heard);
+        assert_eq!(offered[0].boundaries, vec![0.0, 21.5]);
     }
 }

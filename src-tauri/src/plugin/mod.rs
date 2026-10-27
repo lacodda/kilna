@@ -151,6 +151,26 @@ pub struct Outcome {
     /// find it by itself (ADR 0070).
     #[serde(default)]
     pub files: Vec<String>,
+    /// What the command heard in the videos a work is cut from (v0.103):
+    /// where their parts begin and the parts worth a short, kept beside each
+    /// video for as long as the file heard is its finished file (ADR 0071).
+    #[serde(default)]
+    pub suggestions: Vec<Suggestion>,
+}
+
+/// What a plugin heard in one video a work is cut from.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Suggestion {
+    /// The video, as kilna named it in the invocation's `donors`.
+    pub source_id: String,
+    /// The file that was heard, whole, as kilna handed it over.
+    pub file: String,
+    /// Seconds where its parts begin.
+    #[serde(default)]
+    pub boundaries: Vec<f64>,
+    /// The parts worth a short, best first.
+    #[serde(default)]
+    pub stretches: Vec<crate::donor_map::HeardPart>,
 }
 
 /// One line of progress a plugin writes to stderr while it runs:
@@ -348,6 +368,7 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>, run: Run<'_>) -> Result<
             message: None,
             error: None,
             files: Vec::new(),
+            suggestions: Vec::new(),
         });
     }
 

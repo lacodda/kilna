@@ -5,6 +5,7 @@ use tauri::State;
 use crate::actions;
 use crate::cut::{self, Cut, CutPatch, NewCut, Shot};
 use crate::error::Result;
+use crate::parts::DonorParts;
 use crate::state::AppState;
 use crate::trash::Entity;
 
@@ -54,4 +55,17 @@ pub fn cut_shot_list(state: State<'_, AppState>, work_id: String) -> Result<Vec<
         .ok_or_else(|| crate::error::Error::not_found("work", work_id.clone()))?;
     let config = crate::profile::config_for(&conn, &work.profile_id)?;
     cut::shot_list(&conn, &config, &work_id)
+}
+
+/// Where a short could be cut from, video by video: where each video's parts
+/// begin and the parts worth a short, as a plugin heard them and as the words
+/// and the scenes place them, and what the short's siblings already took out
+/// of it (ADR 0071). Nothing here is a stretch until it is taken.
+#[tauri::command(async)]
+pub fn cut_parts(state: State<'_, AppState>, work_id: String) -> Result<Vec<DonorParts>> {
+    let conn = state.conn();
+    let work = crate::work::get(&conn, &work_id)?
+        .ok_or_else(|| crate::error::Error::not_found("work", work_id.clone()))?;
+    let config = crate::profile::config_for(&conn, &work.profile_id)?;
+    crate::parts::for_short(&conn, &config, &work_id)
 }

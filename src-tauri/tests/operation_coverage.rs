@@ -132,7 +132,7 @@ fn the_scan_finds_every_registered_command() {
 /// the same name does not count. Listed rather than inferred because "writes"
 /// is not visible in a name: `score::catalogue` reads, `work::pin_tier_at`
 /// writes.
-const WRITERS: [&str; 66] = [
+const WRITERS: [&str; 67] = [
     "::create(",
     "::create_minted(",
     "::update(",
@@ -203,6 +203,8 @@ const WRITERS: [&str; 66] = [
     // A chat's own rows: written, but by design not into the log.
     "::rename(",
     "::clear_waiting(",
+    // What a plugin heard in a file: a record of the file, not the workspace.
+    "::keep_heard(",
 ];
 
 /// Where each writer is called in a piece of code, with the path it is called
@@ -372,11 +374,19 @@ fn action_functions(sources: &[Source]) -> Vec<ActionFn<'_>> {
 }
 
 /// Actions that write outside a gesture, on purpose, and why.
-const WRITES_OUTSIDE_A_GESTURE: [(&str, &str); 1] = [(
-    "undo",
-    "an undo records its own operation - `undo.<kind>` - inside `crate::undo::undo`, beside \
-     the reversal it makes; held by `take_back` in `undo_takes_back.rs`",
-)];
+const WRITES_OUTSIDE_A_GESTURE: [(&str, &str); 2] = [
+    (
+        "undo",
+        "an undo records its own operation - `undo.<kind>` - inside `crate::undo::undo`, beside \
+         the reversal it makes; held by `take_back` in `undo_takes_back.rs`",
+    ),
+    (
+        "keep_heard",
+        "what a plugin heard in a video's finished file is a record of that file, kept only \
+         while the file stands as it was heard (ADR 0071): a replay has no file to rebuild it \
+         from, and listening again rebuilds it",
+    ),
+];
 
 #[test]
 fn every_write_in_the_actions_is_inside_a_gesture() {

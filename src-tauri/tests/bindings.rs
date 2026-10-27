@@ -194,6 +194,11 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::cut::NewCut,
         kilna_lib::cut::CutPatch,
         kilna_lib::cut::Shot,
+        kilna_lib::parts::DonorParts,
+        kilna_lib::parts::OfferedPart,
+        kilna_lib::parts::PartSource,
+        kilna_lib::parts::TakenStretch,
+        kilna_lib::parts::HearingState,
         // assets.rs
         kilna_lib::asset::NewAsset,
         // search.rs

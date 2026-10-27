@@ -14,6 +14,7 @@ pub mod cover;
 pub mod cut;
 pub mod db;
 pub mod device;
+pub mod donor_map;
 pub mod error;
 pub mod exchange;
 #[doc(hidden)]
@@ -32,6 +33,7 @@ pub mod minted;
 pub mod note;
 pub mod operation;
 pub mod ordinal;
+pub mod parts;
 pub mod phrase;
 pub mod plugin;
 pub mod profile;
@@ -369,6 +371,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::cuts::reorder_cuts,
             commands::cuts::delete_cut,
             commands::cuts::cut_shot_list,
+            commands::cuts::cut_parts,
             commands::assets::attach_asset,
             commands::assets::list_work_assets,
             commands::assets::list_release_assets,

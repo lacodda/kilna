@@ -288,6 +288,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0045_work_ordinal_and_file.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 46,
+        name: "donor_map",
+        sql: include_str!("../../migrations/0046_donor_map.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.
