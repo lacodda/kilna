@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.105.0] - 2026-10-27
+
+### Bug Fixes
+- Say the refusal of a week that starts on no day
+
+### Documentation
+- Describe a line's day and work, Today, the visit and the week
+
+### Features
+- Count a week from the operations log and the visit since the history was seen
+- Give a line a day and a work, and say it on its day
+- Count the visit in one line and save the week as Markdown
+
+### Refactoring
+- Add days through lib/month rather than in each screen
+
 ## [0.104.0] - 2026-10-27
 
 ### Bug Fixes
