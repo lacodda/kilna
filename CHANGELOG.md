@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.103.0] - 2026-10-27
+
+### Documentation
+- Describe where to cut from, the suggestions reply and ADR 0071
+
+### Features
+- Keep what a plugin heard beside a video and offer where to cut from
+- Mark where a video's parts begin, land edges on them and take a part
+
 ## [0.102.0] - 2026-10-27
 
 ### Bug Fixes
