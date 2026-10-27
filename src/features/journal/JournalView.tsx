@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { markJournalRead } from '@/lib/api/journal'
+import { save } from '@tauri-apps/plugin-dialog'
+import { writeTextFile } from '@/lib/api/data'
+import { markJournalRead, weekReport } from '@/lib/api/journal'
+import { formatDay } from '@/lib/format'
+import { today } from '@/lib/month'
+import { say } from '@/lib/toast'
+import { mondayOf, weekMarkdown } from '@/lib/weekReport'
 import { needsALook } from '@/lib/journalLook'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -25,6 +31,39 @@ export function JournalView() {
   const [unreadOnly, setUnreadOnly] = useState(false)
 
   const entries = useQuery(queries.journalFeed())
+
+  /** This week so far, Monday on, as Markdown, saved where the person picks
+      (v0.105). Read from the operations log: the history forgets what was
+      read, the log does not. */
+  const saveWeek = async () => {
+    const from = mondayOf(today())
+    const path = await save({
+      defaultPath: `week-${from}.md`,
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    })
+    if (path === null) return
+    try {
+      const report = await weekReport(from)
+      const last = new Date(`${report.until}T00:00:00Z`)
+      last.setUTCDate(last.getUTCDate() - 1)
+      const text = weekMarkdown(report, {
+        title: t('journal.week.title', {
+          from: formatDay(report.from),
+          to: formatDay(last.toISOString().slice(0, 10)),
+        }),
+        made: t('journal.week.made'),
+        versions: t('journal.week.versions'),
+        scored: t('journal.week.scored'),
+        released: t('journal.week.released'),
+        besides: t('journal.week.besides', { notes: report.notes, trials: report.trials }),
+        nothing: t('journal.week.nothing'),
+      })
+      await writeTextFile(path, text)
+      say.ok(t('calendar.files.saved', { path }))
+    } catch (cause) {
+      say.failed(cause)
+    }
+  }
 
   const markRead = useAppMutation({
     mutationFn: markJournalRead,
@@ -63,6 +102,9 @@ export function JournalView() {
                 : t('journal.unreadOnly')}
             </Chip>
           </ChipGroup>
+          <Button variant="ghost" size="sm" onClick={() => void saveWeek()}>
+            {t('journal.week.save')}
+          </Button>
           <Button
             variant="ghost"
             size="sm"

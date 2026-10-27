@@ -344,6 +344,9 @@ export type { HearingState } from './generated/HearingState'
 export type { ImportedPlan } from './generated/ImportedPlan'
 export type { ImportProblem } from './generated/ImportProblem'
 export type { ImportReason } from './generated/ImportReason'
+export type { WeekReport } from './generated/WeekReport'
+export type { Touched } from './generated/Touched'
+export type { SinceVisit } from './generated/SinceVisit'
 
 // Files.
 export type { Asset } from './generated/Asset'

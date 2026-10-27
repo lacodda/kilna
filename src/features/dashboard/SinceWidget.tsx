@@ -25,6 +25,24 @@ export function SinceWidget() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const entries = useQuery(queries.journalFeed())
+  // The visit in one line (v0.105): the history's unread entries, and the
+  // assistant's runs that ended meanwhile - which the history does not list.
+  const visit = useQuery(queries.sinceVisit())
+  const summary =
+    visit.data === undefined ||
+    (visit.data.unread === 0 && visit.data.runs_done + visit.data.runs_failed === 0)
+      ? null
+      : [
+          t('dashboard.sinceEvents', { count: visit.data.unread }),
+          visit.data.runs_done > 0
+            ? t('dashboard.sinceRuns', { count: visit.data.runs_done })
+            : null,
+          visit.data.runs_failed > 0
+            ? t('dashboard.sinceRunsFailed', { count: visit.data.runs_failed })
+            : null,
+        ]
+          .filter((part) => part !== null)
+          .join(' · ')
 
   return (
     <Widget
@@ -38,6 +56,7 @@ export function SinceWidget() {
         </span>
       }
     >
+      {summary !== null && <p className="mb-1.5 text-xs text-dim">{summary}</p>}
       <Loaded query={entries} plain skeleton={<Skeleton className="h-4 w-full" />}>
         {(data) => {
           const unread = data.filter((entry) => entry.read_at === null)

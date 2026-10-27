@@ -215,6 +215,8 @@ export const keys = {
   // ever worth invalidating alone.
   journal: ['journal'] as const,
   journalFeed: ['journal', 'feed'] as const,
+  /** Under `journal`: marking the history seen moves the visit it counts from. */
+  sinceVisit: ['journal', 'since'] as const,
   // A work's axis (ADR 0056) is read off its rows as much as off the
   // journal, and every write that moves a row writes an entry too - so it
   // rides the journal's prefix and is refreshed by the same writes.

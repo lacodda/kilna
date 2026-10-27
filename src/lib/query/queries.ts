@@ -32,7 +32,7 @@ import {
 import { cutParts, cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
 import { canExportPackage, logPath, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
-import { listJournal, unreadJournal } from '@/lib/api/journal'
+import { listJournal, sinceVisit, unreadJournal } from '@/lib/api/journal'
 import { listLinks, listPublications, resolveLinks } from '@/lib/api/links'
 import { listLines, listNotes, listShelves, listTags } from '@/lib/api/notes'
 import {
@@ -333,6 +333,7 @@ export const queries = {
     }),
 
   journalFeed: () => queryOptions({ queryKey: keys.journalFeed, queryFn: listJournal }),
+  sinceVisit: () => queryOptions({ queryKey: keys.sinceVisit, queryFn: sinceVisit }),
   journalUnread: () => queryOptions({ queryKey: keys.journalUnread, queryFn: unreadJournal }),
   deletions: () => queryOptions({ queryKey: keys.deletions, queryFn: listDeletions }),
 

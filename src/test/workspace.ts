@@ -1250,6 +1250,12 @@ export function answersFor(studio: Studio): Record<string, Handler> {
 
     list_journal: () => studio.journal,
     unread_journal: () => studio.journal.filter((e) => e.read_at === null).length,
+    since_visit: () => ({
+      since: null,
+      unread: studio.journal.filter((e) => e.read_at === null).length,
+      runs_done: 0,
+      runs_failed: 0,
+    }),
     list_deletions: () => studio.deletions,
 
     dismissed_findings: () => [],

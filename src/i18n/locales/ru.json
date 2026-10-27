@@ -338,7 +338,19 @@
     "late_many": "просрочено на {{count}} дней",
     "late_other": "просрочено на {{count}} дней",
     "quietTitle": "Ничего не ждёт вашего решения",
-    "quietBody": "Всё оценено, запланировано или уже вышло. Напишите новое — или отдохните."
+    "quietBody": "Всё оценено, запланировано или уже вышло. Напишите новое — или отдохните.",
+    "sinceEvents_one": "{{count}} непрочитанное событие",
+    "sinceEvents_few": "{{count}} непрочитанных события",
+    "sinceEvents_many": "{{count}} непрочитанных событий",
+    "sinceEvents_other": "{{count}} непрочитанного события",
+    "sinceRuns_one": "{{count}} прогон ассистента завершён",
+    "sinceRuns_few": "{{count}} прогона ассистента завершены",
+    "sinceRuns_many": "{{count}} прогонов ассистента завершены",
+    "sinceRuns_other": "{{count}} прогона ассистента завершены",
+    "sinceRunsFailed_one": "{{count}} с ошибкой",
+    "sinceRunsFailed_few": "{{count}} с ошибкой",
+    "sinceRunsFailed_many": "{{count}} с ошибкой",
+    "sinceRunsFailed_other": "{{count}} с ошибкой"
   },
   "findings": {
     "title": "Стоит сделать",
@@ -357,7 +369,8 @@
       "rhythm-gap_one": "{{month}}: до ритма не хватает {{count}} выпуска, в очереди {{queued}}",
       "rhythm-gap_few": "{{month}}: до ритма не хватает {{count}} выпусков, в очереди {{queued}}",
       "rhythm-gap_many": "{{month}}: до ритма не хватает {{count}} выпусков, в очереди {{queued}}",
-      "rhythm-gap_other": "{{month}}: до ритма не хватает {{count}} выпуска, в очереди {{queued}}"
+      "rhythm-gap_other": "{{month}}: до ритма не хватает {{count}} выпуска, в очереди {{queued}}",
+      "line-due": "«{{title}}» — срок был {{day}}"
     },
     "dismiss": "Услышал",
     "dismissHint": "Убирает эту жалобу. Вернётся, если изменится.",
@@ -369,7 +382,8 @@
       "stale-draft": "черновик стоит",
       "no-link": "вышло без ссылки",
       "unmarked": "день прошёл, не отмечено",
-      "rhythm-gap": "не хватает до ритма"
+      "rhythm-gap": "не хватает до ритма",
+      "line-due": "настал срок"
     }
   },
   "focus": {
@@ -385,7 +399,17 @@
     "hiddenCount_few": "{{count}} убраны",
     "hiddenCount_many": "{{count}} убрано",
     "hiddenCount_other": "{{count}} убрано",
-    "restoreHint": "Показать снова"
+    "restoreHint": "Показать снова",
+    "today": "На сегодня",
+    "more": "Ещё для строки",
+    "dueToday": "Срок — сегодня",
+    "dueTomorrow": "Срок — завтра",
+    "dueWeek": "Срок — через неделю",
+    "dueClear": "Без срока",
+    "tie": "Связать с работой…",
+    "untie": "Отвязать от работы",
+    "tieTitle": "Связать строку с работой",
+    "dueOn": "Срок: {{day}}"
   },
   "calendar": {
     "openWork": "Открыть произведение",
@@ -1864,7 +1888,17 @@
     "layout.shiftedEarlier_other": "План с {{from}} сдвинут на {{count}} дня раньше — всего {{moved}}.",
     "shelf.deleted": "Полка «{{label}}» отправлена в корзину.",
     "proposal.cards": "{{client}} предложил карточки для доски «{{title}}».",
-    "card.deleted": "Карточка «{{label}}» убрана с доски."
+    "card.deleted": "Карточка «{{label}}» убрана с доски.",
+    "week": {
+      "save": "Неделя в Markdown…",
+      "title": "Неделя {{from}} – {{to}}",
+      "made": "Сделано работ",
+      "versions": "Написано версий",
+      "scored": "Выставлено оценок",
+      "released": "Вышло",
+      "besides": "Заметок: {{notes}}. Проб: {{trials}}.",
+      "nothing": "ничего"
+    }
   },
   "card": {
     "tab": {

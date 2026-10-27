@@ -309,7 +309,13 @@
     "late_one": "{{count}} day late",
     "late_other": "{{count}} days late",
     "quietTitle": "Nothing is waiting on you",
-    "quietBody": "Everything is scored, booked or already out. Write something new, or take the evening."
+    "quietBody": "Everything is scored, booked or already out. Write something new, or take the evening.",
+    "sinceEvents_one": "{{count}} unread event",
+    "sinceEvents_other": "{{count}} unread events",
+    "sinceRuns_one": "{{count}} assistant run ended",
+    "sinceRuns_other": "{{count}} assistant runs ended",
+    "sinceRunsFailed_one": "{{count}} failed",
+    "sinceRunsFailed_other": "{{count}} failed"
   },
   "findings": {
     "title": "Worth doing",
@@ -326,7 +332,8 @@
       "no-link": "“{{title}}” went out, and no link is kept for it",
       "unmarked": "“{{title}}”: its day has passed and it is not marked out",
       "rhythm-gap_one": "{{month}}: {{count}} release short of the rhythm, {{queued}} waiting in the queue",
-      "rhythm-gap_other": "{{month}}: {{count}} releases short of the rhythm, {{queued}} waiting in the queue"
+      "rhythm-gap_other": "{{month}}: {{count}} releases short of the rhythm, {{queued}} waiting in the queue",
+      "line-due": "“{{title}}” — its day was {{day}}"
     },
     "dismiss": "Heard it",
     "dismissHint": "Puts this complaint away. It comes back if it changes.",
@@ -338,7 +345,8 @@
       "stale-draft": "draft has stalled",
       "no-link": "out without a link",
       "unmarked": "day passed, not marked",
-      "rhythm-gap": "short of the rhythm"
+      "rhythm-gap": "short of the rhythm",
+      "line-due": "its day came"
     }
   },
   "focus": {
@@ -352,7 +360,17 @@
     "dragHandle": "Drag to reorder",
     "hiddenCount_one": "{{count}} put away",
     "hiddenCount_other": "{{count}} put away",
-    "restoreHint": "Show it again"
+    "restoreHint": "Show it again",
+    "today": "Today",
+    "more": "More for this line",
+    "dueToday": "Due today",
+    "dueTomorrow": "Due tomorrow",
+    "dueWeek": "Due in a week",
+    "dueClear": "No day",
+    "tie": "Tie to a work…",
+    "untie": "Untie from its work",
+    "tieTitle": "Tie the line to a work",
+    "dueOn": "Due {{day}}"
   },
   "calendar": {
     "openWork": "Open the work",
@@ -1714,7 +1732,17 @@
     "layout.shiftedEarlier_other": "The plan from {{from}} on moved {{count}} days earlier — {{moved}} in all.",
     "shelf.deleted": "Shelf “{{label}}” put in the trash.",
     "proposal.cards": "{{client}} proposed cards for the board of “{{title}}”.",
-    "card.deleted": "Card “{{label}}” taken off the board."
+    "card.deleted": "Card “{{label}}” taken off the board.",
+    "week": {
+      "save": "Save the week as Markdown…",
+      "title": "The week of {{from}} – {{to}}",
+      "made": "Works made",
+      "versions": "Versions written",
+      "scored": "Scores given",
+      "released": "Releases out",
+      "besides": "Notes written: {{notes}}. Trials made: {{trials}}.",
+      "nothing": "nothing"
+    }
   },
   "card": {
     "tab": {
