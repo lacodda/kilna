@@ -2861,6 +2861,9 @@
       "onBoards": "The boards of {{works}} still link to this entry: take its cards off them first.",
       "needsTitle": "A work of culture needs a title.",
       "none": "This workspace has no library."
+    },
+    "report": {
+      "badDate": "“{{value}}” is not a day a week can start on — write it as YYYY-MM-DD."
     }
   },
   "skip": {
