@@ -57,8 +57,10 @@ kilna does not cut the file. It keeps the boundaries and hands them out; the
 cutting is a [plugin's](/kilna/guides/writing-a-plugin/) job. A cutting
 plugin's commands stand right here, under the list: it is handed the list, the
 short's folder, the song's name and the short's cover in one call, shows how
-far it has got while it runs, and can be stopped. Without one, the saved list
-is a file you can point anything at - the plugin reads exactly the same list.
+far it has got while it runs, and can be stopped -
+[Cutting a short](/kilna/guides/cutting-a-short/) installs one and cuts with
+it. Without one, the saved list is a file you can point anything at - the
+plugin reads exactly the same list.
 
 When the short has a finished file of its own - one a plugin made, or one
 rendered elsewhere into its folder - the list names it, with how long it runs

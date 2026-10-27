@@ -12,6 +12,10 @@ started as a background service.
 [kilna-plugin-wordcount](https://github.com/lacodda/kilna-plugin-wordcount)
 is the reference implementation — read it alongside this page if you want a
 working example rather than just the shape of the protocol.
+[kilna-plugin-cut](https://github.com/lacodda/kilna-plugin-cut) is the one
+for everything a long command does: a `cuts` target, its own time allowance,
+progress on stderr and the files it made in the reply - see
+[Cutting a short](/kilna/guides/cutting-a-short/).
 
 ## Naming and discovery
 
