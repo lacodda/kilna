@@ -341,6 +341,9 @@ export type { OfferedPart } from './generated/OfferedPart'
 export type { PartSource } from './generated/PartSource'
 export type { TakenStretch } from './generated/TakenStretch'
 export type { HearingState } from './generated/HearingState'
+export type { ImportedPlan } from './generated/ImportedPlan'
+export type { ImportProblem } from './generated/ImportProblem'
+export type { ImportReason } from './generated/ImportReason'
 
 // Files.
 export type { Asset } from './generated/Asset'

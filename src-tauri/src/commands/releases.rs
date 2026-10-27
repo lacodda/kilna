@@ -146,6 +146,19 @@ pub fn plan_layout(state: State<'_, AppState>, today: String) -> Result<Vec<layo
     layout::plan(&conn, &active(&conn)?, &today)
 }
 
+/// A release plan read from the CSV file at `path` (v0.104), as placements
+/// the calendar previews and `apply_layout` books - and the rows left out,
+/// and why. Nothing is written.
+#[tauri::command]
+pub fn read_plan_import(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<crate::plan_import::ImportedPlan> {
+    let bytes = std::fs::read(&path)?;
+    let conn = state.conn();
+    crate::plan_import::read(&conn, &active(&conn)?, &crate::plan_import::text_of(&bytes))
+}
+
 #[tauri::command]
 pub fn apply_layout(
     state: State<'_, AppState>,

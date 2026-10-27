@@ -4,6 +4,7 @@ import type {
   ComposedTask,
   GeneratedBatch,
   GeneratedFields,
+  ImportedPlan,
   Move,
   NewRelease,
   Placement,
@@ -61,6 +62,9 @@ export const markReleased = (
 // Undoing the mark. The link is kept - see the Rust side for why.
 export const unmarkReleased = (id: string) => invoke<Release>('unmark_released', { id })
 export const planLayout = (today: string) => invoke<Placement[]>('plan_layout', { today })
+/** A release plan read from a CSV file: placements to preview and book as
+    the layout's are, and the rows left out (v0.104). Nothing is written. */
+export const readPlanImport = (path: string) => invoke<ImportedPlan>('read_plan_import', { path })
 // Everything planned from `from` on, moved by `days` (negative is earlier):
 // a picture to approve, written by nothing.
 export const planShift = (from: string, days: number, today: string) =>

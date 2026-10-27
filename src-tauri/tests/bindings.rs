@@ -199,6 +199,9 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::parts::PartSource,
         kilna_lib::parts::TakenStretch,
         kilna_lib::parts::HearingState,
+        kilna_lib::plan_import::ImportedPlan,
+        kilna_lib::plan_import::ImportProblem,
+        kilna_lib::plan_import::ImportReason,
         // assets.rs
         kilna_lib::asset::NewAsset,
         // search.rs

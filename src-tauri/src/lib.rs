@@ -35,6 +35,7 @@ pub mod operation;
 pub mod ordinal;
 pub mod parts;
 pub mod phrase;
+pub mod plan_import;
 pub mod plugin;
 pub mod profile;
 pub mod publication;
@@ -325,6 +326,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::releases::unmark_released,
             commands::releases::calendar,
             commands::releases::plan_layout,
+            commands::releases::read_plan_import,
             commands::releases::apply_layout,
             commands::releases::plan_shift,
             commands::releases::apply_shift,
