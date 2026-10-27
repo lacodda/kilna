@@ -136,3 +136,42 @@ fn works_take_the_numbers_their_folders_say() {
     }
     println!("{} works renumbered", wanted.len());
 }
+
+/// Give kinds of a workspace's profile the folders and finished-file rules
+/// its disk is laid out by, by hand.
+///
+/// Ignored by default, for the reason above. `KILNA_LIVE_DB` is the
+/// workspace, `KILNA_LIVE_LAYOUT` a JSON object of kinds, each with an
+/// optional `folder` and `file`: `{"short": {"folder": "songs/{origin.title}/shorts/v{n}", "file": "video/*.mp4"}}`.
+/// Saved as the ordinary edit of the profile, logged and undoable.
+#[test]
+#[ignore]
+fn kinds_take_the_layout_their_disk_has() {
+    let (Ok(path), Ok(layout)) = (
+        std::env::var("KILNA_LIVE_DB"),
+        std::env::var("KILNA_LIVE_LAYOUT"),
+    ) else {
+        panic!("set KILNA_LIVE_DB to a workspace and KILNA_LIVE_LAYOUT to a JSON object of kinds");
+    };
+    let layout: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_str(&layout).expect("the layout is a JSON object");
+    let state = kilna_lib::state::AppState::open(std::path::Path::new(&path)).unwrap();
+    let conn = state.conn();
+    let profile = kilna_lib::profile::active(&conn).unwrap().unwrap();
+    let mut config = kilna_lib::profile::config_for(&conn, &profile.id).unwrap();
+    for (key, wanted) in &layout {
+        let kind = config
+            .work_kinds
+            .iter_mut()
+            .find(|kind| &kind.key == key)
+            .unwrap_or_else(|| panic!("the profile has no kind {key}"));
+        if let Some(folder) = wanted.get("folder").and_then(|value| value.as_str()) {
+            kind.folder = Some(folder.to_owned());
+        }
+        if let Some(file) = wanted.get("file").and_then(|value| value.as_str()) {
+            kind.file = Some(file.to_owned());
+        }
+    }
+    kilna_lib::actions::profile::update_config(&conn, &profile.id, &config).unwrap();
+    println!("{} kinds laid out", layout.len());
+}
