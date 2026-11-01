@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { save } from '@tauri-apps/plugin-dialog'
 import { MessageCircleQuestion } from 'lucide-react'
 import { createChat, deleteChat, renameChat } from '@/lib/api/assistant'
+import { chatMarkdown, writeTextFile } from '@/lib/api/data'
 import type { Chat, ChatSummary } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
+import { say } from '@/lib/toast'
 import { PromptDialog } from '@/components/AppDialog'
 import { ConfirmAction } from '@/components/ConfirmAction'
 import type { RowAction } from '@/components/RowMenu'
@@ -93,6 +96,26 @@ export function ChatMarks({ chat, running }: { chat: ChatSummary; running: boole
 }
 
 /**
+ * A chat saved as Markdown where the person picks (v0.106): the page the
+ * workspace's export writes for it, under the name it has there - one writer
+ * in the backend for both.
+ */
+async function saveChatAsMarkdown(chatId: string, saved: (path: string) => string): Promise<void> {
+  try {
+    const page = await chatMarkdown(chatId)
+    const path = await save({
+      defaultPath: page.fileName,
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    })
+    if (path === null) return
+    await writeTextFile(path, page.markdown)
+    say.ok(saved(path))
+  } catch (cause) {
+    say.failed(cause)
+  }
+}
+
+/**
  * Renaming a chat and deleting one, as the menus of both lists ask for them.
  * `actionsOf(chat)` is the menu - one list for the three dots and the right
  * click, and for the chips and the rows alike, so neither can offer what the
@@ -153,6 +176,13 @@ export function useChatQuestions(
     return [
       ...toWork,
       { key: 'rename', label: t('assistant.rename'), onSelect: () => setRenaming(chat) },
+      {
+        key: 'markdown',
+        label: t('assistant.saveMarkdown'),
+        onSelect: () => {
+          void saveChatAsMarkdown(chat.id, (path) => t('calendar.files.saved', { path }))
+        },
+      },
       {
         key: 'delete',
         label: t('assistant.delete'),

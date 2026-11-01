@@ -8,6 +8,7 @@ import type {
   PendingProposal,
   ProposalOverrides,
   Run,
+  StarredAnswer,
   StartedBatch,
   StartedTask,
   TaskAbout,
@@ -28,6 +29,12 @@ export const renameChat = (id: string, title: string | null) =>
 export const getTranscript = (chatId: string) =>
   invoke<Transcript | null>('get_transcript', { chatId })
 export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })
+/** Star an answer, or take the star away; the moment it was starred, or null. */
+export const starAnswer = (messageId: string, starred: boolean) =>
+  invoke<string | null>('star_answer', { messageId, starred })
+/** The starred answers, newest star first; a work narrows them to its chats. */
+export const starredAnswers = (workId?: string) =>
+  invoke<StarredAnswer[]>('starred_answers', { workId })
 /** Apply what a message proposes — any kind — and mark the message. */
 export const applyProposal = (messageId: string, overrides?: ProposalOverrides) =>
   invoke<Applied>('apply_proposal', { messageId, overrides: overrides ?? null })

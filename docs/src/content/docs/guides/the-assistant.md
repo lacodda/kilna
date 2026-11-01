@@ -256,6 +256,28 @@ become the current version unless you say so — an answer worth keeping is not
 yet an answer worth standing behind. The assistant itself never writes to
 your data; this button is you doing it.
 
+Before you keep it, the dialog shows what the answer changes: the answer
+against the version it would follow in the role you picked — the version the
+chat was started on when it is of that role, otherwise the one that stands for
+the role (the current text, the style prompt marked main). Lines it brings in
+are on green, lines it drops are struck through on red, and the count of each
+sits above. Pick another role and the comparison follows it; a role with
+nothing in it yet says the answer would be its first version.
+
+**Save as Markdown…** in a chat's menu writes the whole conversation to a file
+you pick: each question and answer under its heading, what an answer proposed
+and what became of it. It is the same page the workspace's
+[export](/kilna/reference/data/) writes for every chat into `chats/`.
+
+### Starred answers
+
+The star at the foot of an answer marks it as one to come back to; press it
+again to take the star off. The star beside the cost in the panel's header
+swaps the chats for the starred answers, newest star first, each with the chat
+it was said in — and in the drawer, the work. Choosing one opens its chat on
+that answer, ringed. On a card the list holds the answers of the card's own
+chats; the drawer holds every chat's.
+
 ## From anywhere
 
 The assistant's button in the title bar, beside the bell, carries a badge

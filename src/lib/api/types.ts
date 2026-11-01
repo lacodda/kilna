@@ -377,6 +377,7 @@ export type { ChatSummary } from './generated/ChatSummary'
 export type { NewChat } from './generated/NewChat'
 export type { Message } from './generated/Message'
 export type { Transcript } from './generated/Transcript'
+export type { StarredAnswer } from './generated/StarredAnswer'
 export type { RunState } from './generated/RunState'
 export type { Run } from './generated/Run'
 export type { Event as RunEvent } from './generated/Event'
@@ -423,6 +424,7 @@ export type BricksProposal = Extract<Proposal, { kind: 'bricks' }>
 
 // Data in and out.
 export type { ExportReport } from './generated/ExportReport'
+export type { ChatPage } from './generated/ChatPage'
 export type { ImportReport } from './generated/ImportReport'
 export type { PackageReport } from './generated/PackageReport'
 

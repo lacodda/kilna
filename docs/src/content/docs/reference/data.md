@@ -118,8 +118,11 @@ Each work's page includes:
 
 The `format` line is for a reader written against these pages: it says which
 shape the page takes, and moves when a field changes meaning or a section
-changes shape — not when a field is added. Pages written by v0.99 and later
-say `format: 5`: a work's page carries the boards of its
+changes shape — not when a field is added. Pages written by v0.106 and later
+say `format: 7`: the conversations go out too, in a `chats` folder, a page
+each (see below). v0.100 to v0.105 wrote `format: 6`: a card of a board is
+called by the entry of the library it links to, and an entry in `notes.md`
+says its medium and year. v0.99 wrote `format: 5`: a work's page carries the boards of its
 [conception](/kilna/guides/the-conception/), board by board and topic by
 topic, each card with its fields, where it came from and the verdict. v0.95
 to v0.98 wrote `format: 4`: a publication's page carries its cover and its
@@ -140,7 +143,18 @@ goes to `register.md`: every term by strictness, with its forms, kind, topic
 and note, how many works carry it at the moment of the export, and for an
 image or a scene the works named for it; then every way of singing you keep,
 written → sung. A term that is not spent stays in the record for how it is
-sung and is listed under *sung*; the page has no *words* section. File names are derived from each work's title with unsafe
+sung and is listed under *sung*; the page has no *words* section.
+
+Every [chat](/kilna/guides/the-assistant/) goes to `chats/`, a page each: the
+chat's name, the work it is about, when it began and was last used and what
+its answers cost in the front matter, then each question and answer under its
+heading with the minute it was said - an answer you
+[starred](/kilna/guides/the-assistant/#starred-answers) marked *starred*, one
+an agent sent from outside the window marked with its client - and under an
+answer what it proposed and whether that was applied, dismissed or left. The
+same page is what **Save as Markdown…** in a chat's menu writes for one chat.
+
+File names are derived from each work's title with unsafe
 characters replaced and a short id suffix appended, so two works sharing a
 title never overwrite one another — and non-ASCII titles are kept as-is,
 since a title in Cyrillic or any other script should stay readable in the

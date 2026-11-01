@@ -39,6 +39,8 @@ export interface Exchange {
     /** Why the action's block could not become a proposal, when it could
      * not — said rather than dropped, so a missing button is never silent. */
     refused: string | null
+    /** When the person starred the answer to come back to it (v0.106). */
+    starred: string | null
   } | null
   at: string
 }
@@ -186,6 +188,7 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
         dismissed: typeof message.meta.dismissed === 'string' ? message.meta.dismissed : null,
         refused:
           typeof message.meta.proposal_refused === 'string' ? message.meta.proposal_refused : null,
+        starred: message.starred_at ?? null,
       }
 
       // The exchange this answers: named by run id, or — for the untagged

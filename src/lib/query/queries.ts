@@ -10,6 +10,7 @@ import {
   listRuns,
   pendingProposals,
   previewTask,
+  starredAnswers,
   taskQueue,
   waitingChats,
 } from '@/lib/api/assistant'
@@ -351,6 +352,8 @@ export const queries = {
   activeTasks: () => queryOptions({ queryKey: keys.activeTasks, queryFn: activeTasks }),
   taskQueue: () => queryOptions({ queryKey: keys.taskQueue, queryFn: taskQueue }),
   waitingChats: () => queryOptions({ queryKey: keys.waitingChats, queryFn: waitingChats }),
+  starred: (workId?: string) =>
+    queryOptions({ queryKey: keys.starred(workId), queryFn: () => starredAnswers(workId) }),
   pendingProposals: () =>
     queryOptions({ queryKey: keys.pendingProposals, queryFn: pendingProposals }),
   taskPreview: (workId: string, action: string, about: TaskAbout) =>

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, Star } from 'lucide-react'
 import { offers, type Exchange } from '@/lib/chat'
 import { formatCost, formatDuration } from '@/lib/format'
 import { say } from '@/lib/toast'
@@ -18,6 +18,11 @@ interface Props {
   onInsert?: (body: string, role?: string, label?: string, messageId?: string) => void
   /** Keep the answer as a note. Always offered: a note needs no work. */
   onKeepAsNote: (body: string) => void
+  /** Star the answer, or take the star off. */
+  onStar: (messageId: string, starred: boolean) => void
+  /** The answer the conversation was opened on - from the starred list -
+   *  drawn with a ring until another is opened. */
+  focused?: boolean
 }
 
 /**
@@ -31,7 +36,14 @@ interface Props {
  * buttons under every answer: read first, act second, and a transcript of
  * twenty answers is not a wall of sixty buttons.
  */
-export function ExchangeItem({ item, workId, onInsert, onKeepAsNote }: Props) {
+export function ExchangeItem({
+  item,
+  workId,
+  onInsert,
+  onKeepAsNote,
+  onStar,
+  focused = false,
+}: Props) {
   const { t } = useTranslation()
   const run = item.run
 
@@ -48,8 +60,12 @@ export function ExchangeItem({ item, workId, onInsert, onKeepAsNote }: Props) {
     (part): part is string => part !== null,
   )
 
+  const answer = item.answer
+  const starred = answer?.starred != null
+
   return (
-    <li className="flex flex-col gap-3">
+    // The answer's id as the item's, so the starred list can bring it into view.
+    <li className="flex flex-col gap-3" id={answer === null ? undefined : answerAnchor(answer.id)}>
       {item.prompt !== null && (
         <p className="selectable max-w-[78%] self-end rounded-lg bg-accent-soft px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap">
           {item.prompt}
@@ -72,7 +88,12 @@ export function ExchangeItem({ item, workId, onInsert, onKeepAsNote }: Props) {
       )}
 
       {body !== '' && (
-        <div className="flex max-w-[78%] flex-col gap-1.5 self-start rounded-lg border border-line bg-soft px-3 py-2">
+        <div
+          className={cn(
+            'flex max-w-[78%] flex-col gap-1.5 self-start rounded-lg border border-line bg-soft px-3 py-2',
+            focused && 'ring-2 ring-accent',
+          )}
+        >
           {/* Who said it, when it was not the assistant in this panel: an
               agent outside the window, named by its client, with what it said
               about its proposal. */}
@@ -98,23 +119,41 @@ export function ExchangeItem({ item, workId, onInsert, onKeepAsNote }: Props) {
                 {measured.join(' · ')}
               </span>
             )}
-            <AnswerMenu
-              body={body}
-              onInsert={
-                offered.insert && onInsert !== undefined
-                  ? () => {
-                      onInsert(body)
-                    }
-                  : undefined
-              }
-              onKeepAsNote={
-                offered.keep
-                  ? () => {
-                      onKeepAsNote(body)
-                    }
-                  : undefined
-              }
-            />
+            <span className="ml-auto flex items-center gap-0.5">
+              {/* The star is a mark as much as a button: an answer worth coming
+                back to says so where it stands, not only in a list. */}
+              {answer !== null && settled && (
+                <Button
+                  variant="icon"
+                  size="icon-sm"
+                  aria-pressed={starred}
+                  aria-label={t(starred ? 'assistant.unstar' : 'assistant.star')}
+                  title={t(starred ? 'assistant.unstar' : 'assistant.star')}
+                  onClick={() => {
+                    onStar(answer.id, !starred)
+                  }}
+                >
+                  <Star aria-hidden className={cn(starred && 'fill-current text-accent')} />
+                </Button>
+              )}
+              <AnswerMenu
+                body={body}
+                onInsert={
+                  offered.insert && onInsert !== undefined
+                    ? () => {
+                        onInsert(body)
+                      }
+                    : undefined
+                }
+                onKeepAsNote={
+                  offered.keep
+                    ? () => {
+                        onKeepAsNote(body)
+                      }
+                    : undefined
+                }
+              />
+            </span>
           </div>
         </div>
       )}
@@ -146,6 +185,9 @@ export function ExchangeItem({ item, workId, onInsert, onKeepAsNote }: Props) {
     </li>
   )
 }
+
+/** The id an answer's item carries in the page, for bringing it into view. */
+export const answerAnchor = (messageId: string) => `answer-${messageId}`
 
 /**
  * A line about what the run did rather than what it said: a tool it used, that
@@ -220,7 +262,6 @@ function AnswerMenu({
           <Button
             variant="icon"
             size="icon-sm"
-            className="ml-auto"
             aria-label={t('assistant.answerMenu')}
             title={t('assistant.answerMenu')}
           />

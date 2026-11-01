@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { ExportReport, ImportReport, PackageReport } from '@/lib/api/types'
+import type { ChatPage, ExportReport, ImportReport, PackageReport } from '@/lib/api/types'
 
 // The workspace as files: exports, backups, imports.
 
@@ -15,6 +15,8 @@ export const canExportPackage = (workId: string) =>
   invoke<boolean>('can_export_package', { workId })
 export const exportMarkdown = (directory: string) =>
   invoke<ExportReport>('export_markdown', { directory })
+/** One chat as Markdown, with the name its file takes in the export. */
+export const chatMarkdown = (chatId: string) => invoke<ChatPage>('chat_markdown', { chatId })
 export const backupWorkspace = (destination: string) =>
   invoke<string>('backup_workspace', { destination })
 export const suggestedBackupName = () => invoke<string>('suggested_backup_name')

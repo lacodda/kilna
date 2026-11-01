@@ -5,6 +5,7 @@
 //! rather than stated. See ADR 0002.
 
 pub mod backup;
+pub mod chat;
 pub mod export;
 pub mod import;
 pub mod material;

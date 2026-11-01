@@ -41,6 +41,27 @@ pub fn export_markdown(state: State<'_, AppState>, directory: String) -> Result<
     export::to_markdown(&state.conn(), std::path::Path::new(&directory))
 }
 
+/// One chat as Markdown, with the file name it would go out under in the
+/// workspace's export - for the window to offer in a save dialog (v0.106).
+#[tauri::command]
+pub fn chat_markdown(state: State<'_, AppState>, chat_id: String) -> Result<ChatPage> {
+    let conn = state.conn();
+    let transcript = crate::assistant::transcript(&conn, &chat_id)?
+        .ok_or_else(|| Error::not_found("chat", chat_id.as_str()))?;
+    Ok(ChatPage {
+        file_name: crate::exchange::chat::file_name(&transcript),
+        markdown: crate::exchange::chat::markdown(&conn, &chat_id)?,
+    })
+}
+
+/// A chat's page and the name of its file.
+#[derive(serde::Serialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatPage {
+    pub file_name: String,
+    pub markdown: String,
+}
+
 /// Pack a work into a folder: its board with every prompt, the pictures under
 /// names that say what they are, and what its releases go out as. Reads only.
 #[tauri::command(async)]

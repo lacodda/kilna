@@ -888,6 +888,16 @@
     "keepReply": "Keep as the reply",
     "keepComment": "Keep the comment",
     "answerMenu": "What to do with the answer",
+    "star": "Star the answer",
+    "unstar": "Take the star off",
+    "starredTitle": "Starred answers",
+    "starredEmptyTitle": "Nothing starred yet",
+    "starredEmpty": "Star an answer worth coming back to, and it waits here.",
+    "saveMarkdown": "Save as Markdown…",
+    "diffLabel": "What the answer changes",
+    "diffAgainst": "Against {{version}}",
+    "diffRevision": "revision {{revision}}",
+    "diffNothingBefore": "Nothing stands in {{role}} yet: this will be the first.",
     "paletteHint": "Fill the box with one of the profile's actions — or type /",
     "sendHint": "Send — Enter",
     "nothingAsked": "Nothing asked yet — a question starts in the box below.",
@@ -2538,7 +2548,8 @@
       "notAPublication": "A comment belongs under what the audience saw - a clip, an audio release, a short - not under a {{kind}}."
     },
     "assistant": {
-      "unknownAction": "The profile has no action “{{action}}”."
+      "unknownAction": "The profile has no action “{{action}}”.",
+      "starOnlyAnswer": "Only an answer takes a star: the list is of what the assistant said."
     },
     "folder": {
       "notOpenable": "kilna opens pictures, clips, sounds and documents under the media folder, and “{{path}}” is not one of them.",

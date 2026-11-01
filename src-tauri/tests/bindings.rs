@@ -220,6 +220,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::assistant::NewChat,
         kilna_lib::assistant::Chat,
         kilna_lib::assistant::Transcript,
+        kilna_lib::assistant::StarredAnswer,
         kilna_lib::actions::proposal::Overrides,
         kilna_lib::actions::proposal::Outcome,
         kilna_lib::assistant::apply::Pending,
@@ -235,6 +236,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::actions::Skipped,
         // data.rs
         kilna_lib::exchange::export::ExportReport,
+        kilna_lib::commands::data::ChatPage,
         kilna_lib::exchange::package::PackageReport,
         kilna_lib::exchange::import::ImportReport,
         // plugins.rs

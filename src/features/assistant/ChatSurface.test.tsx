@@ -118,6 +118,117 @@ describe('an answer', () => {
   })
 })
 
+describe('a star', () => {
+  const ANSWER: Message = {
+    id: 'm-answer',
+    chat_id: CHAT,
+    role: 'assistant',
+    body: 'Cut the second line; the hook lands sooner.',
+    meta: {},
+    created_at: NOW,
+  }
+
+  it('goes on an answer at its foot, and the starred list opens the chat on it', async () => {
+    let starredAt: string | undefined
+    backend.answer('get_transcript', () =>
+      transcriptWith(starredAt === undefined ? ANSWER : { ...ANSWER, starred_at: starredAt })(),
+    )
+    backend.answer('star_answer', ({ starred }) => {
+      starredAt = starred === true ? NOW : undefined
+      return starredAt ?? null
+    })
+    backend.answer('starred_answers', () => [
+      {
+        message_id: ANSWER.id,
+        chat_id: CHAT,
+        chat_title: 'Tighten the chorus',
+        work_id: IDS.song,
+        excerpt: ANSWER.body,
+        created_at: NOW,
+        starred_at: NOW,
+      },
+    ])
+    const client = await openTab()
+
+    const answer = (await screen.findByText(ANSWER.body)).closest('li')!
+    await act(async () =>
+      fireEvent.click(within(answer).getByRole('button', { name: en.assistant.star })),
+    )
+    await settled(client)
+
+    expect(backend.argsOf('star_answer')).toEqual([{ messageId: 'm-answer', starred: true }])
+    expect(
+      await screen.findByRole('button', { name: en.assistant.unstar, pressed: true }),
+    ).toBeInTheDocument()
+
+    // The list takes the conversation's place on the tab, and gives it back
+    // opened on the answer.
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: en.assistant.starredTitle })),
+    )
+    await settled(client)
+    expect(backend.argsOf('starred_answers')).toEqual([{ workId: IDS.song }])
+    const row = await screen.findByRole('button', { name: new RegExp(ANSWER.body) })
+    await act(async () => fireEvent.click(row))
+    await settled(client)
+
+    const opened = document.getElementById('answer-m-answer')
+    expect(opened).not.toBeNull()
+    expect(opened!.querySelector('.ring-2')).not.toBeNull()
+    expect(screen.queryByRole('button', { name: new RegExp(ANSWER.body) })).toBeNull()
+  })
+})
+
+describe('inserting an answer', () => {
+  it('shows what it changes against the version it would follow', async () => {
+    const client = await openTab()
+
+    const answer = (await screen.findByText('Cut the second line; the hook lands sooner.')).closest(
+      'li',
+    )!
+    fireEvent.click(within(answer).getByRole('button', { name: en.assistant.answerMenu }))
+    const menu = await screen.findByRole('menu')
+    await act(async () =>
+      fireEvent.click(within(menu).getByRole('menuitem', { name: en.assistant.insert })),
+    )
+    await settled(client)
+
+    const diff = await screen.findByRole('region', { name: en.assistant.diffLabel })
+    // The lyric the song stands on now: revision 2, "Second pass".
+    expect(within(diff).getByText('Against revision 2 · Second pass')).toBeInTheDocument()
+    expect(within(diff).getByText('1 line in · 6 lines out')).toBeInTheDocument()
+    const added = diff.querySelectorAll('[data-change="added"]')
+    expect([...added].map((line) => line.textContent?.slice(1).trim())).toEqual([
+      'Cut the second line; the hook lands sooner.',
+    ])
+    expect(diff.querySelectorAll('[data-change="removed"]')).toHaveLength(6)
+  })
+})
+
+describe('a chat saved as Markdown', () => {
+  it('is written where the person picks, under the name the export gives it', async () => {
+    backend.answer('chat_markdown', () => ({
+      fileName: 'Tighten the chorus-chat.md',
+      markdown: '# Tighten the chorus',
+    }))
+    backend.answer('plugin:dialog|save', () => 'C:/notes/chorus.md')
+    backend.answer('write_text_file', ({ path }) => path)
+    const client = await openTab()
+
+    fireEvent.click(screen.getByRole('button', { name: en.assistant.chatMenu }))
+    const menu = await screen.findByRole('menu')
+    await act(async () =>
+      fireEvent.click(within(menu).getByRole('menuitem', { name: en.assistant.saveMarkdown })),
+    )
+    await settled(client)
+
+    expect(backend.argsOf('chat_markdown')).toEqual([{ chatId: CHAT }])
+    expect(backend.argsOf('write_text_file')).toEqual([
+      { path: 'C:/notes/chorus.md', text: '# Tighten the chorus' },
+    ])
+  })
+})
+
 describe('the composer', () => {
   it("fills the box from the profile's actions rather than sending", async () => {
     backend.answer('render_prompt', () => 'What does the chorus promise?')

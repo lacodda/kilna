@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { applyPendingProposals, cancelRun, createChat, startRun } from '@/lib/api/assistant'
+import {
+  applyPendingProposals,
+  cancelRun,
+  createChat,
+  starAnswer,
+  startRun,
+} from '@/lib/api/assistant'
 import type { Run } from '@/lib/api/types'
 import { conversation, pending } from '@/lib/chat'
 import { keys } from '@/lib/query/keys'
@@ -13,7 +19,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Pane } from '@/components/frame'
 import { Composer } from '@/features/assistant/Composer'
-import { ExchangeItem } from '@/features/assistant/Exchange'
+import { answerAnchor, ExchangeItem } from '@/features/assistant/Exchange'
 import { InsertVersionDialog } from '@/features/assistant/InsertVersionDialog'
 import { KeepAsNoteDialog } from '@/features/assistant/KeepAsNoteDialog'
 
@@ -24,6 +30,9 @@ interface Props {
   workId?: string
   /** Told when the first message had to create the chat. */
   onChatCreated?: (chatId: string) => void
+  /** An answer to open the conversation on rather than at its end - one
+   *  picked from the starred list. */
+  focus?: string | null
 }
 
 /**
@@ -40,7 +49,7 @@ interface Props {
  * scrolled whole until v0.78, so a long answer was read through a letterbox
  * and the composer went off the card with it.
  */
-export function ChatView({ chatId, workId, onChatCreated }: Props) {
+export function ChatView({ chatId, workId, onChatCreated, focus = null }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
 
@@ -126,9 +135,24 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     },
   })
 
+  // A star goes on and comes off at once on the page: the transcript and the
+  // starred lists are refetched from what was stored.
+  const star = useAppMutation({
+    mutationFn: ({ id, starred }: { id: string; starred: boolean }) => starAnswer(id, starred),
+    refresh: [keys.transcript(chatId ?? ''), keys.allStarred],
+  })
+
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'nearest' })
   }, [items.length, going.length])
+
+  // After the scroll to the end, so the answer asked for is what stays in view.
+  const focusedHere = focus !== null && items.some((item) => item.answer?.id === focus)
+  useEffect(() => {
+    if (focusedHere && focus !== null) {
+      document.getElementById(answerAnchor(focus))?.scrollIntoView({ block: 'center' })
+    }
+  }, [focus, focusedHere])
 
   const loading = chatId !== null && (transcript.isPending || runs.isPending)
 
@@ -198,6 +222,10 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
                 onKeepAsNote={(body) => {
                   setKeeping(body)
                 }}
+                onStar={(id, starred) => {
+                  star.mutate({ id, starred })
+                }}
+                focused={focus !== null && item.answer?.id === focus}
               />
             ))}
           </ul>

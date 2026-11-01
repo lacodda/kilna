@@ -51,6 +51,35 @@ pub struct Message {
     pub body: String,
     pub meta: Map<String, Value>,
     pub created_at: String,
+    /// When the person starred this answer to come back to it (v0.106).
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub starred_at: Option<String>,
+}
+
+/// A starred answer as the list of them draws it: what it says, cut to a
+/// caption, and the chat and the work it was said in (v0.106).
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+pub struct StarredAnswer {
+    pub message_id: String,
+    pub chat_id: String,
+    /// The chat's name, when it has one.
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chat_title: Option<String>,
+    /// The chat's first question, cut to a caption - the name of a chat
+    /// nobody named, as the list of chats calls it.
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_prompt: Option<String>,
+    pub work_id: Option<String>,
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_title: Option<String>,
+    /// The answer flattened and cut: enough to tell one from the next.
+    pub excerpt: String,
+    pub created_at: String,
+    pub starred_at: String,
 }
 
 /// A chat with everything said in it.
@@ -186,15 +215,89 @@ pub fn summaries(
 /// A prompt flattened and cut to fit a list row. Cut by characters, not bytes:
 /// a byte slice through a multibyte character panics.
 fn caption(body: &str) -> String {
-    const LIMIT: usize = 80;
+    cut_to(body, 80)
+}
 
+/// A body flattened and cut to `limit` characters, with an ellipsis when
+/// anything was cut.
+fn cut_to(body: &str, limit: usize) -> String {
     let flat: String = body.split_whitespace().collect::<Vec<_>>().join(" ");
-    if flat.chars().count() <= LIMIT {
+    if flat.chars().count() <= limit {
         return flat;
     }
 
-    let cut: String = flat.chars().take(LIMIT).collect();
+    let cut: String = flat.chars().take(limit).collect();
     format!("{cut}…")
+}
+
+/// Star an answer, or take its star away (v0.106). Only an answer takes
+/// one: a question is the person's own, and the list is of what was said
+/// back. Starring a starred answer keeps its first moment - the list is in
+/// the order things were starred, and a second click must not reorder it.
+pub fn star(conn: &Connection, message_id: &str, starred: bool) -> Result<Option<String>> {
+    let role: String = conn
+        .query_row(
+            "SELECT role FROM chat_message WHERE id = ?1",
+            params![message_id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .ok_or_else(|| Error::not_found("message", message_id))?;
+    if role != ASSISTANT {
+        return Err(Error::refused("assistant.starOnlyAnswer"));
+    }
+    if starred {
+        conn.execute(
+            "UPDATE chat_message SET starred_at = ?2 WHERE id = ?1 AND starred_at IS NULL",
+            params![message_id, now()],
+        )?;
+    } else {
+        conn.execute(
+            "UPDATE chat_message SET starred_at = NULL WHERE id = ?1",
+            params![message_id],
+        )?;
+    }
+    Ok(conn.query_row(
+        "SELECT starred_at FROM chat_message WHERE id = ?1",
+        params![message_id],
+        |row| row.get(0),
+    )?)
+}
+
+/// The starred answers of a profile, newest star first; `work_id` narrows to
+/// the chats about one work.
+pub fn starred(
+    conn: &Connection,
+    profile_id: &str,
+    work_id: Option<&str>,
+) -> Result<Vec<StarredAnswer>> {
+    let mut statement = conn.prepare(
+        "SELECT m.id, c.id, c.title,
+                (SELECT q.body FROM chat_message q
+                 WHERE q.chat_id = c.id AND q.role = 'user'
+                 ORDER BY q.created_at, q.rowid LIMIT 1),
+                c.work_id, w.title, m.body, m.created_at, m.starred_at
+         FROM chat_message m
+         JOIN chat c ON c.id = m.chat_id
+         LEFT JOIN work w ON w.id = c.work_id
+         WHERE m.starred_at IS NOT NULL AND c.profile_id = ?1
+           AND (?2 IS NULL OR c.work_id = ?2)
+         ORDER BY m.starred_at DESC, m.rowid DESC",
+    )?;
+    let rows = statement.query_map(params![profile_id, work_id], |row| {
+        Ok(StarredAnswer {
+            message_id: row.get(0)?,
+            chat_id: row.get(1)?,
+            chat_title: row.get(2)?,
+            first_prompt: row.get::<_, Option<String>>(3)?.map(|body| caption(&body)),
+            work_id: row.get(4)?,
+            work_title: row.get(5)?,
+            excerpt: cut_to(&row.get::<_, String>(6)?, 160),
+            created_at: row.get(7)?,
+            starred_at: row.get(8)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
 /// Name a chat, or clear the name so it borrows its first question again.
@@ -218,69 +321,71 @@ pub fn transcript(conn: &Connection, chat_id: &str) -> Result<Option<Transcript>
         return Ok(None);
     };
 
-    let mut statement = conn.prepare(
-        "SELECT id, chat_id, role, body, meta, created_at
-         FROM chat_message WHERE chat_id = ?1 ORDER BY created_at, rowid",
-    )?;
+    let mut statement = conn.prepare(&format!(
+        "{SELECT_MESSAGE} WHERE chat_id = ?1 ORDER BY created_at, rowid"
+    ))?;
     let raw = statement
-        .query_map(params![chat_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, String>(4)?,
-                row.get::<_, String>(5)?,
-            ))
-        })?
+        .query_map(params![chat_id], read_message)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let messages = raw
         .into_iter()
-        .map(|(id, chat_id, role, body, meta, created_at)| {
-            Ok(Message {
-                meta: meta_of(&meta)?,
-                id,
-                chat_id,
-                role,
-                body,
-                created_at,
-            })
-        })
+        .map(RawMessage::into_message)
         .collect::<Result<Vec<_>>>()?;
 
     Ok(Some(Transcript { chat, messages }))
+}
+
+const SELECT_MESSAGE: &str =
+    "SELECT id, chat_id, role, body, meta, created_at, starred_at FROM chat_message";
+
+/// A message as it comes out of the row, its meta still text.
+struct RawMessage {
+    id: String,
+    chat_id: String,
+    role: String,
+    body: String,
+    meta: String,
+    created_at: String,
+    starred_at: Option<String>,
+}
+
+impl RawMessage {
+    fn into_message(self) -> Result<Message> {
+        Ok(Message {
+            meta: meta_of(&self.meta)?,
+            id: self.id,
+            chat_id: self.chat_id,
+            role: self.role,
+            body: self.body,
+            created_at: self.created_at,
+            starred_at: self.starred_at,
+        })
+    }
+}
+
+fn read_message(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawMessage> {
+    Ok(RawMessage {
+        id: row.get(0)?,
+        chat_id: row.get(1)?,
+        role: row.get(2)?,
+        body: row.get(3)?,
+        meta: row.get(4)?,
+        created_at: row.get(5)?,
+        starred_at: row.get(6)?,
+    })
 }
 
 /// One message by id.
 pub fn message(conn: &Connection, id: &str) -> Result<Option<Message>> {
     let raw = conn
         .query_row(
-            "SELECT id, chat_id, role, body, meta, created_at FROM chat_message WHERE id = ?1",
+            &format!("{SELECT_MESSAGE} WHERE id = ?1"),
             params![id],
-            |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, String>(3)?,
-                    row.get::<_, String>(4)?,
-                    row.get::<_, String>(5)?,
-                ))
-            },
+            read_message,
         )
         .optional()?;
-    raw.map(|(id, chat_id, role, body, meta, created_at)| {
-        Ok(Message {
-            meta: meta_of(&meta)?,
-            id,
-            chat_id,
-            role,
-            body,
-            created_at,
-        })
-    })
-    .transpose()
+    raw.map(RawMessage::into_message).transpose()
 }
 
 /// A message's meta as it is read back.
@@ -403,6 +508,7 @@ pub fn append(
         body: body.to_owned(),
         meta,
         created_at: timestamp,
+        starred_at: None,
     })
 }
 
@@ -936,6 +1042,82 @@ mod tests {
             vec![older.id, newer.id],
             "the question that has waited longest is the one holding work up"
         );
+    }
+
+    /// A star goes on an answer and comes off it; a second star keeps the
+    /// first moment, and a question takes none.
+    #[test]
+    fn an_answer_is_starred_and_unstarred_and_a_question_is_not() {
+        let (conn, profile_id) = fixtures::workspace();
+        let chat = create(&conn, &profile_id, NewChat::default()).unwrap();
+        let question = append(&conn, &chat.id, USER, "why", Map::new()).unwrap();
+        let answer = append(&conn, &chat.id, ASSISTANT, "because", Map::new()).unwrap();
+
+        let first = star(&conn, &answer.id, true).unwrap();
+        assert!(first.is_some());
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        assert_eq!(
+            star(&conn, &answer.id, true).unwrap(),
+            first,
+            "a second star must not move it up the list"
+        );
+        assert_eq!(
+            message(&conn, &answer.id).unwrap().unwrap().starred_at,
+            first
+        );
+
+        let refused = star(&conn, &question.id, true).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("assistant.starOnlyAnswer")
+        );
+        assert!(star(&conn, "nope", true).is_err());
+
+        assert_eq!(star(&conn, &answer.id, false).unwrap(), None);
+        assert!(starred(&conn, &profile_id, None).unwrap().is_empty());
+    }
+
+    /// The starred answers come newest star first, with their chat's name
+    /// and work; a work narrows them to its own chats.
+    #[test]
+    fn starred_answers_are_listed_newest_first_and_narrow_to_a_work() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        let about_song = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: Some(song.id.clone()),
+                ..NewChat::default()
+            },
+        )
+        .unwrap();
+        let loose = create(&conn, &profile_id, NewChat::default()).unwrap();
+        append(&conn, &about_song.id, USER, "the chorus?", Map::new()).unwrap();
+        let older = append(
+            &conn,
+            &about_song.id,
+            ASSISTANT,
+            &"long ".repeat(60),
+            Map::new(),
+        )
+        .unwrap();
+        let newer = append(&conn, &loose.id, ASSISTANT, "a loose thought", Map::new()).unwrap();
+        star(&conn, &older.id, true).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        star(&conn, &newer.id, true).unwrap();
+
+        let all = starred(&conn, &profile_id, None).unwrap();
+        let ids: Vec<_> = all.iter().map(|a| a.message_id.as_str()).collect();
+        assert_eq!(ids, vec![newer.id.as_str(), older.id.as_str()]);
+        assert_eq!(all[1].work_title.as_deref(), Some("Tide"));
+        assert_eq!(all[1].first_prompt.as_deref(), Some("the chorus?"));
+        assert!(all[1].excerpt.ends_with('…'), "{}", all[1].excerpt);
+        assert_eq!(all[1].excerpt.chars().count(), 161);
+
+        let narrowed = starred(&conn, &profile_id, Some(&song.id)).unwrap();
+        assert_eq!(narrowed.len(), 1);
+        assert_eq!(narrowed[0].message_id, older.id);
     }
 
     #[test]

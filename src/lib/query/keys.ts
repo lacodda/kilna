@@ -243,6 +243,9 @@ export const keys = {
   activeTasks: ['runs', 'tasks'] as const,
   taskQueue: ['runs', 'queue'] as const,
   waitingChats: ['chats', 'waiting'] as const,
+  // Under the chats' prefix: a chat deleted takes its starred answers with it.
+  allStarred: ['chats', 'starred'] as const,
+  starred: (workId?: string) => ['chats', 'starred', workId ?? null] as const,
   assistantStatus: ['assistantStatus'] as const,
 
   // One coarse prefix over the focus board: a dismissal changes what the

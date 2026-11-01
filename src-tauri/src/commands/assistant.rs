@@ -68,6 +68,28 @@ pub fn delete_chat(state: State<'_, AppState>, id: String) -> Result<()> {
     assistant::delete(&state.conn(), &id)
 }
 
+/// Star an answer to come back to, or take the star away; the moment it was
+/// starred comes back, or nothing once it is not (v0.106).
+#[tauri::command]
+pub fn star_answer(
+    state: State<'_, AppState>,
+    message_id: String,
+    starred: bool,
+) -> Result<Option<String>> {
+    assistant::star(&state.conn(), &message_id, starred)
+}
+
+/// The starred answers of the active profile, newest star first; `work_id`
+/// narrows to the chats about one work.
+#[tauri::command]
+pub fn starred_answers(
+    state: State<'_, AppState>,
+    work_id: Option<String>,
+) -> Result<Vec<assistant::StarredAnswer>> {
+    let conn = state.conn();
+    assistant::starred(&conn, &active(&conn)?, work_id.as_deref())
+}
+
 /// Keep what a message proposes — a version, a score, a note, a whole
 /// package — and mark the message applied, all as one unit.
 #[tauri::command]

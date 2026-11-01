@@ -33,7 +33,11 @@ use crate::work::{self, WorkFilter, version};
 ///     from and the person's verdict.
 /// 6 — v0.100: a card of a board is called by the entry of the library it
 ///     links to, and an entry in `notes.md` says its medium and year.
-pub const FORMAT: u32 = 6;
+/// 7 — v0.106: the conversations go out too, a page each in `chats/`: the
+///     chat's name, its work and what it cost in the front matter, then each
+///     question and answer under its heading, a starred answer marked, and
+///     what an answer proposed with what became of it.
+pub const FORMAT: u32 = 7;
 
 /// What an export produced, so the user can be told rather than guess.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -413,6 +417,10 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
     // The canon, a page per card: the facts by section with their layer,
     // status, source and time, the relations, and the free note.
     files += canon_pages(conn, &profile.id, &profile.config, directory, &mut pictures)?;
+
+    // The conversations, a page each (format 7): what was asked and answered
+    // is the person's as much as what was kept from it.
+    files += super::chat::write_all(conn, &profile.id, &directory.join("chats"))?;
 
     // The pictures last, so that every page has said which it shows.
     files += carry_pictures(conn, &pictures, directory)?;
@@ -951,7 +959,7 @@ fn push_comment(page: &mut String, comment: &comment::Comment) {
 /// Non-ASCII is kept — a Cyrillic title should stay readable — but characters
 /// a filesystem rejects are not. The id suffix keeps two works with the same
 /// title from overwriting each other.
-fn slug(title: &str, id: &str) -> String {
+pub(super) fn slug(title: &str, id: &str) -> String {
     let cleaned: String = title
         .chars()
         .map(|c| match c {
@@ -984,7 +992,7 @@ fn seconds(value: f64) -> String {
     }
 }
 
-fn push_field(page: &mut String, key: &str, value: &str) {
+pub(super) fn push_field(page: &mut String, key: &str, value: &str) {
     // Quote everything: a title with a colon is otherwise invalid YAML.
     page.push_str(&format!("{key}: \"{}\"\n", value.replace('"', "\\\"")));
 }

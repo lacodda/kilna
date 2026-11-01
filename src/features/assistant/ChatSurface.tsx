@@ -1,13 +1,16 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Star } from 'lucide-react'
 import { shownChat } from '@/lib/chat'
 import { formatCost } from '@/lib/format'
+import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Frame, ListDetail } from '@/components/frame'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { ChatChips, ChatRows, type ChatListProps } from '@/features/assistant/ChatList'
 import { ChatView } from '@/features/assistant/ChatView'
 import { useChatQuestions, useChats } from '@/features/assistant/chats'
+import { StarredList } from '@/features/assistant/StarredList'
 
 interface Props {
   /** The work whose chats these are. Absent: every chat of the profile. */
@@ -66,6 +69,10 @@ export function ChatSurface({ workId, list, initialChat = null, title, end, onOp
     },
   })
   const { actionsOf, dialogs } = useChatQuestions(chats, { onOpenWork })
+  // The starred answers in place of the chats (v0.106), and the answer one
+  // of them opened the conversation on.
+  const [starred, setStarred] = useState(false)
+  const [focus, setFocus] = useState<string | null>(null)
 
   const open = shownChat(chats.chats, chosen, made)
   const current = chats.chats.find((chat) => chat.id === open)
@@ -88,6 +95,18 @@ export function ChatSurface({ workId, list, initialChat = null, title, end, onOp
         <span className="text-xs text-warn">{reason ?? t('assistant.unavailable')}</span>
       )}
       <span className="ml-auto flex items-center gap-2">
+        <Button
+          variant="icon"
+          size="icon-sm"
+          aria-pressed={starred}
+          aria-label={t('assistant.starredTitle')}
+          title={t('assistant.starredTitle')}
+          onClick={() => {
+            setStarred((was) => !was)
+          }}
+        >
+          <Star aria-hidden className={starred ? 'fill-current text-accent' : undefined} />
+        </Button>
         {current !== undefined && current.cost_usd > 0 && (
           <span className="text-xs text-faint">
             {t('assistant.spent', { amount: formatCost(current.cost_usd) })}
@@ -116,7 +135,10 @@ export function ChatSurface({ workId, list, initialChat = null, title, end, onOp
     pending: chats.pending,
     running: chats.running,
     open,
-    onOpen: setChosen,
+    onOpen: (chatId) => {
+      setChosen(chatId)
+      setFocus(null)
+    },
     onCreate: () => {
       chats.create.mutate()
     },
@@ -130,12 +152,27 @@ export function ChatSurface({ workId, list, initialChat = null, title, end, onOp
       // the list keeps the previous chat's scroll position.
       key={open ?? 'empty'}
       chatId={open}
+      focus={focus}
       // A chat names its own work in the drawer; the tab's chats are all
       // about the tab's.
       workId={workId ?? current?.work_id ?? undefined}
       onChatCreated={(created) => {
         setMade(created)
         setChosen(created)
+      }}
+    />
+  )
+
+  const starredList = (
+    <StarredList
+      workId={workId}
+      open={focus}
+      onOpen={(answer) => {
+        setChosen(answer.chat_id)
+        setFocus(answer.message_id)
+        // The tab has room for one of the two: the list gives way to the
+        // conversation it opened. The drawer keeps both side by side.
+        if (list === 'header') setStarred(false)
       }}
     />
   )
@@ -151,10 +188,13 @@ export function ChatSurface({ workId, list, initialChat = null, title, end, onOp
             // chips with its run in flight.
             aside={workId === undefined ? undefined : <ActionBar workId={workId} menu />}
           />
-          {conversation}
+          {starred ? starredList : conversation}
         </div>
       ) : (
-        <ListDetail list={<ChatRows {...listProps} />} detail={conversation} />
+        <ListDetail
+          list={starred ? starredList : <ChatRows {...listProps} />}
+          detail={conversation}
+        />
       )}
       {dialogs}
     </Frame>
