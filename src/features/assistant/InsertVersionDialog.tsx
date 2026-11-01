@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { applyProposal } from '@/lib/api/assistant'
 import { createVersion } from '@/lib/api/versions'
+import { currentIn } from '@/lib/overview'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
@@ -15,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog } from '@/components/AppDialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/AppSelect'
+import { VersionDiff } from '@/features/assistant/VersionDiff'
 
 interface Props {
   open: boolean
@@ -41,6 +43,11 @@ interface Props {
  * version — off by default, because an answer worth keeping is not yet an
  * answer worth standing behind. The application writes; the assistant never
  * touches the database itself.
+ *
+ * What it changes is shown before it is kept (v0.106): the answer against the
+ * version it would follow in the chosen role - the version the chat was
+ * started on when it is of that role, otherwise the one that stands for the
+ * role - read again whenever the role changes.
  */
 export function InsertVersionDialog({
   open,
@@ -64,6 +71,18 @@ export function InsertVersionDialog({
   )
   const [label, setLabel] = useState(proposedLabel ?? '')
   const [makeCurrent, setMakeCurrent] = useState(false)
+
+  // The version the answer would follow in the chosen role, by the rule the
+  // write itself follows: the chat's own version while it is of that role.
+  const versions = useQuery(queries.versions(workId))
+  const own = (versions.data ?? []).filter((version) => version.role === role)
+  const followed =
+    (from === null ? undefined : own.find((version) => version.id === from)) ?? currentIn(own, role)
+  const against = useQuery({
+    ...queries.version(followed?.id ?? ''),
+    enabled: followed !== undefined,
+  })
+  const roleLabel = roles.find((kind) => kind.key === role)
 
   const insert = useAppMutation({
     mutationFn: async (): Promise<string> => {
@@ -111,6 +130,7 @@ export function InsertVersionDialog({
       onOpenChange={onOpenChange}
       title={t('assistant.insertTitle')}
       description={t('assistant.insertBody')}
+      size="lg"
       footer={
         <Button
           variant="primary"
@@ -146,6 +166,27 @@ export function InsertVersionDialog({
         >
           {t('versions.makeCurrentOnSave')}
         </Checkbox>
+        {/* Drawn once what it is compared with is known: a flash of "nothing
+            before it" while the version loads would say something false. */}
+        {versions.isSuccess && (followed === undefined || against.data != null) && (
+          <VersionDiff
+            role={roleLabel === undefined ? role : sayLabel(roleLabel.label)}
+            body={body}
+            against={
+              followed === undefined || against.data == null
+                ? null
+                : {
+                    label: [
+                      t('assistant.diffRevision', { revision: followed.revision }),
+                      followed.label ?? '',
+                    ]
+                      .filter((part) => part !== '')
+                      .join(' · '),
+                    body: against.data.body,
+                  }
+            }
+          />
+        )}
       </div>
     </Dialog>
   )
