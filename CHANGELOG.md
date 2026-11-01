@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.106.0] - 2026-11-01
+
+### Bug Fixes
+- Open a starred answer at its first line
+
+### Features
+- Read the score, the version before, the collection and the week
+- Star answers and save a chat as Markdown
+- Show what an answer changes before it is inserted
+
 ## [0.105.0] - 2026-10-27
 
 ### Bug Fixes
