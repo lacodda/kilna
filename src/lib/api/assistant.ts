@@ -14,6 +14,7 @@ import type {
   TaskQueue,
   Transcript,
 } from '@/lib/api/types'
+import { today } from '@/lib/month'
 
 // The assistant: chats, runs, tasks and what their answers propose.
 
@@ -46,17 +47,20 @@ export const activeRuns = () => invoke<string[]>('active_runs')
 /** Start an action on a work — on one of its versions when `versionId` is
     given: the template reads that version, and what the answer proposes is
     bound to it; on a scene of its board for a scene action. */
+// Every prompt about a work is sent with the person's day: a template that
+// reads `{week}` counts the week it falls in, and only the window knows the
+// person's clock (v0.106).
 export const startTask = (workId: string, action: string, about: TaskAbout = {}) =>
-  invoke<StartedTask>('start_task', { workId, action, about })
+  invoke<StartedTask>('start_task', { workId, action, about: { ...about, today: today() } })
 /** What starting the action would send, without sending it. */
 export const previewTask = (workId: string, action: string, about: TaskAbout = {}) =>
-  invoke<ComposedTask>('preview_task', { workId, action, about })
+  invoke<ComposedTask>('preview_task', { workId, action, about: { ...about, today: today() } })
 export const startTasks = (workIds: readonly string[], action: string) =>
-  invoke<StartedBatch>('start_tasks', { workIds, action })
+  invoke<StartedBatch>('start_tasks', { workIds, action, today: today() })
 export const activeTasks = () => invoke<string[]>('active_tasks')
 export const taskQueue = () => invoke<TaskQueue>('task_queue')
 export const clearTaskQueue = () => invoke<number>('clear_task_queue')
 export const waitingChats = () => invoke<ChatSummary[]>('waiting_chats')
 export const clearWaiting = (chatId: string) => invoke<void>('clear_waiting', { chatId })
 export const renderPrompt = (workId: string, template: string) =>
-  invoke<string>('render_prompt', { workId, template })
+  invoke<string>('render_prompt', { workId, template, today: today() })

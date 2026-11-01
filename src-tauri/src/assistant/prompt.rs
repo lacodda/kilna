@@ -1,4 +1,4 @@
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use super::proposal::BoardChange;
@@ -343,6 +343,10 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "starred"
             | "notes"
             | "order"
+            | "score"
+            | "previous_version"
+            | "collection"
+            | "week"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name
             .strip_prefix("starred:")
@@ -397,7 +401,16 @@ pub struct Context<'a> {
     pub style_brick_ids: &'a [String],
     /// The lines a person selected in the text, for `{selection}`.
     pub selection: Option<&'a str>,
+    /// The person's day, as a date, for `{week}`: the week is the one it
+    /// falls in. Given by the window, which knows the person's clock - the
+    /// backend knows only UTC, and a Sunday evening west of Greenwich is
+    /// already Monday there (v0.106).
+    pub today: Option<&'a str>,
 }
+
+/// The value of a placeholder that only an action about a work reads with
+/// the person's day in hand.
+pub const WEEK: &str = "week";
 
 /// Build the prompt for `template` in the context of `work_id`.
 ///
@@ -582,6 +595,30 @@ pub fn for_work(
             "origin",
             crate::publication::origin_title(conn, &config, &work)?,
         ));
+    }
+    // The context a judgement and a revision are made in (v0.106): how the
+    // text was judged, what it was before, what it stands among, and what
+    // the week has come to - each read only when asked for.
+    if wants("score") {
+        values.push((
+            "score",
+            score_sheet(conn, &config, &work, named.as_ref(), current.as_ref())?,
+        ));
+    }
+    if wants("previous_version") {
+        values.push((
+            "previous_version",
+            previous_sheet(conn, kind, current.as_ref())?,
+        ));
+    }
+    if wants("collection") {
+        values.push(("collection", collection_sheet(conn, &config, &work)?));
+    }
+    if wants(WEEK) {
+        let today = context
+            .today
+            .ok_or_else(|| Error::refused("prompt.weekWithoutDay"))?;
+        values.push((WEEK, week_sheet(conn, &work.profile_id, today)?));
     }
 
     // The bricks the person picked, each with the word of the craft that says
@@ -1020,6 +1057,282 @@ pub fn source_sheet(conn: &Connection, config: &ProfileConfig, work_id: &str) ->
         out.push_str(&format!("\n\n{}:\n{}", role.label, body.trim()));
     }
     Ok(out)
+}
+
+/// The score that speaks for the text an action reads, for `{score}`
+/// (v0.106): the newest score of the version the action was started on, and
+/// otherwise the work's own - its current version's, or its strongest, by
+/// the catalogue's rule ([`crate::score::speaking_score_for`]). Each axis of
+/// the kind under its word, with its value against its scale, then the note.
+/// A score given to another version than the text read says so: a judgement
+/// of revision 2 is not one of revision 3, and a prompt that let it pass for
+/// one would have the assistant defend a mark the text no longer earns.
+pub fn score_sheet(
+    conn: &Connection,
+    config: &ProfileConfig,
+    work: &work::Work,
+    named: Option<&version::Version>,
+    reading: Option<&version::Version>,
+) -> Result<String> {
+    let id: Option<String> = match named {
+        Some(version) => conn
+            .query_row(
+                "SELECT id FROM work_score WHERE version_id = ?1 \
+                 ORDER BY scored_at DESC, rowid DESC LIMIT 1",
+                params![version.id],
+                |row| row.get(0),
+            )
+            .optional()?,
+        None => conn.query_row(
+            &format!("SELECT {}", crate::score::speaking_score_for("?1")),
+            params![work.id],
+            |row| row.get(0),
+        )?,
+    };
+    let Some(score) = id
+        .map(|id| crate::score::get(conn, &id))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(match named {
+            Some(version) => format!("(revision {} is not scored yet)", version.revision),
+            None => "(the work is not scored yet)".to_owned(),
+        });
+    };
+
+    let kind = config.vocabulary(&work.kind);
+    let mut head = format!("Total {} of 100", number(score.total));
+    if let Some(key) = &score.tier {
+        let tier = kind
+            .tiers
+            .iter()
+            .find(|tier| tier.key == *key)
+            .map_or_else(|| key.clone(), |tier| tier.label.to_string());
+        head.push_str(&format!(", tier {tier}"));
+    }
+    head.push_str(&format!(", scored {}", day_of(&score.scored_at)));
+    if let Some(rater) = &score.rater {
+        head.push_str(&format!(" by {rater}"));
+    }
+    if let Some(read) = reading
+        && score.version_id.as_deref() != Some(read.id.as_str())
+    {
+        match score.revision {
+            Some(revision) => head.push_str(&format!(
+                "; given to revision {revision}, not to the text read here"
+            )),
+            None => head.push_str("; given to a version that is gone, not to the text read here"),
+        }
+    }
+
+    let mut lines = vec![head];
+    for axis in &kind.axes {
+        if let Some(stored) = score.axes.get(&axis.key) {
+            lines.push(format!("- {}: {}", axis.label, axis_value(axis, stored)));
+        }
+    }
+    // An axis the kind no longer has: the snapshot keeps it, and so does the
+    // sheet, under its key - a profile changed does not unsay a judgement.
+    for (key, stored) in &score.axes {
+        if !kind.axes.iter().any(|axis| axis.key == *key) {
+            lines.push(format!("- {key}: {}", plain(stored)));
+        }
+    }
+    if let Some(note) = score
+        .note
+        .as_deref()
+        .map(str::trim)
+        .filter(|note| !note.is_empty())
+    {
+        lines.push(format!("Note: {note}"));
+    }
+    Ok(lines.join("\n"))
+}
+
+/// One stored answer along an axis, as the axis says it: a mark against its
+/// scale, yes or no, or the chosen option's word with what it is worth.
+fn axis_value(axis: &crate::profile::config::Axis, stored: &serde_json::Value) -> String {
+    use crate::profile::config::AxisKind;
+    match axis.kind {
+        AxisKind::Flag => match axis.value_of(stored) {
+            Some(value) if value > 0.0 => "yes".to_owned(),
+            Some(_) => "no".to_owned(),
+            None => plain(stored),
+        },
+        AxisKind::Choice => match stored {
+            serde_json::Value::String(key) => axis
+                .options
+                .iter()
+                .find(|option| option.key == *key)
+                .map_or_else(
+                    || key.clone(),
+                    |option| {
+                        format!(
+                            "{} ({} of {})",
+                            option.label,
+                            number(option.value),
+                            number(axis.scale)
+                        )
+                    },
+                ),
+            other => axis.value_of(other).map_or_else(
+                || plain(other),
+                |value| format!("{} of {}", number(value), number(axis.scale)),
+            ),
+        },
+        AxisKind::Scale => axis.value_of(stored).map_or_else(
+            || plain(stored),
+            |value| format!("{} of {}", number(value), number(axis.scale)),
+        ),
+    }
+}
+
+/// A stored value as text: a string without its quotes.
+fn plain(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(text) => text.clone(),
+        other => other.to_string(),
+    }
+}
+
+/// A number as a person writes one: `8`, `7.5`, `77.83` - never `8.0`.
+fn number(value: f64) -> String {
+    let text = format!("{value:.2}");
+    text.trim_end_matches('0').trim_end_matches('.').to_owned()
+}
+
+/// The day of a stored moment, `2026-10-20` of `2026-10-20T08:15:00.000Z`.
+fn day_of(stamp: &str) -> &str {
+    stamp.get(..10).unwrap_or(stamp)
+}
+
+/// The version before the text an action reads, for `{previous_version}`
+/// (v0.106): its body whole, as `{body}` is, by the rule the Versions tab
+/// compares by ([`version::before`]). The first version of its role, or a
+/// work with no version at all, says so in words rather than leaving a hole
+/// a model would read as an empty text.
+pub fn previous_sheet(
+    conn: &Connection,
+    kind: &WorkKind,
+    reading: Option<&version::Version>,
+) -> Result<String> {
+    let Some(reading) = reading else {
+        return Ok("(the work has no version yet, so none came before it)".to_owned());
+    };
+    if let Some(before) = version::before(conn, reading)? {
+        return Ok(before.body);
+    }
+    let role = kind
+        .version_roles
+        .iter()
+        .find(|role| role.key == reading.role)
+        .map_or_else(|| reading.role.clone(), |role| role.label.to_string());
+    Ok(format!(
+        "(nothing came before revision {} of the {role})",
+        reading.revision
+    ))
+}
+
+/// The collection a work stands in, for `{collection}` (v0.106): its title
+/// and kind, how many works it holds and is meant to, when it is due, what it
+/// is about, and its works in order with this one marked - what a track is
+/// judged against when the question is where it goes on the album.
+pub fn collection_sheet(
+    conn: &Connection,
+    config: &ProfileConfig,
+    work: &work::Work,
+) -> Result<String> {
+    let Some(found) = work
+        .collection_id
+        .as_deref()
+        .map(|id| crate::collection::get(conn, id))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok("(the work is in no collection)".to_owned());
+    };
+    let kind_word = config
+        .collection_kinds
+        .iter()
+        .find(|kind| kind.key == found.kind)
+        .map_or_else(|| found.kind.clone(), |kind| kind.label.to_string());
+    let mut out = format!(
+        "“{}” ({kind_word}), {} works",
+        found.title,
+        found.work_ids.len()
+    );
+    if let Some(target) = found.target_size {
+        out.push_str(&format!(" of {target} planned"));
+    }
+    if let Some(due) = &found.due_on {
+        out.push_str(&format!(", due {due}"));
+    }
+    if let Some(description) = found
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|description| !description.is_empty())
+    {
+        out.push_str(&format!("\n{description}"));
+    }
+    out.push('\n');
+    for (index, id) in found.work_ids.iter().enumerate() {
+        let title = work::get(conn, id)?.map_or_else(|| id.clone(), |member| member.title);
+        let mark = if *id == work.id { " - this work" } else { "" };
+        out.push_str(&format!("\n{}. {title}{mark}", index + 1));
+    }
+    Ok(out)
+}
+
+/// The week so far, for `{week}` (v0.106): from the Monday of the person's
+/// day, read from the operations log by the report the history writes out
+/// as Markdown (v0.105) - works made, versions written, scores given and
+/// releases out, each work by its title with how many times, then the notes
+/// and trials besides. The facts are the report's; the words are the
+/// prompt's, as every sheet's are.
+pub fn week_sheet(conn: &Connection, profile_id: &str, today: &str) -> Result<String> {
+    let format = time::macros::format_description!("[year]-[month]-[day]");
+    let day = time::Date::parse(today, &format)
+        .map_err(|_| Error::refused("report.badDate").param("value", today))?;
+    let monday = day - time::Duration::days(i64::from(day.weekday().number_days_from_monday()));
+    let from = format!(
+        "{:04}-{:02}-{:02}",
+        monday.year(),
+        u8::from(monday.month()),
+        monday.day()
+    );
+    let report = crate::report::week(conn, profile_id, &from)?;
+    let line = |heading: &str, touched: &[crate::report::Touched]| {
+        let count: i64 = touched.iter().map(|work| work.count).sum();
+        let works = if touched.is_empty() {
+            "none".to_owned()
+        } else {
+            touched
+                .iter()
+                .map(|work| {
+                    if work.count > 1 {
+                        format!("“{}” ×{}", work.title, work.count)
+                    } else {
+                        format!("“{}”", work.title)
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        format!("- {heading} ({count}): {works}")
+    };
+    Ok([
+        format!("The week from Monday {from} to {today}:"),
+        line("Works made", &report.made),
+        line("Versions written", &report.versions),
+        line("Scores given", &report.scored),
+        line("Releases out", &report.released),
+        format!(
+            "- Notes written: {}; trials: {}",
+            report.notes, report.trials
+        ),
+    ]
+    .join("\n"))
 }
 
 fn shot_label(kind: &WorkKind, key: &str) -> String {
@@ -1767,5 +2080,248 @@ mod version_tests {
             "{sheet}"
         );
         assert!(sheet.contains("Pashka (not described yet)"), "{sheet}");
+    }
+}
+
+/// The context placeholders of v0.106: `{score}`, `{previous_version}`,
+/// `{collection}` and `{week}`.
+#[cfg(test)]
+mod context_tests {
+    use super::*;
+    use crate::fixtures;
+    use crate::work::version::NewVersion;
+    use serde_json::json;
+
+    fn render(conn: &Connection, work_id: &str, template: &str, context: Context<'_>) -> String {
+        for_work(conn, work_id, template, context).unwrap()
+    }
+
+    /// The score of the text read speaks for it; a score of an older
+    /// revision still speaks for the work, and says it judged another text.
+    #[test]
+    fn the_score_says_which_text_it_judged() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        assert_eq!(
+            render(&conn, &song.id, "{score}", Context::default()),
+            "(the work is not scored yet)"
+        );
+
+        let first = fixtures::version(&conn, &song.id, "lyrics", "one");
+        crate::score::create(
+            &conn,
+            &song.id,
+            crate::score::NewScore {
+                axes: json!({ "hook": 8, "lyrics": 7.5, "gone": "kept" })
+                    .as_object()
+                    .cloned()
+                    .unwrap(),
+                version_id: None,
+                note: Some("  the chorus lands ".into()),
+                rater: None,
+            },
+        )
+        .unwrap();
+
+        let own = render(
+            &conn,
+            &song.id,
+            "{score}",
+            Context {
+                version_id: Some(&first.id),
+                ..Context::default()
+            },
+        );
+        assert!(own.starts_with("Total "), "{own}");
+        assert!(!own.contains("not to the text read here"), "{own}");
+        assert!(
+            own.contains("\n- Hook: 8 of 10\n- Lyrics: 7.5 of 10\n"),
+            "{own}"
+        );
+        assert!(
+            own.contains("- gone: kept"),
+            "an axis the kind no longer has stays readable: {own}"
+        );
+        assert!(own.ends_with("Note: the chorus lands"), "{own}");
+
+        let second = fixtures::version(&conn, &song.id, "lyrics", "two");
+        let moved_on = render(&conn, &song.id, "{score}", Context::default());
+        assert!(
+            moved_on.contains("given to revision 1, not to the text read here"),
+            "{moved_on}"
+        );
+        assert_eq!(
+            render(
+                &conn,
+                &song.id,
+                "{score}",
+                Context {
+                    version_id: Some(&second.id),
+                    ..Context::default()
+                },
+            ),
+            "(revision 2 is not scored yet)"
+        );
+    }
+
+    /// The version before is the one written from, while it is there in its
+    /// role, and the revision before otherwise - the Versions tab's rule.
+    #[test]
+    fn the_previous_version_is_the_parent_or_the_revision_before() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        assert_eq!(
+            render(&conn, &song.id, "{previous_version}", Context::default()),
+            "(the work has no version yet, so none came before it)"
+        );
+        let first = fixtures::version(&conn, &song.id, "lyrics", "one");
+        let second = fixtures::version(&conn, &song.id, "lyrics", "two");
+        version::create(
+            &conn,
+            &song.id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "three".into(),
+                parent_version_id: Some(first.id.clone()),
+                ..NewVersion::default()
+            },
+        )
+        .unwrap();
+
+        let about = |id: &str| {
+            render(
+                &conn,
+                &song.id,
+                "{previous_version}",
+                Context {
+                    version_id: Some(id),
+                    ..Context::default()
+                },
+            )
+        };
+        assert_eq!(
+            render(&conn, &song.id, "{previous_version}", Context::default()),
+            "one",
+            "the current third was written from the first"
+        );
+        assert_eq!(about(&second.id), "one", "the second follows the first");
+        assert_eq!(
+            about(&first.id),
+            "(nothing came before revision 1 of the Lyrics)"
+        );
+    }
+
+    /// A work in a collection reads it in order, itself marked; a loose one
+    /// says it is loose.
+    #[test]
+    fn the_collection_is_read_in_order_with_the_work_marked() {
+        let (conn, profile_id) = fixtures::workspace();
+        let first = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let second = fixtures::song(&conn, &profile_id, "Tide");
+        assert_eq!(
+            render(&conn, &second.id, "{collection}", Context::default()),
+            "(the work is in no collection)"
+        );
+        let album = crate::collection::create(
+            &conn,
+            &profile_id,
+            crate::collection::NewCollection {
+                kind: "album".into(),
+                title: "Night ferries".into(),
+                description: Some("Crossings after dark.".into()),
+                meta: None,
+                target_size: Some(4),
+                due_on: Some("2026-12-01".into()),
+            },
+        )
+        .unwrap();
+        crate::collection::set_contents(&conn, &album.id, &[first.id.clone(), second.id.clone()])
+            .unwrap();
+
+        assert_eq!(
+            render(&conn, &second.id, "{collection}", Context::default()),
+            "“Night ferries” (Album), 2 works of 4 planned, due 2026-12-01\n\
+             Crossings after dark.\n\n\
+             1. Harbour lights\n\
+             2. Tide - this work"
+        );
+    }
+
+    /// The week runs from the Monday of the person's day, and is read from
+    /// the operations log.
+    #[test]
+    fn the_week_is_counted_from_the_monday_of_the_persons_day() {
+        let (conn, _) = fixtures::workspace();
+        let song = crate::actions::work::create(
+            &conn,
+            crate::work::NewWork {
+                kind: "song".into(),
+                title: "Tide".into(),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        for body in ["first", "second"] {
+            crate::actions::version::create(
+                &conn,
+                &song.id,
+                NewVersion {
+                    role: "lyrics".into(),
+                    body: body.into(),
+                    ..NewVersion::default()
+                },
+            )
+            .unwrap();
+        }
+        let today = crate::time::now()[..10].to_owned();
+
+        let week = render(
+            &conn,
+            &song.id,
+            "{week}",
+            Context {
+                today: Some(&today),
+                ..Context::default()
+            },
+        );
+        assert!(week.contains("- Works made (1): “Tide”"), "{week}");
+        assert!(week.contains("- Versions written (2): “Tide” ×2"), "{week}");
+        assert!(week.contains("- Scores given (0): none"), "{week}");
+
+        // A Sunday belongs to the week that began six days before it.
+        let sunday = render(
+            &conn,
+            &song.id,
+            "{week}",
+            Context {
+                today: Some("2026-11-01"),
+                ..Context::default()
+            },
+        );
+        assert!(
+            sunday.starts_with("The week from Monday 2026-10-26 to 2026-11-01:"),
+            "{sunday}"
+        );
+    }
+
+    /// Without the person's day the week is refused, not guessed from UTC.
+    #[test]
+    fn the_week_without_a_day_is_refused() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        let refused = for_work(&conn, &song.id, "{week}", Context::default()).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("prompt.weekWithoutDay")
+        );
+    }
+
+    #[test]
+    fn numbers_are_written_as_a_person_writes_them() {
+        assert_eq!(number(8.0), "8");
+        assert_eq!(number(7.5), "7.5");
+        assert_eq!(number(77.833), "77.83");
+        assert_eq!(number(100.0), "100");
+        assert_eq!(number(0.0), "0");
     }
 }

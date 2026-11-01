@@ -115,7 +115,8 @@ chose — the same rule as everywhere else in the interface.
 report: the works made, the versions written, the scores given and the
 releases out - each work by its title, with how many times when more than
 once - and how many notes and trials were made. For a weekly note, or to
-hand to an assistant.
+hand to an assistant - and an action of your profile can read the same week
+itself, as [`{week}`](/kilna/reference/profile-document/#prompts).
 
 It is read from the workspace's log of everything you asked for, not from
 this feed: the feed forgets what you read a week ago, and a report of a week

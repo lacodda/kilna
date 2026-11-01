@@ -2610,7 +2610,8 @@
     "prompt": {
       "sceneNotOfWork": "Scene “{{scene}}” is not a scene of “{{title}}”.",
       "roleEmpty": "“{{title}}” has no {{role}} yet: write it first.",
-      "noDonor": "“{{title}}” is not made from anything yet: link its source on the Links tab first."
+      "noDonor": "“{{title}}” is not made from anything yet: link its source on the Links tab first.",
+      "weekWithoutDay": "This action reads the week, and the week is counted from the day the window gives: start it from a work in the window."
     },
     "mcp": {
       "missingArg": "“{{key}}” is required and cannot be empty.",

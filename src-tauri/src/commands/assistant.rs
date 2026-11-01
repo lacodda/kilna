@@ -205,6 +205,10 @@ pub struct TaskAbout {
     /// The lines selected in the text, for an action about a selection.
     #[serde(default)]
     pub selection: Option<String>,
+    /// The person's day, as a date: the week `{week}` reads is the one it
+    /// falls in.
+    #[serde(default)]
+    pub today: Option<String>,
 }
 
 impl TaskAbout {
@@ -221,6 +225,7 @@ impl TaskAbout {
             attachments,
             style_brick_ids,
             selection: self.selection.as_deref(),
+            today: self.today.as_deref(),
         }
     }
 }
@@ -730,7 +735,10 @@ fn drain_queue(app: &AppHandle) {
             state,
             &next.work_id,
             &next.action,
-            assistant::task::About::default(),
+            assistant::task::About {
+                today: next.today.as_deref(),
+                ..assistant::task::About::default()
+            },
         );
         let _ = app.emit(TASK_QUEUE_EVENT, queue_state(state));
 
@@ -818,6 +826,7 @@ pub fn start_tasks(
     state: State<'_, AppState>,
     work_ids: Vec<String>,
     action: String,
+    today: Option<String>,
 ) -> Result<StartedBatch> {
     let inner = state.inner();
 
@@ -867,7 +876,10 @@ pub fn start_tasks(
                 inner,
                 work_id,
                 &action,
-                assistant::task::About::default(),
+                assistant::task::About {
+                    today: today.as_deref(),
+                    ..assistant::task::About::default()
+                },
             ) {
                 Ok(_) => started += 1,
                 // One work failing must not take the batch with it: the others
@@ -881,6 +893,7 @@ pub fn start_tasks(
         } else if inner.queue().push(assistant::queue::Pending {
             work_id: work_id.clone(),
             action: action.clone(),
+            today: today.clone(),
         }) {
             queued += 1;
         } else {
@@ -933,17 +946,22 @@ pub fn clear_task_queue(app: AppHandle, state: State<'_, AppState>) -> usize {
     dropped
 }
 
-/// Fill a profile prompt template with a work's details.
+/// Fill a profile prompt template with a work's details. `today` is the
+/// person's day, for a template that reads the week.
 #[tauri::command]
 pub fn render_prompt(
     state: State<'_, AppState>,
     work_id: String,
     template: String,
+    today: Option<String>,
 ) -> Result<String> {
     prompt::for_work(
         &state.conn(),
         &work_id,
         &template,
-        prompt::Context::default(),
+        prompt::Context {
+            today: today.as_deref(),
+            ..prompt::Context::default()
+        },
     )
 }

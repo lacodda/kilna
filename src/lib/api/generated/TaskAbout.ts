@@ -20,4 +20,9 @@ styleBrickIds?: Array<string>,
 /**
  * The lines selected in the text, for an action about a selection.
  */
-selection?: string, };
+selection?: string, 
+/**
+ * The person's day, as a date: the week `{week}` reads is the one it
+ * falls in.
+ */
+today?: string, };

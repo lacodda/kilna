@@ -305,6 +305,32 @@ pub fn for_role(conn: &Connection, work_id: &str, role: &str) -> Result<Option<V
     raw.map(RawVersion::into_version).transpose()
 }
 
+/// The version `version` follows (v0.106): the one it was written from while
+/// that is still there in its role, otherwise the revision before it. The
+/// Versions tab's rule (`lib/history`'s `predecessor`), so a prompt's
+/// `{previous_version}` and the comparison on screen read the same text.
+pub fn before(conn: &Connection, version: &Version) -> Result<Option<Version>> {
+    if let Some(parent) = &version.parent_version_id
+        && let Some(found) = get(conn, parent)?
+        && found.work_id == version.work_id
+        && found.role == version.role
+    {
+        return Ok(Some(found));
+    }
+    let raw = conn
+        .query_row(
+            &format!(
+                "{SELECT_VERSION} WHERE work_id = ?1 AND role = ?2 AND revision < ?3 \
+                 ORDER BY revision DESC LIMIT 1"
+            ),
+            params![version.work_id, version.role, version.revision],
+            read_row,
+        )
+        .optional()?;
+
+    raw.map(RawVersion::into_version).transpose()
+}
+
 /// Mark a version the main one of its role, and the one marked before it not;
 /// what was main before, if anything, comes back for an undo.
 ///

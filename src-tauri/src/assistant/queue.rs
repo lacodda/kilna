@@ -28,6 +28,9 @@ use std::sync::{Mutex, MutexGuard};
 pub struct Pending {
     pub work_id: String,
     pub action: String,
+    /// The person's day when the batch was asked for, for `{week}`: a task
+    /// that waits past midnight still reads the week it was asked in.
+    pub today: Option<String>,
 }
 
 impl Pending {
@@ -119,6 +122,7 @@ mod tests {
         Pending {
             work_id: work.into(),
             action: action.into(),
+            today: None,
         }
     }
 

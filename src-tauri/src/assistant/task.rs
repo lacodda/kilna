@@ -138,6 +138,8 @@ pub struct About<'a> {
     /// The lines a person selected in the text, for an action about a
     /// selection (`{selection}`).
     pub selection: Option<&'a str>,
+    /// The person's day, for `{week}`.
+    pub today: Option<&'a str>,
 }
 
 /// Compose `action` of the active profile against `work_id`: the prompt as
@@ -293,6 +295,7 @@ pub fn compose(
             scene_id: scene.as_ref().map(|s| s.id.as_str()),
             style_brick_ids: about.style_brick_ids,
             selection: about.selection,
+            today: about.today,
         },
     )?;
 

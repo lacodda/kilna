@@ -1032,6 +1032,11 @@ impl WorkKind {
                             "{at} reads `{{selection}}`, which only an action started on selected lines is given"
                         ));
                     }
+                    if name == crate::assistant::prompt::WEEK {
+                        problems.push(format!(
+                            "{at} reads `{{week}}`, which a release field is not given: a release is about the work, not about the week"
+                        ));
+                    }
                     if name == "scene" {
                         problems.push(format!(
                             "{at} reads `{{scene}}`, which is one row of a board; a release is about the whole work, so it reads `{{scenes}}`"
@@ -3652,6 +3657,20 @@ impl ProfileConfig {
                 }
                 _ => {}
             }
+            // The week is counted from the person's day, which the window
+            // hands over only with an action about a work (v0.106).
+            if placeholders
+                .iter()
+                .any(|name| name == crate::assistant::prompt::WEEK)
+                && !matches!(
+                    prompt.scope(),
+                    Scope::Work | Scope::Selection | Scope::Scene
+                )
+            {
+                problems.push(format!(
+                    "{place} reads `{{week}}`, which only an action about a work, a selection or a scene is given"
+                ));
+            }
 
             match prompt.produces() {
                 Produces::Version(role) => {
@@ -5654,6 +5673,34 @@ mod tests {
             "{problems}"
         );
     }
+
+    /// The week is counted from the person's day, which only an action about
+    /// a work is given: an action about anything else reading `{week}` is
+    /// refused at save, and an action about a work is not (v0.106).
+    #[test]
+    fn only_an_action_about_a_work_reads_the_week() {
+        let mut config = studio();
+        let mut about_work = config.prompts[0].clone();
+        about_work.key = "weekly".into();
+        about_work.scope = None;
+        about_work.produces = None;
+        about_work.kinds = Vec::new();
+        about_work.template =
+            "{title} this week: {week} {score} {previous_version} {collection}".into();
+        let mut about_cover = about_work.clone();
+        about_cover.key = "cover-week".into();
+        about_cover.scope = Some("cover".into());
+        about_cover.template = "{ideas} {choices} {week}".into();
+        config.prompts.extend([about_work, about_cover]);
+
+        let problems = config.validate().join("\n");
+        assert!(!problems.contains("`weekly`"), "{problems}");
+        assert!(
+            problems.contains("`cover-week`) reads `{week}`, which only an action about a work"),
+            "{problems}"
+        );
+    }
+
     /// The shipped sound is one composition the document can hold: Studio's
     /// style prompt picked from the ten types of sound, closing with the BPM
     /// and the key.

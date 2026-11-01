@@ -1580,6 +1580,32 @@ proposes.
   a quote only as checked.
 - `{notes}` — the notes attached to the work, each whole: not the phrases,
   which `{lines}` reads, nor the cards of the canon, which `{canon}` reads.
+- `{score}` — how the text the action reads was judged (v0.106): the total
+  and tier, the day and who gave it, each axis of the kind under its word
+  with its mark against the scale (*Hook: 8 of 10*, a flag as *yes* or *no*,
+  a choice as its option's word), then the note. An action started on a
+  version reads that version's newest score; otherwise the work's - the score
+  of its current version, or its strongest, as the catalogue reads it. A
+  score given to another revision than the text read says so, and an axis the
+  kind no longer has is kept under its key. Unscored reads *(the work is not
+  scored yet)*.
+- `{previous_version}` — the text the version read follows, whole, as
+  `{body}` is: the version it was written from while that is there in its
+  role, otherwise the revision before - the version the Versions tab compares
+  it with. The first version of its role reads *(nothing came before revision
+  1 of the Lyrics)*.
+- `{collection}` — the collection the work stands in: its title and kind, how
+  many works it holds and is meant to, when it is due, its description, and
+  its works in order with this one marked *- this work*. A work in no
+  collection reads *(the work is in no collection)*.
+- `{week}` — the week so far, from the Monday of your day: works made,
+  versions written, scores given and releases out, each work with how many
+  times, then the notes and trials - what History's
+  [**Save the week as Markdown…**](/kilna/guides/the-history/#a-week-as-markdown)
+  counts, from the operations log. Only an action about a work, a selection
+  or a scene reads it, since only those are started with your day in hand;
+  any other action, or a release field, reading `{week}` is refused when the
+  profile is saved.
 - `{order}` — the whole order a writer works from, in markdown: the title and
   what is to be written, the idea, the brief, the texts of `with`, the fields,
   each board as its rule reads it, the notes and phrases attached, the
