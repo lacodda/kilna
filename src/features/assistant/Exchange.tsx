@@ -89,8 +89,11 @@ export function ExchangeItem({
 
       {body !== '' && (
         <div
+          // What a focus scrolls to: the answer, not its question, which for
+          // an action is a whole rendered template above it.
+          data-answer
           className={cn(
-            'flex max-w-[78%] flex-col gap-1.5 self-start rounded-lg border border-line bg-soft px-3 py-2',
+            'flex max-w-[78%] scroll-mt-2 flex-col gap-1.5 self-start rounded-lg border border-line bg-soft px-3 py-2',
             focused && 'ring-2 ring-accent',
           )}
         >

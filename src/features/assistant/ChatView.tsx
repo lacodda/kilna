@@ -146,11 +146,14 @@ export function ChatView({ chatId, workId, onChatCreated, focus = null }: Props)
     bottom.current?.scrollIntoView({ block: 'nearest' })
   }, [items.length, going.length])
 
-  // After the scroll to the end, so the answer asked for is what stays in view.
+  // After the scroll to the end, so the answer asked for is what stays in view
+  // - from its first line: centring the whole exchange put the middle of a
+  // long rendered question on screen instead (seen on the owner's chats).
   const focusedHere = focus !== null && items.some((item) => item.answer?.id === focus)
   useEffect(() => {
     if (focusedHere && focus !== null) {
-      document.getElementById(answerAnchor(focus))?.scrollIntoView({ block: 'center' })
+      const exchange = document.getElementById(answerAnchor(focus))
+      ;(exchange?.querySelector('[data-answer]') ?? exchange)?.scrollIntoView({ block: 'start' })
     }
   }, [focus, focusedHere])
 

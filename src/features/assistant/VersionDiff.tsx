@@ -56,7 +56,9 @@ export function VersionDiff({ against, body, role }: Props) {
             className={cn(
               'px-2 whitespace-pre-wrap',
               change.kind === 'added' && 'bg-good-soft',
-              change.kind === 'removed' && 'bg-bad-soft text-dim line-through',
+              change.kind === 'removed' && 'bg-bad-soft text-dim',
+              // A blank line struck through reads as a dash, not as a gap.
+              change.kind === 'removed' && change.text !== '' && 'line-through',
             )}
           >
             <span aria-hidden className="mr-2 inline-block w-2 text-faint select-none">
