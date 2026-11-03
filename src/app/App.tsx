@@ -1,12 +1,7 @@
-import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { warnUnreadyReleases } from '@/lib/api/releases'
+import { useQuery } from '@tanstack/react-query'
 import { humanError } from '@/lib/errors'
-import { say } from '@/lib/toast'
-import { today } from '@/lib/month'
-import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useKeys } from '@/app/useKeys'
 import { RAIL_WIDTH, useRail } from '@/lib/rail'
@@ -16,6 +11,7 @@ import { AssistantLauncher } from '@/features/assistant/AssistantDrawer'
 import { QueueBanner } from '@/features/assistant/QueueBanner'
 import { WaitingBanner } from '@/features/assistant/WaitingBanner'
 import { KeyboardSheet } from '@/shell/KeyboardSheet'
+import { Outside } from '@/shell/Outside'
 import { ResizeEdges } from '@/components/ui/window-frame'
 import { Sidebar } from '@/shell/Sidebar'
 import { Splash } from '@/shell/Splash'
@@ -35,25 +31,7 @@ export default function App() {
   const { helpOpen, setHelpOpen } = useKeys()
   const { rail, toggle: toggleRail } = useRail()
 
-  const client = useQueryClient()
   const { data: workspace, error, isPending } = useQuery(queries.workspace())
-
-  // The startup sweep: warn about every release due inside the week that is
-  // not ready. There is no scheduler in this app, so "at startup, per profile"
-  // is when standing gaps get noticed; each is written once, so a sweep that
-  // finds nothing new changes nothing. The local date goes with the call — the
-  // backend only knows UTC, which after sunset here is already tomorrow.
-  const profileId = workspace?.profile?.id
-  useEffect(() => {
-    if (profileId === undefined) return
-    // A sweep that fails says so: the week's gaps would otherwise go
-    // unnoticed until the day, which is the one thing the sweep is for.
-    warnUnreadyReleases(today())
-      .then((standing) => {
-        if (standing > 0) void client.invalidateQueries({ queryKey: keys.journal })
-      })
-      .catch((cause: unknown) => say.failedTo(t('toast.sweepFailed'), cause))
-  }, [profileId, client, t])
 
   if (isPending) return <Splash />
 
@@ -184,6 +162,10 @@ export default function App() {
 
       <KeyboardSheet open={helpOpen} onOpenChange={setHelpOpen} />
       <ResizeEdges />
+      {/* The tray, the badges, the notices said outside the window, and the
+          sweep of the coming week at start and whenever the day turns - per
+          profile, as the sweep always was (v0.107). */}
+      <Outside key={workspace.profile.id} />
     </ProfileContext>
   )
 }

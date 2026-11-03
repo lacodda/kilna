@@ -27,6 +27,18 @@ pub fn now() -> String {
         .unwrap_or_else(|_| String::from("1970-01-01T00:00:00.000Z"))
 }
 
+/// A moment the window sent - its local midnight, say, as `toISOString`
+/// writes it - in the shape every stored timestamp has, so it compares with
+/// them as text. `None` for anything that is not an RFC 3339 moment.
+pub fn instant(text: &str) -> Option<String> {
+    let parsed =
+        OffsetDateTime::parse(text, &time::format_description::well_known::Rfc3339).ok()?;
+    parsed
+        .to_offset(time::UtcOffset::UTC)
+        .format(&Iso8601::<STAMP>)
+        .ok()
+}
+
 /// Whether `text` is a time of day as the profile and a release write one:
 /// `HH:MM`, twenty-four hours, no seconds.
 pub fn is_clock_time(text: &str) -> bool {
@@ -55,6 +67,28 @@ mod tests {
 
     fn stamp(at: OffsetDateTime) -> String {
         at.format(&Iso8601::<STAMP>).unwrap()
+    }
+
+    /// The window's midnight arrives as `toISOString` writes it, or with an
+    /// offset; either way it comes out in the stored shape, in UTC, so that
+    /// it compares with stored moments as text (v0.107).
+    #[test]
+    fn a_moment_from_the_window_takes_the_stored_shape() {
+        assert_eq!(
+            instant("2026-11-03T03:00:00.000Z").as_deref(),
+            Some("2026-11-03T03:00:00.000Z")
+        );
+        assert_eq!(
+            instant("2026-11-03T00:00:00-03:00").as_deref(),
+            Some("2026-11-03T03:00:00.000Z")
+        );
+        assert_eq!(
+            instant("2026-11-03T03:00:00Z").map(|s| s.len()),
+            Some(now().len())
+        );
+        for bad in ["2026-11-03", "yesterday", "", "2026-13-01T00:00:00Z"] {
+            assert_eq!(instant(bad), None, "{bad}");
+        }
     }
 
     /// The width `now()` actually produces.

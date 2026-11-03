@@ -101,10 +101,12 @@ A work already running that action is passed over rather than asked twice, and
 so is one already waiting in the queue. That is why the number kilna reports
 back can be smaller than the number you ticked.
 
-The queue lives only as long as the application. Closing kilna with forty works
-waiting drops the forty — nothing has been asked of them yet, and an application
-that spawned forty processes on startup for a session you had finished with
-would be worse.
+The queue lives only as long as the application. Closing the window with works
+waiting does not drop them: the window goes behind the tray and the queue
+carries on (see [Closing the window while it works](#closing-the-window-while-it-works)).
+Quitting kilna drops what is still waiting. Nothing has been asked of those
+works yet, and an application that spawned forty processes on startup for a
+session you had finished with would be worse.
 
 ## When it stops to ask
 
@@ -248,7 +250,9 @@ creates it, and an unnamed chat borrows its first question as its name.
 Answers render as text with formatting — headings, lists, code. Every code
 block carries a copy button, and every answer has one for the whole reply.
 The header shows what the open chat has cost so far, summed from what each
-answer reported.
+of its runs cost, a run that failed included. Beside it is what the runs have
+cost today and this week, every chat's together; see
+[What the runs cost](#what-the-runs-cost).
 
 **Insert as version** on an answer keeps it properly: the answer becomes a
 version of the work, under the role you pick, exactly as written. It does not
@@ -278,6 +282,27 @@ it was said in — and in the drawer, the work. Choosing one opens its chat on
 that answer, ringed. On a card the list holds the answers of the card's own
 chats; the drawer holds every chat's.
 
+## What the runs cost
+
+Claude Code prices every run it makes, and kilna keeps the price on the run:
+the figure under an answer, the chat's total in the header, and the day's and
+the week's beside it. A run that ends in an error is priced too, since the
+tokens were spent all the same; a run you stop by hand reports no price, and
+none is made up for it. On a subscription the price is what the run would
+have cost through the API, a measure of how much was asked rather than a bill;
+paying by the token, it is the bill.
+
+The day and the week are yours, not the clock's in some other place: today is
+counted from your midnight and the week from your Monday.
+
+**A weekly budget is soft.** Click the day's and the week's figures to set
+what a week of runs may cost, or **No budget** to take it away. Nothing is
+refused for crossing it. The week's figure turns red, the
+[history](/kilna/guides/the-history/) gets one line the first time the week
+goes over, and kilna says so once, as a message in the window or, when the
+window is not in front, as a notification. Raising the budget and going over
+it again is said again; the same crossing noticed by the next run is not.
+
 ## From anywhere
 
 The assistant's button in the title bar, beside the bell, carries a badge
@@ -289,6 +314,18 @@ answer has landed.
 
 It is also what tells you an action from a card has finished, and the **Open**
 on that message takes you straight into the chat holding the answer.
+
+**When the window is not in front** (hidden behind the tray, minimised, under
+another program) a message inside it would come and go unseen, so the system
+says it instead: a notification, and a click on it brings the window back on
+the chat. Out of sight, a question you typed before you looked away is told
+too, not only an action. One run ending is told the moment it ends; a batch is
+told together, as soon as its last run is over and at most a minute and a
+half after the first of them, so forty answers are a few notifications and
+not forty.
+
+While runs are going the number of them sits on kilna's icon in the taskbar,
+as it does on the assistant's button.
 
 ## A run belongs to the chat
 
@@ -356,11 +393,30 @@ not have *and* a release the work does not ship, not one per click. If a part
 still fails while it is being written, nothing of it stays: no half-made work,
 no line in the history, and the proposal keeps waiting for you.
 
-## When kilna closes mid-run
+## Closing the window while it works
+
+Closing the window while a run is going, a task is waiting in the queue or a
+plugin is working does not end them. The window goes, and kilna's icon
+appears in the tray in its place, with the number of runs going on it and in
+its tooltip. The work carries on, and each answer is told by a notification
+as it lands.
+
+- **Click the icon**, or **Open kilna** in its menu, to bring the window back
+  where it was. A click on a notification does the same, and starting kilna
+  again from the Start menu brings back the window that is already open rather
+  than opening a second one on the same workspace.
+- **Quit kilna** in the icon's menu leaves, and stops whatever is still going.
+
+When everything has finished the icon stays, saying so, until you open the
+window or quit: the answers are waiting, and an icon that vanished would leave
+you to guess. Closing the window with nothing going closes kilna, as it always
+has.
+
+## When kilna stops mid-run
 
 A run is a separate process kilna started, and it does not stop by itself when
-the window goes: closing kilna stops the runs it was carrying, so nothing keeps
-working — and spending — for an answer nobody will read.
+kilna goes: quitting stops the runs it was carrying, so nothing keeps working
+(and spending) for an answer nobody will read.
 
 If kilna is ended some harder way — a crash, or the task manager — there is no
 chance to stop anything, and a run can carry on in the background with nowhere

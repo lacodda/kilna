@@ -630,7 +630,13 @@ pub fn shift(conn: &Connection, moves: &[layout::Move]) -> Result<usize> {
 /// but the release moving to a new date is a new situation and warns afresh.
 ///
 /// Journal lines only: nothing in the workspace changes, so no operation.
-pub fn warn_unready(conn: &Connection, today: &str) -> Result<usize> {
+///
+/// The day before the slot an unready release is warned about again, as its
+/// own line (v0.107): a week ahead is a note, tomorrow is the last day to do
+/// something. The releases warned about for tomorrow *by this call* come
+/// back, for the window to say outside itself - a sweep that finds the same
+/// gap at the next start writes nothing, and so says nothing.
+pub fn warn_unready(conn: &Connection, today: &str) -> Result<UnreadyWarnings> {
     let profile_id = super::active_profile_id(conn)?;
     let releases = release::calendar(conn, &profile_id)?;
     let unready = crate::readiness::unready_upcoming(
@@ -638,7 +644,9 @@ pub fn warn_unready(conn: &Connection, today: &str) -> Result<usize> {
         today,
         crate::readiness::WARNING_HORIZON_DAYS,
     )?;
+    let tomorrow = crate::layout::shift_date(today, 1)?;
 
+    let mut news = Vec::new();
     for entry in &unready {
         let date = entry.release.scheduled_at.clone().unwrap_or_default();
         crate::journal::record(
@@ -651,8 +659,35 @@ pub fn warn_unready(conn: &Connection, today: &str) -> Result<usize> {
                 .once(format!("ready:{}:{date}", entry.release.id))
                 .warn(),
         );
+        if date == tomorrow
+            && crate::journal::record_news(
+                conn,
+                &profile_id,
+                Record::new("release.notReadyTomorrow")
+                    .param("title", entry.work_title.clone())
+                    .param("date", date.clone())
+                    .about("work", entry.release.work_id.clone())
+                    .once(format!("tomorrow:{}:{date}", entry.release.id))
+                    .warn(),
+            )
+        {
+            news.push((*entry).clone());
+        }
     }
-    Ok(unready.len())
+    Ok(UnreadyWarnings {
+        standing: unready.len(),
+        tomorrow: news,
+    })
+}
+
+/// What a sweep of the coming week found.
+#[derive(Debug, Clone, serde::Serialize, ts_rs::TS)]
+pub struct UnreadyWarnings {
+    /// Releases inside the week that could not go out today.
+    pub standing: usize,
+    /// Those due tomorrow that this sweep warned about for the first time -
+    /// with what each still lacks, for the window to say.
+    pub tomorrow: Vec<release::ScheduledRelease>,
 }
 
 #[cfg(test)]
@@ -709,7 +744,7 @@ mod tests {
         let work = fixtures::song(&conn, &profile_id, "Subject");
         fixtures::release(&conn, &work.id, "clip", Some("2026-09-03"));
 
-        assert_eq!(warn_unready(&conn, "2026-09-01").unwrap(), 1);
+        assert_eq!(warn_unready(&conn, "2026-09-01").unwrap().standing, 1);
         let entries = journal::list(&conn, &profile_id).unwrap();
         let warning = entries
             .iter()
@@ -736,6 +771,40 @@ mod tests {
             0,
             "a dismissed warning stays dismissed"
         );
+    }
+
+    /// The day before the slot is said again, once (v0.107): the sweep that
+    /// first finds the gap tomorrow hands the release back for the window to
+    /// say, and the sweep at the next start - the same day - says nothing.
+    #[test]
+    fn an_unready_release_due_tomorrow_is_news_once() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work = fixtures::song(&conn, &profile_id, "Subject");
+        fixtures::release(&conn, &work.id, "clip", Some("2026-09-02"));
+        let later = fixtures::song(&conn, &profile_id, "Later");
+        fixtures::release(&conn, &later.id, "clip", Some("2026-09-05"));
+
+        // A week ahead: the note, and nothing for tomorrow yet.
+        let early = warn_unready(&conn, "2026-08-30").unwrap();
+        assert_eq!(early.standing, 2);
+        assert!(early.tomorrow.is_empty(), "{:?}", early.tomorrow);
+
+        let first = warn_unready(&conn, "2026-09-01").unwrap();
+        assert_eq!(first.tomorrow.len(), 1, "only the one due on the 2nd");
+        assert_eq!(first.tomorrow[0].work_title, "Subject");
+        assert!(!first.tomorrow[0].readiness.ready);
+
+        let again = warn_unready(&conn, "2026-09-01").unwrap();
+        assert!(again.tomorrow.is_empty(), "a standing gap is said once");
+
+        let entries = journal::list(&conn, &profile_id).unwrap();
+        let tomorrow: Vec<_> = entries
+            .iter()
+            .filter(|entry| entry.action == "release.notReadyTomorrow")
+            .collect();
+        assert_eq!(tomorrow.len(), 1);
+        assert_eq!(tomorrow[0].params["date"], "2026-09-02");
+        assert_eq!(tomorrow[0].entity_id.as_deref(), Some(work.id.as_str()));
     }
 
     /// A release a package plans leaves the same line in the history a hand

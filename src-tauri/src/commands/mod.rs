@@ -8,6 +8,7 @@
 //! were one file of 4,400 lines in the order they were written, each carrying
 //! its own copy of the gesture's ceremony (ADR 0040).
 
+pub mod activity;
 pub mod assets;
 pub mod assistant;
 pub mod boards;

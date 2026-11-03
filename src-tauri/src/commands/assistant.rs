@@ -135,6 +135,49 @@ pub fn dismiss_proposal(state: State<'_, AppState>, message_id: String) -> Resul
     assistant::apply::dismiss(&state.conn(), &message_id)
 }
 
+/// What the runs have cost since the window's midnight and since its Monday,
+/// and the week's budget (v0.107). The moments are the window's, as it
+/// writes them: its day is not UTC's.
+#[tauri::command]
+pub fn assistant_spend(
+    state: State<'_, AppState>,
+    day_from: String,
+    week_from: String,
+) -> Result<assistant::spend::Spend> {
+    assistant::spend::read(
+        &state.conn(),
+        assistant::spend::Since {
+            day: &day_from,
+            week: &week_from,
+        },
+    )
+}
+
+/// The same, and the week's crossing of its budget written into the history
+/// the first time it is seen - asked when a run ends and at startup.
+#[tauri::command]
+pub fn check_spend(
+    state: State<'_, AppState>,
+    day_from: String,
+    week_from: String,
+) -> Result<assistant::spend::SpendCheck> {
+    let conn = state.conn();
+    assistant::spend::check(
+        &conn,
+        &active(&conn)?,
+        assistant::spend::Since {
+            day: &day_from,
+            week: &week_from,
+        },
+    )
+}
+
+/// Set what a week of runs may cost, or clear it with nothing.
+#[tauri::command]
+pub fn set_weekly_budget(state: State<'_, AppState>, budget: Option<f64>) -> Result<Option<f64>> {
+    assistant::spend::set_budget(&state.conn(), budget)
+}
+
 /// Sends run events to the window.
 ///
 /// A failed emit is not worth failing a run over: the panel replays from the

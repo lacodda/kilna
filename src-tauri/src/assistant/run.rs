@@ -139,11 +139,19 @@ struct Live {
 #[derive(Default)]
 pub struct Runs {
     live: Mutex<HashMap<String, Live>>,
+    /// Told whenever a run comes or goes, so the window's count follows
+    /// (v0.107, [`crate::activity`]).
+    watcher: crate::activity::Watcher,
 }
 
 impl Runs {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Who to tell when a run comes or goes.
+    pub fn watch(&self, hook: crate::activity::Hook) {
+        self.watcher.set(hook);
     }
 
     fn live(&self) -> MutexGuard<'_, HashMap<String, Live>> {
@@ -194,6 +202,7 @@ impl Runs {
                 task,
             },
         );
+        self.watcher.changed();
     }
 
     /// Whether a task by this key is already going.
@@ -222,7 +231,11 @@ impl Runs {
     }
 
     fn remove(&self, run_id: &str) -> bool {
-        self.live().remove(run_id).map(|live| live.cancelled) == Some(true)
+        let removed = self.live().remove(run_id);
+        if removed.is_some() {
+            self.watcher.changed();
+        }
+        removed.map(|live| live.cancelled) == Some(true)
     }
 
     /// Stop every run this process is carrying, and say how many there were.
@@ -429,6 +442,7 @@ pub fn pump<S, F>(
 {
     let mut events: Vec<Event> = Vec::new();
     let mut outcome: Option<(RunState, Option<String>)> = None;
+    let mut cost: Option<f64> = None;
     // Whether the run was already taken off the registry, and whether it had
     // been cancelled when it was.
     let mut released: Option<bool> = None;
@@ -451,12 +465,10 @@ pub fn pump<S, F>(
                 let _ = remember_session(&conn, &run.chat_id, session_id);
             }
             if let Event::Finished {
-                body,
-                cost_usd,
-                duration_ms,
+                body, duration_ms, ..
             } = &event
             {
-                let mut meta = stream::finished_meta(*cost_usd, *duration_ms);
+                let mut meta = stream::finished_meta(*duration_ms);
                 meta.insert("run_id".into(), json!(run.id));
 
                 // A structured result travels with the message it came in, so
@@ -532,8 +544,15 @@ pub fn pump<S, F>(
 
         match &event {
             Event::Finished { .. } => outcome = Some((RunState::Done, None)),
-            Event::Failed { message } => outcome = Some((RunState::Failed, Some(message.clone()))),
+            Event::Failed { message, .. } => {
+                outcome = Some((RunState::Failed, Some(message.clone())));
+            }
             _ => {}
+        }
+        // The price comes with the event that ends the turn, finished or
+        // failed alike, and the row keeps it beside the state (v0.107).
+        if let Some(price) = stream::cost_of(&event) {
+            cost = Some(price);
         }
 
         // Off the registry before the end is announced: a window that hears
@@ -584,7 +603,10 @@ pub fn pump<S, F>(
         RunState::Failed
             if detail.is_some() && !matches!(events.last(), Some(Event::Failed { .. })) =>
         {
-            detail.clone().map(|message| Event::Failed { message })
+            detail.clone().map(|message| Event::Failed {
+                message,
+                cost_usd: None,
+            })
         }
         _ => None,
     };
@@ -594,7 +616,7 @@ pub fn pump<S, F>(
             events.push(event.clone());
             let _ = store_events(&conn, &run.id, &events);
         }
-        let _ = finish(&conn, &run.id, state, detail.as_deref());
+        let _ = finish(&conn, &run.id, state, detail.as_deref(), cost);
     }
 
     if let Some(event) = closing {
@@ -1018,10 +1040,16 @@ fn remember_session(conn: &Connection, chat_id: &str, session_id: &str) -> Resul
     Ok(())
 }
 
-fn finish(conn: &Connection, run_id: &str, state: RunState, detail: Option<&str>) -> Result<()> {
+fn finish(
+    conn: &Connection,
+    run_id: &str,
+    state: RunState,
+    detail: Option<&str>,
+    cost: Option<f64>,
+) -> Result<()> {
     conn.execute(
-        "UPDATE chat_run SET state = ?2, detail = ?3, ended_at = ?4 WHERE id = ?1",
-        params![run_id, state.as_str(), detail, now()],
+        "UPDATE chat_run SET state = ?2, detail = ?3, ended_at = ?4, cost_usd = ?5 WHERE id = ?1",
+        params![run_id, state.as_str(), detail, now(), cost],
     )?;
     Ok(())
 }
@@ -1436,6 +1464,53 @@ mod tests {
             json!(run.id),
             "the answer must name the run that wrote it"
         );
+        assert!(
+            meta.get("cost_usd").is_none(),
+            "the price is the run's, not a second copy on the answer: {meta}"
+        );
+        assert_eq!(cost_of_run(&conn, &run.id), Some(0.12));
+    }
+
+    fn cost_of_run(conn: &Connection, run_id: &str) -> Option<f64> {
+        conn.query_row(
+            "SELECT cost_usd FROM chat_run WHERE id = ?1",
+            params![run_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+    }
+
+    /// A turn the CLI ended with an error still spent its tokens, and the run
+    /// keeps the price it was told - v0.107 found it dropped (no answer was
+    /// written for it to ride on).
+    #[test]
+    fn a_failed_run_keeps_what_it_cost() {
+        let (run, _emitted, conn, _dir) = pumped(
+            vec![Event::Failed {
+                message: "Reached the maximum number of turns".into(),
+                cost_usd: Some(0.27),
+            }],
+            |_, _| {},
+        );
+
+        assert_eq!(run.state, RunState::Failed);
+        assert_eq!(cost_of_run(&conn, &run.id), Some(0.27));
+    }
+
+    /// A run stopped by hand says no price, and none is invented for it.
+    #[test]
+    fn a_run_that_reported_no_price_has_none() {
+        let (run, _emitted, conn, _dir) = pumped(
+            vec![Event::Text {
+                body: "half a th".into(),
+            }],
+            |runs, run| {
+                runs.cancel(&run.id);
+            },
+        );
+
+        assert_eq!(run.state, RunState::Cancelled);
+        assert_eq!(cost_of_run(&conn, &run.id), None);
     }
 
     #[test]
@@ -1558,6 +1633,7 @@ mod tests {
         let (run, emitted, _conn, _dir) = pumped(
             vec![Event::Failed {
                 message: "Not logged in".into(),
+                cost_usd: None,
             }],
             |_, _| {},
         );
@@ -2931,6 +3007,31 @@ The second verse is the weak one."
 
         assert_eq!(runs.active(), 0);
         assert!(runs.active_chats().is_empty());
+    }
+
+    /// The window's count of what is going follows the registry (v0.107):
+    /// a run coming and going is said, and the hook can already read the
+    /// count it was told about - it is called with the registry's lock let go.
+    #[test]
+    fn the_registry_says_when_a_run_comes_and_goes() {
+        let runs = Arc::new(Runs::new());
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let (reader, record) = (Arc::downgrade(&runs), Arc::clone(&seen));
+        runs.watch(Arc::new(move || {
+            let active = reader.upgrade().map_or(usize::MAX, |runs| runs.active());
+            record.lock().unwrap().push(active);
+        }));
+
+        runs.insert("r1".into(), "c1".into(), Arc::new(|| {}), None);
+        runs.insert("r2".into(), "c2".into(), Arc::new(|| {}), None);
+        runs.remove("r1");
+        runs.remove("r1");
+
+        assert_eq!(
+            *seen.lock().unwrap(),
+            vec![1, 2, 1],
+            "each change once, with the count after it; a second removal is no change"
+        );
     }
 
     /// Run `body` as the answer of a task under `key` in a chat on `work_id`,

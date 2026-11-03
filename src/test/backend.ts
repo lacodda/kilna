@@ -37,6 +37,11 @@ const WINDOW: Record<string, Handler> = {
   'plugin:window|is_fullscreen': () => false,
   'plugin:window|is_focused': () => true,
   'plugin:window|show': () => null,
+  // The badge on the taskbar, and the clicks on notifications (v0.107).
+  'plugin:window|set_overlay_icon': () => null,
+  'plugin:window|set_badge_count': () => null,
+  'plugin:notification|register_listener': () => null,
+  'plugin:notification|remove_listener': () => null,
 }
 
 export function mockBackend(handlers: Record<string, Handler>): Backend {

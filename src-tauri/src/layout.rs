@@ -470,6 +470,11 @@ pub fn days_between(from: &str, to: &str) -> Result<i64> {
     Ok((parse_date(to)? - parse_date(from)?).whole_days())
 }
 
+/// The date `days` after `date`, or before it when negative.
+pub fn shift_date(date: &str, days: i64) -> Result<String> {
+    iso(parse_date(date)? + time::Duration::days(days))
+}
+
 fn stale(reason: &str) -> Error {
     Error::LayoutStale(format!("the calendar changed since the preview: {reason}"))
 }

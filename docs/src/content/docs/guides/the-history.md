@@ -41,7 +41,7 @@ The bell in the top bar counts only entries that need a look, never ordinary
 ones. Adding a work or saving a version is recorded but never lights it: a
 bell lit by everything is a bell nobody reads.
 
-Two things light it today:
+Four things light it today:
 
 - **A release losing its calendar slot** to a stronger work. That is the case
   where something happened *to* you rather than because of you, and the
@@ -50,6 +50,11 @@ Two things light it today:
 - **A release due inside the coming week that is not ready** — missing a
   required version role, or a score. kilna checks at startup and after every
   calendar change, and writes one warning per release and date.
+- **The same release, the day before its slot**, still not ready: a second
+  line, said outside the window too (see
+  [Planning a release](/kilna/guides/planning-a-release/)).
+- **A week of assistant runs gone over its budget**, once a week and budget
+  (see [The assistant](/kilna/guides/the-assistant/#what-the-runs-cost)).
 
 A warning that happens again after you marked it seen comes back unread — a
 repeat is news even when the first one was dismissed. The not-ready warning

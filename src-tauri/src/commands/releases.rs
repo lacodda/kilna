@@ -88,7 +88,10 @@ pub fn preview_schedule(
 }
 
 #[tauri::command]
-pub fn warn_unready_releases(state: State<'_, AppState>, today: String) -> Result<usize> {
+pub fn warn_unready_releases(
+    state: State<'_, AppState>,
+    today: String,
+) -> Result<actions::release::UnreadyWarnings> {
     actions::release::warn_unready(&state.conn(), &today)
 }
 

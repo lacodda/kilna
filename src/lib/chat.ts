@@ -21,7 +21,6 @@ export interface Exchange {
   answer: {
     id: string
     body: string
-    cost: number | null
     /** How long the answer took, in milliseconds, when the CLI said. */
     durationMs: number | null
     /** What the answer proposed, when its action asked for something applicable. */
@@ -179,7 +178,6 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
       const answer = {
         id: message.id,
         body: message.body,
-        cost: typeof message.meta.cost_usd === 'number' ? message.meta.cost_usd : null,
         durationMs: typeof message.meta.duration_ms === 'number' ? message.meta.duration_ms : null,
         proposal: proposalOf(message),
         source: sourceOf(message),

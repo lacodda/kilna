@@ -33,11 +33,14 @@ describe('conversation', () => {
     const items = conversation(
       [
         message('user', 'shorten the verse', 't1', { run_id: 'r1' }),
-        message('assistant', 'done, here it is', 't2', { run_id: 'r1', cost_usd: 0.12 }),
+        message('assistant', 'done, here it is', 't2', { run_id: 'r1' }),
       ],
       [
         run('r1', 'shorten the verse', 't1', {
-          events: [{ kind: 'tool', name: 'Read', detail: 'x' }],
+          events: [
+            { kind: 'tool', name: 'Read', detail: 'x' },
+            { kind: 'finished', body: 'done, here it is', cost_usd: 0.12 },
+          ],
         }),
       ],
     )
@@ -46,7 +49,8 @@ describe('conversation', () => {
     expect(items[0]?.prompt).toBe('shorten the verse')
     expect(items[0]?.run?.steps).toEqual(['Read · x'])
     expect(items[0]?.answer?.body).toBe('done, here it is')
-    expect(items[0]?.answer?.cost).toBe(0.12)
+    // The price is the run's, read off the event that ended it (v0.107).
+    expect(items[0]?.run?.cost).toBe(0.12)
   })
 
   it('pairs the untagged past by text, oldest first, one to one', () => {

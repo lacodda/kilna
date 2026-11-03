@@ -56,6 +56,17 @@ describe('view', () => {
     expect(drawn.working).toBe(false)
   })
 
+  it('prices a run the CLI ended with an error, as it priced it (v0.107)', () => {
+    const drawn = view(
+      run([{ kind: 'failed', message: 'Reached the maximum number of turns', cost_usd: 0.21 }], {
+        state: 'failed',
+      }),
+    )
+
+    expect(drawn.failure).toBe('Reached the maximum number of turns')
+    expect(drawn.cost).toBe(0.21)
+  })
+
   it('falls back to the result body when nothing was streamed', () => {
     // A short answer can arrive as a result and nothing else.
     const drawn = view(run([{ kind: 'finished', body: 'Yes.' }], { state: 'done' }))

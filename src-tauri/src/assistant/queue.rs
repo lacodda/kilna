@@ -48,11 +48,19 @@ impl Pending {
 #[derive(Default)]
 pub struct Queue {
     waiting: Mutex<VecDeque<Pending>>,
+    /// Told whenever a task joins or leaves the line (v0.107): a queue alone
+    /// keeps the application busy, since closing would drop it.
+    watcher: crate::activity::Watcher,
 }
 
 impl Queue {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Who to tell when the line changes.
+    pub fn watch(&self, hook: crate::activity::Hook) {
+        self.watcher.set(hook);
     }
 
     fn waiting(&self) -> MutexGuard<'_, VecDeque<Pending>> {
@@ -68,18 +76,25 @@ impl Queue {
     /// action on the same work is one request, whichever side of the limit it
     /// lands on.
     pub fn push(&self, task: Pending) -> bool {
-        let mut waiting = self.waiting();
-        let key = task.key();
-        if waiting.iter().any(|held| held.key() == key) {
-            return false;
+        {
+            let mut waiting = self.waiting();
+            let key = task.key();
+            if waiting.iter().any(|held| held.key() == key) {
+                return false;
+            }
+            waiting.push_back(task);
         }
-        waiting.push_back(task);
+        self.watcher.changed();
         true
     }
 
     /// Take the oldest waiting task, if there is one.
     pub fn pop(&self) -> Option<Pending> {
-        self.waiting().pop_front()
+        let next = self.waiting().pop_front();
+        if next.is_some() {
+            self.watcher.changed();
+        }
+        next
     }
 
     /// Whether a task by this key is waiting.
@@ -107,9 +122,15 @@ impl Queue {
     /// Used when a person cancels a batch: the runs already going are stopped
     /// by the registry, and this is the rest of that same gesture.
     pub fn clear(&self) -> usize {
-        let mut waiting = self.waiting();
-        let held = waiting.len();
-        waiting.clear();
+        let held = {
+            let mut waiting = self.waiting();
+            let held = waiting.len();
+            waiting.clear();
+            held
+        };
+        if held > 0 {
+            self.watcher.changed();
+        }
         held
     }
 }
@@ -251,5 +272,37 @@ mod tests {
         assert_eq!(keys.len(), 2);
         assert!(keys.contains(&super::super::task::key("critique", "w1")));
         assert!(keys.contains(&super::super::task::key("score", "w2")));
+    }
+
+    /// The window counts what is waiting from what it is told (v0.107):
+    /// every change of the line is said once, and a change that did not
+    /// happen - a duplicate turned away, a clear of nothing - is not.
+    #[test]
+    fn the_line_says_when_it_changes_and_only_then() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let queue = Queue::new();
+        let told = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&told);
+        queue.watch(Arc::new(move || {
+            counter.fetch_add(1, Ordering::SeqCst);
+        }));
+        let heard = || told.load(Ordering::SeqCst);
+
+        assert!(queue.push(task("critique", "w1")));
+        assert_eq!(heard(), 1);
+        assert!(!queue.push(task("critique", "w1")));
+        assert_eq!(heard(), 1, "a duplicate changes nothing");
+
+        queue.push(task("score", "w2"));
+        assert!(queue.pop().is_some());
+        assert_eq!(heard(), 3);
+        assert_eq!(queue.clear(), 1);
+        assert_eq!(heard(), 4);
+
+        assert!(queue.pop().is_none());
+        assert_eq!(queue.clear(), 0);
+        assert_eq!(heard(), 4, "nothing taken, nothing said");
     }
 }

@@ -9,6 +9,7 @@ import { Frame, ListDetail } from '@/components/frame'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { ChatChips, ChatRows, type ChatListProps } from '@/features/assistant/ChatList'
 import { ChatView } from '@/features/assistant/ChatView'
+import { SpendMeter } from '@/features/assistant/SpendMeter'
 import { useChatQuestions, useChats } from '@/features/assistant/chats'
 import { StarredList } from '@/features/assistant/StarredList'
 
@@ -34,8 +35,9 @@ interface Props {
 }
 
 /**
- * The assistant, as one surface: a head saying which CLI answers and what the
- * open chat has cost, the chats, and the open conversation.
+ * The assistant, as one surface: a head saying which CLI answers, what the
+ * open chat has cost and what the runs have cost today and this week, the
+ * chats, and the open conversation.
  *
  * The drawer from the window's bar and the card's Assistant tab are this
  * component with the list drawn two ways. Until v0.81 each laid out its own
@@ -112,6 +114,9 @@ export function ChatSurface({ workId, list, initialChat = null, title, end, onOp
             {t('assistant.spent', { amount: formatCost(current.cost_usd) })}
           </span>
         )}
+        {/* What the runs have cost today and this week, against the week's
+            budget - every chat's together (v0.107). */}
+        <SpendMeter />
         {end}
       </span>
     </>

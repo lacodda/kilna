@@ -1,4 +1,5 @@
 pub mod actions;
+pub mod activity;
 pub mod asset;
 pub mod assistant;
 pub mod board;
@@ -59,6 +60,7 @@ pub mod time;
 pub mod time_off;
 pub mod tombstone;
 pub mod trash;
+pub mod tray;
 pub mod undo;
 pub mod words;
 pub mod work;
@@ -78,7 +80,18 @@ pub fn run() {
 /// run on a *copy* of a real workspace, before a change that migrates it is
 /// let near the original.
 pub fn run_in(workspace: Option<std::path::PathBuf>) {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+    // kilna started again while it is open - or waiting behind the tray -
+    // brings that window forward instead of opening a second one on the same
+    // workspace (v0.107). First, as the plugin asks: the second process ends
+    // inside it. Not for a run on another workspace (`--workspace`): that is
+    // a rehearsal on a copy, and must stand beside the real one.
+    if workspace.is_none() {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            tray::show_main(app);
+        }));
+    }
+    builder
         // Needed by the data screen to pick a directory or a file.
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -94,6 +107,12 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
                 )
                 .build(),
         )
+        // A task that ended, a release due tomorrow, a week over its budget,
+        // said outside the window when the window is not in front (v0.107).
+        .plugin(tauri_plugin_notification::init())
+        .manage(tray::Words::default())
+        // Closed with something going, the window hides behind the tray.
+        .on_window_event(tray::close_requested)
         .setup(move |app| {
             // Per-user application data, resolved by Tauri for the current
             // platform — unless the command line named a directory.
@@ -136,6 +155,20 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             }
 
             app.manage(state);
+            // The runs and the queue say when they change, and the window
+            // hears the count: its close button, its badge and the tray's.
+            commands::activity::watch(app.handle());
+            // A click on a notification brings the window back; what it then
+            // opens is the page's, which hears the same click.
+            {
+                use tauri_plugin_notification::NotificationExt;
+                let handle = app.handle().clone();
+                let _ = app.notification().on_action(move |performed| {
+                    if performed.action_id() == "tap" {
+                        tray::show_main(&handle);
+                    }
+                });
+            }
 
             // The page shows the window as soon as it has painted. Should it
             // never get that far - a broken bundle, a webview that failed to
@@ -161,6 +194,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::workspace::workspace_path,
             commands::workspace::log_path,
             commands::workspace::log_window_error,
+            commands::activity::activity,
+            tray::set_tray_words,
             commands::works::list_works,
             commands::works::get_work,
             commands::works::create_work,
@@ -440,6 +475,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assistant::task_queue,
             commands::assistant::clear_task_queue,
             commands::assistant::render_prompt,
+            commands::assistant::assistant_spend,
+            commands::assistant::check_spend,
+            commands::assistant::set_weekly_budget,
             commands::data::write_text_file,
             commands::data::export_markdown,
             commands::data::chat_markdown,

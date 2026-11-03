@@ -31,7 +31,17 @@ const labels: FormatterModule = {
   init: () => {},
   add: () => {},
   addCached: () => {},
-  format: (value, _format, lng) => (isLabelMap(value) ? resolveLabel(value, lng ?? 'en') : value),
+  format: (value, format, lng) => {
+    // `{{spent, usd}}`: an amount the history keeps as a bare number (what
+    // the CLI priced a run at), said as money in the sentence's language.
+    // `Intl` directly rather than `lib/format`, which imports this module.
+    if (format === 'usd' && typeof value === 'number') {
+      return new Intl.NumberFormat(lng ?? 'en', { style: 'currency', currency: 'USD' }).format(
+        value,
+      )
+    }
+    return isLabelMap(value) ? resolveLabel(value, lng ?? 'en') : value
+  },
 }
 
 void i18n

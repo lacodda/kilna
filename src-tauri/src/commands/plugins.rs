@@ -16,9 +16,16 @@ use crate::state::AppState;
 pub const PROGRESS_EVENT: &str = "plugin-progress";
 
 /// The runs going on now, by the id the window gave each, with the flag that
-/// stops one. Memory only: a run does not outlive the window that started it.
+/// stops one. Memory only: a run does not outlive the application - a window
+/// closed while one goes hides instead (v0.107), and the run goes on.
 static RUNNING: LazyLock<Mutex<HashMap<String, Arc<AtomicBool>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// How many plugin commands are going, for the count of what keeps the
+/// application busy ([`super::activity`]).
+pub fn running_count() -> usize {
+    RUNNING.lock().map_or(0, |running| running.len())
+}
 
 fn plugin_directory(state: &AppState) -> std::path::PathBuf {
     state
@@ -97,6 +104,7 @@ pub fn run_plugin(
     if let Ok(mut running) = RUNNING.lock() {
         running.insert(run.clone(), cancel.clone());
     }
+    super::activity::announce(&app);
     let mut on_progress = |progress: Progress| {
         let _ = app.emit(
             PROGRESS_EVENT,
@@ -122,6 +130,7 @@ pub fn run_plugin(
     if let Ok(mut running) = RUNNING.lock() {
         running.remove(&run);
     }
+    super::activity::announce(&app);
     let outcome = outcome?;
 
     actions::plugin::keep(&state.conn(), target, &id, &outcome.meta)?;

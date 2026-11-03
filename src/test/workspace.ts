@@ -1039,7 +1039,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
       releases: studio.releases.length,
     }),
     list_profiles: () => [studio.profile],
-    warn_unready_releases: () => 0,
+    warn_unready_releases: () => ({ standing: 0, tomorrow: [] }),
     last_undoable: () => null,
 
     catalogue: () => studio.works.map((row) => scored(studio, row)),
@@ -1303,6 +1303,12 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     active_runs: () => [],
     active_tasks: () => [],
     task_queue: () => ({ running: [], waiting: [] }),
+    // How busy the application is, the tray's words, what runs cost (v0.107).
+    activity: () => ({ running: 0, queued: 0 }),
+    set_tray_words: () => null,
+    assistant_spend: () => ({ today: 0, week: 0, budget: null }),
+    check_spend: () => ({ spend: { today: 0, week: 0, budget: null }, crossed: false }),
+    set_weekly_budget: ({ budget }) => budget ?? null,
     list_plugins: () => [],
 
     workspace_path: () => 'C:\\Users\\someone\\AppData\\Roaming\\kilna\\workspace.db',

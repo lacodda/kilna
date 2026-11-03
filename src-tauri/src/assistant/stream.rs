@@ -40,8 +40,15 @@ pub enum Event {
         #[serde(skip_serializing_if = "Option::is_none")]
         duration_ms: Option<u64>,
     },
-    /// The turn ended badly. The CLI's own wording where there is one.
-    Failed { message: String },
+    /// The turn ended badly. The CLI's own wording where there is one, and
+    /// what it cost when the CLI said: an error result is priced like a
+    /// finished one, and the tokens were spent all the same (v0.107).
+    Failed {
+        message: String,
+        #[ts(optional)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cost_usd: Option<f64>,
+    },
     /// The run was stopped by hand. Carries no words: this is not a failure,
     /// and the panel says it in the reader's language.
     Stopped,
@@ -133,6 +140,13 @@ fn result_event(value: &Value) -> Event {
         .unwrap_or_default()
         .to_owned();
 
+    // A negative or non-finite price is no price: the column refuses it, and
+    // a run must not fail at its very end over a number it only reports.
+    let cost_usd = value
+        .get("total_cost_usd")
+        .and_then(Value::as_f64)
+        .filter(|cost| cost.is_finite() && *cost >= 0.0);
+
     if value.get("is_error").and_then(Value::as_bool) == Some(true) {
         // The CLI puts its own diagnosis in `result`; pass it through rather
         // than replacing it with something vaguer.
@@ -142,22 +156,29 @@ fn result_event(value: &Value) -> Event {
             } else {
                 body
             },
+            cost_usd,
         };
     }
 
     Event::Finished {
         body,
-        cost_usd: value.get("total_cost_usd").and_then(Value::as_f64),
+        cost_usd,
         duration_ms: value.get("duration_ms").and_then(Value::as_u64),
     }
 }
 
-/// The `meta` a finished turn leaves on its message row.
-pub fn finished_meta(cost_usd: Option<f64>, duration_ms: Option<u64>) -> Map<String, Value> {
-    let mut meta = Map::new();
-    if let Some(cost) = cost_usd {
-        meta.insert("cost_usd".into(), serde_json::json!(cost));
+/// What the CLI said a turn cost, from the event that ended it.
+pub fn cost_of(event: &Event) -> Option<f64> {
+    match event {
+        Event::Finished { cost_usd, .. } | Event::Failed { cost_usd, .. } => *cost_usd,
+        _ => None,
     }
+}
+
+/// The `meta` a finished turn leaves on its message row. The price is not in
+/// it: that is the run's, kept on its row (v0.107).
+pub fn finished_meta(duration_ms: Option<u64>) -> Map<String, Value> {
+    let mut meta = Map::new();
     if let Some(duration) = duration_ms {
         meta.insert("duration_ms".into(), serde_json::json!(duration));
     }
@@ -516,16 +537,43 @@ mod tests {
         assert_eq!(
             parse_line(line),
             Some(Event::Failed {
-                message: "Not logged in · Please run /login".into()
+                message: "Not logged in · Please run /login".into(),
+                cost_usd: None,
             })
         );
+    }
+
+    /// A turn that ran out of turns still spent what it spent: the error
+    /// result carries the price, and the failure keeps it (v0.107).
+    #[test]
+    fn an_error_result_keeps_its_cost() {
+        let line = r#"{"type":"result","subtype":"error_max_turns","is_error":true,"result":"Reached the maximum number of turns","total_cost_usd":0.27}"#;
+
+        assert_eq!(
+            parse_line(line).as_ref().and_then(cost_of),
+            Some(0.27),
+            "the price of a failed turn is not dropped"
+        );
+    }
+
+    /// A price the column could not hold is no price at all, rather than a
+    /// failed write at the end of a run.
+    #[test]
+    fn a_negative_or_absent_price_is_none() {
+        for line in [
+            r#"{"type":"result","is_error":false,"result":"ok","total_cost_usd":-1}"#,
+            r#"{"type":"result","is_error":false,"result":"ok"}"#,
+            r#"{"type":"result","is_error":false,"result":"ok","total_cost_usd":"0.1"}"#,
+        ] {
+            assert_eq!(parse_line(line).as_ref().and_then(cost_of), None, "{line}");
+        }
     }
 
     #[test]
     fn an_error_result_with_nothing_to_say_still_says_something() {
         let line = r#"{"type":"result","is_error":true,"result":""}"#;
 
-        let Some(Event::Failed { message }) = parse_line(line) else {
+        let Some(Event::Failed { message, .. }) = parse_line(line) else {
             panic!("expected a failure");
         };
         assert!(!message.trim().is_empty());
@@ -554,17 +602,19 @@ mod tests {
     }
 
     #[test]
-    fn a_finished_turn_without_costs_leaves_no_empty_fields() {
-        let meta = finished_meta(None, None);
+    fn a_finished_turn_without_a_duration_leaves_no_empty_fields() {
+        let meta = finished_meta(None);
 
         assert!(meta.is_empty(), "absent numbers must not be stored as null");
     }
 
+    /// The answer keeps how long it took; its price is the run's, on the run's
+    /// row, and a second copy here is what v0.107 took away.
     #[test]
-    fn a_finished_turn_records_what_the_cli_reported() {
-        let meta = finished_meta(Some(0.18), Some(2756));
+    fn a_finished_turn_records_its_duration_and_not_its_price() {
+        let meta = finished_meta(Some(2756));
 
-        assert_eq!(meta["cost_usd"], serde_json::json!(0.18));
         assert_eq!(meta["duration_ms"], serde_json::json!(2756));
+        assert!(meta.get("cost_usd").is_none(), "{meta:?}");
     }
 }

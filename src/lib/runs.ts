@@ -54,6 +54,8 @@ export function view(run: Run): RunView {
         break
       case 'failed':
         failure = event.message
+        // A failed turn is priced too, when the CLI said (v0.107).
+        cost = event.cost_usd ?? null
         break
       case 'started':
       case 'stopped':

@@ -242,6 +242,10 @@ export const keys = {
   activeRuns: ['runs', 'active'] as const,
   activeTasks: ['runs', 'tasks'] as const,
   taskQueue: ['runs', 'queue'] as const,
+  // How busy the application is, and what the runs have cost (v0.107): under
+  // 'runs', since a run starting or ending is what moves both.
+  activity: ['runs', 'activity'] as const,
+  spend: ['runs', 'spend'] as const,
   waitingChats: ['chats', 'waiting'] as const,
   // Under the chats' prefix: a chat deleted takes its starred answers with it.
   allStarred: ['chats', 'starred'] as const,

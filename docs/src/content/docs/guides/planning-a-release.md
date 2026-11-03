@@ -274,6 +274,13 @@ due inside the coming week that is not ready writes a warning to
 [History](/kilna/guides/the-history/) — once per release and date, checked at
 startup and after every calendar change.
 
+**The day before the slot it is said again, out loud.** A release due
+tomorrow that is still not ready writes a second line, and kilna tells you
+with what it still lacks: a message in the window, or a notification when the
+window is not in front, whose click opens the work. Once, like the first
+warning; a window left open overnight, or waiting behind the tray, notices it
+when the day turns.
+
 ## Moving a release
 
 **Pick a chip up anywhere on it** and carry it to another day. The chip itself

@@ -149,15 +149,31 @@ impl Record {
 /// The failure is printed, because a journal that silently stops recording is
 /// worse than one that says so on the console.
 pub fn record(conn: &Connection, profile_id: &str, entry: Record) {
-    if let Err(cause) = write(conn, profile_id, entry) {
-        crate::log::error(
-            "journal",
-            &format!("could not record what happened: {cause}"),
-        );
+    record_news(conn, profile_id, entry);
+}
+
+/// Write an entry down, and say whether it is news: a line written for the
+/// first time, or a repeat that turned an old one unread. A once-entry that
+/// was already there is not (v0.107).
+///
+/// What the window tells the person outside itself - an OS notification, a
+/// toast - is exactly the news the history gained, so a standing state
+/// noticed by every sweep is said once, as it is written once. A failure to
+/// write is no news, and is printed as [`record`] prints it.
+pub fn record_news(conn: &Connection, profile_id: &str, entry: Record) -> bool {
+    match write(conn, profile_id, entry) {
+        Ok(news) => news,
+        Err(cause) => {
+            crate::log::error(
+                "journal",
+                &format!("could not record what happened: {cause}"),
+            );
+            false
+        }
     }
 }
 
-fn write(conn: &Connection, profile_id: &str, entry: Record) -> Result<()> {
+fn write(conn: &Connection, profile_id: &str, entry: Record) -> Result<bool> {
     let timestamp = now();
 
     // A once-entry is written the first time and never touched again — not
@@ -174,7 +190,7 @@ fn write(conn: &Connection, profile_id: &str, entry: Record) -> Result<()> {
             .optional()?
             .unwrap_or(false);
         if exists {
-            return Ok(());
+            return Ok(false);
         }
     }
 
@@ -200,7 +216,7 @@ fn write(conn: &Connection, profile_id: &str, entry: Record) -> Result<()> {
         // Unread again on purpose: a warning that came back is news, even if the
         // person had already dismissed the first one.
         if updated > 0 {
-            return Ok(());
+            return Ok(true);
         }
     }
 
@@ -221,7 +237,7 @@ fn write(conn: &Connection, profile_id: &str, entry: Record) -> Result<()> {
         ],
     )?;
 
-    Ok(())
+    Ok(true)
 }
 
 /// How many entries a feed page holds.
@@ -422,6 +438,21 @@ mod tests {
             1,
             "a repeat of a dismissed warning is news again"
         );
+    }
+
+    /// What the window says outside itself is the news the history gained
+    /// (v0.107): a once-entry is news when it is written and never after, and
+    /// a deduped repeat is news every time, as it turns the line unread.
+    #[test]
+    fn news_is_a_line_written_or_woken_never_a_standing_one_re_noticed() {
+        let (conn, profile_id) = fixtures::workspace();
+        let standing = || Record::new("release.notReadyTomorrow").once("tomorrow:r1:2026-09-02");
+        let repeated = || Record::new("release.displaced").deduped("displaced:r1");
+
+        assert!(record_news(&conn, &profile_id, standing()));
+        assert!(!record_news(&conn, &profile_id, standing()));
+        assert!(record_news(&conn, &profile_id, repeated()));
+        assert!(record_news(&conn, &profile_id, repeated()));
     }
 
     /// A once-entry stays exactly as written: a sweep re-noticing the same

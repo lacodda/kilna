@@ -50,7 +50,9 @@ export function ExchangeItem({
   // The settled message is canonical; a run's own body stands in while it is
   // still growing, or when the run ended before an answer was stored.
   const body = item.answer?.body ?? run?.body ?? ''
-  const cost = item.answer?.cost ?? run?.cost ?? null
+  // The price is the run's (v0.107): an answer never carried one of its own
+  // after the move, and a failed run is priced too.
+  const cost = run?.cost ?? null
   // What the run cost in time as well as in money: the two facts the CLI
   // reports about a finished turn, side by side under the answer.
   const took = formatDuration(item.answer?.durationMs ?? run?.durationMs ?? null)

@@ -4,6 +4,7 @@ pub mod prompt;
 pub mod proposal;
 pub mod queue;
 pub mod run;
+pub mod spend;
 pub mod stream;
 pub mod task;
 pub mod waiting;
@@ -178,8 +179,8 @@ pub fn summaries(
                 (SELECT m.body FROM chat_message m
                  WHERE m.chat_id = c.id AND m.role = 'user'
                  ORDER BY m.created_at, m.rowid LIMIT 1),
-                (SELECT coalesce(sum(json_extract(m.meta, '$.cost_usd')), 0)
-                 FROM chat_message m WHERE m.chat_id = c.id),
+                (SELECT coalesce(sum(r.cost_usd), 0)
+                 FROM chat_run r WHERE r.chat_id = c.id),
                 c.waiting_since,
                 c.updated_at
          FROM chat c LEFT JOIN work w ON w.id = c.work_id
@@ -751,8 +752,10 @@ mod tests {
         assert!(append(&conn, &chat.id, "narrator", "hello", Map::new()).is_err());
     }
 
+    /// The price of a chat is what its runs cost - the failed ones too, which
+    /// wrote no answer to carry a price (v0.107).
     #[test]
-    fn a_summary_prices_the_chat_from_what_its_answers_cost() {
+    fn a_summary_prices_the_chat_from_what_its_runs_cost() {
         let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
@@ -765,15 +768,22 @@ mod tests {
         )
         .unwrap();
 
-        let mut priced = Map::new();
-        priced.insert("cost_usd".into(), json!(0.12));
-        append(&conn, &chat.id, ASSISTANT, "one", priced).unwrap();
-        let mut priced = Map::new();
-        priced.insert("cost_usd".into(), json!(0.25));
-        append(&conn, &chat.id, ASSISTANT, "two", priced).unwrap();
-        // A turn that died before reporting carries no cost, and must not
-        // break the sum.
-        append(&conn, &chat.id, USER, "free", Map::new()).unwrap();
+        for (state, cost) in [
+            ("done", Some(0.12)),
+            ("failed", Some(0.25)),
+            ("cancelled", None),
+        ] {
+            conn.execute(
+                "INSERT INTO chat_run (id, chat_id, prompt, state, events, started_at, cost_usd)
+                 VALUES (?1, ?2, 'q', ?3, '[]', '2026-11-01T00:00:00.000Z', ?4)",
+                rusqlite::params![uuid::Uuid::new_v4().to_string(), chat.id, state, cost],
+            )
+            .unwrap();
+        }
+        // A price left in an answer's meta is not read: the run's is the one.
+        let mut stray = Map::new();
+        stray.insert("cost_usd".into(), json!(9.0));
+        append(&conn, &chat.id, ASSISTANT, "old", stray).unwrap();
 
         let summary = &summaries(&conn, &profile_id, None).unwrap()[0];
         assert!(

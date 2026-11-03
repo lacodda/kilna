@@ -29,6 +29,7 @@ import {
   Timer,
   Trash2,
   TriangleAlert,
+  Wallet,
   Type,
   Undo2,
   type LucideIcon,
@@ -171,6 +172,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'release.pinned': ['accent', Pin],
   'release.unpinned': ['dim', PinOff],
   'release.notReady': ['warn', TriangleAlert],
+  'release.notReadyTomorrow': ['warn', CalendarClock],
   'release.released': ['good', Send],
   'release.unreleased': ['dim', Undo2],
   'release.deleted': ['dim', Trash2],
@@ -229,6 +231,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'proposal.trials': ['accent', Sparkles],
   'proposal.cards': ['accent', Sparkles],
   'assistant.batchStarted': ['accent', Sparkles],
+  'assistant.overBudget': ['warn', Wallet],
 
   'trash.restored': ['dim', RotateCcw],
   'undo.done': ['dim', Undo2],

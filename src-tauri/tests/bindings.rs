@@ -173,6 +173,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::time_off::TimeOff,
         kilna_lib::time_off::NewTimeOff,
         kilna_lib::time_off::TimeOffPatch,
+        kilna_lib::actions::release::UnreadyWarnings,
         // collections.rs
         kilna_lib::collection::Collection,
         kilna_lib::collection::NewCollection,
@@ -234,6 +235,11 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::commands::assistant::TaskQueue,
         kilna_lib::commands::assistant::StartedBatch,
         kilna_lib::actions::Skipped,
+        kilna_lib::assistant::spend::Spend,
+        kilna_lib::assistant::spend::SpendCheck,
+        // activity.rs and the tray
+        kilna_lib::activity::Activity,
+        kilna_lib::tray::TrayWords,
         // data.rs
         kilna_lib::exchange::export::ExportReport,
         kilna_lib::commands::data::ChatPage,

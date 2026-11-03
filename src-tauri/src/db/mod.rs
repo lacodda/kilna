@@ -99,7 +99,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 40,
+            tables, 41,
             "nine core tables, three for the assistant, the trash, two for the focus board, \
              three for the day two workspaces meet (device, tombstone, field_clock), the operations log, \
              the link between works, the scene, what a scene is about, the frames drawn for it, \
@@ -110,7 +110,8 @@ mod tests {
              the trials of an experiment, the days the calendar is closed, \
              the keys the search index finds its rows by, \
              the cards on the boards of a work's conception, \
-             and what was heard in a video's finished file"
+             what was heard in a video's finished file, \
+             and the assistant's settings"
         );
     }
 

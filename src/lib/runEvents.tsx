@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
-import type { Run, RunEmission, TaskQueue } from '@/lib/api/types'
+import type { Activity, Run, RunEmission, TaskQueue } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { withEvent } from '@/lib/runs'
 import { movesTaskList } from '@/lib/tasks'
@@ -31,14 +31,17 @@ function settle(client: QueryClient, emission: RunEmission) {
   if (emission.event.kind === 'finished' || emission.event.kind === 'failed') {
     void client.invalidateQueries({ queryKey: keys.transcript(emission.chat_id) })
     void client.invalidateQueries({ queryKey: keys.allChats })
+    // A run that ended was priced, finished or failed (v0.107).
+    void client.invalidateQueries({ queryKey: keys.spend })
   }
 }
 
 /**
  * The one ear on the assistant's runs.
  *
- * The backend says what a run is doing on `assistant:run`, and what the queue
- * holds on `assistant:queue`. Until v0.77 seven components listened for
+ * The backend says what a run is doing on `assistant:run`, what the queue
+ * holds on `assistant:queue`, and how busy the whole application is on
+ * `app:activity`. Until v0.77 seven components listened for
  * themselves, each refreshing its own corner of the cache - the same event
  * handled seven ways, and a screen that forgot to listen showed a stale list.
  * Now the cache is kept here, once, for every screen; a component that must
@@ -57,9 +60,15 @@ export function RunEventsBridge({ children }: { children: ReactNode }) {
     const queue = listen<TaskQueue>('assistant:queue', ({ payload }) => {
       client.setQueryData(keys.taskQueue, payload)
     })
+    // How busy the application is, every time it changes (v0.107): before a
+    // run's end is heard, since the registry lets the run go first.
+    const busy = listen<Activity>('app:activity', ({ payload }) => {
+      client.setQueryData(keys.activity, payload)
+    })
     return () => {
       void runs.then((unlisten) => unlisten())
       void queue.then((unlisten) => unlisten())
+      void busy.then((unlisten) => unlisten())
     }
   }, [client])
 

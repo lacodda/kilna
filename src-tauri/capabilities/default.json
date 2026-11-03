@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions granted to the main window. The window permissions are here because kilna draws its own title bar, as scheda does: dragging, resizing and the window buttons are the page's to implement, and the page shows the window once it has painted so that nothing white is ever seen.",
+  "description": "Permissions granted to the main window. The window permissions are here because kilna draws its own title bar, as scheda does: dragging, resizing and the window buttons are the page's to implement, and the page shows the window once it has painted so that nothing white is ever seen. The badge on the taskbar and on the tray, and the notifications said outside the window, are the page's to draw and word (v0.107); the tray itself, and the door back to the window, are the backend's.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -12,6 +12,10 @@
     "core:window:allow-start-dragging",
     "core:window:allow-start-resize-dragging",
     "core:window:allow-show",
+    "core:window:allow-set-overlay-icon",
+    "core:window:allow-set-badge-count",
+    "core:app:allow-default-window-icon",
+    "notification:default",
     "dialog:allow-open",
     "dialog:allow-save",
     "opener:allow-open-url",

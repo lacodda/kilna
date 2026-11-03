@@ -17,6 +17,7 @@ import type {
   ShiftPlan,
   SlotPreview,
   StartedTask,
+  UnreadyWarnings,
 } from '@/lib/api/types'
 import type { ReleaseChanges } from '@/lib/releaseForm'
 
@@ -33,9 +34,10 @@ export const scheduleRelease = (id: string, slot: string) =>
 export const previewSchedule = (id: string, slot: string) =>
   invoke<SlotPreview>('preview_schedule', { id, slot })
 // `today` is the user's local date: the backend only knows UTC, which at a
-// negative offset is already tomorrow. Returns how many gaps are standing.
+// negative offset is already tomorrow. Says how many gaps are standing, and
+// which releases due tomorrow this sweep warned about first (v0.107).
 export const warnUnreadyReleases = (today: string) =>
-  invoke<number>('warn_unready_releases', { today })
+  invoke<UnreadyWarnings>('warn_unready_releases', { today })
 const setSlotPin = (id: string, pinned: boolean) => invoke<Release>('set_slot_pin', { id, pinned })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
 

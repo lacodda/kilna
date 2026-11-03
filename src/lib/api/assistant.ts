@@ -8,6 +8,8 @@ import type {
   PendingProposal,
   ProposalOverrides,
   Run,
+  Spend,
+  SpendCheck,
   StarredAnswer,
   StartedBatch,
   StartedTask,
@@ -16,6 +18,7 @@ import type {
   Transcript,
 } from '@/lib/api/types'
 import { today } from '@/lib/month'
+import { spendSince, type Since } from '@/lib/spend'
 
 // The assistant: chats, runs, tasks and what their answers propose.
 
@@ -66,6 +69,16 @@ export const startTasks = (workIds: readonly string[], action: string) =>
   invoke<StartedBatch>('start_tasks', { workIds, action, today: today() })
 export const activeTasks = () => invoke<string[]>('active_tasks')
 export const taskQueue = () => invoke<TaskQueue>('task_queue')
+/** What runs cost since this window's midnight and its Monday, and the
+ *  week's budget (v0.107). */
+export const assistantSpend = (since: Since = spendSince()) =>
+  invoke<Spend>('assistant_spend', since)
+/** The same, writing the week's crossing of its budget into the history the
+ *  first time it is seen; `crossed` says this call was that time. */
+export const checkSpend = (since: Since = spendSince()) => invoke<SpendCheck>('check_spend', since)
+/** Set what a week of runs may cost, or clear it with null. */
+export const setWeeklyBudget = (budget: number | null) =>
+  invoke<number | null>('set_weekly_budget', { budget })
 export const clearTaskQueue = () => invoke<number>('clear_task_queue')
 export const waitingChats = () => invoke<ChatSummary[]>('waiting_chats')
 export const clearWaiting = (chatId: string) => invoke<void>('clear_waiting', { chatId })

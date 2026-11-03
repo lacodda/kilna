@@ -4,6 +4,7 @@ import { mediaDirectory, mediaRoot, workFolder } from '@/lib/api/folders'
 import {
   activeRuns,
   activeTasks,
+  assistantSpend,
   assistantStatus,
   getTranscript,
   listChatSummaries,
@@ -86,6 +87,7 @@ import {
   workTimeline,
 } from '@/lib/api/works'
 import { getWorkspace, listProfiles, mcpRegistration } from '@/lib/api/workspace'
+import { activity } from '@/lib/api/shell'
 import { keys } from '@/lib/query/keys'
 
 /**
@@ -351,6 +353,8 @@ export const queries = {
   activeRuns: () => queryOptions({ queryKey: keys.activeRuns, queryFn: activeRuns }),
   activeTasks: () => queryOptions({ queryKey: keys.activeTasks, queryFn: activeTasks }),
   taskQueue: () => queryOptions({ queryKey: keys.taskQueue, queryFn: taskQueue }),
+  activity: () => queryOptions({ queryKey: keys.activity, queryFn: activity }),
+  spend: () => queryOptions({ queryKey: keys.spend, queryFn: () => assistantSpend() }),
   waitingChats: () => queryOptions({ queryKey: keys.waitingChats, queryFn: waitingChats }),
   starred: (workId?: string) =>
     queryOptions({ queryKey: keys.starred(workId), queryFn: () => starredAnswers(workId) }),

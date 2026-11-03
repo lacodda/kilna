@@ -8,4 +8,4 @@
  * CLI prints grow over time, and everything unrecognised is ignored rather
  * than shown as noise.
  */
-export type Event = { "kind": "started", session_id: string, } | { "kind": "text", body: string, } | { "kind": "tool", name: string, detail: string, } | { "kind": "finished", body: string, cost_usd?: number, duration_ms?: number, } | { "kind": "failed", message: string, } | { "kind": "stopped" };
+export type Event = { "kind": "started", session_id: string, } | { "kind": "text", body: string, } | { "kind": "tool", name: string, detail: string, } | { "kind": "finished", body: string, cost_usd?: number, duration_ms?: number, } | { "kind": "failed", message: string, cost_usd?: number, } | { "kind": "stopped" };

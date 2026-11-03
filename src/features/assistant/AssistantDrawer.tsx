@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageSquare, X } from 'lucide-react'
-import type { ChatSummary } from '@/lib/api/types'
+import { checkSpend } from '@/lib/api/assistant'
+import type { Activity, ChatSummary } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
+import { endingOf, HOLD_MS, isIdle, sayEndings, type Ending } from '@/lib/endings'
+import { inFront, notify, tell } from '@/lib/outward'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useRunEvent } from '@/lib/runEvents'
@@ -36,6 +39,52 @@ export function AssistantLauncher({ children }: { children?: React.ReactNode }) 
 
   // Kept current by the run events' bridge on every run's start and end.
   const active = useQuery({ ...queries.activeRuns(), staleTime: 0 })
+  const busy = useQuery(queries.activity())
+
+  // Endings heard while the window was not in front, waiting to be said as
+  // one notification (v0.107, `lib/endings`).
+  const held = useRef<Ending[]>([])
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flush = useCallback(() => {
+    if (timer.current !== null) clearTimeout(timer.current)
+    timer.current = null
+    const endings = held.current
+    held.current = []
+    // Back in front before they were said: the window shows them itself.
+    if (endings.length === 0 || inFront()) return
+    const said = sayEndings(endings, t)
+    const chatId = endings.length === 1 ? (endings[0]?.chatId ?? null) : null
+    notify({
+      ...said,
+      open: { label: t('assistant.taskOpen'), run: () => setOpen({ chatId }) },
+    })
+  }, [t])
+  // The last run of a batch is over: say what was held now, not in a minute.
+  useEffect(() => {
+    if (isIdle(busy.data)) flush()
+  }, [busy.data, flush])
+  useEffect(
+    () => () => {
+      if (timer.current !== null) clearTimeout(timer.current)
+    },
+    [],
+  )
+
+  // A run ended, and it was priced: the week may have gone over its budget.
+  // Said once, the first time it is seen (`spend::check`).
+  const checkBudget = useCallback(() => {
+    checkSpend()
+      .then(({ spend, crossed }) => {
+        if (!crossed) return
+        void client.invalidateQueries({ queryKey: keys.journal })
+        tell({
+          title: t('journal.assistant.overBudget', { spent: spend.week, budget: spend.budget }),
+          warn: true,
+          open: { label: t('assistant.taskOpen'), run: () => setOpen({ chatId: null }) },
+        })
+      })
+      .catch(() => undefined)
+  }, [client, t])
 
   // The launcher is always mounted, so this is the one listener that keeps the
   // badge honest wherever the run was started from — and the one place that can
@@ -44,9 +93,6 @@ export function AssistantLauncher({ children }: { children?: React.ReactNode }) 
   useRunEvent((payload) => {
     if (!movesTaskList(payload)) return
 
-    const ending = announcement(payload)
-    if (ending === null) return
-
     // The chat's name, if a list has already been loaded. Worth no fetch of
     // its own: the toast is useful without it.
     const named = client
@@ -54,6 +100,21 @@ export function AssistantLauncher({ children }: { children?: React.ReactNode }) 
       .flatMap(([, chats]) => chats ?? [])
       .find((chat) => chat.id === payload.chat_id)
     const what = named === undefined ? null : chatLabel(named, t('assistant.untitled'))
+
+    const over = endingOf(payload, what)
+    if (over !== null) checkBudget()
+
+    // Out of sight, every ending is worth telling - a question typed before
+    // the window was closed included - and they are said together.
+    if (over !== null && !inFront()) {
+      held.current.push(over)
+      if (isIdle(client.getQueryData<Activity>(keys.activity))) flush()
+      else timer.current ??= setTimeout(flush, HOLD_MS)
+      return
+    }
+
+    const ending = announcement(payload)
+    if (ending === null) return
 
     const message =
       ending === 'done'

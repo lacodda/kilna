@@ -147,7 +147,7 @@ sung and is listed under *sung*; the page has no *words* section.
 
 Every [chat](/kilna/guides/the-assistant/) goes to `chats/`, a page each: the
 chat's name, the work it is about, when it began and was last used and what
-its answers cost in the front matter, then each question and answer under its
+its runs cost in the front matter, then each question and answer under its
 heading with the minute it was said - an answer you
 [starred](/kilna/guides/the-assistant/#starred-answers) marked *starred*, one
 an agent sent from outside the window marked with its client - and under an

@@ -67,17 +67,13 @@ pub fn markdown(conn: &Connection, chat_id: &str) -> Result<String> {
         Some(id) => crate::work::get(conn, id)?.map(|work| work.title),
         None => None,
     };
-    Ok(page(&transcript, work_title.as_deref()))
+    let cost = assistant::spend::of_chat(conn, chat_id)?;
+    Ok(page(&transcript, work_title.as_deref(), cost))
 }
 
-/// The page of a transcript, the work's title given.
-fn page(transcript: &assistant::Transcript, work_title: Option<&str>) -> String {
+/// The page of a transcript, the work's title and what its runs cost given.
+fn page(transcript: &assistant::Transcript, work_title: Option<&str>, cost: f64) -> String {
     let title = title_of(transcript);
-    let cost: f64 = transcript
-        .messages
-        .iter()
-        .filter_map(|message| message.meta.get("cost_usd").and_then(Value::as_f64))
-        .sum();
 
     let mut out = String::from("---\n");
     out.push_str(&format!("format: {}\n", super::export::FORMAT));
@@ -158,7 +154,7 @@ pub fn write_all(conn: &Connection, profile_id: &str, directory: &Path) -> Resul
         };
         std::fs::write(
             directory.join(file_name(&transcript)),
-            page(&transcript, summary.work_title.as_deref()),
+            page(&transcript, summary.work_title.as_deref(), summary.cost_usd),
         )?;
         written += 1;
     }
@@ -204,9 +200,14 @@ mod tests {
             &chat.id,
             ASSISTANT,
             "Here it is, shorter.\n",
-            meta(
-                json!({ "cost_usd": 0.0125, "proposal": { "kind": "version", "role": "lyrics" } }),
-            ),
+            meta(json!({ "proposal": { "kind": "version", "role": "lyrics" } })),
+        )
+        .unwrap();
+        // What the turn cost is on its run (v0.107).
+        conn.execute(
+            "INSERT INTO chat_run (id, chat_id, prompt, state, events, started_at, cost_usd)
+             VALUES ('r1', ?1, 'Shorten the second verse', 'done', '[]', '2026-10-31T09:00:00.000Z', 0.0125)",
+            rusqlite::params![chat.id],
         )
         .unwrap();
         assistant::star(&conn, &answer.id, true).unwrap();

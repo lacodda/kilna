@@ -300,6 +300,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0047_message_star.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 48,
+        name: "spend",
+        sql: include_str!("../../migrations/0048_spend.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.
