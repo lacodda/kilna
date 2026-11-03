@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { onAction, sendNotification, type ActionPerformed } from '@tauri-apps/plugin-notification'
-import { hearNoticeClicks, tell } from '@/lib/outward'
+import { emit } from '@tauri-apps/api/event'
+import { hearNoticeClicks, inFront, tell, watchPresence } from '@/lib/outward'
+import { mockBackend } from '@/test/backend'
 import { toastManager } from '@/lib/toast'
 
 vi.mock('@tauri-apps/plugin-notification', () => ({
@@ -65,6 +67,24 @@ describe('saying it to a person who may not be looking', () => {
 
     stop()
     expect(unregister).toHaveBeenCalled()
+  })
+
+  it('believes the system over the page about a window hidden behind the tray', async () => {
+    // WebView2 keeps saying "focused" for a hidden window (v0.107 rehearsal).
+    looking(true)
+    mockBackend({})
+    const stop = await watchPresence()
+    expect(inFront()).toBe(true)
+
+    await emit('app:background', true)
+    expect(inFront()).toBe(false)
+    vi.mocked(sendNotification).mockReset()
+    tell({ title: 'Finished: Tide' })
+    expect(sendNotification).toHaveBeenCalledTimes(1)
+
+    await emit('app:background', false)
+    stop()
+    expect(inFront()).toBe(true)
   })
 
   it('a warning in front is a warning toast', () => {

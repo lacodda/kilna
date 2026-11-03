@@ -11,7 +11,6 @@ import {
   planShift,
   scheduleRelease,
   unscheduleRelease,
-  warnUnreadyReleases,
 } from '@/lib/api/releases'
 import type { Move, NewRelease, Placement, RepeatFinding, ShiftPlan } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
@@ -22,6 +21,7 @@ import { landingWarning } from '@/lib/repeats'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel } from '@/lib/useProfile'
+import { useWeekSweep } from '@/lib/weekSweep'
 
 /**
  * Both sides of this screen move together: taking a slot removes something
@@ -79,11 +79,17 @@ export function useCalendarActions({
   // later than the hook's own immediate refresh of the journal. So the feed is
   // asked again once the sweep is done, and holds the warning that arrived too
   // late for the first read.
+  // The release this change put onto tomorrow, unready, is said here as the
+  // shell's sweep would say it - the line is written once, and the next sweep
+  // would find it written (v0.107).
+  const sweepWeek = useWeekSweep()
   const settle = () => {
     onChanged()
-    void warnUnreadyReleases(today()).finally(() => {
-      void client.invalidateQueries({ queryKey: keys.journal })
-    })
+    sweepWeek()
+      .catch(() => undefined)
+      .finally(() => {
+        void client.invalidateQueries({ queryKey: keys.journal })
+      })
   }
 
   /**

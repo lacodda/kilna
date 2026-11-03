@@ -1,24 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { defaultWindowIcon } from '@tauri-apps/api/app'
 import { listen } from '@tauri-apps/api/event'
 import { TrayIcon } from '@tauri-apps/api/tray'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { warnUnreadyReleases } from '@/lib/api/releases'
 import { setTrayWords } from '@/lib/api/shell'
-import type { ScheduledRelease } from '@/lib/api/types'
 import { badgeDisc, badgedIcon, trayLine } from '@/lib/badge'
 import { today } from '@/lib/month'
-import { hearNoticeClicks, tell, type Notice } from '@/lib/outward'
-import { keys } from '@/lib/query/keys'
+import { hearNoticeClicks, watchPresence } from '@/lib/outward'
 import { queries } from '@/lib/query/queries'
-import { missing, sayNeed } from '@/lib/readiness'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
-import type { TFunction } from 'i18next'
-import type { ProfileConfig } from '@/lib/api/types'
+import { useWeekSweep } from '@/lib/weekSweep'
 
 /** The tray's id, as the backend builds it (`tray::ID`). */
 const TRAY = 'kilna'
@@ -110,28 +103,20 @@ function useBadges() {
 }
 
 /**
- * The sweep of the coming week: at start, and again whenever the window's
- * day turns - a window left open, or waiting behind the tray, overnight
- * notices tomorrow's gaps on the new day. A release unready the day before
- * its slot is said outside the window, once (`warn_unready`).
+ * The sweep of the coming week at start, and again whenever the window's day
+ * turns - a window left open, or waiting behind the tray, overnight notices
+ * tomorrow's gaps on the new day (`lib/weekSweep`).
  */
 function useDaySweep() {
   const { t } = useTranslation()
-  const client = useQueryClient()
-  const navigate = useNavigate()
-  const profile = useProfile()
+  const sweepWeek = useWeekSweep()
 
   useEffect(() => {
     let day = today()
+    // A sweep that fails says so: the week's gaps would otherwise go
+    // unnoticed until the day, which is the one thing the sweep is for.
     const sweep = () => {
-      // A sweep that fails says so: the week's gaps would otherwise go
-      // unnoticed until the day, which is the one thing the sweep is for.
-      warnUnreadyReleases(day)
-        .then(({ standing, tomorrow }) => {
-          if (standing > 0) void client.invalidateQueries({ queryKey: keys.journal })
-          if (tomorrow.length > 0) tell(tomorrowNotice(tomorrow, profile.config, t, navigate))
-        })
-        .catch((cause: unknown) => say.failedTo(t('toast.sweepFailed'), cause))
+      sweepWeek(day).catch((cause: unknown) => say.failedTo(t('toast.sweepFailed'), cause))
     }
     sweep()
     const tick = setInterval(() => {
@@ -141,55 +126,34 @@ function useDaySweep() {
       sweep()
     }, DAY_CHECK_MS)
     return () => clearInterval(tick)
-    // A sweep per profile: the shell mounts this once for each (its key). A
-    // change of the profile's words or of the language sweeps again, which
-    // writes nothing new - every warning is written once.
-  }, [profile.config, client, t, navigate])
+    // Per profile: the shell mounts this once for each (its key). A change of
+    // the profile's words or of the language sweeps again, which writes
+    // nothing new - every warning is written once.
+  }, [sweepWeek, t])
 }
-
-/** What a sweep says about the releases due tomorrow and not ready. */
-export function tomorrowNotice(
-  tomorrow: readonly ScheduledRelease[],
-  config: ProfileConfig,
-  t: TFunction,
-  go: (path: string) => unknown,
-): Notice {
-  const release = tomorrow[0]
-  if (tomorrow.length === 1 && release !== undefined) {
-    const gaps = missing(release.readiness).map((gap) => sayNeed(gap, config, release, t))
-    return {
-      title: t('journal.release.notReadyTomorrow', {
-        title: release.work_title,
-        date: release.scheduled_at,
-      }),
-      body: gaps.length === 0 ? undefined : t('calendar.notReadyHint', { list: gaps.join(', ') }),
-      warn: true,
-      open: { label: t('assistant.taskOpen'), run: () => go(`/works/${release.work_id}`) },
-    }
-  }
-  return {
-    title: t('outside.tomorrowMany', { count: tomorrow.length }),
-    body: tomorrow.map((release) => release.work_title).join(', '),
-    warn: true,
-    open: { label: t('assistant.taskOpen'), run: () => go('/calendar') },
-  }
-}
-
-/** A click on a notification opens what it was about. */
+/**
+ * A click on a notification opens what it was about; and where the window is
+ * - in front, behind another program, behind the tray - is kept from the
+ * system's own word, which decides between a toast and a notification.
+ */
 function useNoticeClicks() {
   useEffect(() => {
     if (!inTauri()) return
-    let stop: (() => void) | null = null
+    const stops: (() => void)[] = []
     let gone = false
+    const keep = (unlisten: () => void) => {
+      if (gone) unlisten()
+      else stops.push(unlisten)
+    }
     hearNoticeClicks()
-      .then((unlisten) => {
-        if (gone) unlisten()
-        else stop = unlisten
-      })
+      .then(keep)
+      .catch(() => undefined)
+    watchPresence()
+      .then(keep)
       .catch(() => undefined)
     return () => {
       gone = true
-      stop?.()
+      for (const stop of stops) stop()
     }
   }, [])
 }
