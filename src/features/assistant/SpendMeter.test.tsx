@@ -46,11 +46,12 @@ describe('what the runs cost (v0.107)', () => {
     // With no budget set there is nothing to take away.
     expect(await screen.findByRole('button', { name: 'No budget' })).toBeDisabled()
     const field = await screen.findByRole('textbox', { name: 'Weekly budget' })
-    fireEvent.change(field, { target: { value: '15' } })
+    fireEvent.change(field, { target: { value: '0.5' } })
     fireEvent.blur(field)
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
-    fireEvent.submit(field.closest('form')!)
+    // A click, as a person makes it: a submit the browser's own checks would
+    // refuse is refused here too.
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    await waitFor(() => expect(backend.argsOf('set_weekly_budget')).toEqual([{ budget: 15 }]))
+    await waitFor(() => expect(backend.argsOf('set_weekly_budget')).toEqual([{ budget: 0.5 }]))
   })
 })

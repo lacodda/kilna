@@ -78,7 +78,12 @@ export function SpendMeter() {
           <span className="caption">{t('assistant.spendTitle')}</span>
         </PopoverTitle>
         <p className="text-xs text-dim">{t('assistant.spendHint')}</p>
+        {/* `noValidate`: the field keeps a hidden number input for forms, and
+            with a minimum of 0.01 and a step of 1 the browser holds only
+            0.01, 1.01, 2.01... valid - a budget of 0.50 or of 15 was refused
+            in silence (v0.107 rehearsal). The amount is checked here. */}
         <form
+          noValidate
           className="flex flex-col gap-2 border-t border-line pt-2"
           onSubmit={(event) => {
             event.preventDefault()
