@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          # The newest 22: Astro asks for a patch the runner's cached one may lack.
+          check-latest: true
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Lint
@@ -102,6 +104,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          # The newest 22: Astro asks for a patch the runner's cached one may lack.
+          check-latest: true
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2

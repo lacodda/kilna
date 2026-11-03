@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          # The newest 22: Astro asks for a patch the runner's cached one may lack.
+          check-latest: true
           cache: pnpm
           cache-dependency-path: docs/pnpm-lock.yaml
       - name: Install
