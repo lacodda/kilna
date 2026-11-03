@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.107.0] - 2026-11-03
+
+### Bug Fixes
+- Tell a hidden window by the system's word, and say what the calendar put on tomorrow
+- Let a weekly budget off the whole-dollar grid be saved
+- Give the refusals of a budget and a moment their words
+
+### CI
+- Set up the newest Node 22 the docs' Astro asks for
+
+### Documentation
+- Say the tray, the notifications and the price of a run on the front page
+
+### Features
+- Keep work going behind the tray, say outside the window what ended, and price every run
+
+### Testing
+- Read a formatted hole by its name
+
 ## [0.106.0] - 2026-11-01
 
 ### Bug Fixes
