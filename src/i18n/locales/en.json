@@ -2909,6 +2909,10 @@
     },
     "report": {
       "badDate": "“{{value}}” is not a day a week can start on — write it as YYYY-MM-DD."
+    },
+    "spend": {
+      "badBudget": "A weekly budget of {{value}} USD is not a budget — leave it empty or name an amount above zero.",
+      "badMoment": "“{{value}}” is not a moment — write it as an ISO time, like 2026-11-02T00:00:00Z."
     }
   },
   "skip": {
