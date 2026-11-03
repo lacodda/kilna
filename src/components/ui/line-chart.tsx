@@ -32,7 +32,7 @@ import { boundsOf, pathOf, runs, ticksFor, yOf, type Bounds, type Point } from '
  * the chart disappears without failing.
  */
 
-export const lineChartVariants = cva('relative w-full', {
+export const lineChartVariants = cva('relative w-full print:break-inside-avoid', {
   variants: {
     size: {
       sm: '[--plot:96px]',

@@ -80,6 +80,7 @@ export interface NavRailProps
    * landmark, so a reader meeting two navs on one page can tell which is
    * which. A product with a rail AND a bottom bar has exactly that. */
   label: string
+  /** The destinations, in the order they are drawn. */
   items: readonly NavRailItem[]
   /** Which destination is the open screen. */
   activeId?: string
@@ -110,7 +111,8 @@ export function NavRail({
   return (
     <nav
       aria-label={label}
-      className={cn(navRailVariants({ layout }), narrow && 'items-center px-2', className)}
+      // Where to go next is no use on paper.
+      className={cn(navRailVariants({ layout }), narrow && 'items-center px-2', 'print:hidden', className)}
       {...props}
     >
       {items.map((item) => {
@@ -270,7 +272,11 @@ export function NavGroup({
   className,
   children,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { collapsed?: boolean }) {
+}: HTMLAttributes<HTMLDivElement> & {
+  /** Draw a hairline instead of the caption, to match a collapsed rail; the
+   * words stay for a screen reader. */
+  collapsed?: boolean
+}) {
   if (collapsed) {
     return (
       <div className={cn('mx-auto my-2 h-px w-5 shrink-0 bg-line', className)} {...props}>

@@ -1,7 +1,7 @@
 import { PreviewCard as Base } from '@base-ui/react/preview-card'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
-import { usePopupContainer } from './layer'
+import { popupRoom, usePopupContainer } from './layer'
 
 /*
  * PreviewCard.
@@ -31,6 +31,7 @@ import { usePopupContainer } from './layer'
 export const previewCardPopupVariants = cva(
   [
     'rounded-lg border border-line bg-raise p-4 text-sm text-text shadow-raise',
+    popupRoom,
     'focus-visible:outline-none',
     // The enter and the leave. `duration-*` reads the token directly because
     // Tailwind's own utility takes a literal number.

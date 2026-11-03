@@ -92,8 +92,18 @@ export function ContextMenuSubTrigger({ tone, className, ...props }: ContextMenu
   return <Base.SubmenuTrigger className={cn(menuItemVariants({ tone }), className)} {...props} />
 }
 
-/** An item that carries a tick. The state is the caller's. */
-export function ContextMenuCheckboxItem({ tone, className, ...props }: ContextMenuItemProps) {
+export interface ContextMenuCheckboxItemProps extends Base.CheckboxItem.Props {
+  /** `danger` draws the destructive one apart. */
+  tone?: 'default' | 'danger'
+}
+
+/** An item that carries a tick. The state is the caller's.
+ *
+ * Typed from `CheckboxItem`, not `Item`: declared with the plain item's props,
+ * it rendered a checkbox that refused `checked` and `onCheckedChange` - the
+ * two things it is for. Menu's had the same fault until kilna's column
+ * picker called it; this one waited for a test to. */
+export function ContextMenuCheckboxItem({ tone, className, ...props }: ContextMenuCheckboxItemProps) {
   return <Base.CheckboxItem className={cn(menuItemVariants({ tone }), className)} {...props} />
 }
 

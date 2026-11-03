@@ -111,6 +111,7 @@ interface InlineFieldBaseProps {
   /** What an empty value shows. A dash reads as "nothing yet"; a blank box
    * reads as a rendering fault. */
   placeholder?: string
+  /** Shows the value and refuses to edit it. */
   disabled?: boolean
   className?: string
 }
@@ -122,13 +123,21 @@ export interface InlineFieldProps<T> extends InlineFieldBaseProps {
    * `false` to refuse it - a server that said no - and the field goes back
    * to the stored value. */
   onCommit: (value: T | null) => boolean | void
+  /** How the value is read from the text and spelled back. Required for
+   * anything but text. */
   codec: Codec<T>
 }
 
 export function InlineField(
   props: InlineFieldBaseProps & {
+    /** The stored value; `null` for none. */
     value: string | null
+    /** Called once, with the parsed value, when a change is kept. Return
+     * `false` to refuse it - a server that said no - and the field goes back
+     * to the stored value. */
     onCommit: (value: string | null) => boolean | void
+    /** How the value is read from the text and spelled back. Left out, the
+     * value is plain text. */
     codec?: Codec<string>
   },
 ): ReactNode

@@ -142,17 +142,21 @@ export function TierBadge({ label, value, status, className, ...props }: TierBad
   return (
     <span className={cn(tierBadgeVariants({ status }), className)} {...props}>
       {label}
-      {value !== undefined && <span className="font-normal opacity-70">{value}</span>}
+      {/* Set apart by weight, not by fading: an opacity on text is a colour
+        * nobody promised, and at 70% the value on its soft fill came to 3.4:1. */}
+      {value !== undefined && <span className="font-normal">{value}</span>}
     </span>
   )
 }
 
 export interface TierRulerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+  /** The bands, in any order. Bands outside `min` to `max` are dropped. */
   tiers: Tier[]
   /** Where the thing stands now. */
   value: number
   /** The ends of the road. */
   min?: number
+  /** The top end of the road; see `min`. */
   max?: number
   /** What the ruler as a whole is called, for a screen reader, and what to say
    * the value is. The product's words - the ruler has none. */

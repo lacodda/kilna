@@ -49,8 +49,11 @@ export interface LineMark {
 }
 
 export interface MarkedLinesProps {
+  /** The whole text. Lines are split on `\n`, and every mark's offsets count into this string. */
   text: string
+  /** Spans of characters to mark, as offsets into `text`. Give them in order of `start` and do not overlap them. */
   marks?: readonly Mark[]
+  /** Whole lines to mark, by zero-based index. A line mark paints the full width of the line. */
   lineMarks?: readonly LineMark[]
   /** Transparent text: the textarea above shows the letters. */
   ghost?: boolean
@@ -144,11 +147,15 @@ export function MarkedText({ className, ...lines }: MarkedTextProps) {
 
 export interface MarkedTextareaProps
   extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange' | 'className'> {
+  /** The ref of the textarea itself, for focus and selection. */
   ref?: Ref<HTMLTextAreaElement>
+  /** The text, controlled. The field has no state of its own. */
   value: string
   /** The new value, not the event: the event is the textarea's business. */
   onChange: (value: string) => void
+  /** Spans of characters to mark, as offsets into `value`. Give them in order of `start` and do not overlap them. */
   marks?: readonly Mark[]
+  /** Whole lines to mark, by zero-based index. */
   lineMarks?: readonly LineMark[]
   /** The metrics both layers share: font, size, line height, padding. */
   className?: string

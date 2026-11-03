@@ -134,7 +134,9 @@ export function Divider({
 }
 
 export interface SectionHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+  /** The section's heading, drawn at `level`. */
   title: ReactNode
+  /** One line under the title, saying what the section holds. */
   description?: ReactNode
   /** Buttons belonging to this section rather than to the screen - Add,
    * Collapse, a link out. */

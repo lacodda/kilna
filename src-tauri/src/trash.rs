@@ -1472,11 +1472,7 @@ fn read_rows(conn: &Connection, table: &str, condition: &str, value: &str) -> Re
     // from input, which is why they can be formatted into the SQL. The
     // condition names the value once, as the single `?` it carries.
     let mut statement = conn.prepare(&format!("SELECT * FROM {table} WHERE {condition}"))?;
-    let columns: Vec<String> = statement
-        .column_names()
-        .into_iter()
-        .map(str::to_owned)
-        .collect();
+    let columns: Vec<String> = statement.column_names().map(str::to_owned).collect();
 
     let rows = statement.query_map(params![value], |row| {
         let mut object = Map::new();

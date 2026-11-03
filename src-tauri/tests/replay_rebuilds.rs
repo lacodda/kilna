@@ -63,11 +63,7 @@ fn contents(conn: &Connection) -> Map<String, Value> {
         let mut statement = conn
             .prepare(&format!("SELECT * FROM {table}"))
             .unwrap_or_else(|cause| panic!("{table} is readable: {cause}"));
-        let columns: Vec<String> = statement
-            .column_names()
-            .into_iter()
-            .map(str::to_owned)
-            .collect();
+        let columns: Vec<String> = statement.column_names().map(str::to_owned).collect();
 
         let rows = statement
             .query_map([], |row| {

@@ -153,6 +153,7 @@ export interface AvatarGroupProps extends HTMLAttributes<HTMLDivElement> {
   /** The people. Given as data rather than as children, because the group has
    * to know how many there are to say how many are hidden. */
   people: Array<{ name: string; src?: string }>
+  /** The size of every tile in the row, the count included. */
   size?: AvatarProps['size']
   /** What the whole row is called, for a screen reader - "Assignees", in the
    * product's word. */

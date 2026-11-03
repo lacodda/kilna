@@ -30,10 +30,17 @@ import { fieldClasses } from './input'
  */
 
 export interface NumberFieldProps {
+  /** The controlled number. `null` is an empty box. */
   value?: number | null
+  /** The starting number of an uncontrolled field. */
   defaultValue?: number
+  /** Called with the new number as it changes, or `null` when the box is
+   * emptied. */
   onValueChange?: (value: number | null) => void
+  /** The lowest the number may be. The arrows stop here, and a typed number
+   * below it moves to it on blur unless `allowOutOfRange` is set. */
   min?: number
+  /** The highest the number may be. See `min`. */
   max?: number
   /** Keep a typed number outside `min`/`max` as typed, rather than moving it
    * to the bound on blur - for a form that says what is wrong instead. A 9
@@ -57,11 +64,17 @@ export interface NumberFieldProps {
   /** Hide the stepper. For a field with a wide range, where the buttons are
    * an invitation to click sixty times. */
   hideStepper?: boolean
+  /** Turns the field off: it cannot be focused or changed. */
   disabled?: boolean
+  /** The number can be read and selected but not changed. */
   readOnly?: boolean
+  /** Marks the field as required, for a form to check. */
   required?: boolean
+  /** The name the number is submitted under in a form. */
   name?: string
+  /** Shown in the box while it is empty. */
   placeholder?: string
+  /** Names the field for a screen reader, when there is no visible label. */
   'aria-label'?: string
   className?: string
 }

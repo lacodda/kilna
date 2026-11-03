@@ -105,6 +105,7 @@ export interface SparklineProps
   /** What the line says, for a reader who cannot see it. Required: an unlabelled
    * `img` is an unlabelled image, and this one carries information. */
   label: string
+  /** `sm` sits beside a figure in a row, `md` beside a total. Defaults to `md`. */
   size?: SparklineSize
 }
 

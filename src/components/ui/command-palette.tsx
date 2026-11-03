@@ -31,7 +31,7 @@ import { LayerProvider } from './layer'
 
 export const commandPalettePopupVariants = cva(
   [
-    'flex w-[min(36rem,calc(100vw-2rem))] flex-col overflow-hidden',
+    'flex w-[min(36rem,calc(100vw-2rem))] max-w-[var(--available-width)] flex-col overflow-hidden',
     'rounded-xl border border-line bg-raise text-text shadow-float',
     'focus-visible:outline-none',
     '[transition:opacity_var(--duration-quick)_var(--ease-out),transform_var(--duration-quick)_var(--ease-out)]',
@@ -40,14 +40,24 @@ export const commandPalettePopupVariants = cva(
   ],
   {
     variants: {
+      // A height the palette asks for, and never more than the window leaves
+      // under the point it hangs from: a laptop held sideways has less than
+      // 32rem below a fifth of its height.
       size: {
-        md: 'max-h-96',
-        lg: 'max-h-128',
+        md: 'max-h-[min(24rem,var(--available-height))]',
+        lg: 'max-h-[min(32rem,var(--available-height))]',
       },
     },
     defaultVariants: { size: 'md' },
   },
 )
+
+/** The point the palette hangs from in a window of this size: its middle, a
+ * fifth of the way down - where the eye already is, rather than dead centre.
+ * A zero-sized rectangle, since there is no trigger to point at. */
+export function commandPaletteAnchor(width: number, height: number): DOMRect {
+  return new DOMRect(width / 2, height * 0.18, 0, 0)
+}
 
 /** The root. Controlled by `open`/`onOpenChange`, because what opens a palette
  * is a shortcut somewhere else in the application. */
@@ -66,7 +76,7 @@ export function CommandPaletteItem({ className, ...props }: Base.Item.Props) {
 
 /** The list. Takes a render function over the filtered items. */
 export function CommandPaletteList({ className, ...props }: Base.List.Props) {
-  return <Base.List className={cn('overflow-y-auto p-1', className)} {...props} />
+  return <Base.List className={cn('min-h-0 overflow-y-auto overscroll-contain p-1', className)} {...props} />
 }
 
 /** Shown when nothing matches. The words are the product's.
@@ -148,15 +158,9 @@ export function CommandPalettePopup({
          * Found by reading the computed style off the positioner rather than
          * the popup, which was opaque the whole time.
          *
-         * A zero-height rectangle a fifth of the way down puts the palette
-         * where the eye already is rather than dead centre. */
-        anchor={{
-          getBoundingClientRect: () => {
-            const width = typeof window === 'undefined' ? 0 : window.innerWidth
-            const top = typeof window === 'undefined' ? 0 : window.innerHeight * 0.18
-            return new DOMRect(width / 2, top, 0, 0)
-          },
-        }}
+         * Measured only in a browser, when the palette is placed - never
+         * while it renders on a server. */
+        anchor={{ getBoundingClientRect: () => commandPaletteAnchor(window.innerWidth, window.innerHeight) }}
         positionMethod="fixed"
         side="bottom"
         align="center"
@@ -209,7 +213,9 @@ export function CommandPaletteRow({
   children,
   ...props
 }: {
+  /** Drawn before the label. Size and colour are the product's. */
   icon?: ReactNode
+  /** Drawn after the label, small and faint - where the item lives, such as a section name or a shortcut. */
   hint?: ReactNode
   className?: string
   children: ReactNode

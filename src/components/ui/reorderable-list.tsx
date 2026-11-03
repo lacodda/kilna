@@ -236,7 +236,15 @@ export function ReorderGrip({ className, ...props }: HTMLAttributes<HTMLElement>
 /** The line where a dragged row would land. Positioned by the caller from
  * `slotOffset`, inside the element `listProps` is on - which has to be
  * positioned itself. */
-export function ReorderIndicator({ offset, className }: { offset: number | null; className?: string }) {
+export function ReorderIndicator({
+  offset,
+  className,
+}: {
+  /** The line's distance from the top of the list, in pixels - `slotOffset`
+   * from `useReorder`. Nothing is drawn at `null`. */
+  offset: number | null
+  className?: string
+}) {
   if (offset === null) return null
   return (
     <div

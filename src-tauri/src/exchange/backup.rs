@@ -31,7 +31,8 @@ pub fn write_database(conn: &Connection, destination: &Path) -> Result<PathBuf> 
     if let Some(parent) = destination.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    conn.backup("main", destination, None)?;
+    // No progress to report: the window waits for the whole copy either way.
+    conn.backup("main", destination, None::<fn(rusqlite::backup::Progress)>)?;
     Ok(destination.to_path_buf())
 }
 
