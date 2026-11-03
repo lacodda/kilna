@@ -261,7 +261,10 @@ fn placeholders_of(key: &str, locale: &serde_json::Value) -> BTreeSet<String> {
         while let Some(open) = rest.find("{{") {
             let after = &rest[open + 2..];
             let Some(close) = after.find("}}") else { break };
-            holes.insert(after[..close].trim().to_owned());
+            // `{{spent, usd}}` is the hole `spent` said in a format (v0.107):
+            // what a record must pass is the name before the comma.
+            let hole = after[..close].split(',').next().unwrap_or_default();
+            holes.insert(hole.trim().to_owned());
             rest = &after[close + 2..];
         }
     }
