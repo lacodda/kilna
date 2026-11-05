@@ -79,6 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             command: &command.key,
             target: Target::Work,
             subject: subject.clone(),
+            settings: manifest.values(&plugin::settings::kept(&conn, &usable.executable)?.settings),
         },
         plugin::Run {
             limit: command.allowance(),
