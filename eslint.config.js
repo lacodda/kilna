@@ -16,12 +16,6 @@ export default tseslint.config(
   // The `flat` variant; the top-level one is still in the legacy shape.
   reactHooks.configs.flat['recommended-latest'],
   ...dowel.configs.recommended,
-  // The registry's copies are dowel's, byte for byte (`pnpm registry`): what
-  // they draw is answered in dowel, not here.
-  {
-    files: ['src/components/ui/**'],
-    rules: { 'dowel/no-arbitrary-scale': 'off' },
-  },
   // Where a colour is the subject rather than the styling: the cover gradients
   // are a palette this app owns, and do not follow the theme; a background
   // style is a colour the owner picked, and its editor and rules speak in it;

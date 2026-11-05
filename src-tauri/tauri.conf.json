@@ -22,7 +22,7 @@
         "shadow": true,
         "visible": false,
         "backgroundColor": "#141216",
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,ElasticOverscroll"
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,ElasticOverscroll --enable-features=OverlayScrollbar"
       }
     ],
     "security": {

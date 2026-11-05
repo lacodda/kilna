@@ -32,7 +32,7 @@ function AppLocale({ children }: { children: ReactNode }) {
 export function Providers({ client, children }: { client: QueryClient; children: ReactNode }) {
   return (
     // Base UI makes no `<style>` of its own: the window's CSP refuses one made
-    // at run time, and the rule it would hold is in `styles.css`.
+    // at run time, and the rule it would hold is in dowel's theme.
     <CSPProvider disableStyleElements>
       <QueryClientProvider client={client}>
         {/* The assistant's runs are heard once, here, for every screen. */}

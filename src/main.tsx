@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
+import { overlayScrollbars } from 'dowel-ui'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import App from '@/app/App'
 import { Providers } from '@/app/Providers'
@@ -15,6 +16,12 @@ import '@/styles.css'
 // never flashes the wrong colour or visibly changes language a moment in.
 initTheme()
 initLanguage()
+
+// The bar the engine draws takes no width, which no stylesheet can ask for. The
+// flag in tauri.conf.json asks the engine; this measures what it drew and only
+// then lets the theme's strip stand aside, so a runtime that drops the flag
+// leaves the strip rather than a stock bar with arrows.
+overlayScrollbars()
 
 // The window is created hidden (tauri.conf.json) and shown from here, once
 // the document has painted its splash in the right colours. Shown before it

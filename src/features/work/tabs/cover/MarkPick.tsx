@@ -87,7 +87,7 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
           value={mark.place}
           disabled={disabled}
           onValueChange={(place) => set({ place: place as CoverMarkPlace })}
-          className="h-auto! flex-wrap"
+          className="h-auto flex-wrap"
         >
           {(['corner', 'hidden', 'none'] as const).map((place) => (
             <Segment key={place} value={place} className="px-2 py-0.5 text-xs">
@@ -127,7 +127,7 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
               value={hidden ? 'drawn' : mark.way}
               disabled={disabled}
               onValueChange={(way) => set({ way: way as CoverMarkWay })}
-              className="h-auto! flex-wrap"
+              className="h-auto flex-wrap"
             >
               <Segment value="overlay" disabled={hidden} className="px-2 py-0.5 text-xs">
                 {t('cover.mark.way.overlay')}

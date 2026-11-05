@@ -13,7 +13,7 @@ import { mockBackend } from '@/test/backend'
  * rule it inserts that way, so in the window every overlay scroller drew a
  * classic bar beside its overlay one - found by measuring the live window,
  * invisible to jsdom, which has no CSP. The two halves of the fix are held
- * here: Base UI makes no element, and the bundle carries the rule.
+ * here: Base UI makes no element, and the theme carries the rule.
  */
 describe("Base UI's one stylesheet", () => {
   it('is not made at run time', () => {
@@ -29,8 +29,8 @@ describe("Base UI's one stylesheet", () => {
     expect(document.querySelector('style[data-href="base-ui-disable-scrollbar"]')).toBeNull()
   })
 
-  it('comes from the bundle instead', () => {
-    const css = readFileSync('src/styles.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  it('comes from the theme instead', () => {
+    const css = readFileSync('node_modules/dowel-ui/dist/theme.css', 'utf8')
     expect(css).toMatch(/\.base-ui-disable-scrollbar\s*\{\s*scrollbar-width:\s*none;?\s*\}/)
     expect(css).toMatch(
       /\.base-ui-disable-scrollbar::-webkit-scrollbar\s*\{\s*display:\s*none;?\s*\}/,
