@@ -50,7 +50,9 @@ export function Frame({ head, foot, children, className }: FrameProps) {
   return (
     <div data-frame className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-2.5', className)}>
       {head === undefined ? null : (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">{head}</div>
+        // Empty when everything in it decided to draw nothing - no plugin to
+        // offer, no score waiting - and an empty head must not cost the gap.
+        <div className="flex shrink-0 flex-wrap items-center gap-2 empty:hidden">{head}</div>
       )}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       {foot === undefined ? null : (
