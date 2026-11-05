@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { setPluginEnabled, setPluginSetting } from '@/lib/api/plugins'
 import type { JsonValue, Plugin, PluginSetting } from '@/lib/api/types'
@@ -98,15 +98,31 @@ export function PluginsSection() {
   )
 }
 
+/**
+ * Put what was just answered on the screen at once. The list behind it is read
+ * by asking every plugin, and one that does not answer would otherwise hold a
+ * switch for its limit; the refetch that follows says the same thing.
+ */
+function useWritePlugin(executable: string) {
+  const client = useQueryClient()
+  return (change: (plugin: Plugin) => Plugin) => {
+    client.setQueryData<Plugin[]>(keys.plugins, (list) =>
+      list?.map((plugin) => (plugin.executable === executable ? change(plugin) : plugin)),
+    )
+  }
+}
+
 /** One plugin: its name and state in the bar, then what it offers and takes. */
 function PluginBlock({ plugin }: { plugin: Plugin }) {
   const { t, i18n } = useTranslation()
   const manifest = plugin.manifest
+  const write = useWritePlugin(plugin.executable)
 
   const toggle = useAppMutation({
     mutationFn: (enabled: boolean) => setPluginEnabled(plugin.executable, enabled),
     failure: 'plugins.saveFailed',
     refresh: [keys.plugins],
+    onSuccess: (_, enabled) => write((now) => ({ ...now, enabled })),
   })
 
   const state = !plugin.usable
@@ -189,10 +205,19 @@ function SettingField({ plugin, setting }: { plugin: Plugin; setting: PluginSett
   const isSet = plugin.settings[setting.key] !== undefined
   const value = plugin.settings[setting.key] ?? setting.default ?? null
 
+  const write = useWritePlugin(plugin.executable)
+
   const save = useAppMutation({
     mutationFn: (next: JsonValue | null) => setPluginSetting(plugin.executable, setting.key, next),
     failure: 'plugins.saveFailed',
     refresh: [keys.plugins],
+    onSuccess: (_, next) =>
+      write((now) => {
+        const settings = { ...now.settings }
+        if (next === null) delete settings[setting.key]
+        else settings[setting.key] = next
+        return { ...now, settings }
+      }),
   })
 
   const hint = help === '' ? undefined : help

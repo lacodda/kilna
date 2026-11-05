@@ -126,6 +126,14 @@ describe('the plugin bar', () => {
     expect(en.plugins.cannotRun_other).toContain('{{count}}')
   })
 
+  it('says so once on a card: in the head of the work, not on each of its bars', async () => {
+    mount('release', [{ ...JUDGE, usable: false, manifest: null, reason: 'x' }])
+
+    await waitFor(() => expect(backend.argsOf('list_plugins')).toHaveLength(1))
+    await waitFor(() => expect(screen.queryByRole('group')).toBeNull())
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
   it('leaves alone a plugin that cannot run and was turned off', async () => {
     mount('work', [{ ...JUDGE, usable: false, manifest: null, reason: 'x', enabled: false }])
 

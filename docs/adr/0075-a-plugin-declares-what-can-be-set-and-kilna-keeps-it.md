@@ -53,7 +53,9 @@ its own words.
 
 **Asking a plugin what it is has a limit of five seconds.** The list is read whenever
 a screen with a bar opens, and a plugin that never answered held the whole list, on
-the main thread until this version.
+the main thread until this version. All of them are asked at once, so the list costs
+the slowest rather than the sum, and running a command asks only the plugin it is
+about.
 
 ## Why not the alternatives
 

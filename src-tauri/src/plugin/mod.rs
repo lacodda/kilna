@@ -37,32 +37,69 @@ pub fn search_paths(app_data_dir: &Path) -> Vec<PathBuf> {
 /// A plugin that fails to describe itself is still listed, with the reason —
 /// an integration that silently does not appear is indistinguishable from one
 /// that was never installed.
+///
+/// Each is asked at the same time as the rest: the list takes as long as the
+/// slowest of them rather than all of them together, so one that does not answer
+/// costs its limit once.
 pub fn discover(app_data_dir: &Path) -> Vec<Plugin> {
-    let mut found: Vec<Plugin> = Vec::new();
+    let installed = installed(app_data_dir);
+    let mut found: Vec<Plugin> = std::thread::scope(|scope| {
+        let asking: Vec<_> = installed
+            .iter()
+            .map(|(name, path)| (name, path, scope.spawn(move || describe(path, name))))
+            .collect();
+        asking
+            .into_iter()
+            .map(|(name, path, asked)| {
+                asked.join().unwrap_or_else(|_| Plugin {
+                    executable: name.clone(),
+                    path: path.display().to_string(),
+                    manifest: None,
+                    usable: false,
+                    reason: Some("asking it what it is failed".into()),
+                    enabled: true,
+                    settings: Map::new(),
+                })
+            })
+            .collect()
+    });
 
+    found.sort_by(|a, b| a.executable.cmp(&b.executable));
+    found
+}
+
+/// One plugin by its name, as [`discover`] would find it, and none of the others
+/// started: running a command must not wait on a plugin it is not about.
+pub fn find(app_data_dir: &Path, executable: &str) -> Option<Plugin> {
+    installed(app_data_dir)
+        .into_iter()
+        .find(|(name, _)| name == executable)
+        .map(|(name, path)| describe(&path, &name))
+}
+
+/// The plugins on this machine, by name and path, none of them started. The first
+/// copy on the path wins, as with any other command.
+fn installed(app_data_dir: &Path) -> Vec<(String, PathBuf)> {
+    let mut found: Vec<(String, PathBuf)> = Vec::new();
     for directory in search_paths(app_data_dir) {
         let Ok(entries) = std::fs::read_dir(&directory) else {
             continue;
         };
-
         for entry in entries.filter_map(std::result::Result::ok) {
+            // The prefix first: a directory on the PATH may hold thousands of
+            // files, and asking about each of them is the slow part.
+            if !entry.file_name().to_string_lossy().starts_with(PREFIX) {
+                continue;
+            }
             let path = entry.path();
             let Some(name) = executable_name(&path) else {
                 continue;
             };
-            if !name.starts_with(PREFIX) {
-                continue;
+            if !found.iter().any(|(known, _)| *known == name) {
+                found.push((name, path));
             }
-            // The first copy on the path wins, as with any other command.
-            if found.iter().any(|plugin| plugin.executable == name) {
-                continue;
-            }
-
-            found.push(describe(&path, &name));
         }
     }
-
-    found.sort_by(|a, b| a.executable.cmp(&b.executable));
     found
 }
 
@@ -1073,6 +1110,73 @@ mod tests {
                 .is_some_and(|reason| reason.contains("did not say what it is")),
             "{:?}",
             plugin.reason
+        );
+    }
+
+    /// A stand-in that never answers, beside `dir`'s other plugins.
+    fn a_mute_plugin(dir: &Path, name: &str) {
+        let plugins = dir.join("plugins");
+        std::fs::create_dir_all(&plugins).unwrap();
+        #[cfg(windows)]
+        std::fs::write(
+            plugins.join(format!("{name}.cmd")),
+            "@ping -n 30 127.0.0.1 >NUL\r\n",
+        )
+        .unwrap();
+        #[cfg(not(windows))]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let path = plugins.join(name);
+            std::fs::write(&path, "#!/bin/sh\nsleep 30\n").unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+    }
+
+    /// Running a command asks only the plugin it is about: one that never answers
+    /// does not hold it for its limit.
+    #[test]
+    fn one_plugin_is_found_without_asking_the_others() {
+        let dir = tempfile::tempdir().unwrap();
+        a_mute_plugin(dir.path(), "kilna-plugin-mute");
+        fake_plugin(
+            dir.path(),
+            "kilna-plugin-quick",
+            r#"{"protocol_version":1,"name":"quick","version":"1.0.0"}"#,
+        );
+
+        let started = std::time::Instant::now();
+        let found = find(dir.path(), "kilna-plugin-quick").expect("it is there");
+
+        assert!(found.usable, "{:?}", found.reason);
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(3),
+            "held for {:?}",
+            started.elapsed()
+        );
+        assert!(find(dir.path(), "kilna-plugin-nobody").is_none());
+    }
+
+    /// Those that never answer cost the list their limit once, not once each.
+    #[test]
+    fn the_list_takes_as_long_as_the_slowest_plugin_not_all_of_them() {
+        let dir = tempfile::tempdir().unwrap();
+        for name in ["kilna-plugin-a", "kilna-plugin-b", "kilna-plugin-c"] {
+            a_mute_plugin(dir.path(), name);
+        }
+
+        let started = std::time::Instant::now();
+        let listed = discovered(dir.path());
+
+        let elapsed = started.elapsed();
+        let mutes: Vec<_> = listed
+            .iter()
+            .filter(|plugin| plugin.executable.starts_with("kilna-plugin-") && !plugin.usable)
+            .collect();
+        assert!(mutes.len() >= 3, "{listed:?}");
+        assert!(
+            elapsed < DESCRIBE_TIMEOUT * 2,
+            "three in a row would be {:?}; took {elapsed:?}",
+            DESCRIBE_TIMEOUT * 3
         );
     }
 

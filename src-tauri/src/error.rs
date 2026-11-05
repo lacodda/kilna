@@ -52,7 +52,7 @@ pub enum Error {
 
     /// Every slot for a run is taken. Not the CLI's fault either, and it
     /// passes by itself.
-    #[error("{0} runs are already going; wait for one to finish, or stop one")]
+    #[error("as many runs as may go at once are going ({0}); wait for one to finish, or stop one")]
     Busy(usize),
 
     /// The row is a snapshot something else points at, so it cannot change

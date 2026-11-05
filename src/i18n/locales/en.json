@@ -1554,7 +1554,7 @@
     "notRestorable": "The work this belonged to is in the trash too. Restore that first.",
     "layoutStale": "The calendar changed since this preview was drawn. Lay the queue out again.",
     "alreadyRunning": "That is already running. Wait for it to finish.",
-    "busy": "Several runs are already going. Wait for one to finish, or stop one.",
+    "busy": "As many runs as may go at once are going. Wait for one to finish, stop one, or allow more in Settings.",
     "frozen": "That version was scored, so it stays as it was. Start the next revision instead.",
     "internal": "Something inside kilna went wrong. The detail is in the log.",
     "refused": "That was refused."

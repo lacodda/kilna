@@ -75,9 +75,7 @@ pub fn set_plugin_setting(
     key: String,
     value: Option<Value>,
 ) -> Result<()> {
-    let found = plugin::discover(&plugin_directory(&state))
-        .into_iter()
-        .find(|candidate| candidate.executable == executable)
+    let found = plugin::find(&plugin_directory(&state), &executable)
         .ok_or_else(|| Error::not_found("plugin", executable.clone()))?;
     let manifest = found.manifest.as_ref().ok_or_else(|| {
         Error::refused("plugin.unusable")
@@ -128,9 +126,7 @@ pub fn run_plugin(
     id: String,
     run: String,
 ) -> Result<PluginReply> {
-    let found = plugin::discover(&plugin_directory(&state))
-        .into_iter()
-        .find(|candidate| candidate.executable == executable)
+    let found = plugin::find(&plugin_directory(&state), &executable)
         .ok_or_else(|| Error::not_found("plugin", executable.clone()))?;
     if !found.usable {
         return Err(Error::refused("plugin.unusable")

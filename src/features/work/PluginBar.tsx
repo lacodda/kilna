@@ -143,10 +143,11 @@ export function PluginBar({ target, id }: Props) {
       : [],
   )
 
-  // Only where a command of this target stands, and only one left on: a plugin
-  // that cannot run has no business in the head of a work it offers nothing
-  // to, and one turned off was turned off so as not to hear of it.
-  const unusable = installed.filter((plugin) => !plugin.usable && plugin.enabled).length
+  // Said once on a card, in the head of the work: a card draws a bar per target,
+  // and a plugin that cannot run may not even say which it means. One turned off
+  // was turned off so as not to hear of it.
+  const unusable =
+    target === 'work' ? installed.filter((plugin) => !plugin.usable && plugin.enabled).length : 0
 
   if (actions.length === 0 && unusable === 0) return null
 
