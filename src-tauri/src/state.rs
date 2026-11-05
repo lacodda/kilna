@@ -89,10 +89,22 @@ impl AppState {
             );
         }
 
+        // How many runs may go at once is the person's, and is theirs from the
+        // first run on. A row that cannot be read leaves the default: nothing
+        // about it is worth not opening the workspace over.
+        let runs = Arc::new(Runs::new());
+        match crate::assistant::settings::read(&conn) {
+            Ok(settings) => runs.set_limit(settings.parallel_runs),
+            Err(cause) => crate::log::warn(
+                "assistant",
+                &format!("could not read the assistant's settings: {cause}"),
+            ),
+        }
+
         Ok(Self {
             connection: Mutex::new(conn),
             path: path.to_path_buf(),
-            runs: Arc::new(Runs::new()),
+            runs,
             queue: Arc::new(Queue::new()),
         })
     }
@@ -201,6 +213,26 @@ pub fn media_dir_of(conn: &Connection) -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The limit a person set is the one the next start of kilna works under.
+    #[test]
+    fn the_limit_a_person_set_stands_when_the_workspace_opens_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("kilna.db");
+        {
+            let state = AppState::open(&path).unwrap();
+            assert_eq!(
+                state.runs().limit(),
+                3,
+                "three until someone says otherwise"
+            );
+            crate::assistant::settings::set_parallel_runs(&state.conn(), 6).unwrap();
+        }
+
+        let state = AppState::open(&path).unwrap();
+
+        assert_eq!(state.runs().limit(), 6);
+    }
 
     #[test]
     fn a_connection_finds_the_files_beside_its_database() {

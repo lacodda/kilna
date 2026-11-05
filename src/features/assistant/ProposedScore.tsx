@@ -15,6 +15,9 @@ interface Props {
   applied: Applied | null
   /** Set once somebody turned it down; read from the message. */
   dismissed: boolean
+  /** Who proposed it, where the place it stands does not say: on the Score
+   * tab there is no chat around it to name them. */
+  client?: string | null
 }
 
 /**
@@ -33,7 +36,14 @@ interface Props {
  * names that agent as its judge, so the history does not read it as the
  * author's own.
  */
-export function ProposedScore({ workId, messageId, proposal, applied, dismissed }: Props) {
+export function ProposedScore({
+  workId,
+  messageId,
+  proposal,
+  applied,
+  dismissed,
+  client = null,
+}: Props) {
   const { t } = useTranslation()
   const axes = useVocabulary(workId).axes
 
@@ -42,7 +52,7 @@ export function ProposedScore({ workId, messageId, proposal, applied, dismissed 
     message: t('assistant.scoreApplied'),
     // One coarse prefix over every score query: the history, the latest, and
     // whatever the catalogue derived from them all moved at once.
-    refresh: [keys.scores, keys.work(workId), keys.works, keys.catalogue],
+    refresh: [keys.scores, keys.work(workId), keys.works, keys.catalogue, keys.pendingProposals],
   })
 
   // The axes travel as JSON (the backend clamps them to a number before
@@ -76,7 +86,9 @@ export function ProposedScore({ workId, messageId, proposal, applied, dismissed 
   return (
     <ProposalCard
       messageId={messageId}
-      title={t('assistant.scoreTitle')}
+      title={
+        client === null ? t('assistant.scoreTitle') : t('assistant.scoreTitleFrom', { client })
+      }
       // Only when the profile knows an axis it names: a total over nothing
       // would be a confident zero.
       figure={

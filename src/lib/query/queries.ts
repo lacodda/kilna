@@ -5,7 +5,10 @@ import {
   activeRuns,
   activeTasks,
   assistantSpend,
+  assistantSettings,
   assistantStatus,
+  runSight,
+  waitingScores,
   getTranscript,
   listChatSummaries,
   listRuns,
@@ -47,7 +50,7 @@ import {
   wordsFromTexts,
   workRepeats,
 } from '@/lib/api/register'
-import { listPlugins } from '@/lib/api/plugins'
+import { listPlugins, pluginsFolder } from '@/lib/api/plugins'
 import {
   calendar,
   previewSchedule,
@@ -344,6 +347,12 @@ export const queries = {
   focusNotes: () => queryOptions({ queryKey: keys.focusNotes, queryFn: listFocusNotes }),
 
   assistantStatus: () => queryOptions({ queryKey: keys.assistantStatus, queryFn: assistantStatus }),
+  assistantSettings: () =>
+    queryOptions({ queryKey: keys.assistantSettings, queryFn: assistantSettings }),
+  runSight: (workId: string) =>
+    queryOptions({ queryKey: keys.runSight(workId), queryFn: () => runSight(workId) }),
+  waitingScores: (workId: string) =>
+    queryOptions({ queryKey: keys.waitingScores(workId), queryFn: () => waitingScores(workId) }),
   chats: (workId?: string) =>
     queryOptions({ queryKey: keys.chats(workId), queryFn: () => listChatSummaries(workId) }),
   transcript: (chatId: string) =>
@@ -393,6 +402,7 @@ export const queries = {
     }),
 
   plugins: () => queryOptions({ queryKey: keys.plugins, queryFn: listPlugins }),
+  pluginsFolder: () => queryOptions({ queryKey: keys.pluginsFolder, queryFn: pluginsFolder }),
   workspacePath: () => queryOptions({ queryKey: keys.workspacePath, queryFn: workspacePath }),
   logPath: () => queryOptions({ queryKey: keys.logPath, queryFn: logPath }),
   mcpRegistration: () => queryOptions({ queryKey: keys.mcpRegistration, queryFn: mcpRegistration }),

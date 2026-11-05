@@ -1310,6 +1310,10 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     check_spend: () => ({ spend: { today: 0, week: 0, budget: null }, crossed: false }),
     set_weekly_budget: ({ budget }) => budget ?? null,
     list_plugins: () => [],
+    plugins_folder: () => 'C:/workspace/plugins',
+    assistant_settings: () => ({ parallel_runs: 3, model: null, run_sees: 'nothing' }),
+    run_sight: () => [],
+    waiting_scores: () => [],
 
     workspace_path: () => 'C:\\Users\\someone\\AppData\\Roaming\\kilna\\workspace.db',
     suggested_backup_name: () => 'kilna-2026-09-15.db',

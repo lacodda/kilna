@@ -90,7 +90,8 @@ Each one becomes exactly the task a click on its own card would have made: its
 own chat, its own answer, applied by you the same way. Nothing is done in bulk
 except the asking.
 
-Only three runs happen at a time, so a larger batch **queues**. kilna tells you
+Only so many runs happen at a time - three, unless
+[you say otherwise](#the-assistants-settings) - so a larger batch **queues**. kilna tells you
 what it did with it — *"3 started, 37 waiting for a free slot"* — and a bar
 across the top of the window counts down what is left, from whatever screen you
 are on. **Drop the queue** clears what has not started yet; runs already going
@@ -357,10 +358,11 @@ rather than throwing away something you can read.
 
 ## Several at once
 
-Up to **three** runs can be going at the same time. Each one is a separate CLI
-process costing a few hundred megabytes, so the limit is about your machine
-rather than about queueing: asking for a fourth is refused with a sentence
-saying so, and nothing is sent.
+Up to **three** runs can be going at the same time, until you change it in
+**Settings → Assistant**. Each one is a separate CLI process costing a few
+hundred megabytes, so the limit is about your machine rather than about
+queueing: asking for one more is refused with a sentence saying so, and nothing
+is sent.
 
 ## Where a run starts
 
@@ -373,6 +375,31 @@ decides to look around sees an empty folder rather than kilna's own files.
 This is a default, not a sandbox: the CLI's tools can still read a file by its
 full path if you ask them to. Files a run creates land in that same folder,
 where you can inspect or delete them; kilna never reads them back.
+
+## The assistant's settings
+
+**Settings → Assistant** holds what you decide about the assistant on this
+workspace. Each saves as you answer it.
+
+- **Claude Code** says which version answered, or why none did. **Check again**
+  asks at once: this is where to come straight after installing it.
+- **Model** is a name as the CLI takes it - an alias such as `opus` or `sonnet`,
+  or a model's full name. Left empty, a run starts with what Claude Code itself
+  is set to. kilna does not keep a list of models: the CLI knows which exist, and
+  answers a name it does not know in the chat, in its own words.
+- **Runs at once** is from one to eight. A higher number has room at once, so
+  what waits in the queue starts straight away. A lower one stops nothing that
+  is going, and starts nothing more until there is room under it.
+- **What a run reads** has two answers. *Only its prompt* is the empty folder
+  above. *The work's files too* gives a run on a work the work's
+  [folder on disk](/kilna/guides/files-and-covers/#the-works-folder-on-disk) and
+  the folder of what is attached to it, and tells it where they are - at every
+  turn, follow-ups included. It is told to change nothing there. The preview of
+  an action names the same paths before you start it. A run that
+  [reads the web](/kilna/guides/the-conception/) never gets them, and a chat about
+  no work has none to get. This is what a run is told it may read, not a sandbox:
+  it is your own Claude Code, with whatever it is allowed elsewhere.
+- **Weekly budget** is the same form as the figures in the assistant's head.
 
 ## An agent outside the window
 

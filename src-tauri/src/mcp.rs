@@ -2628,28 +2628,7 @@ fn deliver(
         .clone()
         .unwrap_or_else(|| UNNAMED_CLIENT.to_owned());
     let work_id = work.map(|w| w.id.as_str());
-
-    let existing = assistant::summaries(conn, profile_id, work_id)?
-        .into_iter()
-        .find(|c| c.work_id.as_deref() == work_id && c.title.as_deref() == Some(client.as_str()));
-    let chat_id = match existing {
-        Some(chat) => chat.id,
-        None => {
-            assistant::create(
-                conn,
-                profile_id,
-                assistant::NewChat {
-                    work_id: work_id.map(str::to_owned),
-                    title: Some(client.clone()),
-                    ..assistant::NewChat::default()
-                },
-            )?
-            .id
-        }
-    };
-
-    let meta = apply::proposal_meta(&client, &proposal, note)?;
-    let message = assistant::append(conn, &chat_id, assistant::ASSISTANT, body, meta)?;
+    let message = apply::into_chat(conn, profile_id, &client, work_id, &proposal, body, note)?;
 
     // Literal keys, one per sentence in the locale: the journal gate reads
     // them out of the source. A note on nothing has no title to name, and a

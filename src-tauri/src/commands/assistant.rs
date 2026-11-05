@@ -14,6 +14,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use super::active;
 use crate::actions;
 use crate::assistant::run::{self as assistant_run, Emission, Run, Sink};
+use crate::assistant::settings::{self, AssistantSettings, RunSees};
 use crate::assistant::{self, Chat, NewChat, Transcript, cli, prompt};
 use crate::error::{Error, Result};
 use crate::profile;
@@ -21,10 +22,64 @@ use crate::state::AppState;
 
 /// Whether the AI panel can work on this machine. Never an error: "not
 /// installed" is something the panel shows, and the rest of kilna is
-/// unaffected.
-#[tauri::command]
+/// unaffected. Off the main thread: it starts a program, which is a second the
+/// window would otherwise stand still for.
+#[tauri::command(async)]
 pub fn assistant_status() -> cli::Availability {
     cli::probe()
+}
+
+/// What the person decided about the assistant on this workspace.
+#[tauri::command]
+pub fn assistant_settings(state: State<'_, AppState>) -> Result<AssistantSettings> {
+    settings::read(&state.conn())
+}
+
+/// Set how many runs may go at once. A higher limit has room at once, so what
+/// the queue holds starts now rather than when the next run ends; a lower one
+/// stops nothing and starts nothing more until there is room under it.
+#[tauri::command]
+pub fn set_parallel_runs(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    runs: usize,
+) -> Result<AssistantSettings> {
+    let settings = settings::set_parallel_runs(&state.conn(), runs)?;
+    state.runs().set_limit(settings.parallel_runs);
+    // One task per call: an ending frees one slot, and a higher limit may have
+    // freed several. Each call takes at least one task off the line, so this
+    // ends when the slots or the line do.
+    while state.runs().has_slot() && !state.queue().is_empty() {
+        drain_queue(&app);
+    }
+    Ok(settings)
+}
+
+/// Set the model a run starts with, or clear it with nothing.
+#[tauri::command]
+pub fn set_run_model(
+    state: State<'_, AppState>,
+    model: Option<String>,
+) -> Result<AssistantSettings> {
+    settings::set_model(&state.conn(), model.as_deref())
+}
+
+/// Set what a run may read beyond what its prompt carries.
+#[tauri::command]
+pub fn set_run_sees(state: State<'_, AppState>, sees: RunSees) -> Result<AssistantSettings> {
+    settings::set_run_sees(&state.conn(), sees)
+}
+
+/// What a run on this work may read beyond its prompt, as the setting stands:
+/// the paths its brief names, for the window to show before a task starts.
+/// Empty when the setting opens nothing, or the work has no files to open.
+#[tauri::command]
+pub fn run_sight(state: State<'_, AppState>, work_id: String) -> Result<Vec<String>> {
+    let conn = state.conn();
+    if settings::read(&conn)?.run_sees == RunSees::Nothing {
+        return Ok(Vec::new());
+    }
+    Ok(settings::work_sight(&conn, &work_id)?.named)
 }
 
 /// The command that registers this build with Claude Code, for the settings
@@ -117,6 +172,15 @@ pub fn apply_pending_proposals(
 pub fn pending_proposals(state: State<'_, AppState>) -> Result<Vec<assistant::apply::Pending>> {
     let conn = state.conn();
     assistant::apply::pending(&conn, &active(&conn)?)
+}
+
+/// The scores proposed for a work that wait for an answer, for its Score tab.
+#[tauri::command]
+pub fn waiting_scores(
+    state: State<'_, AppState>,
+    work_id: String,
+) -> Result<Vec<assistant::apply::WaitingScore>> {
+    assistant::apply::waiting_scores(&state.conn(), &work_id)
 }
 
 /// Every comment read off a screenshot and every drafted reply that waits for

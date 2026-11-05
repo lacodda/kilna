@@ -4,7 +4,16 @@ import type { Target } from "./Target";
 /**
  * One action a plugin can perform.
  */
-export type Command = { key: string, label: string, description: string | null, 
+export type Command = { key: string, label: string, 
+/**
+ * The label in other languages, by language code: `{"ru": "..."}`. The
+ * window takes its own language's and falls back to `label`.
+ */
+labels: { [key in string]: string }, description: string | null, 
+/**
+ * The description in other languages, by language code.
+ */
+descriptions: { [key in string]: string }, 
 /**
  * Where in kilna this command belongs.
  */

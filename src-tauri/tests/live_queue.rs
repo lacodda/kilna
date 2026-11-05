@@ -6,7 +6,8 @@
 use std::sync::Arc;
 
 use kilna_lib::assistant::queue::{Pending, Queue};
-use kilna_lib::assistant::run::{PARALLEL_LIMIT, Runs};
+use kilna_lib::assistant::run::Runs;
+use kilna_lib::assistant::settings::DEFAULT_PARALLEL_RUNS as PARALLEL_LIMIT;
 use kilna_lib::assistant::{self, task};
 use kilna_lib::work::version::{self, NewVersion};
 use kilna_lib::work::{self, NewWork};

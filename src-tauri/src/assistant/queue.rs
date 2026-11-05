@@ -1,7 +1,8 @@
 //! Tasks waiting for a slot.
 //!
-//! Three runs may be alive at once ([`PARALLEL_LIMIT`]), and until now asking
-//! for a fourth was simply refused. That is the right answer for a person
+//! Only so many runs may be alive at once ([`Runs::limit`], three unless the
+//! person said otherwise), and until now asking for one more was simply
+//! refused. That is the right answer for a person
 //! typing into the panel — they are watching, and being told the machine is
 //! busy is information they can act on. It is the wrong answer for a bulk
 //! action: ticking ten works and being handed three runs and seven errors is
@@ -18,7 +19,7 @@
 //! CLI processes the moment it opens, for work asked of a session that is
 //! gone.
 //!
-//! [`PARALLEL_LIMIT`]: super::run::PARALLEL_LIMIT
+//! [`Runs::limit`]: super::run::Runs::limit
 
 use std::collections::VecDeque;
 use std::sync::{Mutex, MutexGuard};

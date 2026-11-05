@@ -6,6 +6,7 @@ import { announceEdited } from '@/lib/edited'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { changesOf, type ReleaseChanges, type ReleaseDraft } from '@/lib/releaseForm'
 import { ReleaseForm, useReleaseDraft } from '@/components/ReleaseForm'
+import { PluginBar } from '@/features/work/PluginBar'
 import { ReleaseAssets } from '@/features/work/tabs/releases/ReleaseAssets'
 import { ReleaseFields } from '@/features/work/tabs/releases/ReleaseFields'
 import { ReleaseProposals } from '@/features/work/tabs/releases/ReleaseProposals'
@@ -63,6 +64,9 @@ export function ReleaseDetails({ release, refreshed }: Props) {
           layout="row"
         />
       )}
+      {/* A plugin's commands on a release: a metric fetched, a publication
+          made. What one returns lands in the fields just under them. */}
+      <PluginBar target="release" id={release.id} />
       <ReleaseFields release={release} />
       {/* What the assistant or an agent proposes the fields say, under the
           fields it would change. */}

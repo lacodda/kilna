@@ -12,7 +12,8 @@ use serde_json::{Map, Value, json};
 
 use crate::error::{Error, Result};
 use crate::folder::{FileState, WorkFolder};
-use crate::plugin::{self, manifest::Target};
+use crate::journal::{self, Record};
+use crate::plugin::{self, ProposedMarks, manifest::Target};
 use crate::profile::config::ProfileConfig;
 use crate::release::{self, ReleasePatch};
 use crate::work::{self, Work, WorkPatch, version};
@@ -31,13 +32,15 @@ use crate::work::{self, Work, WorkPatch, version};
 /// - `donors` - what it was made from, each with its folder and file;
 /// - `chain` - the titles up the chain "made from", nearest first, and
 ///   `origin` - what it is all made from (the song, for a short);
-/// - `cover` - the picture it goes out under, when it has one.
+/// - `cover` - the picture it goes out under, when it has one;
+/// - `axes` - for a command on the Score tab, the axes to judge along, as the
+///   work's kind names them (v0.108).
 pub fn subject(conn: &Connection, target: Target, id: &str) -> Result<Value> {
     match target {
         Target::Release => Ok(serde_json::to_value(
             release::get(conn, id)?.ok_or_else(|| Error::not_found("release", id))?,
         )?),
-        Target::Work | Target::Cuts => {
+        Target::Work | Target::Cuts | Target::Score => {
             let found = work::get(conn, id)?.ok_or_else(|| Error::not_found("work", id))?;
             let config = crate::profile::config_for(conn, &found.profile_id)?;
             let mut value = serde_json::to_value(&found)?;
@@ -93,6 +96,12 @@ pub fn subject(conn: &Connection, target: Target, id: &str) -> Result<Value> {
                     crate::asset::cover_of(conn, id)?
                         .map_or(Value::Null, |asset| Value::String(asset.path)),
                 );
+                if target == Target::Score {
+                    object.insert(
+                        "axes".into(),
+                        serde_json::to_value(&config.vocabulary(&found.kind).axes)?,
+                    );
+                }
             }
             Ok(value)
         }
@@ -142,7 +151,7 @@ pub fn keep(
                 },
             )?;
         }
-        Target::Work | Target::Cuts => {
+        Target::Work | Target::Cuts | Target::Score => {
             // Only the plugin's own keys: a work's fields merge by key, so the
             // rest cannot be cleared and the undo takes back exactly what the
             // plugin wrote.
@@ -262,6 +271,63 @@ pub fn keep_heard(
     Ok(kept)
 }
 
+/// Keep what a judge returned as a proposal (v0.108), in the chat named after
+/// the plugin, and say which message it is.
+///
+/// Held to the kind's axes as an answer of the assistant's is, by the same
+/// call: marks are brought within their scales, an axis the kind does not have
+/// is named, one it skipped is named. Nothing about the work changes until the
+/// person keeps it, and then it is an ordinary score naming the plugin as its
+/// judge. Only a chat's row and a line of history are written here, and a chat
+/// is past the log by design.
+pub fn keep_score(
+    conn: &Connection,
+    work_id: &str,
+    plugin: &str,
+    marks: ProposedMarks,
+) -> Result<String> {
+    let found = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    let config: ProfileConfig = crate::profile::config_for(conn, &found.profile_id)?;
+    let vocabulary = config.vocabulary(&found.kind);
+    let proposal =
+        crate::assistant::proposal::score_from(marks.axes, marks.note.clone(), vocabulary)
+            .ok_or_else(|| {
+                Error::refused("plugin.noKnownAxes")
+                    .param("plugin", plugin)
+                    .param("kind", found.kind.clone())
+                    .param(
+                        "known",
+                        vocabulary
+                            .axes
+                            .iter()
+                            .map(|axis| axis.key.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    )
+            })?;
+    let body = marks
+        .note
+        .unwrap_or_else(|| format!("A score, proposed by {plugin}."));
+    let message = crate::assistant::apply::into_chat(
+        conn,
+        &found.profile_id,
+        plugin,
+        Some(&found.id),
+        &proposal,
+        &body,
+        None,
+    )?;
+    journal::record(
+        conn,
+        &found.profile_id,
+        Record::new("proposal.score")
+            .param("client", plugin)
+            .param("title", found.title.clone())
+            .about("work", found.id.clone()),
+    );
+    Ok(message.id)
+}
+
 /// Where `file` lies inside `folder`, `/` between the steps; `None` when it
 /// lies elsewhere or is not there.
 fn inside_folder(folder: &Path, file: &Path) -> Option<String> {
@@ -367,6 +433,96 @@ mod tests {
         );
         assert_eq!(subject["cover"], Value::Null, "no cover yet");
         assert_eq!(subject["ordinal"], json!(1));
+    }
+
+    /// A judge is handed the axes it is to judge along; nothing else is.
+    #[test]
+    fn a_judge_is_handed_the_axes_and_only_a_judge_is() {
+        let (conn, _profile_id, _root, song, _clip, _short) = a_family();
+
+        let judged = subject(&conn, Target::Score, &song.id).unwrap();
+        let axes = judged["axes"].as_array().expect("the kind's axes");
+        assert!(!axes.is_empty());
+        assert!(axes[0]["key"].is_string());
+        assert!(axes[0]["scale"].is_number(), "{:?}", axes[0]);
+        assert!(judged["bodies"].is_object(), "and what a work is handed");
+
+        let plain = subject(&conn, Target::Work, &song.id).unwrap();
+        assert!(plain.get("axes").is_none());
+    }
+
+    /// Marks reach the Score tab as a proposal under the plugin's name, held to
+    /// the kind's axes; the work has no new score until the person keeps it,
+    /// and keeping it names the plugin as the judge.
+    #[test]
+    fn a_judges_marks_wait_for_the_person_and_name_the_plugin() {
+        let (conn, _profile_id, _root, song, _clip, _short) = a_family();
+        let config = crate::profile::config_for(&conn, &song.profile_id).unwrap();
+        let axis = config.vocabulary(&song.kind).axes[0].clone();
+        let marks = ProposedMarks {
+            axes: serde_json::from_value(json!({ axis.key.clone(): 1, "no_such_axis": 3 }))
+                .unwrap(),
+            note: Some("It holds.".into()),
+        };
+
+        let message_id = keep_score(&conn, &song.id, "kilna-plugin-judge", marks).unwrap();
+
+        let waiting = crate::assistant::apply::waiting_scores(&conn, &song.id).unwrap();
+        assert_eq!(waiting.len(), 1);
+        assert_eq!(waiting[0].message_id, message_id);
+        assert_eq!(waiting[0].client.as_deref(), Some("kilna-plugin-judge"));
+        let crate::assistant::proposal::Proposal::Score { axes, unknown, .. } =
+            &waiting[0].proposal
+        else {
+            panic!("a score: {:?}", waiting[0].proposal);
+        };
+        assert_eq!(axes.get(&axis.key), Some(&json!(1.0)));
+        assert_eq!(unknown, &vec!["no_such_axis".to_owned()]);
+        assert_eq!(
+            crate::score::history(&conn, &song.id).unwrap().len(),
+            0,
+            "nothing is written until the person keeps it"
+        );
+
+        crate::actions::proposal::apply(
+            &conn,
+            &message_id,
+            crate::actions::proposal::Overrides::default(),
+        )
+        .unwrap();
+
+        assert!(
+            crate::assistant::apply::waiting_scores(&conn, &song.id)
+                .unwrap()
+                .is_empty(),
+            "kept, it waits no longer"
+        );
+        let kept = crate::score::history(&conn, &song.id).unwrap();
+        assert_eq!(kept.len(), 1);
+        assert_eq!(kept[0].rater.as_deref(), Some("kilna-plugin-judge"));
+    }
+
+    /// Marks along none of the kind's axes are nothing to propose, and the
+    /// refusal says which axes there are.
+    #[test]
+    fn marks_along_no_known_axis_are_refused() {
+        let (conn, _profile_id, _root, song, _clip, _short) = a_family();
+        let marks = ProposedMarks {
+            axes: serde_json::from_value(json!({ "no_such_axis": 3 })).unwrap(),
+            note: None,
+        };
+
+        let refused = keep_score(&conn, &song.id, "kilna-plugin-judge", marks).unwrap_err();
+
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("plugin.noKnownAxes")
+        );
+        assert!(
+            crate::assistant::apply::waiting_scores(&conn, &song.id)
+                .unwrap()
+                .is_empty()
+        );
     }
 
     /// A file the plugin made is chosen as the finished file only when the

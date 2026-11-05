@@ -1,10 +1,12 @@
-//! Plugins: executables beside the workspace that act on a release or a work.
+//! Plugins: executables beside the workspace that act on a release or a work,
+//! and what the window keeps for each of them.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 
 use serde::Serialize;
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::actions;
@@ -35,10 +37,54 @@ fn plugin_directory(state: &AppState) -> std::path::PathBuf {
         .unwrap_or_default()
 }
 
-/// Everything installed under the plugin naming convention, usable or not.
+/// Everything installed under the plugin naming convention, usable or not,
+/// with what the window keeps for each. Off the main thread: every plugin found
+/// is started to ask what it is.
+#[tauri::command(async)]
+pub fn list_plugins(state: State<'_, AppState>) -> Result<Vec<Plugin>> {
+    let mut plugins = plugin::discover(&plugin_directory(&state));
+    plugin::settings::fill_in(&state.conn(), &mut plugins)?;
+    Ok(plugins)
+}
+
+/// Where a plugin is put to be found, made if it is not there yet: the person
+/// asking is about to put one there.
+#[tauri::command(async)]
+pub fn plugins_folder(state: State<'_, AppState>) -> Result<String> {
+    let folder = plugin_directory(&state).join("plugins");
+    std::fs::create_dir_all(&folder)?;
+    Ok(folder.display().to_string())
+}
+
+/// Turn a plugin on or off.
 #[tauri::command]
-pub fn list_plugins(state: State<'_, AppState>) -> Vec<Plugin> {
-    plugin::discover(&plugin_directory(&state))
+pub fn set_plugin_enabled(
+    state: State<'_, AppState>,
+    executable: String,
+    enabled: bool,
+) -> Result<()> {
+    plugin::settings::set_enabled(&state.conn(), &executable, enabled)
+}
+
+/// Set one setting of a plugin, or put it back to the plugin's default with
+/// nothing. Off the main thread: the plugin is asked what its settings are.
+#[tauri::command(async)]
+pub fn set_plugin_setting(
+    state: State<'_, AppState>,
+    executable: String,
+    key: String,
+    value: Option<Value>,
+) -> Result<()> {
+    let found = plugin::discover(&plugin_directory(&state))
+        .into_iter()
+        .find(|candidate| candidate.executable == executable)
+        .ok_or_else(|| Error::not_found("plugin", executable.clone()))?;
+    let manifest = found.manifest.as_ref().ok_or_else(|| {
+        Error::refused("plugin.unusable")
+            .param("plugin", executable.as_str())
+            .param("reason", found.reason.clone().unwrap_or_default())
+    })?;
+    plugin::settings::set_value(&state.conn(), &executable, manifest, &key, value)
 }
 
 /// One line of a run's progress, as the window hears it.
@@ -60,6 +106,8 @@ pub struct PluginReply {
     /// The one of them that is now the work's finished file - found by the
     /// kind's rule or chosen for it - when one is.
     pub finished: Option<String>,
+    /// The message holding the score it proposed, when it proposed one.
+    pub proposed_score: Option<String>,
 }
 
 /// Run a plugin command against a release or a work, and keep whatever it
@@ -89,6 +137,16 @@ pub fn run_plugin(
             .param("plugin", executable.as_str())
             .param("reason", found.reason.unwrap_or_default()));
     }
+    let kept = plugin::settings::kept(&state.conn(), &executable)?;
+    if !kept.enabled {
+        return Err(Error::refused("plugin.turnedOff").param("plugin", executable.as_str()));
+    }
+    let settings = found
+        .manifest
+        .as_ref()
+        .map_or_else(serde_json::Map::new, |manifest| {
+            manifest.values(&kept.settings)
+        });
     let limit = found
         .manifest
         .as_ref()
@@ -120,6 +178,7 @@ pub fn run_plugin(
             command: &command,
             target,
             subject,
+            settings,
         },
         plugin::Run {
             limit,
@@ -142,10 +201,22 @@ pub fn run_plugin(
     if target == Target::Cuts {
         actions::plugin::keep_heard(&state.conn(), &id, &heard_by, &outcome.suggestions)?;
     }
+    // Only where a judge is offered: a score from a command that is not one has
+    // no tab waiting for it, and no one who asked.
+    let proposed_score = match outcome.score {
+        Some(marks) if target == Target::Score => Some(actions::plugin::keep_score(
+            &state.conn(),
+            &id,
+            &executable,
+            marks,
+        )?),
+        _ => None,
+    };
     Ok(PluginReply {
         message: outcome.message,
         files: outcome.files,
         finished,
+        proposed_score,
     })
 }
 

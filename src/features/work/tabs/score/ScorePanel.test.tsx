@@ -134,4 +134,47 @@ describe('the score tab', () => {
       '10',
     )
   })
+
+  describe('what waits to be kept (v0.108)', () => {
+    const waiting = () => [
+      {
+        message_id: 'm-waiting',
+        chat_id: 'c-judge',
+        client: 'kilna-plugin-judge',
+        created_at: NOW,
+        proposal: { kind: 'score', axes: { hook: 7 }, note: 'It holds.', missing: ['craft'] },
+      },
+    ]
+
+    it('stands above the list, naming who proposed it, and is kept by a press', async () => {
+      backend.answer('waiting_scores', waiting)
+      backend.answer('apply_proposal', () => ({ score: 's-kept' }))
+      const { client, main } = await open()
+
+      expect(
+        within(main).getByText(
+          en.assistant.scoreTitleFrom.replace('{{client}}', 'kilna-plugin-judge'),
+        ),
+      ).toBeVisible()
+      expect(within(main).getByText('It holds.')).toBeVisible()
+
+      backend.answer('waiting_scores', () => [])
+      fireEvent.click(within(main).getByRole('button', { name: en.assistant.scoreApply }))
+      await settled(client)
+
+      expect(backend.argsOf('apply_proposal')[0]).toMatchObject({ messageId: 'm-waiting' })
+      expect(within(main).queryByText('It holds.')).toBeNull()
+    })
+
+    it('is held back while judging blind: a proposal is somebody’s verdict', async () => {
+      backend.answer('waiting_scores', waiting)
+      const { client, main } = await open()
+      expect(within(main).getByText('It holds.')).toBeVisible()
+
+      fireEvent.click(within(main).getByRole('button', { name: en.score.blindOn }))
+      await settled(client)
+
+      expect(within(main).queryByText('It holds.')).toBeNull()
+    })
+  })
 })

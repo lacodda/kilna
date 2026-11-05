@@ -1,4 +1,5 @@
 pub mod manifest;
+pub mod settings;
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -10,7 +11,7 @@ use process_wrap::std::{ChildWrapper, CommandWrap};
 #[cfg(windows)]
 use process_wrap::std::{CreationFlags, JobObject};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
 use manifest::{Manifest, PREFIX, PROTOCOL_VERSION, Plugin, Target};
@@ -65,21 +66,49 @@ pub fn discover(app_data_dir: &Path) -> Vec<Plugin> {
     found
 }
 
+/// How long a plugin may take to say what it is. Asked of every plugin each
+/// time the list is read, so one that never answers must not hold the rest.
+const DESCRIBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// Ask a plugin what it is.
 fn describe(path: &Path, name: &str) -> Plugin {
+    describe_within(path, name, DESCRIBE_TIMEOUT)
+}
+
+fn describe_within(path: &Path, name: &str, limit: std::time::Duration) -> Plugin {
     let base = Plugin {
         executable: name.to_owned(),
         path: path.display().to_string(),
         manifest: None,
         usable: false,
         reason: None,
+        enabled: true,
+        settings: Map::new(),
     };
 
-    let output = match command(path).arg("--manifest").output() {
-        Ok(output) => output,
+    let mut ask = command(path);
+    ask.arg("--manifest")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let child = match grouped(ask).spawn() {
+        Ok(child) => child,
         Err(error) => {
             return Plugin {
                 reason: Some(format!("could not run it: {error}")),
+                ..base
+            };
+        }
+    };
+    let never = std::sync::atomic::AtomicBool::new(false);
+    let output = match wait_within(child, limit, &never, &mut |_| {}) {
+        Ok(output) => output,
+        Err(_) => {
+            return Plugin {
+                reason: Some(format!(
+                    "it did not say what it is within {} seconds",
+                    limit.as_secs()
+                )),
                 ..base
             };
         }
@@ -118,6 +147,14 @@ fn describe(path: &Path, name: &str) -> Plugin {
         };
     }
 
+    if let Some(fault) = manifest.fault() {
+        return Plugin {
+            reason: Some(fault),
+            manifest: Some(manifest),
+            ..base
+        };
+    }
+
     Plugin {
         manifest: Some(manifest),
         usable: true,
@@ -132,6 +169,9 @@ pub struct Invocation<'a> {
     pub target: Target,
     /// The row the command was invoked on, as the frontend sees it.
     pub subject: Value,
+    /// The plugin's settings as they stand: what was set in the window, and
+    /// the defaults of its manifest for the rest (v0.108).
+    pub settings: Map<String, Value>,
 }
 
 /// What a plugin may send back.
@@ -156,6 +196,21 @@ pub struct Outcome {
     /// video for as long as the file heard is its finished file (ADR 0071).
     #[serde(default)]
     pub suggestions: Vec<Suggestion>,
+    /// What a command on the Score tab judged (v0.108). Kept as a proposal, for
+    /// the person to take or not, under the plugin's name.
+    #[serde(default)]
+    pub score: Option<ProposedMarks>,
+}
+
+/// Marks a plugin proposes along the axes it was handed.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProposedMarks {
+    /// Axis key to mark. Held to the profile as any other proposal is: marks
+    /// are brought within their scales, an axis it does not have is named.
+    pub axes: Map<String, Value>,
+    /// Why, in the plugin's words.
+    #[serde(default)]
+    pub note: Option<String>,
 }
 
 /// What a plugin heard in one video a work is cut from.
@@ -369,6 +424,7 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>, run: Run<'_>) -> Result<
             error: None,
             files: Vec::new(),
             suggestions: Vec::new(),
+            score: None,
         });
     }
 
@@ -467,21 +523,10 @@ pub fn merge_meta(
     merged
 }
 
-/// A plugin's own settings, stored per workspace under its executable name.
-pub fn settings_key(executable: &str) -> String {
-    format!("plugin:{executable}")
-}
-
-/// Description of the plugin system for the UI when nothing is installed.
-pub fn convention() -> Value {
-    json!({
-        "prefix": PREFIX,
-        "protocol_version": PROTOCOL_VERSION,
-    })
-}
-
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::*;
 
     /// A child that runs for a while and says nothing.
@@ -891,6 +936,7 @@ mod tests {
                 command: "fetch",
                 target: Target::Release,
                 subject: json!({ "id": "r1" }),
+                settings: Map::new(),
             };
             let cancel = std::sync::atomic::AtomicBool::new(false);
             let run = || {
@@ -953,8 +999,106 @@ mod tests {
         assert_eq!(outcome.error.as_deref(), Some("no credentials"));
     }
 
+    /// A judge's marks come back beside whatever else it said, and a plugin
+    /// that says nothing of a score has none.
     #[test]
-    fn a_settings_key_is_namespaced_by_the_executable() {
-        assert_eq!(settings_key("kilna-plugin-x"), "plugin:kilna-plugin-x");
+    fn an_outcome_may_carry_marks() {
+        let judged: Outcome = serde_json::from_str(
+            r#"{"score": {"axes": {"hook": 8}, "note": "It holds."}, "message": "judged"}"#,
+        )
+        .unwrap();
+        let marks = judged.score.expect("the marks");
+        assert_eq!(marks.axes.get("hook"), Some(&json!(8)));
+        assert_eq!(marks.note.as_deref(), Some("It holds."));
+
+        let silent: Outcome = serde_json::from_str("{}").unwrap();
+        assert!(silent.score.is_none());
+    }
+
+    /// The settings travel in the invocation beside what the plugin was already
+    /// handed, under a name of their own.
+    #[test]
+    fn an_invocation_carries_the_settings() {
+        let invocation = Invocation {
+            command: "cut",
+            target: Target::Cuts,
+            subject: json!({ "id": "w1" }),
+            settings: json!({ "channel": "Sea" }).as_object().unwrap().clone(),
+        };
+
+        let sent = serde_json::to_value(&invocation).unwrap();
+
+        assert_eq!(sent["settings"]["channel"], json!("Sea"));
+        assert_eq!(sent["target"], json!("cuts"));
+    }
+
+    /// One plugin that never answers must not hold the list: it is listed, with
+    /// the reason, inside the limit.
+    #[test]
+    fn a_plugin_that_will_not_say_what_it_is_is_listed_with_the_reason() {
+        let dir = tempfile::tempdir().unwrap();
+        #[cfg(windows)]
+        let path = {
+            let path = dir.path().join("kilna-plugin-mute.cmd");
+            std::fs::write(&path, "@ping -n 30 127.0.0.1 >NUL\r\n").unwrap();
+            path
+        };
+        #[cfg(not(windows))]
+        let path = {
+            use std::os::unix::fs::PermissionsExt;
+            let path = dir.path().join("kilna-plugin-mute");
+            std::fs::write(&path, "#!/bin/sh\nsleep 30\n").unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+            path
+        };
+
+        let started = std::time::Instant::now();
+        let plugin = describe_within(
+            &path,
+            "kilna-plugin-mute",
+            std::time::Duration::from_millis(400),
+        );
+
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(10),
+            "held for {:?}",
+            started.elapsed()
+        );
+        assert!(!plugin.usable);
+        assert!(plugin.manifest.is_none());
+        assert!(
+            plugin
+                .reason
+                .as_deref()
+                .is_some_and(|reason| reason.contains("did not say what it is")),
+            "{:?}",
+            plugin.reason
+        );
+    }
+
+    /// A manifest at odds with itself is listed with what is wrong with it and
+    /// cannot be run: its form could not be drawn.
+    #[test]
+    fn a_plugin_whose_manifest_contradicts_itself_is_unusable_with_the_reason() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = fake_plugin(
+            dir.path(),
+            "kilna-plugin-odd",
+            r#"{"protocol_version":1,"name":"odd","version":"1.0.0","settings":[
+                {"key":"a","label":"A","type":"choice","options":[]}]}"#,
+        );
+
+        let plugin = describe(&path, "kilna-plugin-odd");
+
+        assert!(!plugin.usable);
+        assert!(plugin.manifest.is_some(), "what it said is still shown");
+        assert!(
+            plugin
+                .reason
+                .as_deref()
+                .is_some_and(|reason| reason.contains("nothing to choose")),
+            "{:?}",
+            plugin.reason
+        );
     }
 }

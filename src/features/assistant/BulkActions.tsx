@@ -32,8 +32,9 @@ interface Props {
  * assistant" is one of them - which question is the second step. It is a
  * button of that bar's toolbar, and is drawn nowhere else.
  *
- * Only three runs may be alive at once, so a batch larger than that queues. The
- * one number worth reporting is how much of it is waiting: three started and
+ * Only so many runs may be alive at once (three unless Settings says otherwise),
+ * so a larger batch queues. The one number worth reporting is how much of it is
+ * waiting: three started and
  * thirty-seven queued is a different afternoon from forty started.
  */
 export function BulkActions({ workIds, onStarted }: Props) {

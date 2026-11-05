@@ -251,6 +251,11 @@ export const keys = {
   allStarred: ['chats', 'starred'] as const,
   starred: (workId?: string) => ['chats', 'starred', workId ?? null] as const,
   assistantStatus: ['assistantStatus'] as const,
+  assistantSettings: ['assistantSettings'] as const,
+  runSightAll: ['runSight'] as const,
+  runSight: (workId: string) => ['runSight', workId] as const,
+  // Under the waiting proposals: whatever answers one of those answers these.
+  waitingScores: (workId: string) => ['proposals', 'pending', 'scores', workId] as const,
 
   // One coarse prefix over the focus board: a dismissal changes what the
   // findings half shows, a note changes the other, and the board reads both.
@@ -259,6 +264,7 @@ export const keys = {
   focusNotes: ['focus', 'notes'] as const,
 
   plugins: ['plugins'] as const,
+  pluginsFolder: ['pluginsFolder'] as const,
 
   // Facts about this machine's install, asked once per screen that shows them.
   workspacePath: ['workspacePath'] as const,

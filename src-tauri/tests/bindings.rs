@@ -217,6 +217,9 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::undo::Undoable,
         // assistant.rs
         kilna_lib::assistant::cli::Availability,
+        kilna_lib::assistant::settings::AssistantSettings,
+        kilna_lib::assistant::settings::RunSees,
+        kilna_lib::assistant::apply::WaitingScore,
         kilna_lib::assistant::ChatSummary,
         kilna_lib::assistant::NewChat,
         kilna_lib::assistant::Chat,

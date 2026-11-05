@@ -242,12 +242,12 @@
     "exportTitle": "Where to write the export",
     "exported": "Wrote {{files}} files for {{works}} works.",
     "backup": "Backup",
-    "backupHint": "The whole workspace in one file, taken safely while the app is running.",
+    "backupHint": "The workspace and the files attached to it, taken safely while the app is running: one file, and beside it a folder of the same name ending in .media.",
     "backupAction": "Save a backup…",
     "backupTitle": "Where to save the backup",
     "backedUp": "Saved to {{path}}",
     "workspaceAt": "Workspace file",
-    "restoreHint": "To restore, close kilna and put the backup in place of that file.",
+    "restoreHint": "kilna cannot replace a workspace it has open, so a backup goes back in by hand, in the folder of the workspace file below.",
     "mcp": "Agents outside kilna",
     "mcpHint": "kilna --mcp serves this workspace to an agent such as Claude Code over the Model Context Protocol: it can read your works, versions, scores and calendar, and propose a version, a score or a note — which you apply here, or don't. Register it with the command above.",
     "mcpCopy": "Copy",
@@ -263,7 +263,21 @@
     "working": "Working…",
     "logAt": "Application log",
     "logHint": "What went wrong while nobody was looking — a file that could not be removed, a task that would not start. Attach it to a report.",
-    "importedMaterial": "The register brought {{terms}} terms and named {{named}} works for its images; the bank of ideas brought {{notes}} phrases and notes."
+    "importedMaterial": "The register brought {{terms}} terms and named {{named}} works for its images; the bank of ideas brought {{notes}} phrases and notes.",
+    "groupOut": "Out",
+    "groupIn": "Back in",
+    "groupWhere": "Where it lives",
+    "show": "Show",
+    "showFile": "Show in its folder",
+    "workspaceAtHint": "One file holds your works, versions, scores and calendar. Everything attached to them lies in the media folder beside it.",
+    "restore": "Restoring a backup",
+    "restoreSteps": {
+      "close": "Close kilna. If it is working behind the tray, choose Quit kilna on its icon: closing the window does not close it while something goes.",
+      "aside": "Move {{file}} and the media folder somewhere safe, and delete {{file}}-wal and {{file}}-shm if they are there.",
+      "copy": "Copy the backup’s file here and name it {{file}}. If a folder ending in .media lies beside the backup, copy it here too and name it media.",
+      "open": "Open kilna. A backup from an older version is brought up to date as it opens; one from a newer version asks you to update kilna first."
+    },
+    "restoreLeft": "Your media folder of renders and takes is not in a backup, and stays where it is. Neither are this window’s theme and language, or the plugins."
   },
   "dashboard": {
     "decisions": "Needs a decision",
@@ -919,7 +933,10 @@
     "proposedBricks": "Bricks for the dictionary",
     "noteOnShelf": "on the shelf “{{shelf}}”",
     "packageCards_one": "{{count}} card for “{{board}}”",
-    "packageCards_other": "{{count}} cards for “{{board}}”"
+    "packageCards_other": "{{count}} cards for “{{board}}”",
+    "scoreTitleFrom": "Proposed score, from {{client}}",
+    "sightTitle": "This run may also read",
+    "sightHint": "You opened a work’s files to its runs in Settings, under Assistant."
   },
   "links": {
     "sources": "Made from",
@@ -1500,7 +1517,32 @@
     "stopped": "Stopped.",
     "madeFinished": "{{name}} is made, and is the finished file now",
     "madeFiles_one": "The plugin made {{count}} file.",
-    "madeFiles_other": "The plugin made {{count}} files."
+    "madeFiles_other": "The plugin made {{count}} files.",
+    "proposedScore": "A score is proposed, and waits above the list until you answer it.",
+    "cannotRun_one": "{{count}} plugin cannot run",
+    "cannotRun_other": "{{count}} plugins cannot run",
+    "folder": "Where plugins live",
+    "folderHint": "kilna looks for programs named kilna-plugin-… in this folder first, then on the PATH. Each is asked what it is whenever the list is read.",
+    "showFolder": "Show the folder",
+    "lookAgain": "Look again",
+    "noneTitle": "No plugins yet",
+    "noneBody": "A plugin is any program named kilna-plugin-… put in this folder or on the PATH. It can cut a short, fetch a release’s numbers or propose a score.",
+    "guide": "How to write one",
+    "state": {
+      "on": "Ready",
+      "off": "Turned off",
+      "unusable": "Cannot run"
+    },
+    "enabled": "Use it",
+    "where": {
+      "release": "on a release",
+      "work": "in the head of a work",
+      "cuts": "on a work’s Cuts tab",
+      "score": "on a work’s Score tab"
+    },
+    "settings": "Its settings",
+    "backToDefault": "Back to the plugin’s own",
+    "saveFailed": "Could not save that for the plugin."
   },
   "error": {
     "database": "The workspace database refused that. Nothing was changed.",
@@ -2308,14 +2350,18 @@
       "card": "The work card",
       "profile": "Profile",
       "data": "Data",
-      "agents": "Agents"
+      "agents": "Agents",
+      "assistant": "Assistant",
+      "plugins": "Plugins"
     },
     "hint": {
       "general": "How the window looks and speaks.",
       "card": "What a card opens on and what it draws.",
       "profile": "The words of your craft: kinds, statuses, axes, tiers, actions.",
       "data": "Out, in and aside: export, backup, import.",
-      "agents": "Agents outside the window, over MCP."
+      "agents": "Agents outside the window, over MCP.",
+      "assistant": "Claude Code, the model, runs at once, what a run reads, the budget.",
+      "plugins": "What is installed, whether it can run, and its settings."
     },
     "appearance": "Appearance",
     "theme": "Theme",
@@ -2334,7 +2380,33 @@
     },
     "unsaved": "There are unsaved changes",
     "discard": "Discard",
-    "discarded": "Changes to the profile discarded."
+    "discarded": "Changes to the profile discarded.",
+    "assistant": {
+      "cli": "Claude Code",
+      "cliHint": "The assistant is your own Claude Code: your subscription, your session. Everything else in kilna works without it.",
+      "cliThere": "Found",
+      "cliMissing": "Not found",
+      "cliCheck": "Check again",
+      "model": "Model",
+      "modelHint": "An alias such as opus or sonnet, or a model’s full name. Left empty, a run starts with what Claude Code itself is set to. A name it does not know is answered in the chat.",
+      "modelPlaceholder": "As Claude Code is set",
+      "modelSaved": "Runs start with {{model}} from now on.",
+      "modelCleared": "Runs start with what Claude Code is set to.",
+      "runs": "Runs at once",
+      "runsHint": "Each run is a process of a few hundred megabytes. A larger batch waits in line. Lowering this stops nothing that is going.",
+      "runsSaved_one": "{{count}} run at a time from now on.",
+      "runsSaved_other": "{{count}} runs at a time from now on.",
+      "sees": "What a run reads",
+      "seesName": {
+        "nothing": "Only its prompt",
+        "work": "The work’s files too"
+      },
+      "seesHint": {
+        "nothing": "A run starts in an empty folder and knows what its prompt carries: the work’s text, its versions, its title. Files reach it when you name them.",
+        "work": "A run on a work may also read the work’s folder and what is attached to it, and is told where they are. A run that reads the web never can. This is what it is told it may read, not a sandbox: it is your own Claude Code."
+      },
+      "saveFailed": "Could not save that."
+    }
   },
   "overview": {
     "inFull": "{{caption}}, in full",
@@ -2570,7 +2642,11 @@
       "failed": "The plugin: {{detail}}",
       "badReply": "Could not read the plugin's reply ({{cause}}): {{output}}",
       "reported": "{{message}}",
-      "cancelled": "The plugin was stopped."
+      "cancelled": "The plugin was stopped.",
+      "turnedOff": "The plugin “{{plugin}}” is turned off. Turn it on in Settings, under Plugins.",
+      "noSuchSetting": "The plugin “{{plugin}}” has no setting “{{key}}”.",
+      "badSetting": "That is not a value “{{key}}” of the plugin “{{plugin}}” can hold.",
+      "noKnownAxes": "The plugin “{{plugin}}” judged along none of the axes of a {{kind}}: {{known}}."
     },
     "comment": {
       "clipboardEmpty": "The clipboard held no picture.",
@@ -2582,7 +2658,9 @@
     },
     "assistant": {
       "unknownAction": "The profile has no action “{{action}}”.",
-      "starOnlyAnswer": "Only an answer takes a star: the list is of what the assistant said."
+      "starOnlyAnswer": "Only an answer takes a star: the list is of what the assistant said.",
+      "badParallelRuns": "Between 1 and {{most}} runs can go at once, not {{value}}.",
+      "badModel": "“{{name}}” is not a model name: letters, digits and . _ - : [ ] only."
     },
     "folder": {
       "notOpenable": "kilna opens pictures, clips, sounds and documents under the media folder, and “{{path}}” is not one of them.",
@@ -2610,10 +2688,6 @@
       "coverOnlyOnWorks": "Only a picture of a work can be its cover.",
       "notAPicture": "Only a cover or a candidate for one can be chosen as the cover.",
       "saveFailed": "Could not save “{{path}}”: {{cause}}"
-    },
-    "backup": {
-      "notFound": "There is no backup at “{{path}}”.",
-      "notAWorkspace": "“{{path}}” is not a kilna workspace."
     },
     "clone": {
       "needsTitle": "A clone is given a title."

@@ -59,7 +59,7 @@ words, the version chips and the profile picker go, the *Library* caption
 becomes a thin rule, and each icon names its screen on hover. The choice is
 kept on this machine rather than in the profile — how much room the menu takes
 is a habit of the person at this screen, not a fact of the craft. Settings is sections under their own addresses — General, The
-work card, Profile, Data, Agents — and *The work card* is where you choose
+work card, Profile, Assistant, Plugins, Data, Agents — and *The work card* is where you choose
 which tab a work opens on, for each kind of work: a song on its Versions, an
 audio release on its Overview, a short on its Scenes. Overview by default. The
 choice is kept in the profile, by kind

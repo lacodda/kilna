@@ -373,6 +373,11 @@ export type { Hit } from './generated/Hit'
 
 // The assistant: chats, runs, proposals.
 export type { Availability } from './generated/Availability'
+export type { AssistantSettings } from './generated/AssistantSettings'
+export type { RunSees } from './generated/RunSees'
+export type { WaitingScore } from './generated/WaitingScore'
+export type { Setting as PluginSetting } from './generated/Setting'
+export type { JsonValue } from './generated/serde_json/JsonValue'
 export type { Chat } from './generated/Chat'
 export type { ChatSummary } from './generated/ChatSummary'
 export type { NewChat } from './generated/NewChat'

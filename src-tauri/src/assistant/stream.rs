@@ -282,63 +282,92 @@ pub fn folders_of(attachments: &[std::path::PathBuf]) -> Vec<std::path::PathBuf>
     folders
 }
 
-impl Stream {
-    /// Start a turn and return before it finishes.
+/// How one turn is started, everything but the prompt.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Launch<'a> {
+    /// The conversation to continue, when there is one.
+    pub session_id: Option<&'a str>,
+    /// Where the CLI starts: the empty directory of ADR 0008.
+    pub workdir: Option<&'a std::path::Path>,
+    /// What is appended to the CLI's system prompt: the action's method (ADR
+    /// 0021) and what the run may read. It goes through a file rather than an
+    /// argument for the same `.cmd` reason as the prompt: a method is pages of
+    /// text with newlines. The file lives in the system's temporary directory,
+    /// not in `workdir` - that one is kept empty on purpose - and is removed
+    /// when the stream is dropped.
+    pub method: Option<&'a str>,
+    /// Reference files the prompt names by path. The CLI reads only inside the
+    /// directories it is given, so each file's folder is added with
+    /// `--add-dir`; nothing is copied into `workdir`.
+    pub attachments: &'a [std::path::PathBuf],
+    /// Folders the run is given as they are: the work's own, when the person
+    /// opened them to it (ADR 0074).
+    pub folders: &'a [std::path::PathBuf],
+    /// A run of an action that reads the web (ADR 0066): it has the two tools
+    /// that search and open pages, allowed without asking, and nothing else -
+    /// no file or shell tool, none of the person's MCP servers. A page is a
+    /// stranger's words, and a run that read one must not be able to act on
+    /// them.
+    pub web: bool,
+    /// The model to start with; none is what Claude Code itself is set to.
+    pub model: Option<&'a str>,
+}
+
+impl Launch<'_> {
+    /// The CLI's arguments for this turn, the method's file aside.
     ///
-    /// `workdir` is where the CLI starts — the empty directory of ADR 0008.
-    ///
-    /// The prompt goes in over stdin: on Windows the executable is a `.cmd`,
-    /// and Rust refuses to pass an argument containing a newline to a batch
-    /// file - a deliberate guard against argument injection, and lyrics and
-    /// chapters are full of newlines.
-    ///
-    /// `method` is the action's method (ADR 0021), appended to the CLI's
-    /// system prompt. It goes through a file rather than an argument for
-    /// the same `.cmd` reason as the prompt: a method is pages of text with
-    /// newlines. The file lives in the system's temporary directory, not in
-    /// `workdir` — that one is kept empty on purpose — and is removed when
-    /// the stream is dropped.
-    ///
-    /// `attachments` are reference files the prompt names by path. The CLI
-    /// reads only inside the directories it is given, so each file's folder
-    /// is added with `--add-dir`; nothing is copied into `workdir`.
-    ///
-    /// `web` is a run of an action that reads the web (ADR 0066): it has the
-    /// two tools that search and open pages, allowed without asking, and
-    /// nothing else - no file or shell tool, none of the person's MCP
-    /// servers. A page is a stranger's words, and a run that read one must
-    /// not be able to act on them.
-    pub fn start(
-        prompt: &str,
-        session_id: Option<&str>,
-        workdir: Option<&std::path::Path>,
-        method: Option<&str>,
-        attachments: &[std::path::PathBuf],
-        web: bool,
-    ) -> Result<Self> {
-        let mut command = super::cli::command();
-        command.args([
+    /// Apart from starting it, so what a setting does to the command line can
+    /// be read without a CLI to start.
+    fn arguments(&self) -> Vec<std::ffi::OsString> {
+        let mut args: Vec<std::ffi::OsString> = [
             "--print",
             "--output-format",
             "stream-json",
             // stream-json refuses to run without it.
             "--verbose",
-        ]);
-        if web {
-            command.args(web_args());
+        ]
+        .map(Into::into)
+        .to_vec();
+        if self.web {
+            args.extend(web_args().map(Into::into));
         }
+        if let Some(model) = self.model {
+            args.push("--model".into());
+            args.push(model.into());
+        }
+        if let Some(session_id) = self.session_id {
+            args.push("--resume".into());
+            args.push(session_id.into());
+        }
+        let mut given: Vec<std::path::PathBuf> = self.folders.to_vec();
+        for folder in folders_of(self.attachments) {
+            if !given.contains(&folder) {
+                given.push(folder);
+            }
+        }
+        for folder in given {
+            args.push("--add-dir".into());
+            args.push(folder.into());
+        }
+        args
+    }
+}
 
-        if let Some(session_id) = session_id {
-            command.args(["--resume", session_id]);
-        }
-        if let Some(dir) = workdir {
+impl Stream {
+    /// Start a turn and return before it finishes.
+    ///
+    /// The prompt goes in over stdin: on Windows the executable is a `.cmd`,
+    /// and Rust refuses to pass an argument containing a newline to a batch
+    /// file - a deliberate guard against argument injection, and lyrics and
+    /// chapters are full of newlines.
+    pub fn start(prompt: &str, launch: &Launch<'_>) -> Result<Self> {
+        let mut command = super::cli::command();
+        command.args(launch.arguments());
+        if let Some(dir) = launch.workdir {
             command.current_dir(dir);
         }
-        for dir in folders_of(attachments) {
-            command.arg("--add-dir").arg(dir);
-        }
 
-        let method_file = match method {
+        let method_file = match launch.method {
             Some(method) => {
                 let path =
                     std::env::temp_dir().join(format!("kilna-method-{}.md", uuid::Uuid::new_v4()));
@@ -411,6 +440,53 @@ impl Stream {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The word after a flag, in order, every time it stands.
+    fn after_each(args: &[std::ffi::OsString], flag: &str) -> Vec<std::ffi::OsString> {
+        args.windows(2)
+            .filter(|pair| pair[0] == flag)
+            .map(|pair| pair[1].clone())
+            .collect()
+    }
+
+    /// The person's model reaches the command line, and a person who chose none
+    /// leaves the CLI's own setting alone.
+    #[test]
+    fn a_turn_starts_with_the_chosen_model_or_says_nothing_of_one() {
+        let chosen = Launch {
+            model: Some("sonnet"),
+            ..Launch::default()
+        };
+        assert_eq!(after_each(&chosen.arguments(), "--model"), ["sonnet"]);
+
+        assert!(
+            after_each(&Launch::default().arguments(), "--model").is_empty(),
+            "no flag at all: the CLI's own setting stands"
+        );
+    }
+
+    /// The folders a run is given and those of its attachments reach it once
+    /// each, and a run given neither has only its empty directory.
+    #[test]
+    fn a_turn_is_given_its_folders_each_once() {
+        let folder = std::path::PathBuf::from("media-root/songs/tide");
+        let attached = std::path::PathBuf::from("media/still.png");
+        let beside = std::path::PathBuf::from("media-root/songs/tide/cover.png");
+        let launch = Launch {
+            folders: std::slice::from_ref(&folder),
+            attachments: &[attached, beside],
+            ..Launch::default()
+        };
+
+        assert_eq!(
+            after_each(&launch.arguments(), "--add-dir"),
+            [
+                std::ffi::OsString::from("media-root/songs/tide"),
+                "media".into()
+            ]
+        );
+        assert!(after_each(&Launch::default().arguments(), "--add-dir").is_empty());
+    }
 
     /// A run that reads the web has the CLI's two tools for it, allowed, and
     /// nothing else: no other built-in tool, and no MCP server of the

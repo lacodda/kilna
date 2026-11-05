@@ -12,6 +12,7 @@
 //! talk to a live process — a handle to kill it, and the events so far.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use rusqlite::{Connection, OptionalExtension, params};
@@ -21,16 +22,8 @@ use serde_json::{Map, Value, json};
 use crate::error::{Error, Result};
 use crate::time::now;
 
-use super::stream::{self, Event, Stream};
-
-/// How many CLI processes may be alive at once.
-///
-/// Each spawned CLI costs a few hundred megabytes, so this is a memory budget
-/// rather than a throughput knob. Three covers the way the panel is actually
-/// used — ask in one chat, move to another while it thinks — without putting a
-/// working machine under pressure. It becomes a profile setting in the
-/// configuration stage; until then a constant is honest about not being one.
-pub const PARALLEL_LIMIT: usize = 3;
+use super::settings::{self, DEFAULT_PARALLEL_RUNS};
+use super::stream::{self, Event, Launch, Stream};
 
 /// Where a run got to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ts_rs::TS)]
@@ -136,17 +129,42 @@ struct Live {
 }
 
 /// The runs this process is carrying.
-#[derive(Default)]
 pub struct Runs {
     live: Mutex<HashMap<String, Live>>,
+    /// How many may be alive at once: the person's setting
+    /// ([`super::settings`]), read when the workspace opens and told again
+    /// when it changes. Held here because every start asks, and the queue asks
+    /// from threads with no connection in hand.
+    limit: AtomicUsize,
     /// Told whenever a run comes or goes, so the window's count follows
     /// (v0.107, [`crate::activity`]).
     watcher: crate::activity::Watcher,
 }
 
+impl Default for Runs {
+    fn default() -> Self {
+        Self {
+            live: Mutex::default(),
+            limit: AtomicUsize::new(DEFAULT_PARALLEL_RUNS),
+            watcher: crate::activity::Watcher::default(),
+        }
+    }
+}
+
 impl Runs {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// How many runs may be alive at once.
+    pub fn limit(&self) -> usize {
+        self.limit.load(Ordering::SeqCst)
+    }
+
+    /// Change how many may be alive at once. What is running is left to finish:
+    /// a lower limit starts nothing more until there is room under it.
+    pub fn set_limit(&self, limit: usize) {
+        self.limit.store(limit, Ordering::SeqCst);
     }
 
     /// Who to tell when a run comes or goes.
@@ -171,7 +189,7 @@ impl Runs {
     /// it: the queue and the start path have to agree on what "full" means,
     /// and two comparisons against the same constant is how they drift apart.
     pub fn has_slot(&self) -> bool {
-        self.active() < PARALLEL_LIMIT
+        self.active() < self.limit()
     }
 
     /// Ids of the chats currently running something, for the panel's badge.
@@ -333,7 +351,7 @@ pub fn start_as(
     }
 
     if !runs.has_slot() {
-        return Err(Error::Busy(PARALLEL_LIMIT));
+        return Err(Error::Busy(runs.limit()));
     }
 
     let id = uuid::Uuid::new_v4().to_string();
@@ -359,13 +377,18 @@ pub fn start_as(
         .action
         .as_deref()
         .is_some_and(|action| reads_the_web(conn, action));
+    let decided = decided_for(conn, &chat, method.as_deref(), web)?;
     let stream = Stream::start(
         prompt,
-        chat.session_id.as_deref(),
-        workdir,
-        method.as_deref(),
-        attachments,
-        web,
+        &Launch {
+            session_id: chat.session_id.as_deref(),
+            workdir,
+            method: decided.brief.as_deref(),
+            attachments,
+            folders: &decided.folders,
+            web,
+            model: decided.model.as_deref(),
+        },
     )?;
 
     let started_at = now();
@@ -401,6 +424,38 @@ pub fn start_as(
     };
 
     Ok((run, stream))
+}
+
+/// What the person decided about a turn in one chat.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Decided {
+    /// The action's method and what the run may read, as one brief.
+    brief: Option<String>,
+    folders: Vec<std::path::PathBuf>,
+    model: Option<String>,
+}
+
+/// Read what the person decided for a turn: the model, and what the run may read
+/// besides its prompt. Read at every turn for the method's reason: the CLI keeps
+/// no system prompt across resumes, and a follow-up sees what the first saw.
+fn decided_for(
+    conn: &Connection,
+    chat: &super::Chat,
+    method: Option<&str>,
+    web: bool,
+) -> Result<Decided> {
+    let chosen = settings::read(conn)?;
+    let sight = settings::sight(conn, chat, chosen.run_sees, web);
+    let brief = match (method, sight.brief) {
+        (Some(method), Some(sight)) => Some(format!("{method}\n\n{sight}")),
+        (Some(method), None) => Some(method.to_owned()),
+        (None, sight) => sight,
+    };
+    Ok(Decided {
+        brief,
+        folders: sight.folders,
+        model: chosen.model,
+    })
 }
 
 /// Where a run's events come from.
@@ -1749,7 +1804,7 @@ mod tests {
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
 
-        for index in 0..PARALLEL_LIMIT {
+        for index in 0..DEFAULT_PARALLEL_RUNS {
             runs.insert(
                 format!("run-{index}"),
                 chat_id.clone(),
@@ -1780,6 +1835,114 @@ mod tests {
         assert_eq!(rows, 0);
     }
 
+    /// The limit is the person's: a higher one has room at once, and a lower one
+    /// stops nothing and starts nothing more until there is room under it.
+    #[test]
+    fn the_limit_can_be_moved_and_moving_it_stops_nothing() {
+        let (conn, profile_id) = fixtures::workspace();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+        let stopped = Arc::new(Mutex::new(0));
+        for index in 0..DEFAULT_PARALLEL_RUNS {
+            let stopped = Arc::clone(&stopped);
+            runs.insert(
+                format!("run-{index}"),
+                chat_id.clone(),
+                Arc::new(move || {
+                    if let Ok(mut count) = stopped.lock() {
+                        *count += 1;
+                    }
+                }),
+                None,
+            );
+        }
+        assert!(!runs.has_slot());
+
+        runs.set_limit(DEFAULT_PARALLEL_RUNS + 1);
+        assert!(runs.has_slot(), "a higher limit has room at once");
+
+        runs.set_limit(1);
+        assert!(!runs.has_slot(), "under the runs going, there is no room");
+        assert_eq!(
+            runs.active(),
+            DEFAULT_PARALLEL_RUNS,
+            "and none of them ended"
+        );
+        assert_eq!(*stopped.lock().unwrap(), 0, "and none of them was stopped");
+
+        let Err(refused) = start(&conn, &runs, &chat_id, "one more", None) else {
+            panic!("the lower limit must refuse a run");
+        };
+        assert!(
+            matches!(refused, Error::Busy(1)),
+            "the refusal says the limit that stands: {refused:?}"
+        );
+    }
+
+    /// What was decided in Settings reaches the turn: the model, and the work's
+    /// files beside the action's method, in every chat about a work.
+    #[test]
+    fn a_turn_starts_with_what_the_person_decided() {
+        let (conn, profile_id) = fixtures::workspace();
+        let root = tempfile::tempdir().unwrap();
+        crate::folder::set_root(
+            &conn,
+            &profile_id,
+            Some(&root.path().to_string_lossy()),
+            "2026-11-05T00:00:00.000Z",
+        )
+        .unwrap();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        let folder = root.path().join("songs").join("Tide");
+        std::fs::create_dir_all(&folder).unwrap();
+        let on_the_song = super::super::create(
+            &conn,
+            &profile_id,
+            crate::assistant::NewChat {
+                work_id: Some(song.id.clone()),
+                ..crate::assistant::NewChat::default()
+            },
+        )
+        .unwrap();
+
+        // Left alone: the method and nothing else.
+        assert_eq!(
+            decided_for(&conn, &on_the_song, Some("The method."), false).unwrap(),
+            Decided {
+                brief: Some("The method.".into()),
+                folders: Vec::new(),
+                model: None,
+            }
+        );
+
+        settings::set_model(&conn, Some("sonnet")).unwrap();
+        settings::set_run_sees(&conn, settings::RunSees::Work).unwrap();
+
+        let decided = decided_for(&conn, &on_the_song, Some("The method."), false).unwrap();
+        assert_eq!(decided.model.as_deref(), Some("sonnet"));
+        assert_eq!(decided.folders, vec![folder.clone()]);
+        let brief = decided.brief.unwrap();
+        assert!(brief.starts_with("The method.\n\n"), "{brief}");
+        assert!(brief.contains(&folder.display().to_string()), "{brief}");
+
+        let without_a_method = decided_for(&conn, &on_the_song, None, false).unwrap();
+        assert!(
+            without_a_method
+                .brief
+                .is_some_and(|brief| brief.contains(&folder.display().to_string())),
+            "a question typed in the panel is told the same"
+        );
+
+        let reading_the_web = decided_for(&conn, &on_the_song, Some("The method."), true).unwrap();
+        assert_eq!(reading_the_web.brief.as_deref(), Some("The method."));
+        assert!(reading_the_web.folders.is_empty());
+        assert_eq!(
+            reading_the_web.model.as_deref(),
+            Some("sonnet"),
+            "the model is the person's for every run"
+        );
+    }
+
     /// The one question the queue asks the registry. It has to answer the same
     /// thing the start path acts on, or a batch queues work into slots that
     /// were free — or fills slots that were not.
@@ -1789,10 +1952,10 @@ mod tests {
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
 
-        for index in 0..PARALLEL_LIMIT {
+        for index in 0..DEFAULT_PARALLEL_RUNS {
             assert!(
                 runs.has_slot(),
-                "run {index} of {PARALLEL_LIMIT} must find room"
+                "run {index} of {DEFAULT_PARALLEL_RUNS} must find room"
             );
             runs.insert(
                 format!("run-{index}"),
@@ -2826,7 +2989,7 @@ The second verse is the weak one."
 
         // The limit refuses this before any process is spawned, which is all
         // this test needs: clearing happens before that check is reached.
-        for index in 0..PARALLEL_LIMIT {
+        for index in 0..DEFAULT_PARALLEL_RUNS {
             runs.insert(
                 format!("run-{index}"),
                 chat_id.clone(),

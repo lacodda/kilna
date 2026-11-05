@@ -306,6 +306,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0048_spend.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 49,
+        name: "settings_and_plugins",
+        sql: include_str!("../../migrations/0049_settings_and_plugins.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.

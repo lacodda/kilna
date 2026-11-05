@@ -1,6 +1,6 @@
 ---
 title: Writing a plugin
-description: The plugin protocol — --manifest, run with JSON on stdin, what a work is handed, the outcome shape, progress on stderr, and how returned metadata and files are kept.
+description: The plugin protocol — --manifest, run with JSON on stdin, what a work is handed, the outcome shape, settings kilna draws, a judge's score, words by language, progress on stderr, and how returned metadata and files are kept.
 ---
 
 Integrations in kilna are ordinary executables, not a plugin API kilna's
@@ -25,6 +25,13 @@ under a given name wins, the same way any other command resolution works. A
 plugin that fails to describe itself is still listed — with the reason it
 failed — rather than silently absent, because "not appearing" is otherwise
 indistinguishable from "not installed."
+
+**Settings → Plugins** is where they stand: each with its version and what it
+offers, why it cannot run if it cannot, a switch that turns it off without
+uninstalling it, and [its settings](#settings). **Look again** reads the list
+after a plugin was dropped in the folder. In the rest of the window, a plugin
+that cannot run says only that it cannot, and links here. A plugin has five
+seconds to say what it is, so that one that never answers cannot hold the rest.
 
 ## Describing yourself: `--manifest`
 
@@ -58,13 +65,68 @@ to stdout and exit successfully:
 mismatch doesn't crash anything; the plugin is listed but marked unusable,
 with the mismatch shown rather than hidden. Each entry in `commands` becomes a
 button wherever its `target` is drawn: `"work"` in the head of a work's
-Overview, `"release"` on a release, `"cuts"` on a work's
-[Cuts tab](/kilna/guides/shorts/#the-cut-list) - where a cutter belongs.
+Overview, `"release"` under a release's row in the
+[Releases tab](/kilna/guides/planning-a-release/), `"cuts"` on a work's
+[Cuts tab](/kilna/guides/shorts/#the-cut-list) - where a cutter belongs - and
+`"score"` on a work's [Score tab](/kilna/guides/scoring-a-work/), where a judge
+does.
 
 `timeout` is how many seconds the command may run - see
 [How long a plugin may take](#how-long-a-plugin-may-take). Every field added
 since the first protocol is optional on both sides, which is why the version
 is still `1`.
+
+## Words by language
+
+Every word a manifest shows has a one-language field and, optionally, the same
+word by language beside it: `labels` for a `label`, `descriptions` for a
+`description`, on the manifest, a command, a setting and a choice's option.
+
+```jsonc
+{ "key": "cut", "label": "Cut the short", "labels": { "ru": "Нарезать шортс" }, "target": "cuts" }
+```
+
+The window takes its own language's, and falls back to the plain field: a
+plugin that says nothing about Russian still has a button in a Russian window.
+
+## Settings
+
+A manifest may declare what can be set for it. kilna draws the form in
+**Settings → Plugins**, keeps what is set, and hands every run the values, so a
+plugin needs no configuration file and no screen of its own:
+
+```jsonc
+{
+  "settings": [
+    { "key": "channel", "type": "text", "label": "Channel", "default": "" },
+    { "key": "crf", "type": "number", "label": "Quality", "min": 0, "max": 51, "step": 1, "default": 20 },
+    { "key": "hand", "type": "boolean", "label": "The pointing hand", "default": true },
+    { "key": "preset", "type": "choice", "label": "Preset", "default": "fast",
+      "options": [{ "value": "fast", "label": "Fast" }, { "value": "slow", "label": "Slow" }] }
+  ]
+}
+```
+
+- `type` is `text`, `number` (with optional `min`, `max` and `step`), `boolean`
+  or `choice` (with its `options`). An unknown type is a manifest that cannot be
+  read, and the plugin is listed with the reason.
+- `default` is what the plugin does when nothing is set. The form shows it, so
+  what is on the screen is what a run does; a plugin may compute it - from a
+  file of its own, say - each time it is asked for its manifest.
+- Only what was changed is kept. A setting left alone keeps following `default`,
+  so a default changed in your next release reaches everyone who left it alone.
+  **Back to the plugin's own** takes a changed value back.
+- A value is held to what the setting declares before it is kept. One kept
+  earlier that no longer fits - an option you removed - is not handed over, and
+  the default stands instead.
+
+**Not for a secret.** Settings are kept in the workspace, so they go into every
+backup and travel to the plugin in the clear. A plugin with a token asks the
+system's keychain for it.
+
+A manifest at odds with itself - a command or a setting named twice, a choice
+with nothing to choose, a default its setting does not take - leaves the plugin
+listed with what is wrong, and unable to run.
 
 ## Running a command: `run`
 
@@ -75,13 +137,18 @@ When the user triggers a command, kilna runs the plugin again with a single
 {
   "command": "count",
   "target": "work",
-  "subject": { "id": "…", "title": "…", "kind": "song", "meta": {}, "bodies": { "lyrics": "…", "style": "…" } }
+  "subject": { "id": "…", "title": "…", "kind": "song", "meta": {}, "bodies": { "lyrics": "…", "style": "…" } },
+  "settings": { "channel": "Harbour Radio", "crf": 20 }
 }
 ```
 
+`settings` holds [its settings](#settings) as they stand: what was set in the
+window, and the defaults of the rest. It is empty for a plugin that declares
+none.
+
 `subject` is the row the command was invoked on, as the frontend sees it. A
-work - for a `work` or a `cuts` command - travels with everything a plugin
-would otherwise have to ask for back:
+work - for a `work`, a `cuts` or a `score` command - travels with everything a
+plugin would otherwise have to ask for back:
 
 | Field | What it holds |
 | --- | --- |
@@ -94,6 +161,7 @@ would otherwise have to ask for back:
 | `chain` | The titles up the chain "made from", nearest first: a short's clip, then the song. |
 | `origin` | What it is all made from - the song, for a short - as `id`, `title`, `kind`. |
 | `cover` | The picture it goes out under, a whole path, or `null`. |
+| `axes` | For a `score` command only: the axes to judge along, as the work's kind names them - each with `key`, `label`, `weight`, `scale` and `kind`. |
 
 A cutter has what it needs in one call: the stretches and the file each comes
 out of, where to put what it makes, the song's name to letter the frame with,
@@ -128,6 +196,15 @@ exiting:
   [Where to cut from](/kilna/guides/shorts/#where-to-cut-from). The reasons
   kilna words are `chorus`, `loudest`, `repeats`, `lift` and `part`; any other
   is shown as it is.
+- `score` — what a `score` command judged. Optional, and read only from one.
+  `axes` is axis key to mark and `note` says why:
+  `{ "axes": { "hook": 8, "craft": 6 }, "note": "The chorus carries it." }`.
+  It is not written: it becomes a proposal on the
+  [Score tab](/kilna/guides/scoring-a-work/), under the plugin's name, held to the
+  kind's axes as any other proposal is - marks brought within their scales, an
+  axis the kind does not have named, one left out named too. Kept, it is an
+  ordinary score naming the plugin as its judge. Marks along none of the kind's
+  axes are refused, and the refusal says which axes there are.
 - `error` — set this instead of the above to report failure without needing a
   non-zero exit code; kilna surfaces it as the command's error.
 

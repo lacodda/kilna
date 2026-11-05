@@ -1,7 +1,7 @@
 # 0008 — Assistant runs start in an empty directory
 
 Date: 2026-08-25
-Status: Accepted
+Status: Accepted. Since v0.108 this is the default of a setting: see ADR 0074.
 
 ## Context
 

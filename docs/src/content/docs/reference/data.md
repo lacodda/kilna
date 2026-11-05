@@ -1,6 +1,6 @@
 ---
 title: Data
-description: Export, backup and import, where the workspace file and the application log live, why restoring needs the app closed, and what the workspace records about itself.
+description: Export, backup and import, where the workspace file and the application log live, the steps of a restore and why they are taken by hand, and what the workspace records about itself.
 ---
 
 kilna is local-first: one SQLite file holds your workspace, and media stays
@@ -8,16 +8,11 @@ as plain files on disk with only a path recorded in the database. See
 [ADR 0002](https://github.com/lacodda/kilna/blob/main/docs/adr/0002-local-first-storage.md)
 for the reasoning behind that split.
 
-The same screen holds one thing that is not about files: **Statuses**, which
-compares every work's status against what has actually happened to it and shows
-what it would change before changing anything. That one is described in
-[Statuses](/kilna/guides/statuses/).
-
 ## Where the workspace file lives
 
 The workspace is created under the platform's application data directory the
-first time kilna runs. From inside the app, the **workspace path** command
-reports the exact file location, so you can find it in a file manager or point
+first time kilna runs. **Settings → Data → Workspace file** shows the exact
+location, and **Show in its folder** opens it in a file manager, so you can point
 a backup tool at it directly.
 
 ## The application log
@@ -48,30 +43,37 @@ A suggested file name is generated for you from the current timestamp, in the
 form `kilna-YYYY-MM-DDTHH-MM-SS.db` — colons are replaced because they aren't
 valid in a Windows file name.
 
+The files attached to your works go with it, into a folder beside the backup
+named like it with `.media` at the end. A workspace with nothing attached has no
+such folder.
+
+A backup holds everything in the workspace, the assistant's settings and what
+was set for each plugin among them. It does not hold your
+[media folder](/kilna/guides/files-and-covers/#the-works-folder-on-disk) of
+renders and takes, which only ever had its path recorded; the plugins themselves;
+or the window's theme and language, which live with the window.
+
 ## Restore
 
-Restoring replaces the live workspace with a backup file. Two things happen
-for safety:
+A backup goes back in **by hand, with kilna closed**: a workspace cannot be
+replaced under the process that holds it open, and kilna would rather say the
+steps than pretend to do them from inside. In the folder of the workspace file:
 
-- The file being restored is verified as an actual kilna workspace first — it
-  must contain a `profile` table — before anything about the current
-  workspace is touched. A stray file handed to restore by mistake is refused,
-  and the live workspace is left exactly as it was.
-- The **current** workspace is moved aside, not deleted, to a sibling file
-  named with a `.db.replaced` extension. A restore is exactly the moment when
-  the thing being replaced might turn out to have been wanted after all.
+1. **Close kilna.** If it is working behind the tray, choose **Quit kilna** on its
+   icon: closing the window does not close it while something goes.
+2. **Move `kilna.db` and the `media` folder somewhere safe,** and delete
+   `kilna.db-wal` and `kilna.db-shm` if they are there. Those two belong to the
+   file you moved: SQLite keeps them beside an open database, and one left beside
+   the restored file would belong to another database.
+3. **Copy the backup's file here and name it `kilna.db`.** If a folder ending in
+   `.media` lies beside the backup, copy it here too and name it `media`.
+4. **Open kilna.** A backup from an older version is brought up to date as it
+   opens; one from a newer version asks you to update kilna first.
 
-### Restore needs the app closed
-
-Restoring a workspace while kilna has an open connection to it is unsafe — a
-running app is actively reading and writing through its own connection, and a
-file swapped out from underneath it can leave things in an inconsistent
-state. Close kilna, replace the workspace file (or use a restore flow that
-does so before kilna reopens it), then relaunch.
-
-Stray write-ahead-log and shared-memory files (`.db-wal`, `.db-shm`) belonging
-to the workspace being replaced are cleaned up automatically as part of a
-restore, so they don't linger and confuse a subsequent open.
+What you moved aside in step 2 is whole, so if the backup turns out to be the
+wrong one, the same steps put it back. kilna's own tests follow these steps, so
+the page and the application cannot part. **Settings → Data** says them too, by
+the names they have on your machine.
 
 ## Export to markdown
 

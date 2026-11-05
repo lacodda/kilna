@@ -104,6 +104,14 @@ export function TaskPreviewDialog({
   // What the preview is composed against: set when the box is left, so a
   // half-typed path is not sent to be checked keystroke by keystroke.
   const [attachments, setAttachments] = useState<string[]>([])
+  // What this run may read besides its prompt: a work's files, when the setting
+  // opens them. A run that reads the web is given none of them.
+  const sightOf = 'workId' in target && action.web !== true ? target.workId : null
+  const sight =
+    useQuery({
+      ...queries.runSight(sightOf ?? ''),
+      enabled: isOpen && sightOf !== null,
+    }).data ?? []
 
   const read =
     target.on === 'work'
@@ -251,6 +259,17 @@ export function TaskPreviewDialog({
               </details>
             )}
           </>
+        )}
+        {/* What the person opened to runs, said before this one starts: the
+            same paths its brief will name. */}
+        {sight.length > 0 && (
+          <FieldGroup label={t('assistant.sightTitle')} help={t('assistant.sightHint')}>
+            <ul className="selectable flex max-h-32 flex-col gap-0.5 overflow-auto font-mono text-xs break-all text-dim">
+              {sight.map((path) => (
+                <li key={path}>{path}</li>
+              ))}
+            </ul>
+          </FieldGroup>
         )}
         {/* Reference files travel with a work's task only: a style is
             described from its own references, a reply from its comment. */}

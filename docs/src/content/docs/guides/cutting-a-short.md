@@ -31,18 +31,12 @@ folder, where kilna finds it as the short's
    `kilna-plugin-cut.json` next to it. The next time kilna lists its plugins -
    a short's Cuts tab opened half a minute later, or kilna started again -
    the button is there.
-3. **The channel's words.** Open `kilna-plugin-cut.json` and write your
-   channel's name and the call under the picture:
-
-   ```json
-   {
-     "channel": "Harbour Radio",
-     "call": "FULL VERSION"
-   }
-   ```
-
-   Every key is optional - fonts, colours, how long the cover stands - see the
-   plugin's [settings](https://github.com/lacodda/kilna-plugin-cut#settings).
+3. **The channel's words.** Open **Settings → Plugins**. The plugin stands there
+   with what it can set: your channel's name, the call at the bottom, the
+   pointing hand, the colour of the words, the fonts, the quality. Each shows what
+   a cut does now and saves as you leave it. The plugin's README lists
+   [them all](https://github.com/lacodda/kilna-plugin-cut#settings), with the
+   `kilna-plugin-cut.json` beside it that sets the values they start from.
    The words are the plugin's, not the workspace's: a channel renamed is one
    line in this file, and the shorts already cut keep the name they went out
    with.

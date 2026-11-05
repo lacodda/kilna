@@ -4,6 +4,7 @@ pub mod prompt;
 pub mod proposal;
 pub mod queue;
 pub mod run;
+pub mod settings;
 pub mod spend;
 pub mod stream;
 pub mod task;

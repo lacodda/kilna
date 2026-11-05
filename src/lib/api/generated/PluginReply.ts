@@ -16,4 +16,8 @@ files: Array<string>,
  * The one of them that is now the work's finished file - found by the
  * kind's rule or chosen for it - when one is.
  */
-finished: string | null, };
+finished: string | null, 
+/**
+ * The message holding the score it proposed, when it proposed one.
+ */
+proposed_score: string | null, };

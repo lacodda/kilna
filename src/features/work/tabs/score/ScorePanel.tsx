@@ -10,10 +10,12 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { ListDetail, Pane } from '@/components/frame'
+import { Frame, ListDetail, Pane } from '@/components/frame'
+import { PluginBar } from '@/features/work/PluginBar'
 import { ScoreForm } from '@/features/work/tabs/score/ScoreForm'
 import { ScoreList } from '@/features/work/tabs/score/ScoreList'
 import { ScoreReading } from '@/features/work/tabs/score/ScoreReading'
+import { WaitingScores } from '@/features/work/tabs/score/WaitingScores'
 
 interface Props {
   workId: string
@@ -163,36 +165,48 @@ export function ScorePanel({ workId }: Props) {
   return (
     // The same shape as the Versions tab, on purpose: the list of scores on
     // the left, the one picked from it open on the right, each scrolling on
-    // its own.
-    <ListDetail
-      list={
-        <ScoreList
-          workId={workId}
-          history={history}
-          openId={reading?.id}
-          titleOf={titleOf}
-          blind={blind}
-          hiding={hiding}
-          onBlind={(next) => {
-            // Going blind is starting a verdict of one's own; seeing again
-            // mid-way keeps the marks already set on the scales.
-            if (next || reading === undefined) setPicked(NEW)
-            setBlind(next)
-            setRevealed(false)
-          }}
-          onReveal={() => {
-            // Peeking keeps the scales being marked; the rows come back
-            // beside them.
-            setPicked(NEW)
-            setRevealed(true)
-          }}
-          onOpen={setPicked}
-          onNew={startNew}
-          onDelete={(scoreId) => remove.mutate(scoreId)}
-        />
+    // its own. Above them, a judge's command and what waits to be kept - held
+    // back while judging blind, since a proposal is somebody's verdict.
+    <Frame
+      head={
+        hiding ? undefined : (
+          <>
+            <PluginBar target="score" id={workId} />
+            <WaitingScores workId={workId} />
+          </>
+        )
       }
-      detail={detail}
-    />
+    >
+      <ListDetail
+        list={
+          <ScoreList
+            workId={workId}
+            history={history}
+            openId={reading?.id}
+            titleOf={titleOf}
+            blind={blind}
+            hiding={hiding}
+            onBlind={(next) => {
+              // Going blind is starting a verdict of one's own; seeing again
+              // mid-way keeps the marks already set on the scales.
+              if (next || reading === undefined) setPicked(NEW)
+              setBlind(next)
+              setRevealed(false)
+            }}
+            onReveal={() => {
+              // Peeking keeps the scales being marked; the rows come back
+              // beside them.
+              setPicked(NEW)
+              setRevealed(true)
+            }}
+            onOpen={setPicked}
+            onNew={startNew}
+            onDelete={(scoreId) => remove.mutate(scoreId)}
+          />
+        }
+        detail={detail}
+      />
+    </Frame>
   )
 }
 

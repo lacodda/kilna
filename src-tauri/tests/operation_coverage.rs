@@ -132,7 +132,7 @@ fn the_scan_finds_every_registered_command() {
 /// the same name does not count. Listed rather than inferred because "writes"
 /// is not visible in a name: `score::catalogue` reads, `work::pin_tier_at`
 /// writes.
-const WRITERS: [&str; 67] = [
+const WRITERS: [&str; 72] = [
     "::create(",
     "::create_minted(",
     "::update(",
@@ -161,6 +161,11 @@ const WRITERS: [&str; 67] = [
     // A machine's own record, written past the log on purpose - and seen
     // here so that the exemption saying so is held to a write.
     "::set_root(",
+    "::set_parallel_runs(",
+    "::set_model(",
+    "::set_run_sees(",
+    "::set_enabled(",
+    "::set_value(",
     "::set_contents_at(",
     "::set_current(",
     "::resync(",
@@ -238,7 +243,7 @@ fn through_an_action(path: &str) -> bool {
 /// Each entry is a promise that replaying the log without its write still
 /// produces the right database, and says why. Anything not on this list that
 /// writes has to hand the write to an action.
-const WRITES_PAST_THE_ACTIONS: [(&str, &str); 9] = [
+const WRITES_PAST_THE_ACTIONS: [(&str, &str); 14] = [
     (
         "activate_profile",
         "which profile is open is a fact about this machine; ADR 0012 keeps it off the wire \
@@ -260,6 +265,28 @@ const WRITES_PAST_THE_ACTIONS: [(&str, &str); 9] = [
     (
         "set_media_root",
         "where a workspace keeps its media is a place on this machine, kept off the wire as          the open profile is (ADR 0057): on the next device it would name nothing",
+    ),
+    (
+        "set_parallel_runs",
+        "how many runs this machine may carry is a memory budget of this machine, kept off the \
+         wire beside the week's budget",
+    ),
+    (
+        "set_run_model",
+        "as above: which model this machine's CLI starts with",
+    ),
+    (
+        "set_run_sees",
+        "as above: what a program on this machine may read of this machine's files",
+    ),
+    (
+        "set_plugin_enabled",
+        "which plugins stand on a machine, and whether they are on, is that machine's business; \
+         the row is kept by the name of an executable on its disk",
+    ),
+    (
+        "set_plugin_setting",
+        "as above: what that executable is told",
     ),
     (
         "create_work_folder",

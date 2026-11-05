@@ -4,9 +4,11 @@ import { SectionNav } from '@/components/ui/section-nav'
 import { StatusDot } from '@/components/ui/status-dot'
 import { Frame, ListDetail, Pane } from '@/components/frame'
 import { AgentsSection } from '@/features/settings/AgentsSection'
+import { AssistantSection } from '@/features/settings/AssistantSection'
 import { CardSection } from '@/features/settings/CardSection'
 import { DataSection } from '@/features/settings/DataSection'
 import { GeneralSection } from '@/features/settings/GeneralSection'
+import { PluginsSection } from '@/features/settings/PluginsSection'
 import { ProfileDraftBar } from '@/features/settings/ProfileDraftBar'
 import { ProfileSection } from '@/features/settings/ProfileSection'
 import { useProfileDraft } from '@/features/settings/useProfileDraft'
@@ -20,7 +22,15 @@ import { useProfileDraft } from '@/features/settings/useProfileDraft'
  * now its own address, so it can be linked to and the back button walks
  * between them - the same reason a card's tab is in the URL.
  */
-export const SECTIONS = ['general', 'card', 'profile', 'data', 'agents'] as const
+export const SECTIONS = [
+  'general',
+  'card',
+  'profile',
+  'assistant',
+  'plugins',
+  'data',
+  'agents',
+] as const
 export type Section = (typeof SECTIONS)[number]
 
 const DEFAULT_SECTION: Section = 'general'
@@ -37,6 +47,10 @@ function Body({ section }: { section: Section }) {
       return <CardSection />
     case 'profile':
       return <ProfileSection />
+    case 'assistant':
+      return <AssistantSection />
+    case 'plugins':
+      return <PluginsSection />
     case 'data':
       return <DataSection />
     case 'agents':

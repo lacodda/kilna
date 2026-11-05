@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 /// Copy the whole workspace to `destination` — the database and its files.
 ///
@@ -71,70 +71,6 @@ fn copy_dir(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Replace the workspace at `target` with the backup at `source`.
-///
-/// The current workspace is moved aside rather than deleted — a restore is
-/// exactly the moment when the thing being replaced turns out to have been
-/// wanted after all.
-pub fn restore(source: &Path, target: &Path, media: Option<&Path>) -> Result<Option<PathBuf>> {
-    if !source.exists() {
-        return Err(Error::refused("backup.notFound").param("path", source.display().to_string()));
-    }
-
-    // Refuse a file that is not a kilna workspace before touching anything.
-    {
-        let candidate = Connection::open(source)?;
-        let tables: i64 = candidate.query_row(
-            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'profile'",
-            [],
-            |row| row.get(0),
-        )?;
-        if tables == 0 {
-            return Err(
-                Error::refused("backup.notAWorkspace").param("path", source.display().to_string())
-            );
-        }
-    }
-
-    let displaced = if target.exists() {
-        let aside = target.with_extension("db.replaced");
-        std::fs::rename(target, &aside)?;
-        Some(aside)
-    } else {
-        None
-    };
-
-    // WAL and shared-memory files belong to the workspace being replaced.
-    for suffix in ["db-wal", "db-shm"] {
-        let stray = target.with_extension(suffix);
-        if stray.exists() {
-            let _ = std::fs::remove_file(stray);
-        }
-    }
-
-    std::fs::copy(source, target)?;
-
-    // And the files that belong to that database. Moved aside rather than
-    // merged: a restored workspace whose directory still held the pictures
-    // of the one it replaced would show covers that belong to nothing, and
-    // the two sets are indistinguishable once mixed.
-    if let Some(media) = media {
-        let from = media_beside(source);
-        if media.exists() {
-            let aside = media.with_extension("replaced");
-            if aside.exists() {
-                std::fs::remove_dir_all(&aside)?;
-            }
-            std::fs::rename(media, &aside)?;
-        }
-        if from.is_dir() {
-            copy_dir(&from, media)?;
-        }
-    }
-
-    Ok(displaced)
-}
-
 /// A dated file name, so successive backups do not overwrite one another.
 pub fn suggested_name(timestamp: &str) -> String {
     // The timestamp is RFC 3339; colons are not valid in a Windows file name.
@@ -170,14 +106,56 @@ mod tests {
         conn
     }
 
-    /// A backup takes the files with the database, and a restore brings both
-    /// back.
+    /// The steps Settings gives for putting a backup back, one by one, as a
+    /// person takes them with kilna closed. Kept here so the words on the screen
+    /// are held to something that was done (`data.restoreSteps`).
+    fn restore_by_the_steps(backup: &Path, database: &Path, media: &Path) {
+        let aside = database.parent().unwrap().join("aside");
+        std::fs::create_dir_all(&aside).unwrap();
+
+        // The workspace and its files go somewhere safe, and the two files
+        // SQLite keeps beside an open database are deleted: they belong to the
+        // file moved aside.
+        std::fs::rename(database, aside.join("kilna.db")).unwrap();
+        if media.exists() {
+            std::fs::rename(media, aside.join("media")).unwrap();
+        }
+        for suffix in ["-wal", "-shm"] {
+            let mut beside = database.as_os_str().to_owned();
+            beside.push(suffix);
+            let beside = std::path::PathBuf::from(beside);
+            if beside.exists() {
+                std::fs::remove_file(beside).unwrap();
+            }
+        }
+
+        // The backup's file under the workspace's name, and the folder beside
+        // it, when it has one, as `media`.
+        std::fs::copy(backup, database).unwrap();
+        let files = backup.with_extension("media");
+        if files.is_dir() {
+            copy_dir(&files, media).unwrap();
+        }
+    }
+
+    fn titles(database: &Path) -> Vec<String> {
+        let conn = db::open(database).unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        work::list(&conn, &profile_id, &WorkFilter::default())
+            .unwrap()
+            .into_iter()
+            .map(|work| work.title)
+            .collect()
+    }
+
+    /// A backup takes the files with the database, and the steps bring both
+    /// back, whatever was done since.
     ///
     /// The decision of 2026-09-15: the alternative is a restored workspace
     /// whose every cover points at a file that is not there, which looks
     /// exactly like a workspace whose pictures were lost.
     #[test]
-    fn a_backup_carries_the_files_and_a_restore_brings_them_back() {
+    fn a_backup_carries_the_files_and_the_steps_bring_them_back() {
         let dir = tempfile::tempdir().unwrap();
         let live = dir.path().join("kilna.db");
         let conn = seeded(&live, "Harbour lights");
@@ -199,13 +177,29 @@ mod tests {
             "and they are the same bytes"
         );
 
-        // The workspace moves on: one file replaced, one added.
+        // The workspace moves on: a work added, one file replaced, one added.
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Written since".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
         std::fs::write(media.join("a.png"), b"changed since").unwrap();
         std::fs::write(media.join("c.png"), b"added since").unwrap();
         drop(conn);
 
-        restore(&copy, &live, Some(&media)).unwrap();
+        restore_by_the_steps(&copy, &live, &media);
 
+        assert_eq!(
+            titles(&live),
+            ["Harbour lights"],
+            "the work the backup held"
+        );
         assert_eq!(
             std::fs::read(media.join("a.png")).unwrap(),
             b"a picture",
@@ -216,14 +210,15 @@ mod tests {
             "a file the backup never had does not survive into the restored \
              workspace: its row is not in the restored database either"
         );
-        assert!(
-            media.with_extension("replaced").join("c.png").exists(),
-            "but it is set aside, not destroyed — a restore is exactly when \
-             the thing being replaced turns out to have been wanted"
+        assert_eq!(
+            titles(&dir.path().join("aside").join("kilna.db")).len(),
+            2,
+            "what was moved aside is still whole, should it turn out to be wanted"
         );
     }
 
-    /// A workspace with no files, and a backup taken of one, are both ordinary.
+    /// A workspace with no files, and a backup taken of one, are both ordinary:
+    /// no folder lies beside it, and the step that names it has nothing to do.
     #[test]
     fn a_workspace_with_no_files_backs_up_and_restores_the_same_way() {
         let dir = tempfile::tempdir().unwrap();
@@ -239,9 +234,30 @@ mod tests {
         );
 
         drop(conn);
-        restore(&copy, &live, Some(&media)).unwrap();
-        assert!(live.is_file(), "and the database still restores");
+        restore_by_the_steps(&copy, &live, &media);
+        assert_eq!(titles(&live), ["Harbour lights"]);
     }
+
+    /// A write-ahead log left beside a restored file belongs to another database,
+    /// which is why the steps delete it: with it gone the backup reads whole.
+    #[test]
+    fn the_files_sqlite_keeps_beside_a_database_are_part_of_the_steps() {
+        let dir = tempfile::tempdir().unwrap();
+        let live = dir.path().join("kilna.db");
+        let media = dir.path().join("media");
+        let conn = seeded(&live, "Harbour lights");
+        let copy = dir.path().join("kilna-backup.db");
+        write(&conn, &copy, Some(&media)).unwrap();
+        drop(conn);
+        // What an unclean ending leaves beside the workspace.
+        std::fs::write(dir.path().join("kilna.db-wal"), b"another database's log").unwrap();
+        std::fs::write(dir.path().join("kilna.db-shm"), b"and its index").unwrap();
+
+        restore_by_the_steps(&copy, &live, &media);
+
+        assert_eq!(titles(&live), ["Harbour lights"]);
+    }
+
     #[test]
     fn a_backup_contains_the_work_that_was_there() {
         let dir = tempfile::tempdir().unwrap();
@@ -282,57 +298,6 @@ mod tests {
         let restored = db::open(&copy).unwrap();
         let works = work::list(&restored, &profile_id, &WorkFilter::default()).unwrap();
         assert_eq!(works.len(), 2, "a plain file copy would have missed one");
-    }
-
-    #[test]
-    fn restore_moves_the_current_workspace_aside() {
-        let dir = tempfile::tempdir().unwrap();
-        let live = dir.path().join("kilna.db");
-        let conn = seeded(&live, "Original");
-        let copy = dir.path().join("backup.db");
-        write(&conn, &copy, None).unwrap();
-        drop(conn);
-
-        let displaced = restore(&copy, &live, None).unwrap();
-
-        assert!(displaced.is_some(), "the replaced workspace must be kept");
-        assert!(displaced.unwrap().exists());
-    }
-
-    #[test]
-    fn restore_refuses_a_file_that_is_not_a_workspace() {
-        let dir = tempfile::tempdir().unwrap();
-        let stranger = dir.path().join("holiday.jpg");
-        std::fs::write(&stranger, b"not a database").unwrap();
-        let live = dir.path().join("kilna.db");
-        let conn = seeded(&live, "Precious");
-        drop(conn);
-
-        let result = restore(&stranger, &live, None);
-
-        assert!(result.is_err());
-        // The workspace must be untouched after a refusal.
-        let still_there = db::open(&live).unwrap();
-        let profile_id = profile::active(&still_there).unwrap().unwrap().id;
-        assert_eq!(
-            work::list(&still_there, &profile_id, &WorkFilter::default())
-                .unwrap()
-                .len(),
-            1
-        );
-    }
-
-    #[test]
-    fn restore_of_a_missing_backup_fails() {
-        let dir = tempfile::tempdir().unwrap();
-
-        let result = restore(
-            &dir.path().join("nothing.db"),
-            &dir.path().join("kilna.db"),
-            None,
-        );
-
-        assert!(result.is_err());
     }
 
     #[test]

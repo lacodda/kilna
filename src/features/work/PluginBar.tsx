@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { NavLink } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Square } from 'lucide-react'
 import { cancelPlugin, onPluginProgress, runPlugin, type PluginTarget } from '@/lib/api/plugins'
 import type { PluginReply } from '@/lib/api/types'
 import { nameOf } from '@/lib/media'
+import { inLanguage } from '@/lib/pluginWords'
+import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -26,11 +29,30 @@ interface Running {
   message: string | null
 }
 
+// What a command on each target may have moved: nothing local is trusted once a
+// plugin has answered.
+function movedBy(target: PluginTarget, id: string) {
+  switch (target) {
+    case 'release':
+      return [...refresh.release, keys.releaseFields(id)]
+    case 'score':
+      return [
+        ...refresh.version(id),
+        ...refresh.finishedFile(id),
+        keys.pendingProposals,
+        keys.transcripts,
+      ]
+    case 'work':
+    case 'cuts':
+      return [...refresh.version(id), ...refresh.finishedFile(id)]
+  }
+}
+
 // Actions contributed by installed plugins. Nothing shows when none are
 // installed — an empty toolbar advertising a feature the user does not have is
 // worse than no toolbar.
 export function PluginBar({ target, id }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const plugins = useQuery(queries.plugins())
   const [running, setRunning] = useState<Running | null>(null)
@@ -84,12 +106,9 @@ export function PluginBar({ target, id }: Props) {
         setRunning(null)
       }
     },
-    // A plugin may rewrite the work it was handed, or make its finished
-    // file, so nothing local is trusted afterwards.
-    refresh:
-      target === 'release'
-        ? refresh.version(id)
-        : [...refresh.version(id), ...refresh.finishedFile(id)],
+    // A plugin may rewrite what it was handed, make a work's finished file or
+    // propose its score.
+    refresh: movedBy(target, id),
     onError: (cause) => {
       if (stopped.current) say.info(t('plugins.stopped'))
       else say.failed(cause)
@@ -102,28 +121,40 @@ export function PluginBar({ target, id }: Props) {
       } else if (reply.files.length > 0) {
         say.ok(t('plugins.madeFiles', { count: reply.files.length }))
       }
+      if (reply.proposed_score !== null) say.ok(t('plugins.proposedScore'))
     },
   })
 
   const installed = plugins.data ?? []
 
   const actions = installed.flatMap((plugin) =>
-    plugin.usable && plugin.manifest !== null
+    plugin.usable && plugin.enabled && plugin.manifest !== null
       ? plugin.manifest.commands
           .filter((command) => command.target === target)
-          .map((command) => ({ plugin, command }))
+          .map((command) => ({
+            plugin,
+            command,
+            label: inLanguage(i18n.language, command.label, command.labels),
+            description:
+              command.description === null
+                ? undefined
+                : inLanguage(i18n.language, command.description, command.descriptions),
+          }))
       : [],
   )
 
-  const unusable = installed.filter((plugin) => !plugin.usable)
+  // Only where a command of this target stands, and only one left on: a plugin
+  // that cannot run has no business in the head of a work it offers nothing
+  // to, and one turned off was turned off so as not to hear of it.
+  const unusable = installed.filter((plugin) => !plugin.usable && plugin.enabled).length
 
-  if (actions.length === 0 && unusable.length === 0) return null
+  if (actions.length === 0 && unusable === 0) return null
 
   // One line, in the head of the overview beside the profile's actions: the
-  // name of the group as a caption, the commands, and a plugin that cannot
-  // run saying why in a word of warning - the whole reason on hover, since a
-  // line of a head has no room for a paragraph. While a command runs, the
-  // line is its progress and the way to stop it.
+  // name of the group as a caption, the commands, and a link to where the
+  // plugins are said in full when one of them cannot run - a line of a head has
+  // no room for the reason, and Settings does. While a command runs, the line
+  // is its progress and the way to stop it.
   return (
     <div
       role="group"
@@ -159,35 +190,31 @@ export function PluginBar({ target, id }: Props) {
           </Button>
         </div>
       ) : (
-        actions.map(({ plugin, command }) => (
+        actions.map(({ plugin, command, label, description }) => (
           <Button
             key={`${plugin.executable}:${command.key}`}
             size="sm"
             disabled={run.isPending}
-            title={command.description ?? undefined}
+            title={description}
             onClick={() =>
               run.mutate({
                 executable: plugin.executable,
                 command: command.key,
-                label: command.label,
+                label,
                 run: crypto.randomUUID(),
               })
             }
           >
-            {command.label}
+            {label}
           </Button>
         ))
       )}
 
-      {unusable.map((plugin) => (
-        <span
-          key={plugin.executable}
-          className="max-w-64 truncate text-xs text-warn"
-          title={`${plugin.executable}: ${plugin.reason ?? ''}`}
-        >
-          {plugin.executable}: {plugin.reason}
-        </span>
-      ))}
+      {unusable > 0 && (
+        <NavLink to="/settings/plugins" className="text-xs text-warn underline">
+          {t('plugins.cannotRun', { count: unusable })}
+        </NavLink>
+      )}
     </div>
   )
 }

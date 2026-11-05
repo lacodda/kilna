@@ -681,6 +681,100 @@ pub fn proposal_meta(
     Ok(meta)
 }
 
+/// Put a proposal in the chat named after whoever makes it, on the work it is
+/// about, and open that chat if this is the first: an agent over MCP, or a
+/// plugin. One conversation per proposer per work, so what one of them has
+/// proposed reads as one thread and a name in the chat list says who it was.
+pub fn into_chat(
+    conn: &Connection,
+    profile_id: &str,
+    client: &str,
+    work_id: Option<&str>,
+    proposal: &Proposal,
+    body: &str,
+    note: Option<&str>,
+) -> Result<Message> {
+    let existing = super::summaries(conn, profile_id, work_id)?
+        .into_iter()
+        .find(|chat| chat.work_id.as_deref() == work_id && chat.title.as_deref() == Some(client));
+    let chat_id = match existing {
+        Some(chat) => chat.id,
+        None => {
+            super::create(
+                conn,
+                profile_id,
+                super::NewChat {
+                    work_id: work_id.map(str::to_owned),
+                    title: Some(client.to_owned()),
+                    ..super::NewChat::default()
+                },
+            )?
+            .id
+        }
+    };
+
+    let meta = proposal_meta(client, proposal, note)?;
+    super::append(conn, &chat_id, ASSISTANT, body, meta)
+}
+
+/// A score waiting to be kept, with what it says, for the Score tab of the work
+/// it is about: a verdict waits where verdicts are given, not only in a chat
+/// nobody has a reason to open.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+pub struct WaitingScore {
+    pub message_id: String,
+    pub chat_id: String,
+    /// Who proposed it, when it came from outside the window.
+    pub client: Option<String>,
+    pub created_at: String,
+    pub proposal: Proposal,
+}
+
+/// Every score proposed for a work that is neither kept nor turned down, oldest
+/// first.
+pub fn waiting_scores(conn: &Connection, work_id: &str) -> Result<Vec<WaitingScore>> {
+    let mut statement = conn.prepare(
+        "SELECT m.id
+           FROM chat_message m
+           JOIN chat c ON c.id = m.chat_id
+          WHERE c.work_id = ?1 AND m.role = ?2
+            AND json_extract(m.meta, '$.proposal.kind') = 'score'
+          ORDER BY m.created_at, m.rowid",
+    )?;
+    let ids: Vec<String> = statement
+        .query_map(params![work_id, ASSISTANT], |row| row.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+
+    let mut found = Vec::new();
+    for id in ids {
+        let Some(message) = super::message(conn, &id)? else {
+            continue;
+        };
+        if !is_pending(&message) {
+            continue;
+        }
+        let Some(proposal) = message
+            .meta
+            .get("proposal")
+            .and_then(|raw| serde_json::from_value::<Proposal>(raw.clone()).ok())
+        else {
+            continue;
+        };
+        found.push(WaitingScore {
+            client: message
+                .meta
+                .get("client")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+            message_id: message.id,
+            chat_id: message.chat_id,
+            created_at: message.created_at,
+            proposal,
+        });
+    }
+    Ok(found)
+}
+
 /// A proposal for the canon waiting to be kept, with what it says: the Canon
 /// screen shows each beside the cards it touches (ADR 0043).
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]

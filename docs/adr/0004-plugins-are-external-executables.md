@@ -1,7 +1,7 @@
 # 0004 — Plugins are external executables
 
 Date: 2026-08-11
-Status: Accepted
+Status: Accepted. Since v0.108 a manifest may declare settings kilna draws and hands over: see ADR 0075.
 
 ## Context
 

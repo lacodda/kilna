@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
   Applied,
+  AssistantSettings,
   Availability,
   Chat,
   ChatSummary,
@@ -8,6 +9,7 @@ import type {
   PendingProposal,
   ProposalOverrides,
   Run,
+  RunSees,
   Spend,
   SpendCheck,
   StarredAnswer,
@@ -16,6 +18,7 @@ import type {
   TaskAbout,
   TaskQueue,
   Transcript,
+  WaitingScore,
 } from '@/lib/api/types'
 import { today } from '@/lib/month'
 import { spendSince, type Since } from '@/lib/spend'
@@ -23,6 +26,19 @@ import { spendSince, type Since } from '@/lib/spend'
 // The assistant: chats, runs, tasks and what their answers propose.
 
 export const assistantStatus = () => invoke<Availability>('assistant_status')
+/** What the person decided about the assistant on this workspace (v0.108). */
+export const assistantSettings = () => invoke<AssistantSettings>('assistant_settings')
+export const setParallelRuns = (runs: number) =>
+  invoke<AssistantSettings>('set_parallel_runs', { runs })
+/** The model a run starts with; null is what Claude Code itself is set to. */
+export const setRunModel = (model: string | null) =>
+  invoke<AssistantSettings>('set_run_model', { model })
+export const setRunSees = (sees: RunSees) => invoke<AssistantSettings>('set_run_sees', { sees })
+/** The paths a run on this work may read beyond its prompt, as the setting stands. */
+export const runSight = (workId: string) => invoke<string[]>('run_sight', { workId })
+/** The scores proposed for a work that wait for an answer. */
+export const waitingScores = (workId: string) =>
+  invoke<WaitingScore[]>('waiting_scores', { workId })
 export const listChatSummaries = (workId?: string) =>
   invoke<ChatSummary[]>('list_chat_summaries', { workId })
 export const createChat = (chat: { work_id?: string | null; title?: string | null }) =>

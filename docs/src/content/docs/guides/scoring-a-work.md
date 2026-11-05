@@ -185,3 +185,14 @@ A work's most recent score decides two things downstream:
 
 An unscored work is not treated as bad — it's treated as unjudged, and sorts
 last in the catalogue rather than at the bottom.
+
+## A proposed score
+
+A score can be proposed rather than given: by an action in a chat, by an agent
+outside the window, or by a [plugin](/kilna/guides/writing-a-plugin/) whose
+command stands on this tab. Whichever brought it, it waits above the list until
+you answer it, with its marks, its reason and who proposed it. **Apply as a
+score** makes it an ordinary score in the list, naming them as its judge; **Turn
+it down** stops it waiting. Either way the chat it came through keeps what was
+said. While you judge blind it is held back with the rest: a proposal is
+somebody's verdict.
