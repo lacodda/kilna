@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.108.0] - 2026-11-05
+
+### Bug Fixes
+- Ask only the plugin meant, and the rest at once
+- Let a head with nothing in it cost no gap
+- Hand the example's run its settings
+
+### Documentation
+- Say the assistant's settings on the front page
+
+### Features
+- Set up the assistant and the plugins from Settings
+- Draw the engine's overlay scrollbar through dowel-ui 0.43
+
 ## [0.107.0] - 2026-11-03
 
 ### Bug Fixes
