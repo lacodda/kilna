@@ -16,6 +16,9 @@ All notable changes to this project are documented in this file.
 - Set up the assistant and the plugins from Settings
 - Draw the engine's overlay scrollbar through dowel-ui 0.43
 
+### Testing
+- Count the table a plugin's settings are kept in
+
 ## [0.107.0] - 2026-11-03
 
 ### Bug Fixes
