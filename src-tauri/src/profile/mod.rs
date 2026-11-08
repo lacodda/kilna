@@ -1634,11 +1634,52 @@ const STUDIO_DESCRIPTION: &str = "Songs and what goes out for them: lyrics and s
 
 /// The `format` a stored document claims — 1 when it says nothing, the way
 /// every document written before the field did.
+///
+/// Only the top-level `format` is read: the rest of the document is stepped
+/// over rather than built into a tree, since a stored Studio profile is
+/// nearly half a megabyte and every start asks each profile this.
 fn raw_format(raw: &str) -> u32 {
-    serde_json::from_str::<serde_json::Value>(raw)
+    serde_json::from_str::<DeclaredFormat>(raw)
         .ok()
-        .and_then(|value| value.get("format")?.as_u64())
+        .and_then(|declared| declared.0)
         .map_or(1, |format| format as u32)
+}
+
+/// The top-level `format` of a profile document, the last one when it is
+/// written twice, as a whole non-negative number or nothing.
+struct DeclaredFormat(Option<u64>);
+
+impl<'de> Deserialize<'de> for DeclaredFormat {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
+        struct TopLevel;
+
+        impl<'de> serde::de::Visitor<'de> for TopLevel {
+            type Value = DeclaredFormat;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("a profile document")
+            }
+
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                mut map: A,
+            ) -> std::result::Result<DeclaredFormat, A::Error> {
+                let mut format = None;
+                while let Some(key) = map.next_key::<String>()? {
+                    if key == "format" {
+                        format = map.next_value::<serde_json::Value>()?.as_u64();
+                    } else {
+                        map.next_value::<serde::de::IgnoredAny>()?;
+                    }
+                }
+                Ok(DeclaredFormat(format))
+            }
+        }
+
+        deserializer.deserialize_map(TopLevel)
+    }
 }
 
 /// Append entries whose key the stored list does not have yet.
