@@ -90,7 +90,7 @@ mod tests {
     use crate::work::{self, NewWork, WorkFilter};
 
     fn seeded(path: &Path, title: &str) -> Connection {
-        let conn = db::open(path).unwrap();
+        let conn = crate::fixtures::workspace_file(path);
         profile::seed(&conn).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         work::create(

@@ -45,13 +45,21 @@ pub fn workspace_with_media() -> (Connection, String, tempfile::TempDir) {
 /// finds its files beside the database, as the window's workspace has them.
 pub fn workspace_on_disk() -> (Connection, String, tempfile::TempDir) {
     let dir = tempfile::tempdir().expect("a temporary directory");
-    let conn = db::open(&dir.path().join("kilna.db")).expect("a workspace on disk opens");
+    let conn = workspace_file(&dir.path().join("kilna.db"));
     profile::seed(&conn).expect("the shipped profiles seed");
     let profile_id = profile::active(&conn)
         .expect("the active profile reads")
         .expect("seeding activates a profile")
         .id;
     (conn, profile_id, dir)
+}
+
+/// A new workspace file at `path`, opened: what [`db::open`] makes of a path
+/// with nothing there, without migrating it again (see
+/// [`db::write_migrated`]). Not seeded.
+pub fn workspace_file(path: &Path) -> Connection {
+    db::write_migrated(path).expect("the migrated schema is written");
+    db::open(path).expect("a workspace on disk opens")
 }
 
 /// A work of `kind` titled `title`.

@@ -1204,7 +1204,6 @@ fn hydrate(raw: RawRun) -> Result<Run> {
 mod tests {
     use super::*;
     use crate::assistant::NewChat;
-    use crate::db;
     use crate::fixtures;
     use crate::profile;
 
@@ -1442,7 +1441,7 @@ mod tests {
     fn on_disk() -> (tempfile::TempDir, std::path::PathBuf, Connection, String) {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("workspace.db");
-        let conn = db::open(&path).unwrap();
+        let conn = fixtures::workspace_file(&path);
         profile::seed(&conn).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         (dir, path, conn, profile_id)
