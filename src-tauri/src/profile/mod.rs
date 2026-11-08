@@ -58,8 +58,9 @@ pub fn builtin() -> Result<Vec<BuiltinProfile>> {
 /// keeps their edits across upgrades.
 pub fn seed(conn: &Connection) -> Result<()> {
     let timestamp = now();
+    let shipped = builtin()?;
 
-    for profile in builtin()? {
+    for profile in &shipped {
         let exists: bool = conn
             .query_row(
                 "SELECT 1 FROM profile WHERE key = ?1",
@@ -70,7 +71,7 @@ pub fn seed(conn: &Connection) -> Result<()> {
             .unwrap_or(false);
 
         if exists {
-            carry_forward(conn, &profile)?;
+            carry_forward(conn, profile)?;
             continue;
         }
 
@@ -93,7 +94,8 @@ pub fn seed(conn: &Connection) -> Result<()> {
     // migrates, and written back so the next read finds it done.
     rewrite_older_formats(conn)?;
 
-    ensure_one_active(conn)?;
+    let first = shipped.first().map(|profile| profile.key.as_str());
+    ensure_one_active(conn, first)?;
     Ok(())
 }
 
@@ -1760,10 +1762,10 @@ fn insert_new_keys<T: Clone>(
 
 /// Make sure a profile is active — a workspace is never without one.
 ///
-/// The default is the first profile in `builtin()`, not the first by key or by
-/// timestamp: the seeds all land in the same second, so ordering by either
-/// would hand a new user whichever craft happened to sort first.
-fn ensure_one_active(conn: &Connection) -> Result<()> {
+/// The default is `preferred`, the first profile in `builtin()`, not the first
+/// by key or by timestamp: the seeds all land in the same second, so ordering
+/// by either would hand a new user whichever craft happened to sort first.
+fn ensure_one_active(conn: &Connection, preferred: Option<&str>) -> Result<()> {
     let active: i64 = conn.query_row(
         "SELECT count(*) FROM profile WHERE is_active = 1",
         [],
@@ -1773,8 +1775,6 @@ fn ensure_one_active(conn: &Connection) -> Result<()> {
     if active > 0 {
         return Ok(());
     }
-
-    let preferred = builtin()?.first().map(|profile| profile.key.clone());
 
     if let Some(key) = preferred {
         let changed = conn.execute(
