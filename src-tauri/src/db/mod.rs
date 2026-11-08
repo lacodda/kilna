@@ -2,10 +2,13 @@ pub mod migrations;
 pub mod unit;
 
 use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex, PoisonError};
+use std::time::Duration;
 
 use rusqlite::Connection;
+use rusqlite::backup::Backup;
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// File name of the workspace database inside the application data directory.
 pub const DATABASE_FILE: &str = "kilna.db";
@@ -26,12 +29,42 @@ pub fn open(path: &Path) -> Result<Connection> {
 }
 
 /// An in-memory workspace — used by tests and by the schema gate in CI.
+///
+/// Each one is a page-for-page copy of [`MIGRATED`], so the migrations run
+/// once per process rather than once per workspace: in a debug build they
+/// cost a third of a second, and most tests open a workspace of their own.
+/// The copy carries the schema and `user_version`; the pragmas, which live
+/// on the connection, and the device, which must differ between two
+/// workspaces, are its own.
 pub fn open_in_memory() -> Result<Connection> {
     let mut conn = Connection::open_in_memory()?;
+    copy_migrated_into(&mut conn)?;
     configure(&conn)?;
-    migrations::apply(&mut conn)?;
     crate::device::ensure(&conn)?;
     Ok(conn)
+}
+
+/// An empty database brought to the latest schema, migrated on first use and
+/// never written to after: [`open_in_memory`] only reads it, to copy it.
+static MIGRATED: LazyLock<std::result::Result<Mutex<Connection>, String>> = LazyLock::new(|| {
+    let migrate = || -> Result<Connection> {
+        let mut conn = Connection::open_in_memory()?;
+        configure(&conn)?;
+        migrations::apply(&mut conn)?;
+        Ok(conn)
+    };
+    migrate().map(Mutex::new).map_err(|error| error.to_string())
+});
+
+/// Copy every page of [`MIGRATED`] into `into`, replacing what it held.
+fn copy_migrated_into(into: &mut Connection) -> Result<()> {
+    let migrated = MIGRATED
+        .as_ref()
+        .map_err(|error| Error::Internal(format!("the migrations failed: {error}")))?
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    Backup::new(&migrated, into)?.run_to_completion(i32::MAX, Duration::ZERO, None)?;
+    Ok(())
 }
 
 /// Pragmas that must be set on every connection, not stored in the file.
