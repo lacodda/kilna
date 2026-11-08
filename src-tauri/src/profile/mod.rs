@@ -2001,6 +2001,31 @@ mod tests {
     use crate::db;
     use crate::profile::config::{Derive, Label};
 
+    /// What a stored document says its format is: the top-level `format`
+    /// when it is a whole non-negative number, and 1 - the format that never
+    /// wrote one - for anything else, including a document that is not JSON.
+    #[test]
+    fn a_documents_format_is_its_top_level_number_or_one() {
+        for (raw, format) in [
+            (r#"{"format": 3, "work_kinds": []}"#, 3),
+            (r#"{"work_kinds": [{"format": 3}]}"#, 1),
+            (r#"{"work_kinds": [], "format": 2}"#, 2),
+            (r#"{"format": 2, "format": 3}"#, 3),
+            (r#"{"format": "3"}"#, 1),
+            (r#"{"format": -3}"#, 1),
+            (r#"{"format": 3.5}"#, 1),
+            (r#"{"format": null}"#, 1),
+            (r#"{}"#, 1),
+            (r#"[3]"#, 1),
+            (r#"3"#, 1),
+            (r#"{"format": 3"#, 1),
+            (r#"{"format": 3} trailing"#, 1),
+            ("", 1),
+        ] {
+            assert_eq!(raw_format(raw), format, "{raw}");
+        }
+    }
+
     #[test]
     fn every_builtin_profile_parses() {
         let profiles = builtin().unwrap();
