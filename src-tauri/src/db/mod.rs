@@ -151,6 +151,54 @@ mod tests {
         assert!(result.is_err(), "a work must not outlive its profile");
     }
 
+    /// Every table, index, trigger and view, with the SQL it was made by.
+    fn schema(conn: &Connection) -> Vec<(String, String, Option<String>)> {
+        conn.prepare("SELECT type, name, sql FROM sqlite_master ORDER BY type, name")
+            .unwrap()
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap()
+    }
+
+    #[test]
+    fn an_in_memory_workspace_is_what_the_migrations_make() {
+        let mut migrated = Connection::open_in_memory().unwrap();
+        configure(&migrated).unwrap();
+        migrations::apply(&mut migrated).unwrap();
+
+        let conn = open_in_memory().unwrap();
+
+        assert_eq!(schema(&conn), schema(&migrated));
+        assert_eq!(
+            migrations::current_version(&conn).unwrap(),
+            migrations::latest_version()
+        );
+        let keys: bool = conn
+            .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+            .unwrap();
+        assert!(keys, "the schema leans on its foreign keys");
+    }
+
+    #[test]
+    fn two_in_memory_workspaces_share_nothing() {
+        let first = open_in_memory().unwrap();
+        first
+            .execute(
+                "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
+                 VALUES ('p1', 'test', 'Test', '{}', 1, 0, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+                [],
+            )
+            .unwrap();
+
+        let second = open_in_memory().unwrap();
+
+        let count: i64 = second
+            .query_row("SELECT count(*) FROM profile", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 0, "a workspace opened after another starts empty");
+    }
+
     #[test]
     fn only_one_profile_can_be_active() {
         let conn = open_in_memory().unwrap();
