@@ -1,5 +1,7 @@
 pub mod config;
 
+use std::sync::LazyLock;
+
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +38,20 @@ pub struct Profile {
 
 /// Profiles compiled into the binary. Music ships first; the others arrive with
 /// the profile editor.
+///
+/// Read once per process and handed out as copies: the documents are half a
+/// megabyte of JSON, and every workspace a test opens seeds from them.
 pub fn builtin() -> Result<Vec<BuiltinProfile>> {
+    static SHIPPED: LazyLock<Option<Vec<BuiltinProfile>>> = LazyLock::new(|| read_builtin().ok());
+    match &*SHIPPED {
+        Some(shipped) => Ok(shipped.clone()),
+        // The sources are fixed, so reading them again fails the same way,
+        // and the caller gets the error itself rather than a retelling.
+        None => read_builtin(),
+    }
+}
+
+fn read_builtin() -> Result<Vec<BuiltinProfile>> {
     // Four crafts against one schema. If a craft needed a schema change to fit,
     // the premise of ADR 0001 would be wrong — so far none has.
     const SOURCES: &[&str] = &[
