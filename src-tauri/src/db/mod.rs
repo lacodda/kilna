@@ -56,6 +56,19 @@ static MIGRATED: LazyLock<std::result::Result<Mutex<Connection>, String>> = Lazy
     migrate().map(Mutex::new).map_err(|error| error.to_string())
 });
 
+/// Write a workspace file at `path` holding what the migrations make, copied
+/// from [`MIGRATED`] rather than migrated anew - for tests that need a
+/// workspace on disk. [`open`] it after, as the window would: the copy has
+/// neither the journal mode nor the device a workspace gets on opening.
+pub fn write_migrated(path: &Path) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut file = Connection::open(path)?;
+    copy_migrated_into(&mut file)?;
+    Ok(())
+}
+
 /// Copy every page of [`MIGRATED`] into `into`, replacing what it held.
 fn copy_migrated_into(into: &mut Connection) -> Result<()> {
     let migrated = MIGRATED
@@ -211,6 +224,30 @@ mod tests {
             .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
             .unwrap();
         assert!(keys, "the schema leans on its foreign keys");
+    }
+
+    #[test]
+    fn a_workspace_written_from_the_migrated_copy_opens_as_a_new_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let fresh = open(&dir.path().join("fresh").join(DATABASE_FILE)).unwrap();
+        let path = dir.path().join("written").join(DATABASE_FILE);
+
+        write_migrated(&path).unwrap();
+        let written = open(&path).unwrap();
+
+        assert_eq!(schema(&written), schema(&fresh));
+        let journal = |conn: &Connection| -> String {
+            conn.query_row("PRAGMA journal_mode", [], |row| row.get(0))
+                .unwrap()
+        };
+        assert_eq!(journal(&written), "wal");
+        assert_eq!(journal(&fresh), "wal");
+        assert_eq!(
+            migrations::current_version(&written).unwrap(),
+            migrations::latest_version()
+        );
+        let device = |conn: &Connection| crate::device::id(conn).unwrap().unwrap();
+        assert_ne!(device(&written), device(&fresh), "each its own device");
     }
 
     #[test]
