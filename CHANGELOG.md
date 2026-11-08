@@ -2,6 +2,40 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.108.1] - 2026-11-08
+
+A refactoring release: nothing a user sees has changed. The Rust tests no longer
+migrate a database of their own each (ADR 0076).
+
+| Measured | 0.108.0 | 0.108.1 |
+| --- | --- | --- |
+| Lib tests on CI, ubuntu / windows / macOS | 595 s / 471 s / 911 s | 32-41 s / 40 s / 45 s |
+| All Rust test binaries on CI, ubuntu | 636 s | 47 s |
+| CI test step, ubuntu / windows / macOS | 11:35 / 10:03 / 18:11 | 1:55 / 2:16 / 1:33 |
+| Opening a test workspace in memory (debug) | 320 ms | 7 ms |
+| Seeding the shipped profiles (debug) | 35 ms | 11 ms |
+| 104 tests of note, profile config and score, one thread | 28.5 s | 3.4 s |
+| 60 tests of the assistant's runs, one thread | 15.3 s\* | 6.3 s |
+
+\* With the in-memory step already in: what is left is their workspaces on disk.
+CI timings vary by runner: the same commit's lib tests took 41.6 s and 69.0 s on
+two runs, so each figure above is the run read, not a promise.
+
+### Documentation
+- Say why a test workspace is a copy of one migrated database
+
+### Refactoring
+- Copy one migrated database instead of migrating each in-memory workspace
+- Read the shipped profiles once per seed
+- Parse the shipped profiles once per process
+- Read a stored document's format without building it
+- Write a workspace file from the migrated copy
+
+### Testing
+- Pin what an in-memory workspace starts from
+- Pin how a stored document's format is read
+- Open workspaces on disk from the migrated copy
+
 ## [0.108.0] - 2026-11-05
 
 ### Bug Fixes
