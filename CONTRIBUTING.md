@@ -42,7 +42,11 @@ directory on first run. Schema changes are versioned migrations in
   `src/lib/api/generated/` ([ADR 0042](docs/adr/0042-the-ipc-types-are-generated-from-rust.md)).
   After changing one, run `KILNA_BLESS=1 cargo test --test bindings` in
   `src-tauri/`; the gate fails while the folder is stale.
-- Test fixtures are in `src-tauri/src/fixtures.rs`.
+- Test fixtures are in `src-tauri/src/fixtures.rs`. A workspace from
+  `fixtures::workspace()` (in memory) or `fixtures::workspace_file()` (on disk)
+  is a copy of one database migrated once per process
+  ([ADR 0076](docs/adr/0076-a-test-workspace-is-a-copy-of-one-migrated-database.md));
+  open an empty path with `db::open` only when opening is what the test is about.
 - The app writes its own log to `logs/kilna.log` beside the workspace.
 
 ## Built with
