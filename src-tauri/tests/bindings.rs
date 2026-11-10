@@ -354,11 +354,13 @@ fn every_type_a_command_names_is_generated() {
     }
     // Names in signatures that are not the wire's: Tauri's and std's.
     // `Response` is Tauri's raw answer - bytes, which arrive in the window as
-    // an `ArrayBuffer` and have no shape to generate.
-    const NOT_ON_THE_WIRE: [&str; 10] = [
+    // an `ArrayBuffer` and have no shape to generate. `Launch` is managed state
+    // like `AppState`: the link the start was handed, kept for the window.
+    const NOT_ON_THE_WIRE: [&str; 11] = [
         "State",
         "AppState",
         "AppHandle",
+        "Launch",
         "Result",
         "Option",
         "Vec",
