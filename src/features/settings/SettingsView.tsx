@@ -1,5 +1,7 @@
 import { Navigate, NavLink, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { queries } from '@/lib/query/queries'
 import { SectionNav } from '@/components/ui/section-nav'
 import { StatusDot } from '@/components/ui/status-dot'
 import { Frame, ListDetail, Pane } from '@/components/frame'
@@ -11,6 +13,7 @@ import { GeneralSection } from '@/features/settings/GeneralSection'
 import { PluginsSection } from '@/features/settings/PluginsSection'
 import { ProfileDraftBar } from '@/features/settings/ProfileDraftBar'
 import { ProfileSection } from '@/features/settings/ProfileSection'
+import { SpacesSection } from '@/features/settings/SpacesSection'
 import { useProfileDraft } from '@/features/settings/useProfileDraft'
 
 /**
@@ -25,13 +28,25 @@ import { useProfileDraft } from '@/features/settings/useProfileDraft'
 export const SECTIONS = [
   'general',
   'card',
-  'profile',
   'assistant',
+  'agents',
+  'spaces',
+  'profile',
   'plugins',
   'data',
-  'agents',
 ] as const
 export type Section = (typeof SECTIONS)[number]
+
+/**
+ * The settings fall in two, as they are kept (v0.109, ADR 0077): the
+ * application's - the window, the assistant, the spaces themselves - the same
+ * whatever space is open, and the open space's own - its profile, what its
+ * plugins are told, its data - which open with it.
+ */
+const GROUPS: { key: 'app' | 'space'; sections: readonly Section[] }[] = [
+  { key: 'app', sections: ['general', 'card', 'assistant', 'agents', 'spaces'] },
+  { key: 'space', sections: ['profile', 'plugins', 'data'] },
+]
 
 const DEFAULT_SECTION: Section = 'general'
 
@@ -55,6 +70,8 @@ function Body({ section }: { section: Section }) {
       return <DataSection />
     case 'agents':
       return <AgentsSection />
+    case 'spaces':
+      return <SpacesSection />
   }
 }
 
@@ -65,6 +82,7 @@ export function SettingsView() {
   // section (`lib/profileDraft`), so the list says it is waiting from any
   // section, and the bar that saves it stands at the foot of the pane.
   const draft = useProfileDraft()
+  const space = useQuery(queries.currentSpace()).data?.space
 
   if (!isSection(section)) {
     return <Navigate to={`/settings/${DEFAULT_SECTION}`} replace />
@@ -87,41 +105,46 @@ export function SettingsView() {
             {/* Each section by its name and a line of what is in it, so a
                 section is chosen by its contents rather than guessed from a
                 word - which is also why the open section draws no heading of
-                its own: the row beside it already says both. The caption
-                "Settings" is kept for a screen reader only; the title bar
-                says it on screen, and the audit found the screen naming
-                itself twice. */}
-            <SectionNav
-              label={t('settings.title')}
-              labelHidden
-              activeId={section}
-              items={SECTIONS.map((entry) => ({
-                id: entry,
-                // Every name in the weight of the mockup's list, not only the
-                // open one: the tint already says which is open, and a name
-                // that thickens on selection makes the row beside it look
-                // like a lesser section.
-                label: (
-                  <>
-                    <span className="font-semibold text-text">
-                      {t(`settings.section.${entry}`)}
-                    </span>
-                    {entry === 'profile' && draft.dirty && (
-                      <StatusDot
-                        status="warn"
-                        size="sm"
-                        label={t('settings.unsaved')}
-                        className="ml-1.5 align-middle"
-                      />
-                    )}
-                  </>
-                ),
-                description: t(`settings.hint.${entry}`),
-              }))}
-              // A link, so the back button walks between sections and one can
-              // be opened by address.
-              render={(item) => <NavLink to={`/settings/${item.id}`} />}
-            />
+                its own: the row beside it already says both. The two lists
+                are captioned by whose settings they are: the application's,
+                and the open space's by its name (ADR 0077). */}
+            {GROUPS.map((group) => (
+              <SectionNav
+                key={group.key}
+                label={
+                  group.key === 'space' && space !== undefined
+                    ? t('settings.groups.space', { name: space.name })
+                    : t(`settings.groups.${group.key}`)
+                }
+                activeId={section}
+                items={group.sections.map((entry) => ({
+                  id: entry,
+                  // Every name in the weight of the mockup's list, not only the
+                  // open one: the tint already says which is open, and a name
+                  // that thickens on selection makes the row beside it look
+                  // like a lesser section.
+                  label: (
+                    <>
+                      <span className="font-semibold text-text">
+                        {t(`settings.section.${entry}`)}
+                      </span>
+                      {entry === 'profile' && draft.dirty && (
+                        <StatusDot
+                          status="warn"
+                          size="sm"
+                          label={t('settings.unsaved')}
+                          className="ml-1.5 align-middle"
+                        />
+                      )}
+                    </>
+                  ),
+                  description: t(`settings.hint.${entry}`),
+                }))}
+                // A link, so the back button walks between sections and one can
+                // be opened by address.
+                render={(item) => <NavLink to={`/settings/${item.id}`} />}
+              />
+            ))}
           </Pane>
         }
         detail={

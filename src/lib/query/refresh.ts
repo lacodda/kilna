@@ -98,5 +98,5 @@ export const refresh = {
     keys.pictures,
   ] as readonly QueryKey[],
   focus: [keys.focus] as readonly QueryKey[],
-  profile: [keys.workspace, keys.profiles] as readonly QueryKey[],
+  profile: [keys.workspace] as readonly QueryKey[],
 }

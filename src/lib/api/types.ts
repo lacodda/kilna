@@ -58,6 +58,14 @@ export type WidgetSize = 's' | 'm' | 'l'
 export type { Profile } from './generated/Profile'
 export type { Workspace } from './generated/Workspace'
 
+// Spaces: a folder with a database of its own (v0.109, ADR 0077).
+export type { Space } from './generated/Space'
+export type { NewSpace } from './generated/NewSpace'
+export type { SpaceLook } from './generated/SpaceLook'
+export type { CurrentSpace } from './generated/CurrentSpace'
+export type { Opened } from './generated/Opened'
+export type { Holder } from './generated/Holder'
+
 /** Free-form fields on a row: a work's `meta`, a release's `meta`. */
 export type Meta = Record<string, JsonValue>
 

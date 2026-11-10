@@ -1,5 +1,6 @@
 import type {
   Asset,
+  Space,
   CardCounts,
   CardSummary,
   CardView,
@@ -48,6 +49,21 @@ import music from '@/test/fixtures/profiles/music.json'
  */
 
 /** The moment the fixture was "made": fixed, so a date on screen is too. */
+/** The space the studio stands in. */
+const SPACE: Space = {
+  id: 'space-studio',
+  name: 'Studio',
+  kind: 'music',
+  colour: null,
+  mark: null,
+  path: '/spaces/studio',
+  opened_at: '2026-09-15T09:00:00Z',
+  trashed_at: null,
+  ask_name: false,
+  reachable: true,
+  open: true,
+}
+
 export const NOW = '2026-09-15T10:00:00Z'
 const EARLIER = '2026-09-01T10:00:00Z'
 
@@ -1038,7 +1054,11 @@ export function answersFor(studio: Studio): Record<string, Handler> {
       works: studio.works.length,
       releases: studio.releases.length,
     }),
-    list_profiles: () => [studio.profile],
+    // One space, open, made of the studio: what a machine has after the move
+    // into spaces, its name already given (ADR 0077).
+    current_space: () => ({ space: SPACE, held_by: null, portable: false }),
+    list_spaces: () => [SPACE],
+    take_launch_target: () => null,
     warn_unready_releases: () => ({ standing: 0, tomorrow: [] }),
     last_undoable: () => null,
 

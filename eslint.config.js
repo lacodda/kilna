@@ -20,12 +20,14 @@ export default tseslint.config(
   // are a palette this app owns, and do not follow the theme; a background
   // style is a colour the owner picked, and its editor and rules speak in it;
   // a scheme of a cover's frame is drawn in the picture's own colours, which
-  // the tests of the constructor write out.
+  // the tests of the constructor write out; a space's colour is a palette this
+  // app owns too, kept in the space's file, with a white mark on each (v0.109).
   // (The mark, the other such exception, is dowel's ProductMark now and draws
   // itself.)
   {
     files: [
       'src/lib/cover.ts',
+      'src/features/spaces/look.tsx',
       'src/lib/styleBrick.ts',
       'src/lib/styleBrick.test.ts',
       'src/lib/styleDraft.test.ts',

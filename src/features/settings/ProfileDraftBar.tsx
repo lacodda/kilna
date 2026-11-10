@@ -28,7 +28,7 @@ export function ProfileDraftBar({ draft }: { draft: ProfileDraftState }) {
   const save = useAppMutation({
     mutationFn: (config: ProfileConfig) => updateProfileConfig(profile.id, config),
     // The vocabulary is on every screen: labels, statuses, kinds, axes.
-    refresh: [keys.workspace, keys.profiles, keys.catalogue],
+    refresh: [keys.workspace, keys.catalogue],
     failure: 'toast.profileSaveFailed',
     onSuccess: (saved) => {
       // What is stored is what the draft is measured against. Put the saved

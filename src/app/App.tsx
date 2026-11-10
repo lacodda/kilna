@@ -10,6 +10,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AssistantLauncher } from '@/features/assistant/AssistantDrawer'
 import { QueueBanner } from '@/features/assistant/QueueBanner'
 import { WaitingBanner } from '@/features/assistant/WaitingBanner'
+import { HeldBanner } from '@/features/spaces/HeldBanner'
+import { NameSpaceDialog } from '@/features/spaces/NameSpaceDialog'
+import { useOpenRequests } from '@/features/spaces/useOpenRequests'
 import { KeyboardSheet } from '@/shell/KeyboardSheet'
 import { Outside } from '@/shell/Outside'
 import { ResizeEdges } from '@/components/ui/window-frame'
@@ -30,6 +33,8 @@ export default function App() {
   // loading rather than arriving a moment after the shell does.
   const { helpOpen, setHelpOpen } = useKeys()
   const { rail, toggle: toggleRail } = useRail()
+  // A link or a space's file handed to kilna opens from the first frame on.
+  useOpenRequests()
 
   const { data: workspace, error, isPending } = useQuery(queries.workspace())
 
@@ -95,14 +100,7 @@ export default function App() {
               onShowKeys={() => setHelpOpen(true)}
             />
           }
-          side={
-            <Sidebar
-              profileId={workspace.profile.id}
-              // The open work belongs to the profile being left.
-              onProfileSwitched={() => navigate('/catalogue')}
-              compact={rail === 'compact'}
-            />
-          }
+          side={<Sidebar compact={rail === 'compact'} />}
         >
           {/* The id is for the text on stage: a version given the whole
               content area renders into this box through a portal, rail and
@@ -113,6 +111,7 @@ export default function App() {
                 open, and it must not replay its entry animation on every
                 navigation. */}
             <div className="flex flex-col gap-2 px-4 pt-3 empty:hidden">
+              <HeldBanner />
               <WaitingBanner />
               <QueueBanner />
             </div>
@@ -161,10 +160,11 @@ export default function App() {
       </AssistantLauncher>
 
       <KeyboardSheet open={helpOpen} onOpenChange={setHelpOpen} />
+      <NameSpaceDialog />
       <ResizeEdges />
       {/* The tray, the badges, the notices said outside the window, and the
           sweep of the coming week at start and whenever the day turns - per
-          profile, as the sweep always was (v0.107). */}
+          space, as the sweep was per profile (v0.107). */}
       <Outside key={workspace.profile.id} />
     </ProfileContext>
   )

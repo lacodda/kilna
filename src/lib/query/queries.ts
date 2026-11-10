@@ -89,7 +89,8 @@ import {
   workTags,
   workTimeline,
 } from '@/lib/api/works'
-import { getWorkspace, listProfiles, mcpRegistration } from '@/lib/api/workspace'
+import { getWorkspace, mcpRegistration } from '@/lib/api/workspace'
+import { currentSpace, listSpaces } from '@/lib/api/spaces'
 import { activity } from '@/lib/api/shell'
 import { keys } from '@/lib/query/keys'
 
@@ -105,7 +106,8 @@ import { keys } from '@/lib/query/keys'
  */
 export const queries = {
   workspace: () => queryOptions({ queryKey: keys.workspace, queryFn: getWorkspace }),
-  profiles: () => queryOptions({ queryKey: keys.profiles, queryFn: listProfiles }),
+  spaces: () => queryOptions({ queryKey: keys.spaces, queryFn: listSpaces }),
+  currentSpace: () => queryOptions({ queryKey: keys.currentSpace, queryFn: currentSpace }),
 
   works: () => queryOptions({ queryKey: keys.works, queryFn: () => listWorks() }),
   work: (id: string) => queryOptions({ queryKey: keys.work(id), queryFn: () => getWork(id) }),

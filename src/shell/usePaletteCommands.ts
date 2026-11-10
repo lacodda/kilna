@@ -5,6 +5,7 @@ import {
   CalendarPlus,
   FilePlus,
   Keyboard,
+  Layers,
   Languages,
   MessageSquare,
   Monitor,
@@ -24,6 +25,7 @@ import { THEMES, useTheme, type Theme } from '@/lib/theme'
 import { useAssistant } from '@/lib/useAssistant'
 import { useProfile } from '@/lib/useProfile'
 import { useUndo } from '@/lib/useUndo'
+import { useOpenSpace } from '@/features/spaces/useOpenSpace'
 
 /** Something the palette can do, rather than something it found. */
 export interface Command {
@@ -76,6 +78,8 @@ export function usePaletteCommands(shell: ShellCommands): {
   const { undo } = useUndo()
   const { theme, setTheme } = useTheme()
   const { language, setLanguage } = useLanguage()
+  const spaces = useQuery(queries.spaces())
+  const openSpace = useOpenSpace()
 
   // The trail in the title bar has asked for this already, so it is read from
   // the cache rather than fetched a second time.
@@ -143,5 +147,16 @@ export function usePaletteCommands(shell: ShellCommands): {
     run: () => navigate(`/${screen.key}`),
   }))
 
-  return { actions, screens }
+  // Every other space is a place to go too (ADR 0077): typed into the
+  // palette, a space's name opens it.
+  const elsewhere = (spaces.data ?? [])
+    .filter((space) => !space.open && space.trashed_at === null && space.reachable)
+    .map((space): Command => ({
+      id: `space-${space.id}`,
+      label: t('spaces.goTo', { name: space.name }),
+      icon: Layers,
+      run: () => openSpace.mutate(space.id),
+    }))
+
+  return { actions, screens: [...screens, ...elsewhere] }
 }

@@ -8,7 +8,9 @@
  */
 export const keys = {
   workspace: ['workspace'] as const,
-  profiles: ['profiles'] as const,
+  /** The spaces this machine knows, and the one open (ADR 0077). */
+  spaces: ['spaces'] as const,
+  currentSpace: ['spaces', 'current'] as const,
 
   works: ['works'] as const,
   work: (id: string) => ['works', 'item', id] as const,

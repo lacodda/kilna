@@ -6,7 +6,7 @@ import { nextLanguage, useLanguage } from '@/lib/language'
 import { useProfile } from '@/lib/useProfile'
 import { onRail, railAt, SOON, type ScreenSpec } from '@/app/screens'
 import { NavGroup, NavRail, NavSpacer, type NavRailItem } from '@/components/ui/nav-rail'
-import { ProfileSwitcher } from '@/shell/ProfileSwitcher'
+import { SpaceSwitcher } from '@/shell/SpaceSwitcher'
 import { cn } from '@/lib/utils'
 
 const THEME_ICONS: Record<Theme, LucideIcon> = {
@@ -33,19 +33,17 @@ function entryOf(screen: ScreenSpec, label: string): NavRailItem {
 const asLink = (item: NavRailItem) => <Link to={`/${item.id}`} />
 
 interface Props {
-  profileId: string
-  onProfileSwitched: () => void
-  /** Icons only: the words, the version chips and the profile row are
-   *  dropped, the names move into tooltips, and the Library caption becomes a
-   *  rule. */
+  /** Icons only: the words and the version chips are dropped, the names move
+   *  into tooltips, the space is its mark alone, and the Library caption
+   *  becomes a rule. */
   compact: boolean
 }
 
 // The left rail of the app frame: screens, the roadmap's next doors, and the
-// footer with settings, theme, language and profile. The brand moved up into
+// footer with settings, theme, language and the space. The brand moved up into
 // the title bar in v0.74, where a system title bar would have printed the
 // name; the handle that folds this rail to icons sits beside it there.
-export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
+export function Sidebar({ compact }: Props) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
   const { config } = useProfile()
@@ -121,13 +119,11 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
             else setLanguage(nextLanguage(language))
           }}
         />
-        {/* The profile row is a name and a pill, and the folded rail has room
-            for neither; it comes back with the full menu. */}
-        {!compact && (
-          <div className="px-1 pt-1">
-            <ProfileSwitcher activeId={profileId} onSwitched={onProfileSwitched} />
-          </div>
-        )}
+        {/* The open space, and the others a press away (ADR 0077). Folded,
+            it is its mark alone. */}
+        <div className="px-1 pt-1">
+          <SpaceSwitcher compact={compact} />
+        </div>
       </NavSpacer>
     </div>
   )
