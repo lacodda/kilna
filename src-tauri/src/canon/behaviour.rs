@@ -488,6 +488,38 @@ fn a_task_reads_through_its_lens_and_the_screen_says_the_same() {
     assert!(work.contains("a draft, not settled"));
 }
 
+/// The names a card is found by in the texts are the work's: a surname put
+/// there to find the heroine never reaches a release through the public lens
+/// (wish 3854).
+#[test]
+fn a_cards_other_names_are_said_only_through_the_works_lens() {
+    let (conn, profile_id) = fixtures::workspace();
+    let card = note::create(
+        &conn,
+        &profile_id,
+        NewNote {
+            kind: Some("character".into()),
+            title: Some("Wren".into()),
+            aliases: vec!["Wren Halloway".into()],
+            layer: Some(Layer::Public),
+            ..NewNote::default()
+        },
+    )
+    .unwrap();
+    fixtures::fact(&conn, &card.id, "identity", "A singer.");
+
+    for lens in [Lens::Public, Lens::Cover] {
+        let seen = view::render(&conn, &card.id, lens).unwrap();
+        assert!(seen.contains("Wren"), "{seen}");
+        assert!(!seen.contains("Halloway"), "{lens:?} said an alias: {seen}");
+    }
+    assert!(
+        view::render(&conn, &card.id, Lens::Work)
+            .unwrap()
+            .contains("Also called: Wren Halloway")
+    );
+}
+
 #[test]
 fn a_card_that_publicly_does_not_exist_gives_a_public_task_nothing() {
     let (conn, profile_id) = fixtures::workspace();

@@ -416,7 +416,11 @@ pub fn render(conn: &Connection, note_id: &str, lens: Lens) -> Result<String> {
             layer_rule(view.card.layer)
         ));
     }
-    if !view.card.aliases.is_empty() {
+    // The other names a card is found by in the texts are the work's own:
+    // a surname or a private place put there to find the card must not
+    // reach a release's fields through `{canon:public}` (wish 3854). Only the
+    // work's lens says them.
+    if lens == Lens::Work && !view.card.aliases.is_empty() {
         out.push_str(&format!("Also called: {}\n", view.card.aliases.join(", ")));
     }
     if let Some(prompt) = view.card.prompt.as_deref() {
