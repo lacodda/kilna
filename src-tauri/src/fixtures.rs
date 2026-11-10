@@ -34,6 +34,35 @@ pub fn workspace() -> (Connection, String) {
     (conn, profile_id)
 }
 
+/// A second profile in the same database, of `kind`, not active - what a
+/// workspace from before spaces held beside its own (ADR 0077), for a test
+/// of what one profile must not reach in another.
+pub fn another_profile(conn: &Connection, kind: &str) -> profile::Profile {
+    let shipped = profile::builtin()
+        .expect("the shipped profiles read")
+        .into_iter()
+        .find(|shipped| shipped.key == kind)
+        .expect("kilna ships that kind");
+    let id = format!("profile-{kind}");
+    conn.execute(
+        "INSERT INTO profile (id, key, name, description, config, is_active, is_builtin, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 0, 1, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+        rusqlite::params![
+            id,
+            shipped.key,
+            shipped.name,
+            shipped.description,
+            serde_json::to_string(&shipped.config).expect("the profile serialises"),
+        ],
+    )
+    .expect("the second profile is written");
+    profile::list(conn)
+        .expect("the profiles read")
+        .into_iter()
+        .find(|one| one.id == id)
+        .expect("the second profile reads back")
+}
+
 /// [`workspace`] and a directory for the files a test attaches.
 pub fn workspace_with_media() -> (Connection, String, tempfile::TempDir) {
     let (conn, profile_id) = workspace();

@@ -698,15 +698,8 @@ mod tests {
             "a work cannot be cut out of itself"
         );
 
-        // A second seeded workspace: a cut does not reach into it.
-        let others: Vec<_> = profile::list(&conn)
-            .unwrap()
-            .into_iter()
-            .filter(|one| one.id != profile_id)
-            .collect();
-        let other = others
-            .first()
-            .expect("the seed ships more than one profile");
+        // A second profile in the same database: a cut does not reach into it.
+        let other = fixtures::another_profile(&conn, "blog");
         let theirs = work::create(
             &conn,
             &other.id,

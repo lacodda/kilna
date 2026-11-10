@@ -190,7 +190,7 @@ pub fn get(conn: &Connection, app_dir: &Path, id: &str, open: Option<&str>) -> R
 pub fn list(conn: &Connection, app_dir: &Path, open: Option<&str>) -> Result<Vec<Space>> {
     let rows = conn
         .prepare(&format!(
-            "{SELECT} ORDER BY opened_at IS NULL, opened_at DESC, added_at, id"
+            "{SELECT} ORDER BY opened_at IS NULL, opened_at DESC, added_at, rowid"
         ))?
         .query_map([], read_row)?
         .collect::<rusqlite::Result<Vec<_>>>()?;

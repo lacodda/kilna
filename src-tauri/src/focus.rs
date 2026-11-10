@@ -382,7 +382,6 @@ fn read_note(row: &rusqlite::Row<'_>) -> rusqlite::Result<FocusNote> {
 mod tests {
     use super::*;
     use crate::fixtures;
-    use crate::profile;
     use crate::work;
 
     fn a_work(conn: &Connection, profile_id: &str, title: &str) -> String {
@@ -582,11 +581,7 @@ mod tests {
     #[test]
     fn reordering_leaves_another_profiles_board_alone() {
         let (conn, profile_id) = fixtures::workspace();
-        let other = profile::list(&conn)
-            .unwrap()
-            .into_iter()
-            .find(|p| p.id != profile_id)
-            .expect("the seed ships more than one profile");
+        let other = fixtures::another_profile(&conn, "blog");
 
         let mine = add_note(&conn, &profile_id, note("mine")).unwrap();
         // Two on the other board, so the one named sits at a position the
