@@ -135,16 +135,28 @@ impl Setting {
         match &self.control {
             Control::Text => value.is_string(),
             Control::Boolean => value.is_boolean(),
-            Control::Number { min, max, .. } => value.as_f64().is_some_and(|number| {
+            Control::Number { min, max, step } => value.as_f64().is_some_and(|number| {
                 number.is_finite()
                     && min.is_none_or(|min| number >= min)
                     && max.is_none_or(|max| number <= max)
+                    && step.is_none_or(|step| on_step(number, min.unwrap_or(0.0), step))
             }),
             Control::Choice { options } => value
                 .as_str()
                 .is_some_and(|chosen| options.iter().any(|option| option.value == chosen)),
         }
     }
+}
+
+/// Whether `number` is a whole count of `step`s from `base`: 18.5 is no value
+/// of a setting that goes by ones (wish 6815). A step of nothing or less says
+/// nothing about the value.
+fn on_step(number: f64, base: f64, step: f64) -> bool {
+    if !(step.is_finite() && step > 0.0) {
+        return true;
+    }
+    let steps = (number - base) / step;
+    (steps - steps.round()).abs() < 1e-9 * steps.abs().max(1.0)
 }
 
 /// How a setting is answered. An unknown type is a manifest that cannot be
@@ -341,6 +353,8 @@ mod tests {
                     {"key": "channel", "label": "Channel", "type": "text", "default": "Tide",
                      "labels": {"ru": "Канал"}},
                     {"key": "crf", "label": "Quality", "type": "number", "min": 0, "max": 51, "default": 20},
+                    {"key": "frames", "label": "Frames", "type": "number", "min": 1, "step": 1},
+                    {"key": "gain", "label": "Gain", "type": "number", "min": -3, "step": 0.5},
                     {"key": "hand", "label": "Hand", "type": "boolean", "default": true},
                     {"key": "preset", "label": "Preset", "type": "choice",
                      "options": [{"value": "fast", "label": "Fast"}, {"value": "slow", "label": "Slow"}]}
@@ -364,6 +378,12 @@ mod tests {
         assert!(!setting("crf").accepts(&json!(52)));
         assert!(!setting("crf").accepts(&json!(-1)));
         assert!(!setting("crf").accepts(&json!("20")));
+        assert!(setting("crf").accepts(&json!(18.5)), "no step: any number");
+        assert!(setting("frames").accepts(&json!(18)));
+        assert!(!setting("frames").accepts(&json!(18.5)), "off its step");
+        assert!(setting("gain").accepts(&json!(-1.5)));
+        assert!(setting("gain").accepts(&json!(2)));
+        assert!(!setting("gain").accepts(&json!(0.25)));
         assert!(setting("hand").accepts(&json!(false)));
         assert!(!setting("hand").accepts(&json!("yes")));
         assert!(setting("preset").accepts(&json!("slow")));

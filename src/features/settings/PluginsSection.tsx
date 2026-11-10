@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NumberField } from '@/components/ui/number-field'
+import { toStep } from '@/lib/step'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusDot } from '@/components/ui/status-dot'
 import { Switch } from '@/components/ui/switch'
@@ -343,8 +344,13 @@ function NumberSetting({
     <Field label={label} help={help}>
       <div
         onBlur={() => {
-          if (draft === null) setDraft(stored)
-          else if (draft !== stored) onSettle(draft)
+          if (draft === null) {
+            setDraft(stored)
+            return
+          }
+          const held = toStep(draft, step, min, max)
+          if (held !== draft) setDraft(held)
+          if (held !== stored) onSettle(held)
         }}
       >
         <NumberField value={draft} min={min} max={max} step={step} onValueChange={setDraft} />
