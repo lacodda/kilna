@@ -57,7 +57,7 @@ places still guarded by a question:
   to a work also clears the entries that only made sense underneath it — a
   version whose work will never return could never be restored either. The
   question names the entry.
-- **Empty the trash** clears every entry for the active profile at once. The
+- **Empty the trash** clears every entry of the open space at once. The
   dialog says how many entries that is before you commit.
 
 Both questions are answered with a button, not by clicking beside them: a
@@ -82,8 +82,8 @@ it back, and the same record is what a future merge between two copies of a
 workspace will rely on. The trace is not shown anywhere and cannot be
 restored from; it is a fact about the past, not a second trash.
 
-## The trash belongs to a profile
+## The trash belongs to a space
 
-Like works and notes, trash entries are scoped to the profile they were
-deleted in. Switching profiles shows that profile's trash, and emptying the
-trash empties only the active one.
+Like works and notes, trash entries belong to the
+[space](/kilna/guides/spaces/) they were deleted in. Opening another space
+shows that space's trash, and emptying the trash empties only the open one.

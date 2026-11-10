@@ -82,14 +82,15 @@ Download the installer for your platform from the
 The builds are not signed yet, so your OS will warn about an unidentified
 developer.
 
-The first run asks for a workspace directory and a craft profile - kilna ships
-with **Studio**, **Novel**, **Podcast** and **Blog**, and either can be changed
-later. See [Getting started](https://lacodda.github.io/kilna/getting-started/).
+The first run makes a space of the **Studio** kind and asks its name; a space
+of another kind - **Blog**, **Novel**, **Podcast** - or a second Studio is one
+press away, each a folder of its own. See
+[Getting started](https://lacodda.github.io/kilna/getting-started/).
 
 ## Status
 
-v0.108.1, in daily use: the loop from a version to a scored, scheduled and
-released work is closed, with four craft profiles, a canon, a lab of trials, a
+v0.109.0, in daily use: the loop from a version to a scored, scheduled and
+released work is closed, with spaces of four crafts kept apart, a canon, a lab of trials, a
 conception to prepare a work on with its research and a library of the works of culture it draws on, shorts cut by a plugin from the stretches it keeps and the parts it hears, the assistant panel, an MCP server and
 plugins, in English and Russian. What landed in each version:
 [CHANGELOG](https://github.com/lacodda/kilna/blob/main/CHANGELOG.md).

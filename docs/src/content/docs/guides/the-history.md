@@ -143,7 +143,8 @@ until you look at it.
 The sweep runs when kilna starts. There is no scheduler and nothing to
 configure.
 
-## History belongs to a profile
+## History belongs to a space
 
-Like works, notes and the trash, entries are scoped to the profile they were
-written in. Switching profiles shows that profile's history.
+Like works, notes and the trash, entries belong to the
+[space](/kilna/guides/spaces/) they were written in. Opening another space
+shows that space's history.

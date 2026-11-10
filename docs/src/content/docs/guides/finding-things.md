@@ -85,7 +85,7 @@ for as text, or ignored, and never turn into an error you have to decode.
   the same full-text search behind it.
 - **A word is matched from its beginning, not from its middle.** `холод` finds
   *холодильник*; `дильник` finds nothing.
-- **Nothing outside the active profile.** Switching profiles switches what is
+- **Nothing outside the open space.** Opening another space switches what is
   searchable, like everywhere else in kilna.
 
 The text is kept in an index that is written as you write, rather than read

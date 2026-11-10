@@ -127,14 +127,14 @@ cargo clippy -- -D warnings
 
 ## First run
 
-On first launch kilna creates a fresh workspace and seeds it with the four
-built-in profiles — **Music**, **Novel**, **Podcast** and **Blog** — with
-**Music** active by default. Nothing else is pre-populated: no sample works,
-no demo data.
+On first launch kilna creates a first [space](/kilna/guides/spaces/) of the
+**Studio** kind and asks what to call it. Nothing else is pre-populated: no
+sample works, no demo data.
 
-Switch profiles from the picker at the bottom of the sidebar at any time.
-Switching doesn't lose anything — works keep the kind and status they were
-given, even if you later edit the vocabulary that named them.
+A space of another kind - **Blog**, **Novel**, **Podcast** - or a second one of
+the same is made from the button at the bottom of the sidebar, which also
+switches between them. Each space keeps its works, calendar, canon and history
+to itself.
 
 kilna is a studio tool, so it is dark by default — more precisely, it follows
 your system's theme until you say otherwise. The theme button in the sidebar

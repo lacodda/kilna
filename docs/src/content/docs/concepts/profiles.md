@@ -36,9 +36,9 @@ kilna ships with four profiles, each a JSON document rather than code:
   kept separately, judged on hook, usefulness, clarity, angle and
   shareability, shipped as site publishes, newsletter sends or syndication.
 
-Switch the active profile from the workspace screen and the same screens
-relabel themselves — "chapters" and "pull" instead of "songs" and "hook" —
-without touching a line of application code.
+Each [space](/kilna/guides/spaces/) is made of one of them, and in a space of
+another kind the same screens relabel themselves — "chapters" and "pull"
+instead of "songs" and "hook" — without touching a line of application code.
 
 ## What a profile configures
 

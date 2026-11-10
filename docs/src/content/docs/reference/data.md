@@ -3,24 +3,30 @@ title: Data
 description: Export, backup and import, where the workspace file and the application log live, the steps of a restore and why they are taken by hand, and what the workspace records about itself.
 ---
 
-kilna is local-first: one SQLite file holds your workspace, and media stays
-as plain files on disk with only a path recorded in the database. See
+kilna is local-first: each [space](/kilna/guides/spaces/) is a folder, with one
+SQLite file that holds its works, and media kept as plain files beside it with
+only a path recorded in the database. See
 [ADR 0002](https://github.com/lacodda/kilna/blob/main/docs/adr/0002-local-first-storage.md)
-for the reasoning behind that split.
+for the reasoning behind that split, and
+[ADR 0077](https://github.com/lacodda/kilna/blob/main/docs/adr/0077-a-space-is-a-folder-with-a-database-of-its-own.md)
+for spaces.
 
-## Where the workspace file lives
+## Where your spaces live
 
-The workspace is created under the platform's application data directory the
-first time kilna runs. **Settings → Data → Workspace file** shows the exact
-location, and **Show in its folder** opens it in a file manager, so you can point
-a backup tool at it directly.
+The first space is created under the platform's application data directory,
+in `spaces/`, the first time kilna runs; a new one goes there too. Beside them
+is `app.db`, the application's own database: the list of your spaces and the
+assistant's settings, which are the same whatever space is open. **Settings →
+Data → Workspace file** shows where the open space's database is, and **Show in
+its folder** opens its folder in a file manager, so you can point a backup tool
+at it directly.
 
 ## The application log
 
 What goes wrong where nobody is looking - a file the trash could not remove,
 a queued assistant task that would not start, a screen that stopped working -
-is written to a log beside the workspace: `logs/kilna.log` in the same
-directory as the workspace file. **Settings → Data → Application log** shows
+is written to a log in the application's directory: `logs/kilna.log` beside
+`app.db`, whatever space is open. **Settings → Data → Application log** shows
 the exact path. It is one plain line per event, with the time, the level and
 the part of kilna it came from, and it is moved aside to `kilna.log.1` when it
 grows past a megabyte. Nothing in it leaves your machine; attach it to a bug
@@ -47,8 +53,9 @@ The files attached to your works go with it, into a folder beside the backup
 named like it with `.media` at the end. A workspace with nothing attached has no
 such folder.
 
-A backup holds everything in the workspace, the assistant's settings and what
-was set for each plugin among them. It does not hold your
+A backup holds everything in the open space, what was set for each plugin
+among it. It does not hold the assistant's settings, which are the
+application's since spaces (v0.109); your
 [media folder](/kilna/guides/files-and-covers/#the-works-folder-on-disk) of
 renders and takes, which only ever had its path recorded; the plugins themselves;
 or the window's theme and language, which live with the window.
@@ -57,7 +64,7 @@ or the window's theme and language, which live with the window.
 
 A backup goes back in **by hand, with kilna closed**: a workspace cannot be
 replaced under the process that holds it open, and kilna would rather say the
-steps than pretend to do them from inside. In the folder of the workspace file:
+steps than pretend to do them from inside. In the folder of the space:
 
 1. **Close kilna.** If it is working behind the tray, choose **Quit kilna** on its
    icon: closing the window does not close it while something goes.
