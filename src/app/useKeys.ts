@@ -15,6 +15,7 @@ const CHORD_WINDOW = 1500
 function strokeOf(event: KeyboardEvent): Stroke {
   return {
     key: event.key,
+    code: event.code,
     ctrlKey: event.ctrlKey,
     metaKey: event.metaKey,
     altKey: event.altKey,

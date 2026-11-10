@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { opensChord, readChord, readStroke, type Stroke } from './keys'
+import { letterOf, opensChord, readChord, readStroke, type Stroke } from './keys'
 
 const JUMPS = { d: '/dashboard', c: '/catalogue' }
 
@@ -154,5 +154,36 @@ describe('readChord', () => {
     expect(readChord(stroke('d', { ctrlKey: true }), JUMPS)).toBeNull()
     expect(readChord(stroke('d', { metaKey: true }), JUMPS)).toBeNull()
     expect(readChord(stroke('d', { altKey: true }), JUMPS)).toBeNull()
+  })
+})
+
+// On a Russian layout the key that says `g` arrives as `п`, the one that says
+// `z` as `я`: a shortcut is read by the place of its key, not by the letter
+// the layout makes of it (wish 4308).
+describe('a shortcut on another layout', () => {
+  const russian = (code: string, key: string, over: Partial<Stroke> = {}) =>
+    stroke(key, { code, ...over })
+
+  it('reads the letter by the key it sits on', () => {
+    expect(letterOf({ key: 'п', code: 'KeyG' })).toBe('g')
+    expect(letterOf({ key: 'G', code: 'KeyG' })).toBe('g')
+    expect(letterOf({ key: '?', code: 'Slash' })).toBe('?')
+    expect(letterOf({ key: 'g' })).toBe('g')
+  })
+
+  it('opens a chord and jumps from the keys that say g and d', () => {
+    expect(opensChord(russian('KeyG', 'п'))).toBe(true)
+    expect(readChord(russian('KeyD', 'в'), { d: '/dashboard' })).toEqual({
+      kind: 'go',
+      where: '/dashboard',
+    })
+  })
+
+  it('takes back with Ctrl on the key that says z', () => {
+    expect(readStroke(russian('KeyZ', 'я', { ctrlKey: true }))).toEqual({ kind: 'undo' })
+  })
+
+  it('still leaves the keyboard to a field being typed in', () => {
+    expect(opensChord(russian('KeyG', 'п', { typing: true }))).toBe(false)
   })
 })

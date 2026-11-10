@@ -30,6 +30,13 @@ export type Intent =
  */
 export interface Stroke {
   key: string
+  /**
+   * The physical key, as `KeyG` - what a letter shortcut is read by. `key` is
+   * what the layout makes of it: on a Russian one the `g` key arrives as `п`,
+   * and every G-jump and Ctrl+Z was dead while the owner typed in Russian
+   * (wish 4308). Absent, the letter is read off `key`.
+   */
+  code?: string
   ctrlKey: boolean
   metaKey: boolean
   altKey: boolean
@@ -63,6 +70,17 @@ export function typing(target: EventTarget | null): boolean {
 }
 
 /**
+ * The letter a keystroke is, by the place of its key: `g` for the key that
+ * says `g` on a US keyboard, whatever the layout typing with it - so a
+ * shortcut stays where the hand learned it. A key that is no letter, or a
+ * stroke that does not say where its key is, is read by what it says.
+ */
+export function letterOf(stroke: Pick<Stroke, 'key' | 'code'>): string {
+  const place = /^Key([A-Z])$/.exec(stroke.code ?? '')
+  return place?.[1] !== undefined ? place[1].toLowerCase() : stroke.key
+}
+
+/**
  * What a keystroke means on its own — no `g` pressed before it.
  *
  * Returns `null` for anything that is not a shortcut, which is almost every
@@ -93,7 +111,7 @@ export function readStroke(stroke: Stroke): Intent | null {
   // Shift disqualifies it rather than being ignored. Ctrl+Shift+Z is redo on
   // most platforms, and kilna has no redo — answering it with an undo would
   // walk backwards when the person asked to walk forwards.
-  if ((ctrlKey || metaKey) && !altKey && !shiftKey && key.toLowerCase() === 'z') {
+  if ((ctrlKey || metaKey) && !altKey && !shiftKey && letterOf(stroke).toLowerCase() === 'z') {
     return stroke.typing ? null : { kind: 'undo' }
   }
 
@@ -119,11 +137,11 @@ export function readStroke(stroke: Stroke): Intent | null {
  * turns the next unrelated keystroke into a navigation.
  */
 export function readChord(stroke: Stroke, jumps: Readonly<Record<string, string>>): Intent | null {
-  const { key, ctrlKey, metaKey, altKey } = stroke
+  const { ctrlKey, metaKey, altKey } = stroke
   if (ctrlKey || metaKey || altKey) return null
   if (stroke.typing) return null
 
-  const where = jumps[key.toLowerCase()]
+  const where = jumps[letterOf(stroke).toLowerCase()]
   return where === undefined ? null : { kind: 'go', where }
 }
 
@@ -134,8 +152,8 @@ export function readChord(stroke: Stroke, jumps: Readonly<Record<string, string>
  * where the difference is deliberate it should not silently mean the same.
  */
 export function opensChord(stroke: Stroke): boolean {
-  const { key, ctrlKey, metaKey, altKey, shiftKey } = stroke
+  const { ctrlKey, metaKey, altKey, shiftKey } = stroke
   if (ctrlKey || metaKey || altKey || shiftKey) return false
   if (stroke.typing) return false
-  return key === 'g'
+  return letterOf(stroke) === 'g'
 }
