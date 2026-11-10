@@ -101,7 +101,7 @@ export function SettingsView() {
       <ListDetail
         width="rail"
         list={
-          <Pane label={t('settings.title')} bodyClassName="p-1.5">
+          <Pane label={t('settings.title')} bodyClassName="flex flex-col gap-4 p-1.5">
             {/* Each section by its name and a line of what is in it, so a
                 section is chosen by its contents rather than guessed from a
                 word - which is also why the open section draws no heading of
