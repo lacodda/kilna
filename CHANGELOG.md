@@ -26,6 +26,7 @@ and a copy of kilna with `kilna.portable` beside it keeps everything beside it.
 - Read letter shortcuts by the place of their key
 - Open the version a search found, not the newest
 - Keep fonts out of the bundle's data URLs
+- Part the space's settings from the application's
 
 ### Documentation
 - Say what a space is and where its files live
