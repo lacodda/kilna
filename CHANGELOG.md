@@ -2,6 +2,48 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.109.0] - 2026-11-10
+
+Spaces: each channel, blog or book is a folder with a database of its own -
+its works, calendar, canon, register of repeats, history and trash - and the
+window switches between them without a restart (ADR 0077). The first start
+moves the old database into spaces once, keeping a copy of it beside it as
+`kilna.before-spaces.<moment>.db`, and asks each new space its name. Settings
+fall in two, the application's and the open space's; the assistant's settings
+and the week's budget are the application's, counted across every space. A
+space opens by double-clicking its `space.kilna` or by a
+`kilna://<space>/work/<id>` link, is read only while another machine holds it,
+and a copy of kilna with `kilna.portable` beside it keeps everything beside it.
+
+### Bug Fixes
+- Leave a window closed to the tray behind it at start
+- Give a release marked out of the queue its day
+- Score a work against a draft only
+- Hold a number setting to its step
+- Say a card's other names only through the work's lens
+- Offer as heroes only the cards a work shows
+- Make a new draft current only of its own role
+- Read letter shortcuts by the place of their key
+- Open the version a search found, not the newest
+- Keep fonts out of the bundle's data URLs
+
+### Documentation
+- Say what a space is and where its files live
+
+### Features
+- Keep each space in a folder with a database of its own
+- Switch spaces from the menu and keep them in settings
+
+### Testing
+- Give the profile isolation tests a second profile of their own
+- Pass over the start's link kept in the application's state
+
+### Breaking Changes
+- Profiles are no longer switched inside one database;
+activate_profile and list_profiles are gone, the assistant's settings
+moved to app.db, and kilna --mcp --workspace names an application
+directory.
+
 ## [0.108.1] - 2026-11-08
 
 A refactoring release: nothing a user sees has changed. The Rust tests no longer
