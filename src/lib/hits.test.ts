@@ -16,7 +16,9 @@ const hit = (over: Partial<Hit>): Hit => ({
 describe('hrefOfHit', () => {
   it('opens a work on its overview and a version on the versions tab', () => {
     expect(hrefOfHit(hit({ kind: 'work' }))).toBe('/works/w1/overview')
-    expect(hrefOfHit(hit({ kind: 'version', entity_id: 'v1' }))).toBe('/works/w1/versions')
+    expect(hrefOfHit(hit({ kind: 'version', entity_id: 'v1' }))).toBe(
+      '/works/w1/versions?version=v1',
+    )
   })
 
   it('opens a note on the notes screen by its own id, with or without a work', () => {

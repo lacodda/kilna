@@ -16,12 +16,15 @@ const TAB_FOR: Record<Exclude<HitKind, 'note' | 'comment' | 'fact'>, string> = {
  * all. A note of a kind of card, and a fact, open on the Canon screen, the
  * card's home since v0.84: `cardKinds` are the kinds the profile gives
  * sections. Everything else opens the work it belongs to on the tab where it
- * lives.
+ * lives - a version on the very version found, not the newest of its role
+ * (wish 4199): the tab takes `?version=` over the lane picked by hand.
  */
 export function hrefOfHit(hit: Hit, cardKinds: readonly string[] = []): string {
   if (hit.kind === 'fact') return `/canon/${hit.card_id ?? ''}`
   if (hit.kind === 'note' && cardKinds.includes(hit.detail)) return `/canon/${hit.entity_id}`
   if (hit.kind === 'note') return `/notes/${hit.entity_id}`
   if (hit.kind === 'comment') return `/comments/${hit.entity_id}`
-  return `/works/${hit.work_id ?? ''}/${TAB_FOR[hit.kind]}`
+  const tab = `/works/${hit.work_id ?? ''}/${TAB_FOR[hit.kind]}`
+  if (hit.kind === 'version') return `${tab}?version=${encodeURIComponent(hit.entity_id)}`
+  return tab
 }
