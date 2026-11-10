@@ -1,23 +1,20 @@
-//! Shows what switching profiles actually changes.
+//! Shows what the kind of a space actually changes.
 //!
-//!   cargo run --example profiles -- <kilna.db>
+//!   cargo run --example profiles
 //!
 //! The point of ADR 0001 is that a craft is configuration, not schema. This
-//! prints each built-in profile's vocabulary and puts one work in each, so the
-//! claim can be checked rather than believed.
+//! makes a space of each shipped kind in memory (ADR 0077), prints its
+//! vocabulary and puts one work in it, so the claim can be checked rather than
+//! believed.
 
-use kilna_lib::work::{NewWork, WorkFilter};
+use kilna_lib::work::NewWork;
 use kilna_lib::{db, profile, work};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let path = std::env::args()
-        .nth(1)
-        .ok_or("usage: profiles <kilna.db>")?;
-
-    let conn = db::open(std::path::Path::new(&path))?;
-    profile::seed(&conn)?;
-
-    for entry in profile::list(&conn)? {
+    for shipped in profile::builtin()? {
+        let conn = db::open_in_memory()?;
+        profile::seed(&conn, &shipped.key)?;
+        let entry = profile::active(&conn)?.ok_or("nothing active")?;
         let config = &entry.config;
         println!("=== {} ({}) ===", entry.name, entry.key);
         println!(
@@ -57,54 +54,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .join(", ")
         );
 
-        // One work per profile, in that profile's own vocabulary.
-        let kind = config.work_kinds[0].key.clone();
-        let title = format!(
-            "Sample {}",
-            config.work_kinds[0].label.as_str().to_lowercase()
-        );
-        let already = work::list(
+        // One work per space, in that space's own vocabulary.
+        let created = work::create(
             &conn,
             &entry.id,
-            &WorkFilter {
-                search: Some(title.clone()),
+            NewWork {
+                kind: config.work_kinds[0].key.clone(),
+                title: format!(
+                    "Sample {}",
+                    config.work_kinds[0].label.as_str().to_lowercase()
+                ),
                 ..Default::default()
             },
         )?;
-        if already.is_empty() {
-            let created = work::create(
-                &conn,
-                &entry.id,
-                NewWork {
-                    kind,
-                    title,
-                    ..Default::default()
-                },
-            )?;
-            println!("  added         {} ({})", created.title, created.status);
-        }
-
-        let mine = work::list(&conn, &entry.id, &WorkFilter::default())?;
-        println!("  works here    {}", mine.len());
+        println!("  added         {} ({})", created.title, created.status);
     }
-
-    // Switching is what a user does; the vocabulary follows the active profile.
-    let first = profile::list(&conn)?
-        .first()
-        .cloned()
-        .ok_or("no profiles")?;
-    profile::activate(&conn, &first.id)?;
-    let active = profile::active(&conn)?.ok_or("nothing active")?;
-    println!(
-        "\nactive now: {} — statuses: {}",
-        active.name,
-        active.config.work_kinds[0]
-            .statuses
-            .iter()
-            .map(|s| s.label.as_str())
-            .collect::<Vec<_>>()
-            .join(", ")
-    );
-
     Ok(())
 }

@@ -32,7 +32,7 @@ pub fn assistant_status() -> cli::Availability {
 /// What the person decided about the assistant on this workspace.
 #[tauri::command]
 pub fn assistant_settings(state: State<'_, AppState>) -> Result<AssistantSettings> {
-    settings::read(&state.conn())
+    settings::read(&state.app())
 }
 
 /// Set how many runs may go at once. A higher limit has room at once, so what
@@ -44,7 +44,7 @@ pub fn set_parallel_runs(
     state: State<'_, AppState>,
     runs: usize,
 ) -> Result<AssistantSettings> {
-    let settings = settings::set_parallel_runs(&state.conn(), runs)?;
+    let settings = settings::set_parallel_runs(&state.app(), runs)?;
     state.runs().set_limit(settings.parallel_runs);
     // One task per call: an ending frees one slot, and a higher limit may have
     // freed several. Each call takes at least one task off the line, so this
@@ -61,13 +61,13 @@ pub fn set_run_model(
     state: State<'_, AppState>,
     model: Option<String>,
 ) -> Result<AssistantSettings> {
-    settings::set_model(&state.conn(), model.as_deref())
+    settings::set_model(&state.app(), model.as_deref())
 }
 
 /// Set what a run may read beyond what its prompt carries.
 #[tauri::command]
 pub fn set_run_sees(state: State<'_, AppState>, sees: RunSees) -> Result<AssistantSettings> {
-    settings::set_run_sees(&state.conn(), sees)
+    settings::set_run_sees(&state.app(), sees)
 }
 
 /// What a run on this work may read beyond its prompt, as the setting stands:
@@ -75,11 +75,10 @@ pub fn set_run_sees(state: State<'_, AppState>, sees: RunSees) -> Result<Assista
 /// Empty when the setting opens nothing, or the work has no files to open.
 #[tauri::command]
 pub fn run_sight(state: State<'_, AppState>, work_id: String) -> Result<Vec<String>> {
-    let conn = state.conn();
-    if settings::read(&conn)?.run_sees == RunSees::Nothing {
+    if settings::read(&state.app())?.run_sees == RunSees::Nothing {
         return Ok(Vec::new());
     }
-    Ok(settings::work_sight(&conn, &work_id)?.named)
+    Ok(settings::work_sight(&state.conn(), &work_id)?.named)
 }
 
 /// The command that registers this build with Claude Code, for the settings
@@ -208,8 +207,12 @@ pub fn assistant_spend(
     day_from: String,
     week_from: String,
 ) -> Result<assistant::spend::Spend> {
+    let conn = state.conn();
+    let others = crate::space::others_to_count(&state.app(), state.app_dir(), &state.space_id());
+    let spaces: Vec<&rusqlite::Connection> = std::iter::once(&*conn).chain(others.iter()).collect();
     assistant::spend::read(
-        &state.conn(),
+        &spaces,
+        &state.app(),
         assistant::spend::Since {
             day: &day_from,
             week: &week_from,
@@ -226,8 +229,11 @@ pub fn check_spend(
     week_from: String,
 ) -> Result<assistant::spend::SpendCheck> {
     let conn = state.conn();
+    let others = crate::space::others_to_count(&state.app(), state.app_dir(), &state.space_id());
+    let spaces: Vec<&rusqlite::Connection> = std::iter::once(&*conn).chain(others.iter()).collect();
     assistant::spend::check(
-        &conn,
+        &spaces,
+        &state.app(),
         &active(&conn)?,
         assistant::spend::Since {
             day: &day_from,
@@ -239,7 +245,7 @@ pub fn check_spend(
 /// Set what a week of runs may cost, or clear it with nothing.
 #[tauri::command]
 pub fn set_weekly_budget(state: State<'_, AppState>, budget: Option<f64>) -> Result<Option<f64>> {
-    assistant::spend::set_budget(&state.conn(), budget)
+    assistant::spend::set_budget(&state.app(), budget)
 }
 
 /// Sends run events to the window.
@@ -270,10 +276,12 @@ pub fn start_run(
     let runs = Arc::clone(state.runs());
     let workdir = state.assistant_dir();
 
+    let chosen = settings::read(&state.app())?;
     let (run, stream) = {
         let conn = state.conn();
-        assistant_run::start(&conn, &runs, &chat_id, &prompt, workdir.as_deref())?
+        assistant_run::start(&conn, &chosen, &runs, &chat_id, &prompt, workdir.as_deref())?
     };
+    let alongside = state.alongside();
 
     let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));
     let started = run.clone();
@@ -281,7 +289,7 @@ pub fn start_run(
     // A thread rather than an async task: the CLI is read with blocking IO,
     // and a run holds its thread for as long as the answer takes.
     std::thread::spawn(move || {
-        let open = || app.state::<AppState>().inner().open_alongside();
+        let open = || alongside.open();
         assistant_run::pump(&runs, &sink, &started, &stream, open);
     });
 
@@ -779,8 +787,10 @@ fn launch(
 ) -> Result<StartedTask> {
     let runs = Arc::clone(state.runs());
     let workdir = state.assistant_dir();
+    let chosen = settings::read(&state.app())?;
     let (run, stream) = assistant_run::start_as(
         &state.conn(),
+        &chosen,
         &runs,
         &prepared.chat_id,
         &prepared.prompt,
@@ -792,11 +802,11 @@ fn launch(
     let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));
     let started = run.clone();
     let handle = app.clone();
+    let alongside = state.alongside();
 
     std::thread::spawn(move || {
         {
-            let inner = handle.clone();
-            let open = move || inner.state::<AppState>().inner().open_alongside();
+            let open = move || alongside.open();
             assistant_run::pump(&runs, &sink, &started, &stream, open);
         }
         drain_queue(&handle);

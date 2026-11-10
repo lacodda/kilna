@@ -4,7 +4,6 @@
     "tagline": "From raw idea to shipped work."
   },
   "status": {
-    "profile": "Active profile",
     "works": "Works",
     "noProfile": "This workspace has no active profile.",
     "failed": "Could not read the workspace: {{message}}"
@@ -1602,7 +1601,6 @@
     "sceneSaveFailed": "Could not save the scene.",
     "sceneTimeFailed": "Could not time the board.",
     "sceneFrameFailed": "Could not frame the board.",
-    "profileSwitched": "Switched to {{name}}.",
     "profileSaveFailed": "Could not save the profile.",
     "loadFailed": "Could not load that.",
     "scoreDeleted": "Score deleted.",
@@ -2352,7 +2350,8 @@
       "data": "Data",
       "agents": "Agents",
       "assistant": "Assistant",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "spaces": "Spaces"
     },
     "hint": {
       "general": "How the window looks and speaks.",
@@ -2361,7 +2360,12 @@
       "data": "Out, in and aside: export, backup, import.",
       "agents": "Agents outside the window, over MCP.",
       "assistant": "Claude Code, the model, runs at once, what a run reads, the budget.",
-      "plugins": "What is installed, whether it can run, and its settings."
+      "plugins": "What is installed, whether it can run, and its settings.",
+      "spaces": "The folders kilna keeps your works in: make, rename, trash."
+    },
+    "groups": {
+      "app": "Application",
+      "space": "Space · {{name}}"
     },
     "appearance": "Appearance",
     "theme": "Theme",
@@ -2987,6 +2991,25 @@
     "spend": {
       "badBudget": "A weekly budget of {{value}} USD is not a budget — leave it empty or name an amount above zero.",
       "badMoment": "“{{value}}” is not a moment — write it as an ISO time, like 2026-11-02T00:00:00Z."
+    },
+    "space": {
+      "readOnly": "This space is open on another machine, so here it is for reading only.",
+      "readOnlyOlder": "This space is open on another machine, and an older kilna wrote it last: open it there with this version once, then it can be read here.",
+      "unreadable": "The space at {{path}} cannot be read: {{cause}}.",
+      "tooNew": "The space at {{path}} was made by a newer kilna (its file is format {{format}}): update kilna to open it.",
+      "noName": "A space needs a name.",
+      "badName": "A space's name is one line of at most {{limit}} characters.",
+      "unknownKind": "kilna makes no space of the kind “{{kind}}”. The kinds are: {{known}}.",
+      "badColour": "“{{colour}}” is not a colour written as #RRGGBB.",
+      "badMark": "“{{mark}}” is not the name of a mark kilna draws.",
+      "trashOpen": "The open space cannot go to the trash: open another one first.",
+      "forgetNotTrashed": "Only a space in the trash can be forgotten.",
+      "unknown": "There is no space “{{named}}”. The spaces are: {{known}}.",
+      "ambiguous": "Two spaces are called “{{named}}” ({{paths}}): rename one of them.",
+      "busy": "Something is still going in this space ({{count}}): wait for it or stop it, then open the other one.",
+      "noDatabase": "The folder {{path}} holds a space's file but no database.",
+      "none": "There is no space to open yet: start kilna once.",
+      "unreachable": "The space at {{path}} cannot be reached: is its drive connected?"
     }
   },
   "skip": {
@@ -4058,5 +4081,75 @@
     "workedNowhere": "Not on any board yet.",
     "workedIn": "Worked in",
     "linkedFromBoards": "The boards of works link to it; it is attached to none."
+  },
+  "spaces": {
+    "switch": "Space: {{name}} - switch",
+    "recent": "Other spaces",
+    "new": "New space…",
+    "manage": "Manage spaces",
+    "newTitle": "A new space",
+    "newDescription": "A space is a folder of its own: its works, calendar, canon and register of repeats. Two spaces of one kind are two channels that never mix.",
+    "name": "Name",
+    "namePlaceholder": "A channel, a blog, a book",
+    "kind": "Kind",
+    "kinds": {
+      "music": "Studio",
+      "blog": "Blog",
+      "novel": "Novel",
+      "podcast": "Podcast"
+    },
+    "colour": "Colour",
+    "mark": "Mark",
+    "marks": {
+      "music": "Note",
+      "mic": "Microphone",
+      "feather": "Feather",
+      "book-open": "Open book",
+      "pen-tool": "Pen",
+      "camera": "Camera",
+      "film": "Film",
+      "radio": "Radio",
+      "sparkles": "Sparkles",
+      "flame": "Flame",
+      "leaf": "Leaf",
+      "moon": "Moon",
+      "sun": "Sun",
+      "star": "Star",
+      "heart": "Heart",
+      "globe": "Globe"
+    },
+    "lookPreview": "How it looks in the menu",
+    "create": "Make and open",
+    "opened": "Opened {{name}}",
+    "openFailed": "Could not open the space",
+    "createFailed": "Could not make the space",
+    "renameFailed": "Could not rename the space",
+    "restyleFailed": "Could not change how the space looks",
+    "trashFailed": "Could not put the space in the trash",
+    "restoreFailed": "Could not take the space out of the trash",
+    "forgetFailed": "Could not forget the space",
+    "forgotten": "Forgotten. Its folder is where it was.",
+    "nameTitle": "What is this space called?",
+    "nameDescription": "kilna now keeps each channel, blog or book in a space of its own. This one holds everything you had: give it the name you know it by.",
+    "nameSave": "Name it",
+    "held": "This space is open on {{machine}}: here it is for reading only, until it is closed there.",
+    "goTo": "Go to space {{name}}",
+    "sectionDescription": "Each space is a folder with its own database, media and history. Backing one up or moving it to another machine is copying its folder; double-clicking its space.kilna opens it.",
+    "portable": "This copy of kilna is portable: its data and its spaces live beside it.",
+    "open": "Open",
+    "openNow": "Open now",
+    "unreachable": "Out of reach",
+    "rename": "Rename",
+    "renameTitle": "Rename the space",
+    "look": "Colour and mark",
+    "lookTitle": "How {{name}} looks",
+    "save": "Save",
+    "reveal": "Show the folder",
+    "trash": "Move to the trash",
+    "restore": "Take out of the trash",
+    "forget": "Forget",
+    "trashed": "In the trash",
+    "forgetDescription": "A space in the trash keeps its folder. Forgetting one takes it off this list and leaves the folder where it is: double-click its space.kilna to open it again.",
+    "actions": "What to do with {{name}}"
   }
 }

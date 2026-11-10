@@ -8,7 +8,7 @@ use serde_json::{Map, Value};
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("database error: {0}")]
-    Database(#[from] rusqlite::Error),
+    Database(rusqlite::Error),
 
     #[error("could not serialise data: {0}")]
     Serde(#[from] serde_json::Error),
@@ -72,6 +72,19 @@ pub enum Error {
     /// said once, generically, and the detail goes to the log.
     #[error("{0}")]
     Internal(String),
+}
+
+/// A database error, except the one a space held open elsewhere answers every
+/// write with: that is not a fault but the rule of a space read only (ADR
+/// 0077), and the window says it as one - every gesture, in one sentence,
+/// without a command having to ask first.
+impl From<rusqlite::Error> for Error {
+    fn from(error: rusqlite::Error) -> Self {
+        if error.sqlite_error_code() == Some(rusqlite::ErrorCode::ReadOnly) {
+            return Self::refused("space.readOnly");
+        }
+        Self::Database(error)
+    }
 }
 
 impl Error {

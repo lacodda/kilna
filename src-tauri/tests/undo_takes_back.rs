@@ -802,7 +802,7 @@ fn a_created_version_is_taken_back_into_the_trash() {
 #[test]
 fn an_empty_log_offers_nothing() {
     let conn = db::open_in_memory().unwrap();
-    profile::seed(&conn).unwrap();
+    profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
 
     assert!(undo::last(&conn).unwrap().is_none());
 }

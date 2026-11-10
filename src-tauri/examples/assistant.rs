@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = db::open(std::path::Path::new(&path))?;
     // The app does this on startup; a workspace opened directly needs it too,
     // or prompts shipped after the database was created are missing.
-    profile::seed(&conn)?;
+    profile::seed(&conn, profile::DEFAULT_KIND)?;
     let profile = profile::active(&conn)?.ok_or("no active profile")?;
     let profile_id = profile.id.clone();
 
@@ -85,7 +85,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // No working directory here: the example runs from wherever it was invoked.
     let runs = Arc::new(Runs::new());
-    let (started, stream) = run::start(&conn, &runs, &chat.id, &prompt, None)?;
+    let chosen = assistant::settings::AssistantSettings::default();
+    let (started, stream) = run::start(&conn, &chosen, &runs, &chat.id, &prompt, None)?;
     let sink: Arc<dyn Sink> = Arc::new(Printed);
     let reopen = path.clone();
     run::pump(&runs, &sink, &started, &stream, move || {

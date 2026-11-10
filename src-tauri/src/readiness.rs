@@ -470,7 +470,7 @@ mod tests {
     #[test]
     fn the_warning_window_takes_the_unready_and_only_the_upcoming() {
         let conn = crate::db::open_in_memory().unwrap();
-        crate::profile::seed(&conn).unwrap();
+        crate::profile::seed(&conn, crate::profile::DEFAULT_KIND).unwrap();
         let profile_id = crate::profile::active(&conn).unwrap().unwrap().id;
 
         // None of these works has versions or a score, so every release is
@@ -551,7 +551,7 @@ mod tests {
     #[test]
     fn roles_present_maps_each_work_to_its_roles() {
         let conn = crate::db::open_in_memory().unwrap();
-        crate::profile::seed(&conn).unwrap();
+        crate::profile::seed(&conn, crate::profile::DEFAULT_KIND).unwrap();
         let profile_id = crate::profile::active(&conn).unwrap().unwrap().id;
 
         let conn = conn;

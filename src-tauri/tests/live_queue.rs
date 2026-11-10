@@ -18,7 +18,7 @@ use kilna_lib::{db, profile};
 fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
     let dir = tempfile::tempdir().unwrap();
     let conn = db::open(&dir.path().join("workspace.db")).unwrap();
-    profile::seed(&conn).unwrap();
+    profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
     let profile_id = profile::active(&conn).unwrap().unwrap().id;
 
     let action = profile::active(&conn)
@@ -72,6 +72,7 @@ fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
             let prepared = task::prepare(&conn, work_id, &action, task::About::default()).unwrap();
             let (_run, stream) = assistant::run::start_as(
                 &conn,
+                &assistant::settings::AssistantSettings::default(),
                 &runs,
                 &prepared.chat_id,
                 &prepared.prompt,

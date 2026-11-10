@@ -66,33 +66,46 @@ fn read_builtin() -> Result<Vec<BuiltinProfile>> {
         .collect()
 }
 
-/// Install any built-in profile the workspace does not have yet, and make sure
-/// exactly one profile is active.
+/// The kind a space is made of when nothing says otherwise: Studio, the
+/// first profile kilna ships.
+pub const DEFAULT_KIND: &str = "music";
+
+/// Give a space its profile, and make sure exactly one profile is active.
 ///
-/// Existing built-in rows are left alone: a user who edited the Music profile
-/// keeps their edits across upgrades.
-pub fn seed(conn: &Connection) -> Result<()> {
+/// A space is of one kind (ADR 0077): an empty database gets the shipped
+/// profile `kind` names, and nothing else - Blog, Novel and Podcast are kinds
+/// of other spaces, not rows waiting in this one. A database that already
+/// holds profiles gets none added; each of them that kilna ships is carried
+/// forward, and a user who edited the Studio profile keeps their edits across
+/// upgrades.
+pub fn seed(conn: &Connection, kind: &str) -> Result<()> {
     let timestamp = now();
     let shipped = builtin()?;
 
-    for profile in &shipped {
-        let exists: bool = conn
-            .query_row(
-                "SELECT 1 FROM profile WHERE key = ?1",
-                params![profile.key],
-                |_| Ok(true),
-            )
-            .optional()?
-            .unwrap_or(false);
+    let stored: Vec<String> = conn
+        .prepare("SELECT key FROM profile")?
+        .query_map([], |row| row.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
 
-        if exists {
-            carry_forward(conn, profile)?;
-            continue;
-        }
-
+    if stored.is_empty() {
+        let profile = shipped
+            .iter()
+            .find(|profile| profile.key == kind)
+            .ok_or_else(|| {
+                Error::refused("space.unknownKind")
+                    .param("kind", kind)
+                    .param(
+                        "known",
+                        shipped
+                            .iter()
+                            .map(|profile| profile.key.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    )
+            })?;
         conn.execute(
             "INSERT INTO profile (id, key, name, description, config, is_active, is_builtin, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, 0, 1, ?6, ?6)",
+             VALUES (?1, ?2, ?3, ?4, ?5, 1, 1, ?6, ?6)",
             params![
                 uuid::Uuid::new_v4().to_string(),
                 profile.key,
@@ -102,6 +115,13 @@ pub fn seed(conn: &Connection) -> Result<()> {
                 timestamp,
             ],
         )?;
+    } else {
+        for profile in shipped
+            .iter()
+            .filter(|profile| stored.contains(&profile.key))
+        {
+            carry_forward(conn, profile)?;
+        }
     }
 
     // A profile the owner made themselves is carried forward by nobody, so
@@ -109,8 +129,7 @@ pub fn seed(conn: &Connection) -> Result<()> {
     // migrates, and written back so the next read finds it done.
     rewrite_older_formats(conn)?;
 
-    let first = shipped.first().map(|profile| profile.key.as_str());
-    ensure_one_active(conn, first)?;
+    ensure_one_active(conn, Some(kind))?;
     Ok(())
 }
 
@@ -1918,23 +1937,6 @@ pub fn list(conn: &Connection) -> Result<Vec<Profile>> {
     raw.into_iter().map(RawProfile::into_profile).collect()
 }
 
-/// Make `id` the active profile, deactivating the previous one.
-pub fn activate(conn: &Connection, id: &str) -> Result<()> {
-    crate::db::unit::atomically(conn, |tx| {
-        // The partial unique index forbids two active rows, so clear first.
-        tx.execute("UPDATE profile SET is_active = 0 WHERE is_active = 1", [])?;
-        let changed = tx.execute(
-            "UPDATE profile SET is_active = 1, updated_at = ?2 WHERE id = ?1",
-            params![id, now()],
-        )?;
-
-        if changed == 0 {
-            return Err(Error::not_found("profile", id));
-        }
-        Ok(())
-    })
-}
-
 /// Replace a profile's configuration.
 ///
 /// Nothing else is touched: axis keys are strings, so past score snapshots stay
@@ -2557,37 +2559,60 @@ mod tests {
         assert_eq!(keys.len(), count, "two built-in profiles share a key");
     }
 
+    /// A space is of one kind: its database holds that profile, active, and
+    /// none of the crafts it is not (ADR 0077).
     #[test]
-    fn seed_installs_the_builtins_and_activates_one() {
-        let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+    fn a_space_is_seeded_with_its_own_kind_alone() {
+        for shipped in builtin().unwrap() {
+            let conn = db::open_in_memory().unwrap();
+            seed(&conn, &shipped.key).unwrap();
 
-        let profiles = list(&conn).unwrap();
-        assert_eq!(profiles.len(), builtin().unwrap().len());
-        let active = active(&conn).unwrap().expect("a profile must be active");
-        assert!(active.is_builtin);
+            let profiles = list(&conn).unwrap();
+            assert_eq!(
+                profiles.iter().map(|p| p.key.as_str()).collect::<Vec<_>>(),
+                [shipped.key.as_str()]
+            );
+            assert!(profiles[0].is_active && profiles[0].is_builtin);
+        }
     }
 
     #[test]
-    fn a_new_workspace_starts_on_the_first_declared_profile() {
+    fn a_kind_kilna_does_not_ship_is_refused_and_nothing_seeded() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
 
-        // Not the first by key — the seeds share a timestamp, so ordering by
-        // key or date would pick a craft at random.
-        assert_eq!(
-            active(&conn).unwrap().unwrap().key,
-            builtin().unwrap()[0].key
-        );
+        let refused = seed(&conn, "poetry").unwrap_err();
+
+        assert_eq!(refused.refusal().unwrap().code, "space.unknownKind");
+        assert!(list(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn studio_is_what_a_space_is_made_of_by_default() {
+        assert_eq!(builtin().unwrap()[0].key, DEFAULT_KIND);
     }
 
     #[test]
     fn seed_does_not_duplicate_on_a_second_run() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
-        assert_eq!(list(&conn).unwrap().len(), builtin().unwrap().len());
+        assert_eq!(list(&conn).unwrap().len(), 1);
+    }
+
+    /// A workspace from before spaces holds every craft; seeding it adds none
+    /// and carries forward each it has - the move into spaces is what takes
+    /// the empty ones out (`space::legacy`).
+    #[test]
+    fn a_database_that_holds_profiles_gains_none() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn, "blog").unwrap();
+
+        seed(&conn, DEFAULT_KIND).unwrap();
+
+        let keys: Vec<String> = list(&conn).unwrap().into_iter().map(|p| p.key).collect();
+        assert_eq!(keys, ["blog"]);
+        assert_eq!(active(&conn).unwrap().unwrap().key, "blog");
     }
 
     /// A workspace created before a field existed keeps the profile it copied
@@ -2598,7 +2623,7 @@ mod tests {
     #[test]
     fn an_older_workspace_gains_the_meanings_its_statuses_were_missing() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         // Wind the stored copy back to what a pre-`derive` workspace holds: the
         // same words, with no meaning attached to any of them.
@@ -2619,7 +2644,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let derive_of = |key: &str| {
@@ -2644,7 +2669,7 @@ mod tests {
     #[test]
     fn an_older_workspace_gains_the_roles_its_release_kinds_require() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         // Wind the stored copy back: the same doors on the video, requiring
         // nothing — and one the user narrowed by hand, which must stay
@@ -2675,7 +2700,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let requires_of = |key: &str| {
@@ -2699,7 +2724,7 @@ mod tests {
     #[test]
     fn an_older_workspace_gains_the_icons_its_release_kinds_are_drawn_with() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         // Wind the stored copy back to before the field: no icons at all,
         // except one the user chose by hand, which must survive the upgrade.
@@ -2726,7 +2751,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let icon_of = |kind: &str, key: &str| {
@@ -2753,7 +2778,7 @@ mod tests {
     #[test]
     fn an_older_workspace_gains_what_a_publication_is_made_of() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let (id, raw): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -2785,7 +2810,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let order: Vec<&str> = config
@@ -2823,7 +2848,7 @@ mod tests {
     #[test]
     fn an_older_workspace_gains_the_way_its_roles_read() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         // Before the field: no role says how it reads, except one the owner
         // set by hand, which the upgrade must leave alone.
@@ -2848,7 +2873,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let body_of = |key: &str| {
@@ -2872,7 +2897,7 @@ mod tests {
     #[test]
     fn a_kind_of_the_owners_own_gains_no_icon() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -2904,7 +2929,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let vinyl = config
@@ -2929,7 +2954,7 @@ mod tests {
     #[test]
     fn carrying_meanings_forward_leaves_renamed_statuses_renamed() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -2951,7 +2976,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let released = config.work_kinds[0]
@@ -3132,7 +3157,7 @@ mod tests {
     #[test]
     fn an_older_workspace_gains_the_rhythm_its_profile_was_missing() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -3149,7 +3174,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let shipped = builtin().unwrap()[0].config.rhythm.clone().unwrap();
         let gained = config_for(&conn, &id).unwrap().rhythm.unwrap();
@@ -3167,7 +3192,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         assert_eq!(
             config_for(&conn, &id).unwrap().rhythm.unwrap().every_days,
@@ -3178,7 +3203,7 @@ mod tests {
     #[test]
     fn seed_carries_newly_shipped_version_roles_into_an_existing_profile() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, _): (String, String) = conn
             .query_row(
@@ -3201,7 +3226,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let roles = config_for(&conn, &id).unwrap().work_kinds[0]
             .version_roles
@@ -3238,7 +3263,7 @@ mod tests {
     #[test]
     fn seed_carries_a_skeleton_where_the_role_has_none() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let id: String = conn
             .query_row("SELECT id FROM profile WHERE key = 'music'", [], |row| {
                 row.get(0)
@@ -3256,7 +3281,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let roles = config_for(&conn, &id).unwrap().work_kinds[0]
             .version_roles
@@ -3274,7 +3299,7 @@ mod tests {
     #[test]
     fn seed_carries_newly_shipped_meta_fields_into_an_existing_profile() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         // A workspace created before the descriptive fields shipped: it holds
         // the reference numbers and nothing else.
@@ -3293,7 +3318,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let gained = config_for(&conn, &id).unwrap().work_meta_fields;
         let keys: Vec<&str> = gained.iter().map(|field| field.key.as_str()).collect();
@@ -3325,7 +3350,7 @@ mod tests {
     #[test]
     fn seed_takes_a_retired_note_kind_out_of_an_existing_profile() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let (id, _): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -3352,7 +3377,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let kinds: Vec<String> = config_for(&conn, &id)
             .unwrap()
@@ -3374,7 +3399,7 @@ mod tests {
     #[test]
     fn seed_carries_newly_shipped_stages_into_an_existing_profile() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         // A workspace created before stages existed: the list is empty, which
         // is exactly what `#[serde(default)]` leaves behind.
@@ -3395,7 +3420,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let gained = config_for(&conn, &id).unwrap().stages;
         assert!(
@@ -3416,7 +3441,7 @@ mod tests {
         // a song was being judged "Clip". The keys do not move, so a score
         // already recorded keeps its tier; only the word does.
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let id = active(&conn).unwrap().unwrap().id;
 
         let mut config = config_for(&conn, &id).unwrap();
@@ -3433,7 +3458,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let after = config_for(&conn, &id).unwrap();
         let clip = after
@@ -3453,7 +3478,7 @@ mod tests {
         // The other half, and the one that matters more: correcting our own
         // wording must never reach across and rewrite theirs.
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let id = active(&conn).unwrap().unwrap().id;
 
         let mut config = config_for(&conn, &id).unwrap();
@@ -3470,7 +3495,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let after = config_for(&conn, &id).unwrap();
         let clip = after
@@ -3489,7 +3514,7 @@ mod tests {
         // and "Final" at 100 together - two stops on one number, and every
         // work at 100 reading as whichever came last.
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let id = active(&conn).unwrap().unwrap().id;
 
         // Put the profile back on the old six-stop grid, the way a workspace
@@ -3512,7 +3537,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let stages = config_for(&conn, &id).unwrap().stages;
         let at = |key: &str| {
@@ -3542,7 +3567,7 @@ mod tests {
         // word is theirs, and a renamed stop must arrive at its new place
         // still carrying their name.
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let id = active(&conn).unwrap().unwrap().id;
 
         let mut config = config_for(&conn, &id).unwrap();
@@ -3559,7 +3584,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let stages = config_for(&conn, &id).unwrap().stages;
         let done = stages.iter().find(|stage| stage.key == "done").unwrap();
@@ -3570,7 +3595,7 @@ mod tests {
     #[test]
     fn carrying_stages_forward_leaves_the_users_own_stops_alone() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let id: String = conn
             .query_row("SELECT id FROM profile WHERE key = 'music'", [], |row| {
@@ -3587,7 +3612,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let kept = config_for(&conn, &id).unwrap().stages;
         assert!(
@@ -3601,7 +3626,7 @@ mod tests {
     #[test]
     fn carrying_meta_fields_forward_leaves_the_users_own_wording_alone() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, _): (String, String) = conn
             .query_row(
@@ -3625,7 +3650,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let fields = config_for(&conn, &id).unwrap().work_meta_fields;
 
@@ -3654,7 +3679,7 @@ mod tests {
     #[test]
     fn seed_carries_newly_shipped_prompts_into_an_existing_profile() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         // A workspace created before the prompts shipped.
         let mut config = active(&conn).unwrap().unwrap().config;
         config.prompts.clear();
@@ -3664,7 +3689,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let shipped = builtin().unwrap()[0].config.prompts.len();
         assert_eq!(
@@ -3676,7 +3701,7 @@ mod tests {
     #[test]
     fn seed_does_not_overwrite_a_reworded_prompt() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let mut config = active(&conn).unwrap().unwrap().config;
         let key = config.prompts[0].key.clone();
         config.prompts[0].label = "My own wording".into();
@@ -3686,7 +3711,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let reloaded = active(&conn).unwrap().unwrap().config;
         let kept = reloaded.prompts.iter().find(|p| p.key == key).unwrap();
@@ -3701,14 +3726,14 @@ mod tests {
     #[test]
     fn seed_keeps_user_edits_to_a_builtin_profile() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         conn.execute(
             "UPDATE profile SET name = 'My music' WHERE key = 'music'",
             [],
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let profile = list(&conn)
             .unwrap()
@@ -3719,42 +3744,9 @@ mod tests {
     }
 
     #[test]
-    fn activate_moves_the_active_flag() {
-        let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
-        conn.execute(
-            "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
-             VALUES ('p-mine', 'mine', 'Mine', ?1, 0, 0, '2026-02-01T00:00:00Z', '2026-02-01T00:00:00Z')",
-            params![serde_json::to_string(&builtin().unwrap()[0].config).unwrap()],
-        )
-        .unwrap();
-
-        activate(&conn, "p-mine").unwrap();
-
-        assert_eq!(active(&conn).unwrap().unwrap().id, "p-mine");
-        let active_count: i64 = conn
-            .query_row(
-                "SELECT count(*) FROM profile WHERE is_active = 1",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(active_count, 1);
-    }
-
-    #[test]
-    fn activating_an_unknown_profile_fails_without_deactivating_the_current_one() {
-        let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
-
-        assert!(activate(&conn, "nope").is_err());
-        assert!(active(&conn).unwrap().is_some());
-    }
-
-    #[test]
     fn workspace_reports_the_schema_and_counts() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let workspace = workspace(&conn).unwrap();
 
@@ -3774,7 +3766,7 @@ mod tests {
     #[test]
     fn a_profile_that_would_misbehave_is_refused_with_every_problem_named() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let profile = active(&conn).unwrap().unwrap();
         let mut broken = profile.config.clone();
         broken.work_kinds[0].axes[0].scale = 0.0;
@@ -3804,7 +3796,7 @@ mod tests {
     #[test]
     fn the_overview_layout_is_saved_and_an_unknown_one_refused() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let profile = active(&conn).unwrap().unwrap();
         assert!(
             profile.config.overview.is_none(),
@@ -3838,7 +3830,7 @@ mod tests {
     #[test]
     fn an_older_workspace_is_rewritten_into_format_2_once() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         // Wind the owner's own profile back to format 1: flat vocabulary, no
         // `format`, a kind of their own beside the shipped ones.
@@ -3859,7 +3851,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let raw: String = conn
             .query_row("SELECT config FROM profile WHERE id = 'mine'", [], |row| {
@@ -3885,7 +3877,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let after: String = conn
             .query_row(
                 "SELECT config || updated_at FROM profile WHERE id = 'mine'",
@@ -3903,7 +3895,7 @@ mod tests {
     #[test]
     fn an_older_music_workspace_gains_the_video_kinds_without_their_judgement() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -3935,7 +3927,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let video = config.kind("video").expect("the video kind arrived");
@@ -3960,7 +3952,7 @@ mod tests {
     #[test]
     fn a_workspace_from_before_glyphs_gains_mark_icons_and_status_colours() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -3992,7 +3984,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let icon = |key: &str| {
@@ -4038,7 +4030,7 @@ mod tests {
     #[test]
     fn a_workspace_from_before_the_canon_gains_its_cards_and_keeps_its_own_sections() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -4067,7 +4059,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let carried = config_for(&conn, &id).unwrap();
         let character = carried
@@ -4105,7 +4097,7 @@ mod tests {
     #[test]
     fn a_workspace_from_before_note_kinds_gains_them_and_keeps_its_own() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -4124,7 +4116,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let gained = config_for(&conn, &id).unwrap().note_kinds;
         let keys: Vec<&str> = gained.iter().map(|kind| kind.key.as_str()).collect();
@@ -4144,7 +4136,7 @@ mod tests {
     #[test]
     fn a_workspace_with_video_kinds_from_before_scenes_gains_the_storyboard_words() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let (id, raw): (String, String) = conn
             .query_row(
@@ -4174,7 +4166,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let video = config.kind("video").unwrap();
@@ -4202,7 +4194,7 @@ mod tests {
     #[test]
     fn an_untouched_method_follows_and_a_rewritten_one_stays() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let (id, raw): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -4230,7 +4222,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let shipped = builtin()
@@ -4271,7 +4263,7 @@ mod tests {
             params![id, serde_json::to_string(&rewritten).unwrap()],
         )
         .unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         assert_eq!(
             method(&config_for(&conn, &id).unwrap()).as_deref(),
             Some("My own way of writing a release"),
@@ -4287,7 +4279,7 @@ mod tests {
     #[test]
     fn a_workspace_of_v0_100_1_takes_its_titles_for_later_and_its_pools() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let (id, raw): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -4332,7 +4324,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let shipped = builtin()
@@ -4412,7 +4404,7 @@ mod tests {
     #[test]
     fn methods_arrive_and_an_unchanged_score_template_follows() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let (id, raw): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -4440,7 +4432,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
         let by_key = |key: &str| config.prompts.iter().find(|p| p.key == key).unwrap();
@@ -4462,26 +4454,30 @@ mod tests {
     #[test]
     fn the_old_shipped_name_follows_the_new_one_and_an_owners_name_stays() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         conn.execute("UPDATE profile SET name = 'Music' WHERE key = 'music'", [])
             .unwrap();
-        conn.execute(
-            "UPDATE profile SET name = 'Chapters' WHERE key = 'novel'",
-            [],
-        )
-        .unwrap();
+        let novel = db::open_in_memory().unwrap();
+        seed(&novel, "novel").unwrap();
+        novel
+            .execute(
+                "UPDATE profile SET name = 'Chapters' WHERE key = 'novel'",
+                [],
+            )
+            .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
+        seed(&novel, "novel").unwrap();
 
-        let name = |key: &str| -> String {
+        let name = |conn: &Connection, key: &str| -> String {
             conn.query_row("SELECT name FROM profile WHERE key = ?1", [key], |row| {
                 row.get(0)
             })
             .unwrap()
         };
-        assert_eq!(name("music"), "Studio");
+        assert_eq!(name(&conn, "music"), "Studio");
         assert_eq!(
-            name("novel"),
+            name(&novel, "novel"),
             "Chapters",
             "a name the owner chose is not taken back"
         );
@@ -4503,7 +4499,7 @@ mod tests {
     #[test]
     fn a_fresh_workspace_gets_the_video_kinds_whole() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let profile = active(&conn).unwrap().unwrap();
         let video = profile.config.kind("video").unwrap();
         assert!(!video.axes.is_empty());
@@ -4514,7 +4510,7 @@ mod tests {
     #[test]
     fn seed_carries_kinds_and_scope_onto_actions_stored_without_them() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let mut config = active(&conn).unwrap().unwrap().config;
         for prompt in &mut config.prompts {
             prompt.kinds.clear();
@@ -4526,7 +4522,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let reloaded = active(&conn).unwrap().unwrap().config;
         let by_key = |key: &str| reloaded.prompts.iter().find(|p| p.key == key).unwrap();
@@ -4551,7 +4547,7 @@ mod tests {
     #[test]
     fn a_stored_channel_card_gains_the_house_sound_after_its_styles() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let (id, raw): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -4571,7 +4567,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let carried = config_for(&conn, &id).unwrap();
         let channel = carried.card_kind("channel").unwrap();
@@ -4587,7 +4583,7 @@ mod tests {
     #[test]
     fn a_workspace_from_before_the_constructor_gains_covers_and_picture_bans() {
         let conn = db::open_in_memory().unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let (id, raw): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -4645,7 +4641,7 @@ mod tests {
         )
         .unwrap();
 
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
 
         let carried = config_for(&conn, &id).unwrap();
         assert_eq!(carried.format, config::FORMAT);
@@ -4691,7 +4687,7 @@ mod tests {
                 row.get(0)
             })
             .unwrap();
-        seed(&conn).unwrap();
+        seed(&conn, DEFAULT_KIND).unwrap();
         let after: String = conn
             .query_row("SELECT config FROM profile WHERE id = ?1", [&id], |row| {
                 row.get(0)

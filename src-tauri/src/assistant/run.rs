@@ -317,12 +317,13 @@ impl Runs {
 /// the run so the caller can pump it on a thread of its own.
 pub fn start(
     conn: &Connection,
+    chosen: &settings::AssistantSettings,
     runs: &Arc<Runs>,
     chat_id: &str,
     prompt: &str,
     workdir: Option<&std::path::Path>,
 ) -> Result<(Run, Arc<Mutex<Stream>>)> {
-    start_as(conn, runs, chat_id, prompt, workdir, None, &[])
+    start_as(conn, chosen, runs, chat_id, prompt, workdir, None, &[])
 }
 
 /// Start a run that is also a named task, refusing if that task is already
@@ -331,8 +332,10 @@ pub fn start(
 /// `task` is what the run *is* rather than which run it is: the same action on
 /// the same work produces the same key every time, which is what makes a
 /// second click a duplicate instead of a second opinion.
+#[allow(clippy::too_many_arguments)]
 pub fn start_as(
     conn: &Connection,
+    chosen: &settings::AssistantSettings,
     runs: &Arc<Runs>,
     chat_id: &str,
     prompt: &str,
@@ -377,7 +380,7 @@ pub fn start_as(
         .action
         .as_deref()
         .is_some_and(|action| reads_the_web(conn, action));
-    let decided = decided_for(conn, &chat, method.as_deref(), web)?;
+    let decided = decided_for(conn, chosen, &chat, method.as_deref(), web);
     let stream = Stream::start(
         prompt,
         &Launch {
@@ -440,22 +443,22 @@ struct Decided {
 /// no system prompt across resumes, and a follow-up sees what the first saw.
 fn decided_for(
     conn: &Connection,
+    chosen: &settings::AssistantSettings,
     chat: &super::Chat,
     method: Option<&str>,
     web: bool,
-) -> Result<Decided> {
-    let chosen = settings::read(conn)?;
+) -> Decided {
     let sight = settings::sight(conn, chat, chosen.run_sees, web);
     let brief = match (method, sight.brief) {
         (Some(method), Some(sight)) => Some(format!("{method}\n\n{sight}")),
         (Some(method), None) => Some(method.to_owned()),
         (None, sight) => sight,
     };
-    Ok(Decided {
+    Decided {
         brief,
         folders: sight.folders,
-        model: chosen.model,
-    })
+        model: chosen.model.clone(),
+    }
 }
 
 /// Where a run's events come from.
@@ -1442,7 +1445,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("workspace.db");
         let conn = fixtures::workspace_file(&path);
-        profile::seed(&conn).unwrap();
+        profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         (dir, path, conn, profile_id)
     }
@@ -1812,7 +1815,14 @@ mod tests {
             );
         }
 
-        let Err(refused) = start(&conn, &runs, &chat_id, "one more", None) else {
+        let Err(refused) = start(
+            &conn,
+            &settings::AssistantSettings::default(),
+            &runs,
+            &chat_id,
+            "one more",
+            None,
+        ) else {
             panic!("the limit must refuse a fourth run");
         };
 
@@ -1869,7 +1879,14 @@ mod tests {
         );
         assert_eq!(*stopped.lock().unwrap(), 0, "and none of them was stopped");
 
-        let Err(refused) = start(&conn, &runs, &chat_id, "one more", None) else {
+        let Err(refused) = start(
+            &conn,
+            &settings::AssistantSettings::default(),
+            &runs,
+            &chat_id,
+            "one more",
+            None,
+        ) else {
             panic!("the lower limit must refuse a run");
         };
         assert!(
@@ -1904,9 +1921,12 @@ mod tests {
         )
         .unwrap();
 
+        let app = crate::db::open_app_in_memory().unwrap();
+        let chosen = || settings::read(&app).unwrap();
+
         // Left alone: the method and nothing else.
         assert_eq!(
-            decided_for(&conn, &on_the_song, Some("The method."), false).unwrap(),
+            decided_for(&conn, &chosen(), &on_the_song, Some("The method."), false),
             Decided {
                 brief: Some("The method.".into()),
                 folders: Vec::new(),
@@ -1914,17 +1934,17 @@ mod tests {
             }
         );
 
-        settings::set_model(&conn, Some("sonnet")).unwrap();
-        settings::set_run_sees(&conn, settings::RunSees::Work).unwrap();
+        settings::set_model(&app, Some("sonnet")).unwrap();
+        settings::set_run_sees(&app, settings::RunSees::Work).unwrap();
 
-        let decided = decided_for(&conn, &on_the_song, Some("The method."), false).unwrap();
+        let decided = decided_for(&conn, &chosen(), &on_the_song, Some("The method."), false);
         assert_eq!(decided.model.as_deref(), Some("sonnet"));
         assert_eq!(decided.folders, vec![folder.clone()]);
         let brief = decided.brief.unwrap();
         assert!(brief.starts_with("The method.\n\n"), "{brief}");
         assert!(brief.contains(&folder.display().to_string()), "{brief}");
 
-        let without_a_method = decided_for(&conn, &on_the_song, None, false).unwrap();
+        let without_a_method = decided_for(&conn, &chosen(), &on_the_song, None, false);
         assert!(
             without_a_method
                 .brief
@@ -1932,7 +1952,8 @@ mod tests {
             "a question typed in the panel is told the same"
         );
 
-        let reading_the_web = decided_for(&conn, &on_the_song, Some("The method."), true).unwrap();
+        let reading_the_web =
+            decided_for(&conn, &chosen(), &on_the_song, Some("The method."), true);
         assert_eq!(reading_the_web.brief.as_deref(), Some("The method."));
         assert!(reading_the_web.folders.is_empty());
         assert_eq!(
@@ -2880,6 +2901,7 @@ The second verse is the weak one."
 
         let Err(refused) = start_as(
             &conn,
+            &settings::AssistantSettings::default(),
             &runs,
             &chat_id,
             "again",
@@ -2996,7 +3018,14 @@ The second verse is the weak one."
                 None,
             );
         }
-        let _ = start(&conn, &runs, &chat_id, "here is your answer", None);
+        let _ = start(
+            &conn,
+            &settings::AssistantSettings::default(),
+            &runs,
+            &chat_id,
+            "here is your answer",
+            None,
+        );
 
         assert!(
             super::super::get(&conn, &chat_id)
@@ -3014,7 +3043,14 @@ The second verse is the weak one."
         let runs = Arc::new(Runs::new());
 
         assert!(matches!(
-            start(&conn, &runs, "no-such-chat", "hello", None),
+            start(
+                &conn,
+                &settings::AssistantSettings::default(),
+                &runs,
+                "no-such-chat",
+                "hello",
+                None
+            ),
             Err(Error::NotFound { .. })
         ));
         assert_eq!(runs.active(), 0);

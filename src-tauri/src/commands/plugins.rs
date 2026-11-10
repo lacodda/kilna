@@ -29,12 +29,10 @@ pub fn running_count() -> usize {
     RUNNING.lock().map_or(0, |running| running.len())
 }
 
+/// Where plugins are looked for: the application's directory, not a space's -
+/// a plugin is installed on this machine, whatever space is open.
 fn plugin_directory(state: &AppState) -> std::path::PathBuf {
-    state
-        .path()
-        .parent()
-        .map(std::path::Path::to_path_buf)
-        .unwrap_or_default()
+    state.app_dir().to_path_buf()
 }
 
 /// Everything installed under the plugin naming convention, usable or not,

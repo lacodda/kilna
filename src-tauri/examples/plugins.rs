@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let conn = db::open(&path)?;
-    profile::seed(&conn)?;
+    profile::seed(&conn, profile::DEFAULT_KIND)?;
     let profile_id = profile::active(&conn)?.ok_or("no active profile")?.id;
 
     let works = work::list(

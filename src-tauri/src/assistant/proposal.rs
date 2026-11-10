@@ -1200,7 +1200,7 @@ mod tests {
 
     fn config() -> ProfileConfig {
         let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
+        profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
         profile::active(&conn).unwrap().unwrap().config
     }
 

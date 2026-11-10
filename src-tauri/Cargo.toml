@@ -42,7 +42,8 @@ tauri-plugin-window-state = "2.5"
 tauri-plugin-notification = "2.8"
 # kilna started again while it waits behind the tray brings the window back
 # rather than opening a second one on the same workspace (v0.107).
-tauri-plugin-single-instance = "2.5"
+# ... and hands it a `kilna://` link followed meanwhile (v0.109).
+tauri-plugin-single-instance = { version = "2.5", features = ["deep-link"] }
 # A pasted picture arrives as bytes and needs a file to be copied from; the
 # window is not given filesystem permissions for one temporary write.
 tempfile = "3"
@@ -57,6 +58,9 @@ fst = "0.4"
 # started - a cutter's ffmpeg would otherwise run on to the end: a job object
 # on Windows, a process group elsewhere.
 process-wrap = { version = "10", default-features = false, features = ["std", "job-object", "creation-flags", "process-group"] }
+# `kilna://<space>/work/<id>` opens a work from anywhere a link is followed;
+# the installer registers the scheme (#15, v0.109).
+tauri-plugin-deep-link = "2.6"
 
 [target.'cfg(windows)'.dependencies]
 # The flags a plugin is started with, kept beside its job object.

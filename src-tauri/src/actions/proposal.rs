@@ -3097,7 +3097,7 @@ mod bound_to_a_version_tests {
 
     fn two_revisions() -> (Connection, String, String, String) {
         let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
+        profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         let work_id = work::create(
             &conn,

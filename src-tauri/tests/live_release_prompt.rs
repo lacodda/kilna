@@ -20,7 +20,7 @@ fn a_written_release_is_asked_for_another_take() {
         );
     };
     let conn = kilna_lib::db::open(std::path::Path::new(&path)).unwrap();
-    kilna_lib::profile::seed(&conn).unwrap();
+    kilna_lib::profile::seed(&conn, kilna_lib::profile::DEFAULT_KIND).unwrap();
 
     let (composed, _) =
         kilna_lib::assistant::task::compose_for_release(&conn, &release_id, "release-meta")

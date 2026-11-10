@@ -26,7 +26,7 @@ use crate::{db, profile};
 /// profile's id.
 pub fn workspace() -> (Connection, String) {
     let conn = db::open_in_memory().expect("an in-memory workspace opens");
-    profile::seed(&conn).expect("the shipped profiles seed");
+    profile::seed(&conn, profile::DEFAULT_KIND).expect("the shipped profiles seed");
     let profile_id = profile::active(&conn)
         .expect("the active profile reads")
         .expect("seeding activates a profile")
@@ -46,7 +46,7 @@ pub fn workspace_with_media() -> (Connection, String, tempfile::TempDir) {
 pub fn workspace_on_disk() -> (Connection, String, tempfile::TempDir) {
     let dir = tempfile::tempdir().expect("a temporary directory");
     let conn = workspace_file(&dir.path().join("kilna.db"));
-    profile::seed(&conn).expect("the shipped profiles seed");
+    profile::seed(&conn, profile::DEFAULT_KIND).expect("the shipped profiles seed");
     let profile_id = profile::active(&conn)
         .expect("the active profile reads")
         .expect("seeding activates a profile")

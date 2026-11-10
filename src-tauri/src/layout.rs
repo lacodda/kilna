@@ -506,7 +506,7 @@ mod tests {
 
     fn workspace(every_days: u32) -> (Connection, String) {
         let conn = crate::db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
+        profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         set_rhythm(&conn, &profile_id, Some(every_days));
         (conn, profile_id)

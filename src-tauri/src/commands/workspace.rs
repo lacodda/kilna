@@ -14,16 +14,6 @@ pub fn get_workspace(state: State<'_, AppState>) -> Result<Workspace> {
 }
 
 #[tauri::command]
-pub fn list_profiles(state: State<'_, AppState>) -> Result<Vec<Profile>> {
-    profile::list(&state.conn())
-}
-
-#[tauri::command]
-pub fn activate_profile(state: State<'_, AppState>, id: String) -> Result<()> {
-    profile::activate(&state.conn(), &id)
-}
-
-#[tauri::command]
 pub fn update_profile_config(
     state: State<'_, AppState>,
     id: String,

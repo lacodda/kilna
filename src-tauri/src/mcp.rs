@@ -18,6 +18,7 @@
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, Write};
+use std::path::Path;
 
 use rusqlite::Connection;
 use serde_json::{Map, Value, json};
@@ -41,13 +42,31 @@ const INVALID_PARAMS: i64 = -32602;
 /// who it is.
 const UNNAMED_CLIENT: &str = "An agent";
 
-/// Serves the workspace on stdin/stdout until the client closes the stream.
+/// Serves the spaces of the application at `app_dir` on stdin/stdout until
+/// the client closes the stream.
 ///
-/// The database is opened once: a session is a long conversation, and
-/// re-opening the file for every call would only add failure modes. The
-/// client's name, from `initialize`, is remembered so its proposals land in
-/// a chat that says who made them.
-pub fn serve(conn: &Connection) -> Result<()> {
+/// A call is served from the space kilna last opened - looked up at every
+/// call, so the server follows the window - or from the one its `space`
+/// argument names (ADR 0077). Each space's database is opened once, the first
+/// time a call needs it: a session is a long conversation, and re-opening the
+/// file for every call would only add failure modes. It is opened as a
+/// companion of the window: no hold is taken, no run is swept, and a space
+/// another machine holds is served for reading only. The client's name, from
+/// `initialize`, is remembered so its proposals land in a chat that says who
+/// made them.
+pub fn serve(app_dir: &Path) -> Result<()> {
+    let app = crate::db::open_app(&app_dir.join(crate::db::APP_DATABASE_FILE))?;
+    crate::space::legacy::adopt(app_dir, &app)?;
+    if crate::space::registry::newest(&app, app_dir)?.is_none() {
+        crate::state::first_space(&app, app_dir)?;
+    }
+    let mut book = Book {
+        app,
+        app_dir: app_dir.to_path_buf(),
+        open: BTreeMap::new(),
+        blank: Connection::open_in_memory()?,
+    };
+
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
     let mut line = String::new();
@@ -72,7 +91,25 @@ pub fn serve(conn: &Connection) -> Result<()> {
                 continue;
             }
         };
-        let Some(response) = handle(conn, &mut session, &request) else {
+        let calls_a_tool = request.get("method").and_then(Value::as_str) == Some("tools/call");
+        let response = if calls_a_tool {
+            let named = request
+                .pointer("/params/arguments/space")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|name| !name.is_empty())
+                .map(str::to_owned);
+            match book.resolve(named.as_deref()) {
+                Ok((conn, space)) => {
+                    session.space = Some(space);
+                    handle(conn, &mut session, &request)
+                }
+                Err(err) => failed_call(&request, &err),
+            }
+        } else {
+            handle(&book.blank, &mut session, &request)
+        };
+        let Some(response) = response else {
             continue;
         };
         writeln!(stdout, "{response}")?;
@@ -80,12 +117,96 @@ pub fn serve(conn: &Connection) -> Result<()> {
     }
 }
 
+/// The spaces a session has opened, by id.
+struct Book {
+    app: Connection,
+    app_dir: std::path::PathBuf,
+    open: BTreeMap<String, Connection>,
+    /// What a message that reads no space - `initialize`, `ping`, the list of
+    /// tools - is answered with.
+    blank: Connection,
+}
+
+impl Book {
+    /// The space a call is served from, opened when it is not yet.
+    fn resolve(&mut self, named: Option<&str>) -> Result<(&Connection, SpaceInfo)> {
+        use crate::space::registry;
+        let space = match named {
+            Some(name) => registry::by_name(&self.app, &self.app_dir, name)?,
+            None => registry::newest(&self.app, &self.app_dir)?
+                .ok_or_else(|| Error::refused("space.none"))?,
+        };
+        if !space.reachable {
+            return Err(Error::refused("space.unreachable").param("path", space.path.clone()));
+        }
+        let others: Vec<String> = registry::list(&self.app, &self.app_dir, None)?
+            .into_iter()
+            .filter(|other| other.id != space.id && other.trashed_at.is_none())
+            .map(|other| other.name)
+            .collect();
+        if !self.open.contains_key(&space.id) {
+            let folder = registry::folder(&self.app, &self.app_dir, &space.id)?;
+            let (conn, held_by) = crate::state::open_space(&folder, crate::state::Role::Companion)?;
+            if let Some(holder) = held_by {
+                crate::log::info(
+                    "mcp",
+                    &format!(
+                        "{} is held by {}: served for reading",
+                        space.name, holder.machine
+                    ),
+                );
+            }
+            self.open.insert(space.id.clone(), conn);
+        }
+        let folder = registry::folder(&self.app, &self.app_dir, &space.id)?;
+        let held_by = match crate::space::lock::check(&folder) {
+            crate::space::lock::Hold::Elsewhere(holder) => Some(holder.machine),
+            crate::space::lock::Hold::Ours => None,
+        };
+        let info = SpaceInfo {
+            name: space.name,
+            kind: space.kind.unwrap_or_default(),
+            read_only_held_by: held_by,
+            others,
+        };
+        let conn = self
+            .open
+            .get(&space.id)
+            .ok_or_else(|| Error::Internal("a space opened is not in the book".into()))?;
+        Ok((conn, info))
+    }
+}
+
+/// A tool called in a space that cannot be served answers the agent with the
+/// reason, as a tool that fails does.
+fn failed_call(request: &Value, err: &Error) -> Option<Value> {
+    let id = request.get("id")?.clone();
+    Some(json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "result": { "content": [{ "type": "text", "text": err.to_string() }], "isError": true },
+    }))
+}
 /// What one connection knows about the client on the other end.
 #[derive(Debug, Default)]
 pub struct Session {
     /// The client's name from `initialize` — "Claude Code", say. Names the
     /// chat its proposals go into.
     pub client: Option<String>,
+    /// The space the call at hand is served from, as `workspace` names it.
+    pub space: Option<SpaceInfo>,
+}
+
+/// The space a call is served from, and the others an agent may name.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SpaceInfo {
+    pub name: String,
+    /// The kind it was made from: `music` (Studio), `blog`, `novel`, `podcast`.
+    pub kind: String,
+    /// The machine that holds it, when another does: proposals are refused.
+    pub read_only_held_by: Option<String>,
+    /// Every other space, by name: what `space` may name.
+    pub others: Vec<String>,
 }
 
 /// Answers one message, or `None` when it is a notification.
@@ -143,7 +264,10 @@ fn initialize() -> Value {
         "protocolVersion": PROTOCOL_VERSION,
         "capabilities": { "tools": {} },
         "serverInfo": { "name": "kilna", "version": env!("CARGO_PKG_VERSION") },
-        "instructions": "The workspace of a content maker: works, their versions, scores along the \
+        "instructions": "The workspace of a content maker, kept in spaces - a channel, a blog, a novel, \
+    each its own folder and its own works: every tool answers from the space kilna last opened, or \
+    from the one its `space` argument names, and `workspace` names the space and lists the others. \
+    In it: works, their versions, scores along the \
     craft's axes, releases in a calendar, notes. Start with `workspace` to learn the craft's \
     vocabulary (roles, axes, fields, statuses), then `catalogue` and `work` to find and read. You \
     cannot write: you PROPOSE, and the person applies it in kilna with one click, or does not. \
@@ -176,6 +300,18 @@ fn initialize() -> Value {
 
 /// One entry of the tool list, with the shape of its arguments.
 fn tool(name: &str, description: &str, properties: Value, required: &[&str]) -> Value {
+    // Every tool reads or proposes in one space: the one kilna last opened,
+    // or the one `space` names (ADR 0077).
+    let mut properties = properties;
+    if let Some(map) = properties.as_object_mut() {
+        map.insert(
+            "space".into(),
+            json!({
+                "type": "string",
+                "description": "A space by name, as `workspace` lists them; the one kilna last opened when left out",
+            }),
+        );
+    }
     json!({
         "name": name,
         "description": description,
@@ -231,7 +367,9 @@ fn tools() -> Vec<Value> {
     vec![
         tool(
             "workspace",
-            "The active profile: the craft's vocabulary, per kind of work. Each kind lists its \
+            "The space served - its name, its kind, the other spaces `space` may name, and whether \
+             another machine holds it, when proposals are refused - and its profile: the craft's \
+             vocabulary, per kind of work. Each kind lists its \
              version roles and how each reads, its scoring axes with weights and scales, its \
              tiers, statuses and kinds of release (each with the fields a release of it goes out \
              under and the shape of its cover, 16:9 or 9:16), and, for a kind with a storyboard, \
@@ -431,7 +569,7 @@ fn tools() -> Vec<Value> {
              the rest. With `work`: a package for that work — `title` and `kind` are ignored, \
              the rest is added to it. `fields` are the overview fields of the profile (see \
              `workspace`: `fields`), by key — a premise, a mood, a tagline go here, not into a \
-             note. `versions` are texts by role; on a new work they become its current versions, \
+             note. `versions` are texts by role; on a new work the first of them in a role that is a draft becomes its text, and the rest wait beside it, each current of its own role, \
              on an existing one they wait beside the current. `score` is marks along the kind's \
              axes. `notes` are notes on the work. `releases` plans releases and says what each \
              goes out as — its title, its description, its tags, the comment pinned under it — \
@@ -1167,6 +1305,7 @@ pub fn run_tool(
                 })
                 .collect();
             pretty(&json!({
+                "space": session.space,
                 "profile": { "key": profile.key, "name": profile.name, "description": profile.description },
                 "works": works,
                 "fields": fields,
@@ -2818,6 +2957,7 @@ mod tests {
     fn claude() -> Session {
         Session {
             client: Some("Claude Code".into()),
+            space: None,
         }
     }
 

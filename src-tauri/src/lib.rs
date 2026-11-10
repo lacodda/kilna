@@ -53,6 +53,7 @@ pub mod scene_note;
 pub mod score;
 pub mod search;
 pub mod shelf;
+pub mod space;
 pub mod state;
 pub mod style_brick;
 pub mod style_set;
@@ -71,27 +72,45 @@ use tauri::Manager;
 
 /// Build and run the desktop application on the usual workspace.
 pub fn run() {
-    run_in(None)
+    run_in(None, None)
 }
 
-/// Build and run the desktop application, on `workspace` when one is given.
+/// The event the window hears something to open by: a `space.kilna` double-
+/// clicked or a `kilna://` link followed while kilna is already open.
+pub const OPEN_EVENT: &str = "app:open";
+
+/// Build and run the desktop application, on `workspace` - an application
+/// directory - when one is given, opening `target` - a space's file or a link -
+/// once it stands.
 ///
 /// The override exists for the same reason `--mcp --workspace` does: a live
 /// run on a *copy* of a real workspace, before a change that migrates it is
 /// let near the original.
-pub fn run_in(workspace: Option<std::path::PathBuf>) {
+pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
     let mut builder = tauri::Builder::default();
     // kilna started again while it is open - or waiting behind the tray -
     // brings that window forward instead of opening a second one on the same
-    // workspace (v0.107). First, as the plugin asks: the second process ends
-    // inside it. Not for a run on another workspace (`--workspace`): that is
-    // a rehearsal on a copy, and must stand beside the real one.
+    // workspace (v0.107), and opens the space or the link it was started on.
+    // First, as the plugin asks: the second process ends inside it. Not for a
+    // run on another directory (`--workspace`): that is a rehearsal on a
+    // copy, and must stand beside the real one.
     if workspace.is_none() {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             tray::show_main(app);
+            // A link arrives through the deep-link plugin, which the single
+            // instance hands it to; a space's file arrives here.
+            if let Some(target) = commands::spaces::target_in(&args)
+                && commands::spaces::parse_link(&target).is_none()
+            {
+                use tauri::Emitter;
+                let _ = app.emit(OPEN_EVENT, target);
+            }
         }));
     }
     builder
+        // `kilna://<space>/work/<id>` opens a work from anywhere a link can
+        // be followed (#15); the scheme is registered by the installer.
+        .plugin(tauri_plugin_deep_link::init())
         // Needed by the data screen to pick a directory or a file.
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -114,45 +133,60 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
         // Closed with something going, the window hides behind the tray.
         .on_window_event(tray::close_requested)
         .setup(move |app| {
-            // Per-user application data, resolved by Tauri for the current
-            // platform — unless the command line named a directory.
+            // The application's own directory - beside the executable for a
+            // portable copy, per-user data otherwise - unless the command
+            // line named one.
             let data_dir = match &workspace {
                 Some(dir) => dir.clone(),
-                None => app.path().app_data_dir()?,
+                None => space::app_dir()?,
             };
             // First, so that anything the opening says lands in the file.
             log::init(&data_dir, log::APP_FILE);
-            let state = state::AppState::open(&db::default_path(&data_dir))?;
 
-            // The window may show the files the workspace holds, and only
-            // those. The scope is granted here rather than in the config
-            // because the directory is not known until now: `--workspace`
-            // moves it, and a path written into `tauri.conf.json` would be
-            // right for one workspace and wrong for the next.
-            match state.media_dir() {
-                Ok(media) => {
-                    if let Err(cause) = app.asset_protocol_scope().allow_directory(&media, true) {
-                        log::error(
-                            "assets",
-                            &format!("the window may not read {}: {cause}", media.display()),
-                        );
-                    }
+            // A space's file the start was handed opens straight away; a link
+            // waits for the window, which goes where it points.
+            let mut link = target
+                .clone()
+                .filter(|target| commands::spaces::parse_link(target).is_some());
+            let requested = target
+                .as_deref()
+                .filter(|target| commands::spaces::parse_link(target).is_none())
+                .map(std::path::PathBuf::from);
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                if link.is_none()
+                    && let Ok(Some(urls)) = app.deep_link().get_current()
+                {
+                    link = urls.first().map(ToString::to_string);
                 }
-                // Said, not fatal: everything but the pictures still works,
-                // and refusing to start over a directory would be worse.
-                Err(cause) => log::error("assets", &format!("no directory for files: {cause}")),
-            }
-            // And the media folders this machine keeps for the workspace's
-            // profiles: a work's folder on disk is looked at where it lies
-            // (ADR 0057), so the window has to be let in there too.
-            match folder::roots(&state.conn()) {
-                Ok(roots) => {
-                    for root in roots {
-                        commands::folders::allow(app.handle(), &root);
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    use tauri::Emitter;
+                    tray::show_main(&handle);
+                    for url in event.urls() {
+                        let _ = handle.emit(OPEN_EVENT, url.to_string());
                     }
-                }
-                Err(cause) => log::error("folder", &format!("no media folders read: {cause}")),
+                });
             }
+            app.manage(commands::spaces::Launch(std::sync::Mutex::new(link)));
+
+            let state = match requested {
+                Some(file) => state::AppState::start(&data_dir, Some(&file)).or_else(|cause| {
+                    log::error(
+                        "space",
+                        &format!("could not open {}: {cause}", file.display()),
+                    );
+                    state::AppState::start(&data_dir, None)
+                })?,
+                None => state::AppState::start(&data_dir, None)?,
+            };
+
+            // The window may show the files the space holds, and only those -
+            // and the media folders this machine keeps for it: a work's folder
+            // on disk is looked at where it lies (ADR 0057). Granted here and
+            // on every switch, because which folders those are is known only
+            // once a space is open.
+            commands::spaces::grant(app.handle(), &state);
 
             app.manage(state);
             // The runs and the queue say when they change, and the window
@@ -170,16 +204,30 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
                 });
             }
 
+            // The window says, once a minute, that it still holds its space
+            // (`kilna.lock`): another machine finding the hold fresh opens the
+            // space for reading only.
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    loop {
+                        std::thread::sleep(space::lock::BEAT_EVERY);
+                        handle.state::<state::AppState>().beat();
+                    }
+                });
+            }
+
             // The page shows the window as soon as it has painted. Should it
             // never get that far - a broken bundle, a webview that failed to
             // load - the window must still appear, or the app would be
             // running with nothing to close. Three seconds is longer than any
-            // healthy start and shorter than a person's patience.
+            // healthy start and shorter than a person's patience. A window
+            // closed behind the tray in those seconds stays there (wish 6659).
             let handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(3));
                 if let Some(window) = handle.get_webview_window("main")
-                    && !window.is_visible().unwrap_or(true)
+                    && tray::watchdog_shows(window.is_visible().unwrap_or(true), tray::put_away())
                 {
                     let _ = window.show();
                 }
@@ -188,8 +236,17 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
         })
         .invoke_handler(tauri::generate_handler![
             commands::workspace::get_workspace,
-            commands::workspace::list_profiles,
-            commands::workspace::activate_profile,
+            commands::spaces::list_spaces,
+            commands::spaces::current_space,
+            commands::spaces::create_space,
+            commands::spaces::open_space,
+            commands::spaces::rename_space,
+            commands::spaces::restyle_space,
+            commands::spaces::trash_space,
+            commands::spaces::restore_space,
+            commands::spaces::forget_space,
+            commands::spaces::take_launch_target,
+            commands::spaces::open_target,
             commands::workspace::update_profile_config,
             commands::workspace::workspace_path,
             commands::workspace::log_path,
@@ -507,6 +564,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             // workspace nobody is reading, on the user's tokens. Exit is the
             // last chance to end them.
             if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+                // The space is let go, so another machine need not wait for
+                // the hold to go stale.
+                app.state::<state::AppState>().release();
                 let stopped = app.state::<state::AppState>().runs().stop_all();
                 if stopped > 0 {
                     log::info(

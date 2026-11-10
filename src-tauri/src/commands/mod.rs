@@ -29,6 +29,7 @@ pub mod releases;
 pub mod scenes;
 pub mod scores;
 pub mod search;
+pub mod spaces;
 pub mod styles;
 pub mod time_off;
 pub mod trash;

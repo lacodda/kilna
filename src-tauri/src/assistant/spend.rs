@@ -48,23 +48,39 @@ pub struct Since<'a> {
     pub week: &'a str,
 }
 
-/// A day and a week of runs, every chat of the workspace together: the money
-/// is the person's whatever profile asked.
-pub fn read(conn: &Connection, since: Since<'_>) -> Result<Spend> {
+/// A day and a week of runs, every chat of every space together: the money is
+/// the person's whatever space asked, and the budget is theirs, in the
+/// application's database (ADR 0077). `spaces` are the databases to count -
+/// the open one first; a space that cannot be counted is said in the log and
+/// left out rather than failing the sum.
+pub fn read(spaces: &[&Connection], app: &Connection, since: Since<'_>) -> Result<Spend> {
     let day = moment(since.day)?;
     let week = moment(since.week)?;
     let spent = |from: &str| -> Result<f64> {
-        Ok(conn.query_row(
-            "SELECT coalesce(sum(cost_usd), 0) FROM chat_run \
-              WHERE cost_usd IS NOT NULL AND ended_at >= ?1",
-            params![from],
-            |row| row.get(0),
-        )?)
+        let mut total = 0.0;
+        for (n, conn) in spaces.iter().enumerate() {
+            let counted: rusqlite::Result<f64> = conn.query_row(
+                "SELECT coalesce(sum(cost_usd), 0) FROM chat_run \
+                  WHERE cost_usd IS NOT NULL AND ended_at >= ?1",
+                params![from],
+                |row| row.get(0),
+            );
+            match counted {
+                Ok(spent) => total += spent,
+                // The open space must count: its failure is a fault.
+                Err(cause) if n == 0 => return Err(cause.into()),
+                Err(cause) => crate::log::warn(
+                    "assistant",
+                    &format!("a space's runs could not be counted: {cause}"),
+                ),
+            }
+        }
+        Ok(total)
     };
     Ok(Spend {
         today: spent(&day)?,
         week: spent(&week)?,
-        budget: budget(conn)?,
+        budget: budget(app)?,
     })
 }
 
@@ -121,8 +137,22 @@ pub struct SpendCheck {
 ///
 /// Once per week and budget: raising the budget and going over it again is a
 /// new crossing, the same one noticed by the next run is not.
-pub fn check(conn: &Connection, profile_id: &str, since: Since<'_>) -> Result<SpendCheck> {
-    let spend = read(conn, since)?;
+///
+/// The line goes into the history of the open space - `spaces[0]` - the one
+/// the window shows when it says so.
+pub fn check(
+    spaces: &[&Connection],
+    app: &Connection,
+    profile_id: &str,
+    since: Since<'_>,
+) -> Result<SpendCheck> {
+    let spend = read(spaces, app, since)?;
+    let Some(conn) = spaces.first() else {
+        return Ok(SpendCheck {
+            spend,
+            crossed: false,
+        });
+    };
     let crossed = match spend.budget {
         Some(budget) if spend.over() => journal::record_news(
             conn,
@@ -174,6 +204,7 @@ mod tests {
     #[test]
     fn the_day_and_the_week_count_from_the_windows_own_midnight_and_monday() {
         let (conn, profile_id) = fixtures::workspace();
+        let app = crate::db::open_app_in_memory().unwrap();
         let chat_id = chat(&conn, &profile_id);
         run(&conn, &chat_id, "2026-11-01T23:59:59.999Z", Some(5.0)); // last week
         run(&conn, &chat_id, MONDAY, Some(1.0)); // the first moment of the week
@@ -181,60 +212,72 @@ mod tests {
         run(&conn, &chat_id, TODAY, Some(0.25));
         run(&conn, &chat_id, "2026-11-04T18:00:00.000Z", None); // stopped, unpriced
 
-        let spend = read(&conn, SINCE).unwrap();
+        let spend = read(&[&conn], &app, SINCE).unwrap();
         assert!((spend.today - 0.25).abs() < 1e-9, "{spend:?}");
         assert!((spend.week - 1.75).abs() < 1e-9, "{spend:?}");
         assert_eq!(spend.budget, None);
     }
 
+    /// Two spaces are one wallet: what a run of the other cost counts with
+    /// this one's, against the one budget.
     #[test]
-    fn every_profiles_runs_are_the_same_money() {
-        let (conn, profile_id) = fixtures::workspace();
-        conn.execute(
-            "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
-             SELECT 'other', 'other', 'Other', config, 0, 0, created_at, updated_at FROM profile LIMIT 1",
-            [],
-        )
-        .unwrap();
-        run(&conn, &chat(&conn, &profile_id), TODAY, Some(1.0));
-        run(&conn, &chat(&conn, "other"), TODAY, Some(2.0));
+    fn every_spaces_runs_are_the_same_money() {
+        let (here, here_profile) = fixtures::workspace();
+        let (there, there_profile) = fixtures::workspace();
+        let app = crate::db::open_app_in_memory().unwrap();
+        run(&here, &chat(&here, &here_profile), TODAY, Some(1.0));
+        run(&there, &chat(&there, &there_profile), TODAY, Some(2.0));
 
-        assert!((read(&conn, SINCE).unwrap().today - 3.0).abs() < 1e-9);
+        assert!((read(&[&here, &there], &app, SINCE).unwrap().today - 3.0).abs() < 1e-9);
+    }
+
+    /// A space that cannot be counted - a database from before the price was
+    /// kept - is left out of the sum, not a reason to refuse it; the open
+    /// one is.
+    #[test]
+    fn a_space_that_cannot_be_counted_is_left_out() {
+        let (here, profile_id) = fixtures::workspace();
+        let app = crate::db::open_app_in_memory().unwrap();
+        let odd = Connection::open_in_memory().unwrap();
+        run(&here, &chat(&here, &profile_id), TODAY, Some(1.0));
+
+        assert!((read(&[&here, &odd], &app, SINCE).unwrap().today - 1.0).abs() < 1e-9);
+        assert!(read(&[&odd, &here], &app, SINCE).is_err());
     }
 
     #[test]
     fn a_budget_is_set_changed_and_cleared_and_never_nonsense() {
-        let (conn, _) = fixtures::workspace();
-        assert_eq!(budget(&conn).unwrap(), None);
+        let app = crate::db::open_app_in_memory().unwrap();
+        assert_eq!(budget(&app).unwrap(), None);
 
-        set_budget(&conn, Some(10.0)).unwrap();
-        set_budget(&conn, Some(12.5)).unwrap();
-        assert_eq!(budget(&conn).unwrap(), Some(12.5));
+        set_budget(&app, Some(10.0)).unwrap();
+        set_budget(&app, Some(12.5)).unwrap();
+        assert_eq!(budget(&app).unwrap(), Some(12.5));
 
         for bad in [0.0, -1.0, f64::NAN, f64::INFINITY] {
-            assert!(set_budget(&conn, Some(bad)).is_err(), "{bad}");
+            assert!(set_budget(&app, Some(bad)).is_err(), "{bad}");
         }
         assert_eq!(
-            budget(&conn).unwrap(),
+            budget(&app).unwrap(),
             Some(12.5),
             "a refusal changes nothing"
         );
 
-        set_budget(&conn, None).unwrap();
-        assert_eq!(budget(&conn).unwrap(), None);
+        set_budget(&app, None).unwrap();
+        assert_eq!(budget(&app).unwrap(), None);
     }
 
     /// The schema holds the bound too, for a write that does not come
     /// through [`set_budget`].
     #[test]
     fn the_table_refuses_a_budget_of_nothing() {
-        let (conn, _) = fixtures::workspace();
-        let refused = conn.execute(
+        let app = crate::db::open_app_in_memory().unwrap();
+        let refused = app.execute(
             "INSERT INTO assistant_settings (id, weekly_budget_usd, updated_at) VALUES (1, 0, 'x')",
             [],
         );
         assert!(refused.is_err());
-        let second = conn.execute(
+        let second = app.execute(
             "INSERT INTO assistant_settings (id, weekly_budget_usd, updated_at) VALUES (2, 1, 'x')",
             [],
         );
@@ -244,22 +287,23 @@ mod tests {
     #[test]
     fn crossing_the_budget_is_said_once_a_week_and_budget() {
         let (conn, profile_id) = fixtures::workspace();
+        let app = crate::db::open_app_in_memory().unwrap();
         let chat_id = chat(&conn, &profile_id);
-        set_budget(&conn, Some(1.0)).unwrap();
+        set_budget(&app, Some(1.0)).unwrap();
         run(&conn, &chat_id, TODAY, Some(0.75));
 
-        let under = check(&conn, &profile_id, SINCE).unwrap();
+        let under = check(&[&conn], &app, &profile_id, SINCE).unwrap();
         assert!(!under.crossed && !under.spend.over());
 
         run(&conn, &chat_id, TODAY, Some(0.5));
-        let over = check(&conn, &profile_id, SINCE).unwrap();
+        let over = check(&[&conn], &app, &profile_id, SINCE).unwrap();
         assert!(over.crossed && over.spend.over());
-        let again = check(&conn, &profile_id, SINCE).unwrap();
+        let again = check(&[&conn], &app, &profile_id, SINCE).unwrap();
         assert!(!again.crossed, "the same crossing is said once");
 
         // A higher budget crossed again is a new thing to say.
-        set_budget(&conn, Some(1.2)).unwrap();
-        assert!(check(&conn, &profile_id, SINCE).unwrap().crossed);
+        set_budget(&app, Some(1.2)).unwrap();
+        assert!(check(&[&conn], &app, &profile_id, SINCE).unwrap().crossed);
 
         let lines = journal::list(&conn, &profile_id)
             .unwrap()
@@ -272,10 +316,11 @@ mod tests {
     #[test]
     fn a_moment_that_is_not_one_is_refused() {
         let (conn, _) = fixtures::workspace();
+        let app = crate::db::open_app_in_memory().unwrap();
         let bad = Since {
             day: "today",
             week: MONDAY,
         };
-        assert!(read(&conn, bad).is_err());
+        assert!(read(&[&conn], &app, bad).is_err());
     }
 }

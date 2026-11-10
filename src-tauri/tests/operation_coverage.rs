@@ -243,11 +243,26 @@ fn through_an_action(path: &str) -> bool {
 /// Each entry is a promise that replaying the log without its write still
 /// produces the right database, and says why. Anything not on this list that
 /// writes has to hand the write to an action.
-const WRITES_PAST_THE_ACTIONS: [(&str, &str); 14] = [
+const WRITES_PAST_THE_ACTIONS: [(&str, &str); 17] = [
     (
-        "activate_profile",
-        "which profile is open is a fact about this machine; ADR 0012 keeps it off the wire \
-         for the same reason",
+        "create_space",
+        "a space is a folder of its own with a database of its own (ADR 0077): making one \
+         writes its file and this machine's registry, and no workspace's log is the place \
+         for either",
+    ),
+    (
+        "rename_space",
+        "as above: a space's name is in its own file, and whether kilna still asks for one is \
+         this machine's record",
+    ),
+    (
+        "restore_space",
+        "taking a space out of the trash is this machine's registry, which is not a workspace",
+    ),
+    (
+        "open_target",
+        "as above: a space double-clicked is written into this machine's registry, and taken \
+         out of its trash",
     ),
     (
         "create_chat",

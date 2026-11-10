@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = args.next().ok_or("usage: migrate <kilna.db> <legacy.db>")?;
 
     let conn = db::open(std::path::Path::new(&target))?;
-    profile::seed(&conn)?;
+    profile::seed(&conn, profile::DEFAULT_KIND)?;
     let profile_id = profile::active(&conn)?.ok_or("no active profile")?.id;
 
     let report = import::from_legacy(&conn, std::path::Path::new(&source), &profile_id)?;

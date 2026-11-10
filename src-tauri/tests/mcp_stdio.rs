@@ -128,9 +128,9 @@ fn the_binary_serves_the_protocol_on_its_own_workspace_and_stops_with_the_pipe()
         "{names:?}"
     );
 
-    // A fresh workspace is seeded with the shipped profiles, and the tools
-    // answer against the active one — the notification above must not have
-    // been answered, or this id would not match.
+    // A fresh directory gets a first space, Studio, and the tools answer from
+    // it — the notification above must not have been answered, or this id
+    // would not match.
     let workspace_tool = server.call(
         3,
         "tools/call",
@@ -141,6 +141,8 @@ fn the_binary_serves_the_protocol_on_its_own_workspace_and_stops_with_the_pipe()
         .unwrap();
     let card: Value = serde_json::from_str(text).unwrap();
     assert_eq!(card["works"], 0);
+    assert_eq!(card["space"]["name"], "Studio");
+    assert_eq!(card["space"]["kind"], "music");
     // The vocabulary comes per kind (format 2): the first kind is a song,
     // and a song has axes.
     assert!(
@@ -149,15 +151,37 @@ fn the_binary_serves_the_protocol_on_its_own_workspace_and_stops_with_the_pipe()
             .is_some_and(|axes| !axes.is_empty())
     );
 
+    // A space the call names that is not there is the agent's to hear about,
+    // not a protocol failure.
+    let elsewhere = server.call(
+        4,
+        "tools/call",
+        json!({ "name": "catalogue", "arguments": { "space": "Nowhere" } }),
+    );
+    assert_eq!(elsewhere["result"]["isError"], true, "{elsewhere}");
+    assert!(
+        elsewhere["result"]["content"][0]["text"]
+            .as_str()
+            .is_some_and(|text| text.contains("Nowhere")),
+        "{elsewhere}"
+    );
+
     let status = server.finish();
     assert!(
         status.success(),
         "the server should exit cleanly when the client hangs up: {status}"
     );
     assert!(
-        workspace.join("kilna.db").exists(),
-        "the workspace lives where it was pointed"
+        workspace.join("app.db").exists(),
+        "the application's database lives where it was pointed"
     );
+    let spaces: Vec<PathBuf> = std::fs::read_dir(workspace.join("spaces"))
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.path())
+        .collect();
+    assert_eq!(spaces.len(), 1, "{spaces:?}");
+    assert!(spaces[0].join("kilna.db").exists() && spaces[0].join("space.kilna").exists());
 
     let _ = std::fs::remove_dir_all(&workspace);
 }

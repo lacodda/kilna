@@ -96,7 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("usage: demo <path-to-kilna.db>")?;
 
     let conn = db::open(std::path::Path::new(&path))?;
-    profile::seed(&conn)?;
+    profile::seed(&conn, profile::DEFAULT_KIND)?;
     let profile_id = profile::active(&conn)?.ok_or("no active profile")?.id;
 
     for demo in WORKS {

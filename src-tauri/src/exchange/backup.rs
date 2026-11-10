@@ -91,7 +91,7 @@ mod tests {
 
     fn seeded(path: &Path, title: &str) -> Connection {
         let conn = crate::fixtures::workspace_file(path);
-        profile::seed(&conn).unwrap();
+        profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         work::create(
             &conn,

@@ -571,6 +571,86 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     Ok(())
 }
 
+/// Point every row - and every row the trash keeps - at this space's own
+/// `media/`, after its folder moved: copied to another machine, or carried
+/// into a space by v0.109 (ADR 0077).
+///
+/// A row's path is whole, so that every comparison of two of them - is this
+/// file still named, by a live row or an entry of the trash - compares one
+/// form with the same form. A path that already lies in `media_dir` is left
+/// alone; one that names a `media/` folder elsewhere is moved onto this one
+/// when the file is here under the same name. A path that names neither is
+/// left as it is: it is a file kilna does not keep, and pointing it anywhere
+/// would be a guess.
+///
+/// Returns how many paths changed.
+pub fn rebase(conn: &Connection, media_dir: &Path) -> Result<usize> {
+    let moved = |path: &str| -> Option<String> {
+        let path = Path::new(path);
+        if path.starts_with(media_dir) {
+            return None;
+        }
+        let name = path.file_name()?;
+        let parent = path.parent()?.file_name()?;
+        if parent != crate::state::MEDIA_DIR {
+            return None;
+        }
+        let here = media_dir.join(name);
+        here.is_file().then(|| here.to_string_lossy().into_owned())
+    };
+
+    let mut changed = 0;
+    let rows: Vec<(String, String)> = conn
+        .prepare("SELECT id, path FROM asset")?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    for (id, path) in rows {
+        if let Some(here) = moved(&path) {
+            conn.execute(
+                "UPDATE asset SET path = ?2 WHERE id = ?1",
+                params![id, here],
+            )?;
+            changed += 1;
+        }
+    }
+
+    let entries: Vec<(String, String)> = conn
+        .prepare(
+            "SELECT id, snapshot FROM deletion \
+              WHERE json_type(snapshot, '$.asset') = 'array'",
+        )?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    for (id, raw) in entries {
+        let mut snapshot: serde_json::Value = serde_json::from_str(&raw)?;
+        let mut touched = false;
+        if let Some(rows) = snapshot
+            .get_mut("asset")
+            .and_then(serde_json::Value::as_array_mut)
+        {
+            for row in rows {
+                let Some(here) = row
+                    .get("path")
+                    .and_then(serde_json::Value::as_str)
+                    .and_then(moved)
+                else {
+                    continue;
+                };
+                row["path"] = serde_json::Value::String(here);
+                touched = true;
+                changed += 1;
+            }
+        }
+        if touched {
+            conn.execute(
+                "UPDATE deletion SET snapshot = ?2 WHERE id = ?1",
+                params![id, serde_json::to_string(&snapshot)?],
+            )?;
+        }
+    }
+    Ok(changed)
+}
+
 fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Asset> {
     Ok(Asset {
         id: row.get(0)?,
@@ -958,5 +1038,74 @@ mod tests {
         assert!(get(&conn, &asset.id).unwrap().is_none());
         assert!(!stored.exists(), "the bytes go with the row");
         assert!(for_work(&conn, &work_id).unwrap().is_empty());
+    }
+
+    /// A space whose folder moved finds its files where they are now: the rows
+    /// and the entries of the trash that named the old `media/` name this one,
+    /// and a path kilna does not keep is left as it was.
+    #[test]
+    fn a_moved_space_points_its_rows_and_its_trash_at_its_own_media() {
+        let (conn, profile_id, media) = workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let old = Path::new("C:/before/kilna/media");
+        std::fs::write(media.path().join("a1.png"), b"png").unwrap();
+        std::fs::write(media.path().join("a2.png"), b"png").unwrap();
+        for (id, path) in [
+            ("a1", old.join("a1.png")),
+            ("kept", media.path().join("a2.png")),
+            ("outside", Path::new("C:/downloads/a3.png").to_path_buf()),
+            ("missing", old.join("a4.png")),
+        ] {
+            conn.execute(
+                "INSERT INTO asset (id, profile_id, work_id, kind, path, created_at)
+                 VALUES (?1, ?2, ?3, 'attachment', ?4, 't')",
+                params![id, profile_id, work_id, path.to_string_lossy()],
+            )
+            .unwrap();
+        }
+        let trashed = serde_json::json!({
+            "asset": [{ "id": "gone", "path": old.join("a2.png").to_string_lossy() }],
+        });
+        conn.execute(
+            "INSERT INTO deletion (id, profile_id, entity, entity_id, label, snapshot, deleted_at)
+             VALUES ('d', ?1, 'work', 'w', 'A work', ?2, 't')",
+            params![profile_id, trashed.to_string()],
+        )
+        .unwrap();
+
+        assert_eq!(rebase(&conn, media.path()).unwrap(), 2);
+
+        let path = |id: &str| -> String {
+            conn.query_row("SELECT path FROM asset WHERE id = ?1", [id], |row| {
+                row.get(0)
+            })
+            .unwrap()
+        };
+        assert_eq!(path("a1"), media.path().join("a1.png").to_string_lossy());
+        assert_eq!(path("kept"), media.path().join("a2.png").to_string_lossy());
+        assert_eq!(
+            path("outside"),
+            Path::new("C:/downloads/a3.png").to_string_lossy()
+        );
+        assert_eq!(
+            path("missing"),
+            old.join("a4.png").to_string_lossy(),
+            "not here: no guess"
+        );
+        let snapshot: String = conn
+            .query_row("SELECT snapshot FROM deletion WHERE id = 'd'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let snapshot: serde_json::Value = serde_json::from_str(&snapshot).unwrap();
+        assert_eq!(
+            snapshot["asset"][0]["path"],
+            media.path().join("a2.png").to_string_lossy().as_ref()
+        );
+        assert_eq!(
+            rebase(&conn, media.path()).unwrap(),
+            0,
+            "a second open changes nothing"
+        );
     }
 }

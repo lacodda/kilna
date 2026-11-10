@@ -1,10 +1,12 @@
-//! What the person decides about the assistant on this workspace (v0.108):
-//! how many runs may go at once, which model they start with, and what they may
-//! read beyond what the prompt carries.
+//! What the person decides about the assistant (v0.108): how many runs may go
+//! at once, which model they start with, and what they may read beyond what the
+//! prompt carries.
 //!
-//! One typed row, beside the week's budget ([`super::spend`]), past the
-//! operations log: these say what this machine may be asked to carry and what
-//! a program on it may read, which is nobody else's business.
+//! One typed row, beside the week's budget ([`super::spend`]), in the
+//! application's database since spaces (ADR 0077): these say what this machine
+//! may be asked to carry and what a program on it may read, the same whatever
+//! space is open, and nobody else's business. Every function here takes the
+//! application's connection, not a space's.
 
 use std::path::PathBuf;
 
@@ -273,7 +275,7 @@ mod tests {
 
     #[test]
     fn a_workspace_nobody_set_anything_on_reads_the_defaults() {
-        let (conn, _profile_id) = fixtures::workspace();
+        let conn = crate::db::open_app_in_memory().unwrap();
 
         assert_eq!(read(&conn).unwrap(), AssistantSettings::default());
         assert_eq!(read(&conn).unwrap().parallel_runs, 3);
@@ -283,7 +285,7 @@ mod tests {
     /// budget among them.
     #[test]
     fn a_setting_keeps_the_others_where_they_were() {
-        let (conn, _profile_id) = fixtures::workspace();
+        let conn = crate::db::open_app_in_memory().unwrap();
         super::super::spend::set_budget(&conn, Some(12.0)).unwrap();
 
         set_parallel_runs(&conn, 5).unwrap();
@@ -300,7 +302,7 @@ mod tests {
     /// first, in words, and the schema is what stands behind it.
     #[test]
     fn runs_outside_the_bounds_are_refused_and_change_nothing() {
-        let (conn, _profile_id) = fixtures::workspace();
+        let conn = crate::db::open_app_in_memory().unwrap();
         set_parallel_runs(&conn, 4).unwrap();
 
         for runs in [0, MOST_PARALLEL_RUNS + 1] {
@@ -325,7 +327,7 @@ mod tests {
 
     #[test]
     fn a_model_is_an_alias_a_full_name_or_nothing() {
-        let (conn, _profile_id) = fixtures::workspace();
+        let conn = crate::db::open_app_in_memory().unwrap();
 
         for name in ["opus", "claude-opus-5-5", "claude-opus-5-5[1m]", "us.a:b_c"] {
             assert_eq!(
@@ -353,7 +355,7 @@ mod tests {
     /// stays as it was.
     #[test]
     fn a_name_that_is_not_a_name_never_reaches_the_command_line() {
-        let (conn, _profile_id) = fixtures::workspace();
+        let conn = crate::db::open_app_in_memory().unwrap();
         set_model(&conn, Some("opus")).unwrap();
         let too_long = "a".repeat(LONGEST_MODEL + 1);
 

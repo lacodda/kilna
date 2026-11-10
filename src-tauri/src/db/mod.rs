@@ -10,8 +10,52 @@ use rusqlite::backup::Backup;
 
 use crate::error::{Error, Result};
 
-/// File name of the workspace database inside the application data directory.
+/// File name of a space's database inside its folder.
 pub const DATABASE_FILE: &str = "kilna.db";
+
+/// File name of the application's own database inside its data directory:
+/// the spaces this machine knows and the settings that are the person's
+/// (ADR 0077).
+pub const APP_DATABASE_FILE: &str = "app.db";
+
+/// Open the application's database at `path`, applying its own steps.
+pub fn open_app(path: &Path) -> Result<Connection> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut conn = Connection::open(path)?;
+    configure(&conn)?;
+    migrations::apply_app(&mut conn)?;
+    Ok(conn)
+}
+
+/// The application's database in memory, for tests.
+pub fn open_app_in_memory() -> Result<Connection> {
+    let mut conn = Connection::open_in_memory()?;
+    configure(&conn)?;
+    migrations::apply_app(&mut conn)?;
+    Ok(conn)
+}
+
+/// Open a space's database for reading only - a space held open by another
+/// machine (ADR 0077). Nothing is migrated and nothing is seeded: a database
+/// this build would have to change is refused rather than opened half-way.
+pub fn open_read_only(path: &Path) -> Result<Connection> {
+    let conn = Connection::open_with_flags(
+        path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_URI,
+    )?;
+    conn.pragma_update(None, "foreign_keys", true)?;
+    let found = migrations::current_version(&conn)?;
+    let supported = migrations::latest_version();
+    if found > supported {
+        return Err(Error::SchemaTooNew { found, supported });
+    }
+    if found < supported {
+        return Err(Error::refused("space.readOnlyOlder"));
+    }
+    Ok(conn)
+}
 
 /// Open a workspace, applying any pending migrations.
 pub fn open(path: &Path) -> Result<Connection> {
@@ -145,7 +189,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 42,
+            tables, 41,
             "nine core tables, three for the assistant, the trash, two for the focus board, \
              three for the day two workspaces meet (device, tombstone, field_clock), the operations log, \
              the link between works, the scene, what a scene is about, the frames drawn for it, \
@@ -157,8 +201,8 @@ mod tests {
              the keys the search index finds its rows by, \
              the cards on the boards of a work's conception, \
              what was heard in a video's finished file, \
-             the assistant's settings, \
-             and what each plugin has been set to"
+             and what each plugin has been set to - the assistant's settings are the \
+             application's since spaces (0050)"
         );
     }
 

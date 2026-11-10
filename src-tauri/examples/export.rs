@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let directory = args.next().ok_or("usage: export <kilna.db> <directory>")?;
 
     let conn = db::open(std::path::Path::new(&source))?;
-    profile::seed(&conn)?;
+    profile::seed(&conn, profile::DEFAULT_KIND)?;
 
     let report = export::to_markdown(&conn, std::path::Path::new(&directory))?;
 

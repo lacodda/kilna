@@ -312,11 +312,37 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0049_settings_and_plugins.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 50,
+        name: "spaces",
+        sql: include_str!("../../migrations/0050_spaces.sql"),
+        rebuilds: false,
+    },
 ];
+
+/// The steps of the application's own database (`app.db`, ADR 0077): what
+/// this machine knows about the spaces it has opened, and the settings that
+/// are the person's whatever space is open. Numbered apart from a space's: the
+/// two files never meet, and each says its own version.
+pub const APP_MIGRATIONS: &[Migration] = &[Migration {
+    version: 1,
+    name: "spaces",
+    sql: include_str!("../../app-migrations/0001_spaces.sql"),
+    rebuilds: false,
+}];
 
 /// The newest schema this build understands.
 pub fn latest_version() -> i64 {
-    MIGRATIONS.last().map_or(0, |m| m.version)
+    latest_of(MIGRATIONS)
+}
+
+/// The newest schema of the application's database this build understands.
+pub fn latest_app_version() -> i64 {
+    latest_of(APP_MIGRATIONS)
+}
+
+fn latest_of(steps: &[Migration]) -> i64 {
+    steps.last().map_or(0, |m| m.version)
 }
 
 /// Schema version currently stored in the database.
@@ -329,8 +355,17 @@ pub fn current_version(conn: &Connection) -> Result<i64> {
 /// Each step runs in its own transaction, so a failure leaves the database on
 /// the last version that fully applied rather than half-way through one.
 pub fn apply(conn: &mut Connection) -> Result<i64> {
+    apply_steps(conn, MIGRATIONS)
+}
+
+/// Apply every step of the application's database it has not seen yet.
+pub fn apply_app(conn: &mut Connection) -> Result<i64> {
+    apply_steps(conn, APP_MIGRATIONS)
+}
+
+fn apply_steps(conn: &mut Connection, steps: &[Migration]) -> Result<i64> {
     let mut version = current_version(conn)?;
-    let latest = latest_version();
+    let latest = latest_of(steps);
 
     if version > latest {
         return Err(Error::SchemaTooNew {
@@ -340,7 +375,7 @@ pub fn apply(conn: &mut Connection) -> Result<i64> {
     }
 
     let from = version;
-    for migration in MIGRATIONS.iter().filter(|m| m.version > from) {
+    for migration in steps.iter().filter(|m| m.version > from) {
         // Outside the transaction: inside one, the pragma does nothing.
         if migration.rebuilds {
             conn.pragma_update(None, "foreign_keys", false)?;
@@ -394,6 +429,53 @@ mod tests {
                 migration.name
             );
         }
+    }
+
+    #[test]
+    fn the_application_steps_are_sequential_and_start_at_one() {
+        for (index, migration) in APP_MIGRATIONS.iter().enumerate() {
+            assert_eq!(migration.version, index as i64 + 1, "{}", migration.name);
+        }
+    }
+
+    /// The application's database is brought up by its own steps, never a
+    /// space's: a space's tables in `app.db`, or the registry in a space,
+    /// would be a second home for one of them.
+    #[test]
+    fn the_application_database_holds_the_registry_and_the_settings_only() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        assert_eq!(apply_app(&mut conn).unwrap(), latest_app_version());
+
+        let tables: Vec<String> = conn
+            .prepare(
+                "SELECT name FROM sqlite_master WHERE type = 'table' \
+                  AND name NOT LIKE 'sqlite_%' ORDER BY name",
+            )
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap();
+        assert_eq!(tables, ["assistant_settings", "space"]);
+        assert_eq!(apply_app(&mut conn).unwrap(), latest_app_version());
+    }
+
+    /// A space's database no longer keeps the assistant's settings: they are
+    /// the person's on this machine, in `app.db`, whatever space is open.
+    #[test]
+    fn a_space_keeps_no_settings_of_the_assistant() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply(&mut conn).unwrap();
+
+        let kept: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE name = 'assistant_settings'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(kept, 0);
     }
 
     #[test]

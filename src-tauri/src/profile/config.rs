@@ -4663,7 +4663,7 @@ mod tests {
 
     fn studio() -> ProfileConfig {
         let conn = crate::db::open_in_memory().unwrap();
-        crate::profile::seed(&conn).unwrap();
+        crate::profile::seed(&conn, crate::profile::DEFAULT_KIND).unwrap();
         crate::profile::active(&conn).unwrap().unwrap().config
     }
 

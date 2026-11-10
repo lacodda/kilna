@@ -2,9 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    // `kilna --mcp` is the same build without a window: the workspace served
-    // to an agent on stdin/stdout. `--workspace <dir>` points it at another
-    // workspace directory — a test's, or a second one kept elsewhere.
+    // `kilna --mcp` is the same build without a window: the spaces served to
+    // an agent on stdin/stdout. `--workspace <dir>` points it at another
+    // application directory — a test's, or a copy kept for a rehearsal.
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|arg| arg == "--mcp") {
         std::process::exit(match serve_mcp(&args) {
@@ -18,7 +18,10 @@ fn main() {
             }
         });
     }
-    kilna_lib::run_in(workspace_arg(&args))
+    // A `space.kilna` double-clicked, or a `kilna://` link followed, arrives
+    // as an argument (ADR 0077).
+    let target = kilna_lib::commands::spaces::target_in(&args);
+    kilna_lib::run_in(workspace_arg(&args), target)
 }
 
 /// The directory `--workspace <dir>` names, when it does.
@@ -30,13 +33,10 @@ fn workspace_arg(args: &[String]) -> Option<std::path::PathBuf> {
 }
 
 fn serve_mcp(args: &[String]) -> kilna_lib::Result<()> {
-    let workspace = workspace_arg(args);
-    let data_dir = match workspace {
+    let app_dir = match workspace_arg(args) {
         Some(dir) => dir,
-        None => kilna_lib::db::default_data_dir()?,
+        None => kilna_lib::space::app_dir()?,
     };
-    kilna_lib::log::init(&data_dir, kilna_lib::log::MCP_FILE);
-    let state = kilna_lib::state::AppState::open(&kilna_lib::db::default_path(&data_dir))?;
-    let conn = state.conn();
-    kilna_lib::mcp::serve(&conn)
+    kilna_lib::log::init(&app_dir, kilna_lib::log::MCP_FILE);
+    kilna_lib::mcp::serve(&app_dir)
 }
