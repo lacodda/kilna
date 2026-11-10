@@ -37,3 +37,25 @@ describe("Base UI's one stylesheet", () => {
     )
   })
 })
+
+/*
+ * Without `connect-src` for Tauri's own protocol the window's IPC fell back to
+ * postMessage - "IPC custom protocol failed" in the console, every command
+ * and channel on the slow path, and a raw response arriving as an array of
+ * numbers (wishes 3936, 5792). The policy is the configuration's; this holds
+ * the line in it.
+ */
+describe("the window's policy", () => {
+  it('lets the IPC protocol through, and nothing else from outside', () => {
+    const conf = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8')) as {
+      app: { security: { csp: string } }
+    }
+    const connect = conf.app.security.csp
+      .split(';')
+      .map((directive) => directive.trim())
+      .find((directive) => directive.startsWith('connect-src'))
+    expect(connect?.split(/\s+/).sort()).toEqual(
+      ['connect-src', "'self'", 'ipc:', 'http://ipc.localhost'].sort(),
+    )
+  })
+})

@@ -23,6 +23,13 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
+  build: {
+    // A font is never written into the bundle as `data:`: the window's CSP
+    // (`default-src 'self'`, no `font-src`) refuses one without a word, and a
+    // style sample in Pixelify Sans bold fell back to another face (wish
+    // 6850). Everything else follows Vite's own limit.
+    assetsInlineLimit: (file) => (/\.(woff2?|ttf|otf)$/i.test(file) ? false : undefined),
+  },
   clearScreen: false,
   server: {
     port: 1420,
