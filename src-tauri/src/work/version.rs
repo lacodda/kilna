@@ -61,11 +61,13 @@ pub struct NewVersion {
     pub label: Option<String>,
     #[serde(default)]
     pub meta: Option<Map<String, Value>>,
-    /// Make this the work's current version. Defaults to true: a new draft is
-    /// almost always the one being worked on. Only a draft can be: a version
-    /// of a role that is not one - a style prompt, a brief, a review - is
-    /// written beside the current text and never in its place, whatever this
-    /// says (v0.99, see [`is_draft`]).
+    /// Make this the work's current version - current of its role. Defaults
+    /// to true: a new draft is almost always the one being worked on. Only a
+    /// draft can be: a version of a role that is not one - a style prompt, a
+    /// brief, a review - is written beside the current text and never in its
+    /// place, whatever this says (v0.99, see [`is_draft`]). And only in its
+    /// role: a draft of another role than the current one - a video's context
+    /// beside its plot - waits beside it too (v0.109, see `takes_current`).
     // Not an `Option`, so `optional_fields` cannot reach it - said by hand.
     #[serde(default = "default_true")]
     #[ts(optional = nullable)]
@@ -180,7 +182,10 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
         ],
     )?;
 
-    if new.make_current && is_draft(tx, work_id, &new.role)? {
+    if new.make_current
+        && is_draft(tx, work_id, &new.role)?
+        && takes_current(tx, work_id, &new.role)?
+    {
         tx.execute(
             "UPDATE work SET current_version_id = ?2, updated_at = ?3 WHERE id = ?1",
             params![work_id, id, timestamp],
@@ -194,6 +199,31 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
     }
 
     Ok(id)
+}
+
+/// Whether a new draft of `role` becomes the work's current version when it
+/// asks to: "current" is current of its role. It takes the place of the
+/// current version when that one is of the same role, or when the work has
+/// none; a draft of another role of the same work - a video's context beside
+/// its plot - is written beside it and does not take the work's text over.
+/// Making another role's version the work's text is a choice of its own
+/// (`set_current`). A script that wrote a plot, then a context, made the
+/// context the text of 25 clips (wish 3988).
+fn takes_current(conn: &Connection, work_id: &str, role: &str) -> Result<bool> {
+    let current_role: Option<String> = conn
+        .query_row(
+            "SELECT v.role FROM work w JOIN work_version v ON v.id = w.current_version_id
+              WHERE w.id = ?1",
+            params![work_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    match current_role {
+        None => Ok(true),
+        Some(current) if current == role => Ok(true),
+        // A current version that is no draft is no text of the work to keep.
+        Some(current) => Ok(!is_draft(conn, work_id, &current)?),
+    }
 }
 
 /// Whether `id` is a version of `work_id` in `role` - one a new version in
@@ -805,6 +835,43 @@ second line"
         assert_eq!(parts[1].body, "the hook");
     }
 
+    /// A video's plot is its text; a context written after it with "make
+    /// current" is written beside it and does not take the text over - and a
+    /// new plot still does (wish 3988).
+    #[test]
+    fn a_draft_of_another_role_does_not_take_the_works_text_over() {
+        let (conn, profile_id) = crate::fixtures::workspace();
+        let clip = crate::fixtures::video(&conn, &profile_id, "Tide (video)");
+        let draft = |role: &str, body: &str| {
+            create(
+                &conn,
+                &clip.id,
+                NewVersion {
+                    role: role.into(),
+                    body: body.into(),
+                    ..NewVersion::default()
+                },
+            )
+            .unwrap()
+        };
+        let current = || {
+            crate::work::get(&conn, &clip.id)
+                .unwrap()
+                .unwrap()
+                .current_version_id
+        };
+
+        let plot = draft("plot", "A pier at dawn.");
+        assert_eq!(current(), Some(plot.id.clone()));
+        draft("context", "Shot on film, grey sea.");
+        assert_eq!(
+            current(),
+            Some(plot.id),
+            "the context waits beside the plot"
+        );
+        let second = draft("plot", "A pier at dusk.");
+        assert_eq!(current(), Some(second.id), "a plot takes the plot's place");
+    }
     /// A part named and left empty is the material, not a miss: `[End]`,
     /// `[Guitar Solo]`, a `[Chorus]` repeated by marker alone. It is a part of
     /// the song and becomes a scene like any other.
