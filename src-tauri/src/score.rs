@@ -176,7 +176,31 @@ pub fn create_minted(
     let total = config.total(&kind, &new.axes);
     let tier = config.tier_for(&kind, total).map(|tier| tier.key.clone());
 
-    let version_id = new.version_id.or(current_version);
+    // Left unnamed, a score reads the work's current text - when that is a
+    // draft of it. A work with no draft at all is scored as a whole, against
+    // no text: its style prompt or its brief is no text of the work, and a
+    // score pinned to one read a prompt as the song (wish 3649).
+    let version_id = match new.version_id {
+        Some(named) => Some(named),
+        None => match current_version {
+            Some(current) => {
+                let role: Option<String> = conn
+                    .query_row(
+                        "SELECT role FROM work_version WHERE id = ?1",
+                        params![current],
+                        |row| row.get(0),
+                    )
+                    .optional()?;
+                match role {
+                    Some(role) if crate::work::version::is_draft(conn, work_id, &role)? => {
+                        Some(current)
+                    }
+                    _ => None,
+                }
+            }
+            None => None,
+        },
+    };
     if let Some(version_id) = &version_id {
         let belongs: bool = conn
             .query_row(
@@ -647,6 +671,43 @@ mod tests {
         assert_eq!(row.total.unwrap().round(), 90.0);
     }
 
+    /// A work whose current version is no draft of it - its style prompt, a
+    /// brief - is scored as a whole, not against that text (wish 3649).
+    #[test]
+    fn a_score_is_not_pinned_to_a_text_that_is_no_draft() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+        let config = profile::config_for(&conn, &profile_id).unwrap();
+        let about = config
+            .vocabulary("song")
+            .version_roles
+            .iter()
+            .find(|role| !role.counts_as_a_version())
+            .expect("a song has a role that is written about it")
+            .key
+            .clone();
+        let prompt = fixtures::version(&conn, &work_id, &about, "a prompt, not the song");
+        conn.execute(
+            "UPDATE work SET current_version_id = ?2 WHERE id = ?1",
+            params![work_id, prompt.id],
+        )
+        .unwrap();
+
+        let score = create(
+            &conn,
+            &work_id,
+            NewScore {
+                axes: axes(json!({ "hook": 7 })),
+                version_id: None,
+                note: None,
+                rater: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(score.version_id, None);
+    }
+
     #[test]
     fn a_score_pins_itself_to_the_works_current_version() {
         let (conn, profile_id) = fixtures::workspace();
@@ -1112,7 +1173,7 @@ mod tests {
     #[test]
     fn a_kind_without_axes_is_scored_empty_rather_than_on_anothers() {
         let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
+        profile::seed(&conn, profile::DEFAULT_KIND).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         let raw: String = conn
             .query_row(
