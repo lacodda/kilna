@@ -1326,11 +1326,39 @@ pub fn choices_sheet(conn: &Connection, work: &Work) -> Result<String> {
         }
     }
 
-    if !names.cards.is_empty() {
-        out.push_str("\nHeroes from the canon (`hero`) - a card the picture is drawn from; leave it out to let the scene describe the hero:\n");
-        for card in &names.cards {
-            let described = crate::note::get(conn, &card.id)?
-                .and_then(|note| note.prompt)
+    // Only the cards this publication, or the song it is made from, shows -
+    // its own hero, a name in its text, a scene, a cover, a fact read from
+    // it. Every card of the canon was some 175 lines and 62 thousand
+    // characters of a short's prompt (wish 3954); the rest are counted, and
+    // a hero may still be named by its title.
+    let mut here = vec![work.id.clone()];
+    here.extend(crate::link::ancestors(conn, &work.id)?);
+    let mut heroes = Vec::new();
+    let mut elsewhere = 0usize;
+    for card in &names.cards {
+        let Some(note) = crate::note::get(conn, &card.id)? else {
+            continue;
+        };
+        let lives_here = note
+            .work_id
+            .as_deref()
+            .is_some_and(|work_id| here.iter().any(|id| id == work_id));
+        let appears = lives_here
+            || crate::canon::appearances::of_card(conn, &note)?
+                .iter()
+                .any(|appearance| here.contains(&appearance.work_id));
+        if appears {
+            heroes.push((card, note));
+        } else {
+            elsewhere += 1;
+        }
+    }
+    if !heroes.is_empty() {
+        out.push_str("\nHeroes from the canon (`hero`) - a card this work shows that the picture is drawn from; leave it out to let the scene describe the hero:\n");
+        for (card, note) in heroes {
+            let described = note
+                .prompt
+                .as_deref()
                 .is_some_and(|prompt| !prompt.trim().is_empty());
             out.push_str(&format!(
                 "- `{}` {} ({}){}\n",
@@ -1344,6 +1372,11 @@ pub fn choices_sheet(conn: &Connection, work: &Work) -> Result<String> {
                 }
             ));
         }
+    }
+    if elsewhere > 0 {
+        out.push_str(&format!(
+            "\n{elsewhere} more card(s) of the canon appear nowhere in this work; a `hero` may name one by its title.\n"
+        ));
     }
 
     if !channel.bans.is_empty() {
@@ -1727,6 +1760,44 @@ mod tests {
                 gradient.colours.join(" to ")
             )),
             "a gradient accent is offered with its stops: {sheet}"
+        );
+    }
+
+    /// The heroes offered are the cards the publication shows - named in the
+    /// text of the song it is made from - and the rest of the canon is a
+    /// count, not a list (wish 3954).
+    #[test]
+    fn the_heroes_offered_are_the_cards_the_work_shows() {
+        let (conn, profile_id) = studio();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        fixtures::version(&conn, &song.id, "lyrics", "Wren walks the pier at dawn.");
+        let clip = fixtures::video(&conn, &profile_id, "Tide (video)");
+        crate::link::create(
+            &conn,
+            &profile_id,
+            crate::link::NewLink {
+                work_id: clip.id.clone(),
+                source_id: song.id.clone(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        let others: Vec<String> = ["Otto", "Mara", "The lighthouse keeper"]
+            .into_iter()
+            .map(|title| fixtures::card(&conn, &profile_id, "character", title).id)
+            .collect();
+
+        let sheet = choices_sheet(&conn, &clip).unwrap();
+
+        assert!(sheet.contains(&format!("`{}` Wren", wren.id)), "{sheet}");
+        for id in &others {
+            assert!(!sheet.contains(id.as_str()), "{sheet}");
+        }
+        assert!(
+            sheet.contains("3 more card(s) of the canon appear nowhere in this work"),
+            "{sheet}"
         );
     }
 
