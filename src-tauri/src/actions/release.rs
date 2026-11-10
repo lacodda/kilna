@@ -490,6 +490,11 @@ pub fn mark_released(
         act.param("url", url.clone());
         act.param("on_day", on_day.clone());
         let before = release::get(act, id)?.ok_or_else(|| Error::not_found("release", id))?;
+        // Marked out of the queue, it takes its day as a slot; the undo takes
+        // the slot back with the mark.
+        if before.scheduled_at.is_none() {
+            act.param("slotted", true);
+        }
         let moving = door.filter(|door| *door != before.kind);
         if let Some(door) = &moving {
             let work = crate::work::get(act, &before.work_id)?

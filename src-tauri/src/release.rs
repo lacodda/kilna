@@ -575,15 +575,20 @@ pub fn mark_released_at(
     on_day: Option<String>,
     at: &str,
 ) -> Result<Release> {
-    let released_at = match on_day {
-        Some(day) => day_stamp(&day)?,
-        None => at.to_owned(),
+    // A release marked out from the queue, with no day of its own, takes the
+    // day it went out as its slot: without one it fell out of the queue and
+    // out of the calendar both, and the month's history never showed it
+    // (wish 5073). A slot it had is kept.
+    let (released_at, slot) = match on_day {
+        Some(day) => (day_stamp(&day)?, day),
+        None => (at.to_owned(), at.get(..10).unwrap_or(at).to_owned()),
     };
 
     if conn.execute(
-        "UPDATE release SET status = ?2, released_at = ?3, url = coalesce(?4, url), updated_at = ?5
+        "UPDATE release SET status = ?2, released_at = ?3, url = coalesce(?4, url), updated_at = ?5,
+                scheduled_at = coalesce(scheduled_at, ?6)
          WHERE id = ?1",
-        params![id, RELEASED, released_at, url, at],
+        params![id, RELEASED, released_at, url, at, slot],
     )? == 0
     {
         return Err(unknown_release(id));
@@ -1424,6 +1429,66 @@ mod tests {
             "2026-07-18"
         );
         assert_eq!(out.status, RELEASED);
+    }
+
+    /// A release marked out of the queue, without a slot, stands on the day
+    /// it went out: in the calendar and its history, and no longer in the
+    /// queue (wish 5073). A slot it had stays where it was.
+    #[test]
+    fn a_release_marked_out_of_the_queue_stands_on_its_day() {
+        let (conn, profile_id) = fixtures::workspace();
+        let queued = planned(&conn, &profile_id, "Queued", None);
+        let slotted = planned(&conn, &profile_id, "Slotted", None);
+        schedule(&conn, &slotted.id, "2026-07-01").unwrap();
+
+        mark_released(&conn, &queued.id, None, Some("2026-07-18".into())).unwrap();
+        mark_released(&conn, &slotted.id, None, Some("2026-07-18".into())).unwrap();
+
+        let calendar = calendar(&conn, &profile_id).unwrap();
+        let day_of = |id: &str| {
+            calendar
+                .iter()
+                .find(|row| row.release.id == id)
+                .and_then(|row| row.release.scheduled_at.clone())
+        };
+        assert_eq!(day_of(&queued.id).as_deref(), Some("2026-07-18"));
+        assert_eq!(day_of(&slotted.id).as_deref(), Some("2026-07-01"));
+        assert!(
+            queue(&conn, &profile_id)
+                .unwrap()
+                .iter()
+                .all(|row| row.release.id != queued.id)
+        );
+
+        let unnamed = planned(&conn, &profile_id, "Unnamed", None);
+        let out = mark_released(&conn, &unnamed.id, None, None).unwrap();
+        assert_eq!(
+            out.scheduled_at.as_deref(),
+            out.released_at.as_deref().map(|stamp| &stamp[..10])
+        );
+    }
+
+    /// Taking back a mark made out of the queue takes back the slot it gave:
+    /// the release is queued again, as it was.
+    #[test]
+    fn undoing_a_mark_out_of_the_queue_puts_it_back_in_the_queue() {
+        let (conn, profile_id) = fixtures::workspace();
+        let queued = planned(&conn, &profile_id, "Queued", None);
+        crate::actions::release::mark_released(
+            &conn,
+            &queued.id,
+            None,
+            Some("2026-07-18".into()),
+            None,
+        )
+        .unwrap();
+
+        let last = crate::undo::last(&conn).unwrap().unwrap();
+        crate::undo::undo(&conn, &last.operation_id).unwrap();
+
+        let back = get(&conn, &queued.id).unwrap().unwrap();
+        assert_eq!(back.status, PLANNED);
+        assert_eq!(back.scheduled_at, None, "in the queue again, with no day");
     }
 
     /// Without a day, the mark still means "just now" — the common case must

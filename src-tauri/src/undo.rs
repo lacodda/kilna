@@ -789,8 +789,12 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
                 .get("before")
                 .map(|_| from_params(params, "before"))
                 .transpose()?;
+            let slotted = params.get("slotted").and_then(Value::as_bool) == Some(true);
             apply(conn, |tx| {
                 crate::release::unmark_released_at(tx, &id, &at)?;
+                if slotted {
+                    crate::release::unschedule_at(tx, &id, &at)?;
+                }
                 if let Some(patch) = door_before {
                     crate::release::update_at(tx, &id, patch, &at)?;
                 }
