@@ -16,6 +16,7 @@
 //! through the tray's own API.
 
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::Deserialize;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -83,8 +84,26 @@ pub fn close_requested(window: &tauri::Window, event: &WindowEvent) {
     }
 }
 
+/// Whether the window was put behind the tray since the application started.
+/// The start's watchdog reads it: a window the person closed to the tray is
+/// not one that failed to appear (wish 6659).
+static PUT_AWAY: AtomicBool = AtomicBool::new(false);
+
+/// Whether the window was put behind the tray since the start.
+pub fn put_away() -> bool {
+    PUT_AWAY.load(Ordering::SeqCst)
+}
+
+/// Whether the start's watchdog should show the window: it never appeared -
+/// it is not visible and was not put away. A window hidden behind the tray
+/// within the first seconds stays hidden.
+pub fn watchdog_shows(visible: bool, put_away: bool) -> bool {
+    !visible && !put_away
+}
+
 /// Put the window behind the tray.
 pub fn hide_main<R: Runtime>(app: &AppHandle<R>) {
+    PUT_AWAY.store(true, Ordering::SeqCst);
     if let Err(cause) = tray(app).and_then(|tray| tray.set_visible(true)) {
         // Hiding a window nobody can bring back would lose it: with no tray,
         // the window stays where it is.
@@ -165,5 +184,20 @@ pub fn set_tray_words(app: AppHandle, words: State<'_, Words>, said: TrayWords) 
         && let Ok(menu) = menu(&app, &said)
     {
         let _ = tray.set_menu(Some(menu));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The window closed to the tray within the watchdog's three seconds stays
+    /// behind the tray; one that never appeared is shown.
+    #[test]
+    fn the_watchdog_shows_only_a_window_that_never_appeared() {
+        assert!(watchdog_shows(false, false), "never painted: shown");
+        assert!(!watchdog_shows(false, true), "put away by the person: left");
+        assert!(!watchdog_shows(true, false));
+        assert!(!watchdog_shows(true, true));
     }
 }
