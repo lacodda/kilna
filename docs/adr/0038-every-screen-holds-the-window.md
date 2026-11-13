@@ -88,3 +88,7 @@ Below 672px of its own width dowel's `ListDetail` shows one of its two columns,
 so every call says whether something is open. The window's floor rose from 900
 to 960px so that no screen and no tab of a card gets that narrow beside the
 full rail: on the desktop, the list stands beside what is open at every size.
+
+The note being edited no longer scrolls a native column either: it stands in
+`components/TextScroll`, the scroller a version's text has stood in since
+v0.80, whose content box is a column at least as tall as the window onto it.

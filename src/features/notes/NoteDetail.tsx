@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/Markdown'
+import { TextScroll } from '@/components/TextScroll'
 import { Select } from '@/components/AppSelect'
 import { SaveState, type SaveStatus } from '@/components/ui/save-state'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
@@ -234,7 +235,10 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* The line's overlay bar, as every other part of a frame scrolls. The
+          box being typed into takes the whole column and scrolls itself
+          past it; the note read is a page that scrolls here. */}
+      <TextScroll label={t('notes.bodyLabel')}>
         {editing ? (
           // A picture pasted or dropped goes into the text (v0.93).
           <NoteBodyEditor
@@ -251,7 +255,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
             }}
             placeholder={t('notes.bodyPlaceholder')}
             aria-label={t('notes.bodyLabel')}
-            className="h-full min-h-full w-full resize-none rounded-none border-0 bg-transparent px-5 py-4 font-mono text-sm leading-relaxed focus-visible:ring-0"
+            className="w-full resize-none rounded-none border-0 bg-transparent px-5 py-4 font-mono text-sm leading-relaxed focus-visible:ring-0"
           />
         ) : body.text.trim() === '' ? (
           // An empty note offers the editor in the words its placeholder
@@ -274,7 +278,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
             />
           </div>
         )}
-      </div>
+      </TextScroll>
 
       <footer className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-line px-3 py-2">
         {/* A tag is two actions side by side, not one inside the other: its

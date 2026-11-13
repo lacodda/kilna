@@ -8,7 +8,7 @@ import { MarkedTextarea } from '@/components/ui/marked-text'
 import { Markdown } from '@/components/Markdown'
 import { cn } from '@/lib/utils'
 import { CompareColumn } from '@/features/work/tabs/versions/CompareColumn'
-import { TextScroll } from '@/features/work/tabs/versions/TextScroll'
+import { TextScroll } from '@/components/TextScroll'
 import { textMetrics } from '@/features/work/tabs/versions/metrics'
 import { useLineDiff } from '@/features/work/tabs/versions/useLineDiff'
 
