@@ -1,18 +1,16 @@
 import { createPortal } from 'react-dom'
 import type { ScheduledRelease } from '@/lib/api/types'
 import type { Dragging } from '@/lib/useChipDrag'
-import { SlotChip } from '@/features/calendar/SlotChip'
+import { ReleaseLine } from '@/features/calendar/ReleaseLine'
 
 interface Props {
   dragging: Dragging
   slot: ScheduledRelease
   now: string
-  /** The week's two-line chip, as it was picked up. */
-  roomy?: boolean
 }
 
 /**
- * The chip that follows the pointer.
+ * The line that follows the pointer: the release's own `ReleaseLine`.
  *
  * A real one, drawn by React rather than a bitmap the browser snapshots: it
  * keeps the work's colour, its marks and its title, and it can be styled while
@@ -20,7 +18,7 @@ interface Props {
  * the days clip their chips now, and the queue it may be carried to is beside
  * the month rather than inside it.
  */
-export function CarriedChip({ dragging, slot, now, roomy = false }: Props) {
+export function CarriedChip({ dragging, slot, now }: Props) {
   return createPortal(
     <div
       // Above the overlays it may pass under; the scale is dowel's, not a
@@ -33,15 +31,14 @@ export function CarriedChip({ dragging, slot, now, roomy = false }: Props) {
         width: dragging.size.width,
       }}
     >
-      <SlotChip
+      <ReleaseLine
         slot={slot}
         date={slot.scheduled_at ?? now}
         now={now}
         dragging={false}
         onGrab={() => {}}
         onOpen={() => {}}
-        asGhost
-        roomy={roomy}
+        carried
       />
     </div>,
     document.body,

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { dayOf } from '@/components/ui/big-calendar'
 import { useChipDrag } from '@/lib/useChipDrag'
 
 /** What `over` holds while the pointer is over the queue rather than a day. */
@@ -75,8 +76,8 @@ export function useCalendarDrag({ onStep, onMove, onUnschedule }: Options) {
     },
     onDrop: (id, target) => {
       setOver(null)
-      const day = target?.closest<HTMLElement>('[data-day]')?.dataset.day
-      if (day !== undefined) {
+      const day = dayOf(target)
+      if (day !== null) {
         onMove(id, day)
         return
       }
@@ -90,5 +91,25 @@ export function useCalendarDrag({ onStep, onMove, onUnschedule }: Options) {
     onPointerLeave: () => setOver((current) => (current === key ? null : current)),
   })
 
-  return { gridRef, dragging, begin, over, target }
+  /**
+   * The handlers for a grid of days: one pair on the grid rather than one on
+   * each of forty-two days, the day read back from whatever the pointer is
+   * over (`dayOf`). Leaving the grid leaves no day under the pointer; the
+   * queue says so itself when the pointer reaches it.
+   */
+  const days: DaysTarget = {
+    onPointerOver: (event) => {
+      const day = dayOf(event.target)
+      setOver((current) => (day === null ? (current === QUEUE ? current : null) : day))
+    },
+    onPointerLeave: () => setOver((current) => (current === QUEUE ? current : null)),
+  }
+
+  return { gridRef, dragging, begin, over, target, days }
+}
+
+/** The pointer handlers a grid of days wears, so the day under a chip lights up. */
+export interface DaysTarget {
+  onPointerOver: (event: React.PointerEvent) => void
+  onPointerLeave: () => void
 }

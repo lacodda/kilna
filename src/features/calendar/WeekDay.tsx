@@ -1,17 +1,16 @@
 import { useTranslation } from 'react-i18next'
 import { CalendarOff, Plus } from 'lucide-react'
-import type { ScheduledRelease, SlotPreview, SlotVerdict, TimeOff } from '@/lib/api/types'
+import type { ScheduledRelease, SlotPreview, TimeOff } from '@/lib/api/types'
 import type { Ghost } from '@/lib/layout'
 import type { Day } from '@/lib/month'
-import { foldDay } from '@/lib/calendarDay'
+import { foldDay } from '@/components/ui/big-calendar'
 import { formatDay } from '@/lib/format'
-import { landingWarning } from '@/lib/repeats'
 import { RowContextMenu } from '@/components/RowMenu'
 import { Button } from '@/components/ui/button'
 import { Scroll } from '@/components/Scroll'
-import { GhostChip } from '@/features/calendar/GhostChip'
-import { SlotChip } from '@/features/calendar/SlotChip'
-import type { DropTarget } from '@/features/calendar/useCalendarDrag'
+import { dayActions } from '@/features/calendar/days'
+import { LandingLines, landingSays } from '@/features/calendar/LandingLines'
+import { PlannedLine, ReleaseLine } from '@/features/calendar/ReleaseLine'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -20,10 +19,8 @@ interface Props {
   /** Where the auto-layout would land queued releases on this day. */
   ghosts: readonly Ghost[]
   now: string
-  /** How many chip lines the day has room for (`lib/calendarDay`). */
+  /** How many lines the day has room for (`linesThatFit`). */
   lines: number
-  /** The week's two-line chips rather than the month's one-line ones. */
-  roomy: boolean
   /** Showing everything it holds, rolled inside the day, rather than folded. */
   expanded: boolean
   onExpand: (expanded: boolean) => void
@@ -44,31 +41,28 @@ interface Props {
   onGrab: (event: React.PointerEvent, releaseId: string) => void
   /** Whether something is over this day that could land on it. */
   over: boolean
-  /** The handlers that light the day up under a chip or a pick, when either is live. */
-  target?: DropTarget
   /** What the day already holds, and what the release would repeat on it,
    *  said while something is over it. */
   verdict: SlotPreview | null
-  /** Where the day sits in the grid, for which of its hairlines to draw. */
+  /** Whether the day is the last of the row, which draws no hairline after it. */
   lastColumn: boolean
-  lastRow: boolean
 }
 
 /**
- * One day of the month, as tall as the window makes it.
+ * One day of the week, as tall as the window makes it.
  *
- * The day never grows: it shows as many one-line chips as fit and folds the
- * rest into a count. The count opens the day in place - the same height, its
- * chips rolled inside it - so looking at a busy Friday does not push the
- * following week off the bottom of the window.
+ * The day never grows: it shows as many lines as fit and folds the rest into
+ * a count. The count opens the day in place - the same height, its lines
+ * rolled inside it - so a busy Friday does not push anything off the window.
+ * Its lines are the month's (`ReleaseLine`), twenty-four pixels each and edge
+ * to edge, so the sum `foldDay` makes is exact.
  */
-export function DayCell({
+export function WeekDay({
   day,
   releases,
   ghosts,
   now,
   lines,
-  roomy,
   expanded,
   onExpand,
   claiming,
@@ -81,20 +75,17 @@ export function DayCell({
   carrying,
   onGrab,
   over,
-  target,
   verdict,
   lastColumn,
-  lastRow,
 }: Props) {
   const { t } = useTranslation()
   const isToday = day.date === now
-  const repeats = verdict === null ? null : landingWarning(verdict.repeats)
 
-  // Booked chips first, then the plan's: a booking is a fact, a ghost is the
-  // question the bar above the month is asking.
-  const chips = [
+  // Booked lines first, then the plan's: a booking is a fact, a planned line
+  // is the question the bar above the week is asking.
+  const items = [
     ...releases.map((slot) => (
-      <SlotChip
+      <ReleaseLine
         key={slot.id}
         slot={slot}
         date={day.date}
@@ -102,13 +93,12 @@ export function DayCell({
         dragging={carrying === slot.id}
         onGrab={(event) => onGrab(event, slot.id)}
         onOpen={() => onOpenRelease(slot.id)}
-        roomy={roomy}
       />
     )),
-    ...ghosts.map((ghost) => <GhostChip key={ghost.releaseId} ghost={ghost} roomy={roomy} />),
+    ...ghosts.map((ghost) => <PlannedLine key={`plan-${ghost.releaseId}`} ghost={ghost} />),
   ]
 
-  const folded = foldDay(chips.length, lines)
+  const folded = foldDay(items.length, lines)
   // Open only while there is something folded away: a window made taller
   // with a day open shows everything anyway, and a "show fewer" under it
   // would fold nothing.
@@ -116,63 +106,40 @@ export function DayCell({
 
   return (
     <RowContextMenu
-      actions={[
-        { key: 'add', label: t('calendar.addOnDay'), onSelect: onAdd },
-        {
-          key: 'timeOff',
-          label:
-            closed === null
-              ? t('timeOff.closeDay')
-              : t('timeOff.editNamed', { title: closed.label }),
-          onSelect: onTimeOff,
-        },
-        { key: 'shift', label: t('shift.fromDay'), onSelect: onShiftFrom },
-      ]}
+      actions={dayActions(t, closed, { add: onAdd, timeOff: onTimeOff, shift: onShiftFrom })}
       render={
         <div
           // The date this cell stands for, read back from the element the
-          // pointer was released over. A day of a neighbouring month is on a
-          // quieter ground but not inert: dragging reaches it, and the month
-          // turns under the pointer anyway.
+          // pointer is over or was released over (`dayOf`).
           data-day={day.date}
           className={cn(
-            'group relative flex min-h-0 min-w-0 flex-col gap-0.5 overflow-hidden border-line p-1 transition-colors',
-            !lastColumn && 'border-r',
-            !lastRow && 'border-b',
-            !day.inMonth && 'bg-softer',
+            'group relative flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden p-1 transition-colors',
+            !lastColumn && 'border-r border-line',
             // A closed day is hatched: still a day - something can be put on
             // it by hand - but plainly not one the plan meant to fill.
             closed !== null && CLOSED_GROUND,
-            claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
+            claiming && 'cursor-pointer hover:bg-soft',
             // Somewhere to land. No red: nothing is refused any more, and a
             // day that already holds something says so in words below.
             over && 'bg-accent-soft',
           )}
-          onClick={claiming && day.inMonth ? onPick : undefined}
-          // One set of handlers for both gestures: the queue's click-to-book
-          // and a chip in the air. The carried chip is `pointer-events: none`,
-          // so the day underneath keeps receiving the pointer and lights up
-          // as it is crossed.
-          onPointerEnter={target?.onPointerEnter}
-          onPointerLeave={target?.onPointerLeave}
+          onClick={claiming ? onPick : undefined}
         />
       }
     >
       <div className="flex h-5 shrink-0 items-center justify-between gap-1">
         {/* Today is where the eye starts, so it is filled rather than
-            coloured: on a grid of forty-two cells a coloured digit is not
-            where the eye starts. */}
+            coloured. */}
         <span className="flex min-w-0 items-center gap-1">
           <span
             className={cn(
               'shrink-0 rounded-xs px-1 font-mono text-2xs tabular-nums',
-              isToday ? 'bg-accent font-semibold text-on-accent' : 'text-faint',
+              isToday ? 'bg-accent font-semibold text-on-accent' : 'text-dim',
             )}
           >
             {Number(day.date.slice(8))}
           </span>
-          {/* Why the day is closed, in the line the date already takes: a
-              closed day keeps every chip line it had. */}
+          {/* Why the day is closed, in the line the date already takes. */}
           {closed !== null && (
             <span
               title={t('timeOff.closedBy', { title: closed.label })}
@@ -184,11 +151,9 @@ export function DayCell({
           )}
         </span>
 
-        {/* Under the pointer only: a plus on every one of forty-two cells is
-            forty-two plus signs to read past. It is `opacity-0` rather than
-            absent so the row does not reflow as the pointer crosses the
-            month, and `focus-visible` brings it back for the keyboard, which
-            has no hover to offer. */}
+        {/* Under the pointer only, and `opacity-0` rather than absent so the
+            row does not reflow as the pointer crosses the week;
+            `focus-visible` brings it back for the keyboard. */}
         <Button
           variant="icon"
           size="icon-xs"
@@ -207,23 +172,20 @@ export function DayCell({
       {open ? (
         <Scroll
           label={t('calendar.dayReleases', { date: formatDay(day.date) })}
-          className={cn('min-h-0', !day.inMonth && 'opacity-60')}
-          contentClassName="flex flex-col gap-0.5"
+          className="min-h-0"
+          contentClassName="flex flex-col"
         >
-          {chips}
+          {items}
           <FoldButton onClick={() => onExpand(false)}>{t('calendar.showFewer')}</FoldButton>
         </Scroll>
       ) : (
         <div
-          // What `DayGrid` measures: the part of a day its chips have,
-          // the same in every day of the month.
+          // What `WeekGrid` measures: the part of a day its lines have, the
+          // same in every day of the week.
           data-day-lines
-          className={cn(
-            'flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden',
-            !day.inMonth && 'opacity-60',
-          )}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          {chips.slice(0, folded.shown)}
+          {items.slice(0, folded.shown)}
           {/* The rest are one line away rather than hidden: the count is the
               whole point. */}
           {folded.more > 0 && (
@@ -234,43 +196,19 @@ export function DayCell({
         </div>
       )}
 
-      {/* Laid over the foot of the day rather than under its chips: the day
-          does not grow, and the verdict is only up while something hovers.
-          Who is there, and what the release would repeat there (ADR 0054),
-          a line each - the repeat last, nearest the foot, in the guard's
-          red: it is the one that may change where the release goes. */}
-      {verdict !== null && (
-        <div className="pointer-events-none absolute inset-x-1 bottom-1 flex flex-col gap-0.5">
-          {verdict.closed !== null && (
-            <p className="rounded-sm bg-raise px-1 py-0.5 text-2xs leading-tight text-warn shadow-lift">
-              {t('timeOff.landsOnClosed', { title: verdict.closed })}
-            </p>
-          )}
-          {verdict.verdict !== 'empty' && (
-            <p
-              className={cn(
-                'rounded-sm px-1 py-0.5 text-2xs leading-tight shadow-lift',
-                VERDICT_TONE[verdict.verdict],
-              )}
-            >
-              {t(`calendar.preview.${verdict.verdict}`, { title: verdict.holder_title ?? '' })}
-            </p>
-          )}
-          {repeats !== null && (
-            <p
-              role="status"
-              className="rounded-sm bg-raise px-1 py-0.5 text-2xs leading-tight text-bad shadow-lift"
-            >
-              {repeats}
-            </p>
-          )}
-        </div>
+      {/* Laid over the foot of the day rather than under its lines, as the
+          month lays it: the day does not grow, and the verdict is only up
+          while something hovers. */}
+      {over && landingSays(verdict) && (
+        <p className="pointer-events-none absolute inset-x-1 bottom-1 rounded-sm bg-raise px-1 py-0.5 text-2xs leading-tight text-dim shadow-lift">
+          <LandingLines verdict={verdict} />
+        </p>
       )}
     </RowContextMenu>
   )
 }
 
-/** The line that folds a day or opens it: a chip's height, so the sum holds. */
+/** The line that folds a day or opens it: a line's height, so the sum holds. */
 function FoldButton({ onClick, children }: { onClick: () => void; children: string }) {
   return (
     <Button
@@ -279,7 +217,7 @@ function FoldButton({ onClick, children }: { onClick: () => void; children: stri
         event.stopPropagation()
         onClick()
       }}
-      className="h-5 shrink-0 self-start px-1 text-xs"
+      className="h-6 shrink-0 self-start px-1 text-xs"
     >
       {children}
     </Button>
@@ -287,25 +225,8 @@ function FoldButton({ onClick, children }: { onClick: () => void; children: stri
 }
 
 /**
- * How a day's verdict reads while something is dragged over it.
- *
- * Neither is a refusal - a day holds as many releases as are put on it - so
- * neither is red. Something already there is information; a date settled by
- * hand is worth a warmer look before adding beside it. Written as a record
- * over the verdicts, so a verdict the backend adds is a type error here until
- * it has a tone. Opaque grounds, since the line is laid over the day's chips.
- */
-const VERDICT_TONE: Record<SlotVerdict, string> = {
-  // Never drawn: an empty day says nothing while something is dragged over it.
-  empty: '',
-  taken: 'bg-raise text-dim',
-  pinned: 'bg-raise text-warn',
-}
-
-/**
  * The ground of a closed day: a fine hatch in the hairline's colour, over
- * whatever ground the day already has - so a closed day of a neighbouring
- * month is still quieter than one of this month.
+ * whatever ground the day already has.
  */
 const CLOSED_GROUND =
   '[background-image:repeating-linear-gradient(135deg,var(--line-2)_0_1px,transparent_1px_7px)]'

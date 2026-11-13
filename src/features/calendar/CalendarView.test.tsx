@@ -91,6 +91,27 @@ describe('the calendar', () => {
     noScrollerInAnother(dialog, 'the choice of a work')
   })
 
+  it('starts the week on Monday in English, and is one tab stop', async () => {
+    // dowel's month follows the language's week, and English alone would
+    // start it on Sunday; a release plan is read in working weeks.
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const month = within(main).getByRole('grid')
+    expect(within(month).getAllByRole('columnheader')[0]).toHaveTextContent('Mon')
+
+    // The cursor is on today: one day takes Tab, and the lines of every other
+    // day are out of the order - a month of forty releases is not forty stops.
+    const stops = within(month)
+      .getAllByRole('gridcell')
+      .filter((day) => day.tabIndex === 0)
+    expect(stops.map((day) => day.dataset.day)).toEqual(['2026-09-15'])
+    const line = within(month)
+      .getByText('Paper Lanterns — audio', { exact: true })
+      .closest('button')!
+    expect(line.tabIndex).toBe(-1)
+  })
+
   it('claims the day a release is dropped on through the contest', async () => {
     await carryTo('[data-day="2026-09-24"]')
 
@@ -179,7 +200,7 @@ describe('the calendar', () => {
     await act(async () => {
       fireEvent.pointerMove(window, { clientX: 400, clientY: 400 })
     })
-    fireEvent.pointerEnter(day)
+    fireEvent.pointerOver(day)
     expect(await within(day).findByText(warning)).toBeInTheDocument()
     expect(backend.argsOf('schedule_release')).toEqual([])
 
@@ -283,7 +304,7 @@ describe('days and shifts (v0.96)', () => {
     await act(async () => {
       fireEvent.pointerMove(window, { clientX: 400, clientY: 400 })
     })
-    fireEvent.pointerEnter(day)
+    fireEvent.pointerOver(day)
     expect(
       await within(day).findByText(en.timeOff.landsOnClosed.replace('{{title}}', 'Away')),
     ).toBeInTheDocument()

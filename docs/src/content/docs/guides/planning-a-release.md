@@ -172,12 +172,16 @@ remembered between visits. The arrows walk a month, or a week in the week
 view; **Today** comes back to today, whose date is filled in the accent
 colour.
 
-- **Month** asks "is that week empty". Weeks start on Monday, with the
-  neighbouring days on a quieter ground at either end so the grid stays
-  rectangular.
+- **Month** asks "is that week empty". Weeks start on Monday in every
+  language, and only the weeks the month touches are drawn, with the
+  neighbouring days on a quieter ground at either end. A day that has no room
+  for all it holds folds the rest into a count — *3 more* — that opens the
+  day in place. The month is one stop for <kbd>Tab</kbd>: the arrows walk its
+  days, <kbd>PageUp</kbd> and <kbd>PageDown</kbd> turn it, and <kbd>Tab</kbd>
+  from a day goes into that day's releases.
 - **Week** is the same seven columns, one row tall: every day has room for
-  everything it holds, and each chip takes two lines — the title whole, over
-  both if it needs them, beside its cover, and the marks under it.
+  everything it holds, and where a day is wide enough a release also shows
+  its hour before the title.
 - **Agenda** is the month as a list. Each day with something on it gets a
   heading — today always does — with every release under it, and the days
   between fold into one line that says how many: *4 days with nothing
@@ -186,17 +190,17 @@ colour.
   like days nobody meant to fill. Releases are dropped on a day's heading;
   the folded lines are for reading.
 
-Each booked release shows as a chip in its day, in the colour the work carries
-everywhere else in kilna. The chip's top line holds the grip, the
+Each booked release shows as a chip of one line in its day, in the colour the
+work carries everywhere else in kilna: its title, then the
 [ready marks](#ready-marks), the lock if the date is pinned, and the glyph for
-the kind of release; the title gets the day's full width underneath. Once
-the profile has more than one kind of work, the top line also names the kind
-of the work — *Video*, *Song* — because two kinds of work may ship the same
-kind of release under the same glyph, and a video's YouTube release should
-not read as a song's audio release. The dashboard's week says the same beside
-each release.
-Already-released chips are dimmed: they are history sitting on a date, not a
-plan competing for one.
+the kind of release — and its cover and stage where the day is wide enough.
+Hover it for the whole of it: the kind of the work as well — *Video*, *Song* —
+once the profile has more than one, because two kinds of work may ship the
+same kind of release under the same glyph, and a video's YouTube release
+should not read as a song's audio release. The dashboard's week says the same
+beside each release.
+Already-released chips are drawn quieter — a weaker fill, softer ink, still
+readable: they are history sitting on a date, not a plan competing for one.
 
 Which glyph stands for which kind comes from the profile — kilna does not know
 whether your craft ships clips or beta reads, so the profile says both what the

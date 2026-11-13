@@ -5,15 +5,15 @@ import { agendaRuns, type AgendaRun } from '@/lib/agenda'
 import { formatDay, formatWeekday } from '@/lib/format'
 import type { Ghost } from '@/lib/layout'
 import { byDate, today, type Day } from '@/lib/month'
-import { landingWarning } from '@/lib/repeats'
 import { spanText } from '@/lib/timeOff'
 import type { Dragging } from '@/lib/useChipDrag'
-import { RowContextMenu, type RowAction } from '@/components/RowMenu'
+import { RowContextMenu } from '@/components/RowMenu'
 import { Scroll } from '@/components/Scroll'
 import { Button } from '@/components/ui/button'
 import { CarriedChip } from '@/features/calendar/CarriedChip'
-import { GhostChip } from '@/features/calendar/GhostChip'
-import { SlotChip } from '@/features/calendar/SlotChip'
+import { dayActions } from '@/features/calendar/days'
+import { LandingLines, landingSays } from '@/features/calendar/LandingLines'
+import { PlannedLine, ReleaseLine } from '@/features/calendar/ReleaseLine'
 import type { DropTarget } from '@/features/calendar/useCalendarDrag'
 import { useLandingVerdict } from '@/features/calendar/useLandingVerdict'
 import { cn } from '@/lib/utils'
@@ -88,19 +88,15 @@ export function AgendaList({
     now,
   )
 
-  const actionsFor = (date: string, span: TimeOff | null): RowAction[] => [
-    { key: 'add', label: t('calendar.addOnDay'), onSelect: () => onAddOn(date) },
-    {
-      key: 'timeOff',
-      label: span === null ? t('timeOff.closeDay') : t('timeOff.editNamed', { title: span.label }),
-      onSelect: () => onTimeOff(date, span),
-    },
-    { key: 'shift', label: t('shift.fromDay'), onSelect: () => onShiftFrom(date) },
-  ]
+  const actionsFor = (date: string, span: TimeOff | null) =>
+    dayActions(t, span, {
+      add: () => onAddOn(date),
+      timeOff: () => onTimeOff(date, span),
+      shift: () => onShiftFrom(date),
+    })
 
   const dayGroup = (run: Extract<AgendaRun, { kind: 'day' }>) => {
     const verdict = verdictFor(run.date)
-    const repeats = verdict === null ? null : landingWarning(verdict.repeats)
     const releases = onDays.get(run.date) ?? []
     const planned = ghosts?.get(run.date) ?? []
     const isToday = run.date === now
@@ -157,9 +153,11 @@ export function AgendaList({
         </header>
 
         {(releases.length > 0 || planned.length > 0) && (
-          <div className="flex flex-col gap-0.5">
+          // Lines stand edge to edge: each is the pitch of a pointer target,
+          // its chip drawn inside it.
+          <div className="flex flex-col">
             {releases.map((slot) => (
-              <SlotChip
+              <ReleaseLine
                 key={slot.id}
                 slot={slot}
                 date={run.date}
@@ -170,27 +168,15 @@ export function AgendaList({
               />
             ))}
             {planned.map((ghost) => (
-              <GhostChip key={ghost.releaseId} ghost={ghost} />
+              <PlannedLine key={`plan-${ghost.releaseId}`} ghost={ghost} />
             ))}
           </div>
         )}
 
-        {verdict !== null && (
-          <div className="flex flex-col gap-0.5 text-2xs leading-tight">
-            {verdict.closed !== null && (
-              <p className="text-warn">{t('timeOff.landsOnClosed', { title: verdict.closed })}</p>
-            )}
-            {verdict.verdict !== 'empty' && (
-              <p className={verdict.verdict === 'pinned' ? 'text-warn' : 'text-dim'}>
-                {t(`calendar.preview.${verdict.verdict}`, { title: verdict.holder_title ?? '' })}
-              </p>
-            )}
-            {repeats !== null && (
-              <p role="status" className="text-bad">
-                {repeats}
-              </p>
-            )}
-          </div>
+        {landingSays(verdict) && (
+          <p className="text-2xs leading-tight text-dim">
+            <LandingLines verdict={verdict} />
+          </p>
         )}
       </RowContextMenu>
     )

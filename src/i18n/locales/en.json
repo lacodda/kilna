@@ -409,15 +409,6 @@
     "layoutPreview_one": "{{count}} release would land between {{from}} and {{to}}. Nothing is booked yet.",
     "layoutPreview_other": "{{count}} releases would land between {{from}} and {{to}}. Nothing is booked yet.",
     "layoutApply": "Book it",
-    "weekday": {
-      "mon": "Mon",
-      "tue": "Tue",
-      "wed": "Wed",
-      "thu": "Thu",
-      "fri": "Fri",
-      "sat": "Sat",
-      "sun": "Sun"
-    },
     "queue": "Queue",
     "queueHint": "Strongest first. Pick one, then give it a date.",
     "queueEmpty": "Nothing waiting. Add a release from a work.",
