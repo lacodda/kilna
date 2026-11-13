@@ -2,6 +2,35 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.110.0] - 2026-11-13
+
+dowel's primitives, taken from the registry instead of drawn by hand. The
+month is dowel's BigCalendar, and every release on the calendar - the month,
+the week, the agenda and the copy under the pointer - is one line of
+BigCalendarItem: 24 pixels, the work's colour, and a release that went out
+drawn with a weaker fill rather than faded. The month is one stop for Tab, and
+its week starts on Monday in English too. The keyboard, the search box and the
+sheet of shortcuts read one list of commands, so `G` and a screen's letter work
+on any layout and `?` lists exactly what answers. A work's fields are drawn
+from the schema its profile describes: a date can be cleared, a yes or no is a
+switch. The frame of every screen is dowel's, and the window is at least 960
+pixels wide, so a list always stands beside what is open in it. No screen
+skips a level of heading.
+
+### Bug Fixes
+- Sort the stop words with a slice swap
+- Take out the sheet's words nothing asks for any more
+- Let no screen skip a level of heading
+
+### Features
+- Draw the month on dowel's BigCalendar
+- Draw a work's fields from the schema its profile describes
+
+### Refactoring
+- Take Frame, Pane and ListDetail from dowel's registry
+- Declare the shell's keys on dowel's list of commands
+- Scroll the open note in the text scroller a version uses
+
 ## [0.109.0] - 2026-11-10
 
 Spaces: each channel, blog or book is a folder with a database of its own -
