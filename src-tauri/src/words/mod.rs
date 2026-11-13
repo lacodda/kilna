@@ -414,9 +414,7 @@ const STOP: &[&str] = &{
         let mut at = 1;
         while at < words.len() {
             if less(words[at], words[at - 1]) {
-                let before = words[at - 1];
-                words[at - 1] = words[at];
-                words[at] = before;
+                words.swap(at - 1, at);
                 swapped = true;
             }
             at += 1;
