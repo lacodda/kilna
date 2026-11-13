@@ -1498,7 +1498,13 @@
   "fields": {
     "choiceNone": "Not set",
     "giveCode": "Next code",
-    "giveCodeHint": "Give this work the next code of “{{field}}”"
+    "giveCodeHint": "Give this work the next code of “{{field}}”",
+    "choose": "Choose…",
+    "clearDate": "Clear",
+    "showSecret": "Show",
+    "hideSecret": "Hide",
+    "invalid": "This value does not fit the field",
+    "required": "Needs a value"
   },
   "plugins": {
     "title": "Plugins",

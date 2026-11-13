@@ -66,11 +66,11 @@ describe("the calendar's release dialog", () => {
   it('keeps the date only when Save is pressed, with the rest of the form', async () => {
     const { client, dialog } = await editing()
 
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', {
-        name: (name) => name.startsWith(en.calendar.pinSlot),
-      }),
-    )
+    // Named by what it is, described by what it does (wish 3649): the hint
+    // was a second line inside its name.
+    const pin = within(dialog).getByRole('checkbox', { name: en.calendar.pinSlot })
+    expect(pin).toHaveAccessibleDescription(en.calendar.pinSlotHint)
+    fireEvent.click(pin)
     await settled(client)
     expect(backend.argsOf('set_slot_pin')).toEqual([])
 

@@ -1616,7 +1616,13 @@
   "fields": {
     "choiceNone": "Не задано",
     "giveCode": "Следующий код",
-    "giveCodeHint": "Дать произведению следующий код поля «{{field}}»"
+    "giveCodeHint": "Дать произведению следующий код поля «{{field}}»",
+    "choose": "Выбрать…",
+    "clearDate": "Очистить",
+    "showSecret": "Показать",
+    "hideSecret": "Скрыть",
+    "invalid": "Это значение не подходит полю",
+    "required": "Нужно значение"
   },
   "plugins": {
     "title": "Плагины",

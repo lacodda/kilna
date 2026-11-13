@@ -146,3 +146,37 @@ describe('the fields of a kind', () => {
     expect(within(widget).queryByText('Variant')).toBeNull()
   })
 })
+
+describe('fields drawn from the schema the profile describes', () => {
+  it('names a date by its field, and takes it back with Clear', async () => {
+    // The shared picker could not clear a date (wish 3649); a field that is
+    // not required can be emptied, and is then absent.
+    workspace.profile.config.work_meta_fields.unshift({
+      key: 'recorded_on',
+      label: 'Recorded on',
+      type: 'date',
+    })
+    const song = workspace.works.find((w) => w.id === IDS.song)!
+    song.meta = { ...song.meta, recorded_on: '2026-09-01' }
+    const widget = await openFields(IDS.song, 'Song')
+
+    const picker = within(widget).getByRole('button', { name: /^Recorded on/ })
+    fireEvent.click(picker)
+    fireEvent.click(await screen.findByRole('button', { name: en.fields.clearDate }))
+
+    await waitFor(() => expect(written).toEqual([{ meta: { recorded_on: null } }]))
+  })
+
+  it('switches a yes-or-no field by its name', async () => {
+    workspace.profile.config.work_meta_fields.unshift({
+      key: 'explicit',
+      label: 'Explicit',
+      type: 'boolean',
+    })
+    const widget = await openFields(IDS.song, 'Song')
+
+    fireEvent.click(within(widget).getByRole('switch', { name: 'Explicit' }))
+
+    await waitFor(() => expect(written).toEqual([{ meta: { explicit: true } }]))
+  })
+})

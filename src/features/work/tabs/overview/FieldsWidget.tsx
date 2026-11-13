@@ -13,13 +13,14 @@ import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { SaveState, useSaveStatus } from '@/components/ui/save-state'
 import { Select } from '@/components/AppSelect'
-import { MetaInput } from '@/features/work/tabs/overview/MetaInput'
+import { WorkFields } from '@/features/work/tabs/overview/WorkFields'
 import { useLook, Widget } from '@/features/work/tabs/overview/Widget'
 import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
 
 /**
  * The work's own fields, edited where they are read: the widget catalogue's
- * `fields` kind - the tempo, the key, the length - each an InlineField.
+ * `fields` kind - the tempo, the key, the length - drawn from the profile's
+ * description of them (`WorkFields`).
  *
  * This is what the overview was until v0.82, a form, folded into one widget
  * of the board. The title is renamed in the card's header. The status and the
@@ -74,6 +75,9 @@ export function FieldsWidget({ work }: { work: Work }) {
         )}
       >
         <StatusField work={work} onChange={(status) => patch.mutate({ status })} />
+        {/* A group naming the picker rather than a Field: kilna's Select
+            takes `onChange` with the value, and a Field would hand it the
+            input's own `onChange`, which reads an event. */}
         <FieldGroup label={t('work.kind')}>
           <Select
             aria-label={t('work.kind')}
@@ -87,17 +91,14 @@ export function FieldsWidget({ work }: { work: Work }) {
           />
         </FieldGroup>
 
-        {short.map((field) => (
-          <MetaInput
-            key={field.key}
-            field={field}
-            value={work.meta[field.key] ?? null}
-            onChange={(value) => setField(field.key, value)}
-            inline={line}
-            onNumber={() => number.mutate(field.key)}
-            numbering={number.isPending}
-          />
-        ))}
+        <WorkFields
+          fields={short}
+          meta={work.meta}
+          onChange={setField}
+          inline={line}
+          onNumber={(key) => number.mutate(key)}
+          numbering={number.isPending}
+        />
       </div>
     </Widget>
   )

@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import type { Work } from '@/lib/api/types'
 import { fieldsOf } from '@/lib/overview'
 import { fieldsFor, say as sayLabel, useProfile } from '@/lib/useProfile'
-import { MetaParagraph } from '@/features/work/tabs/overview/MetaInput'
+import { MetaParagraph } from '@/features/work/tabs/overview/MetaParagraph'
 import { Widget } from '@/features/work/tabs/overview/Widget'
 import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
 

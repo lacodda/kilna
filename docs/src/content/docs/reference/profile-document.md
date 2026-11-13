@@ -491,6 +491,12 @@ any given work:
 | `own` | boolean, optional | A fact of the work's own media, never taken from the work it is made from: Studio's `duration` - a short is not as long as the clip it is cut from. Absent is `false`. |
 | `numbered_from` | string, optional | The first code of a field works are numbered by, as an example of them all - see [Numbered fields](#numbered-fields). Only on `text`, and not beside a `default`. |
 
+On a work's **Overview** each type is edited in its own way: a `text` or a
+`number` in place, as a word you click into; a `multiline` as a paragraph; a
+`date` with a calendar that can also clear it; a `boolean` as a switch beside
+its name; and a `choice` as a list of its answers, with *Not set* first to
+take the answer back. None of them is required.
+
 Studio's `variant` is a choice for `audio` alone - the original, the
 instrumental, a slowed or a sped-up version, a remix - starting at the
 original:

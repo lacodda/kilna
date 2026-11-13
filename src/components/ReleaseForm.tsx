@@ -124,14 +124,15 @@ export function ReleaseForm({
             release. There is nothing to keep until there is a day, and
             nothing to keep it from once the release has gone out. */}
         {value.date !== '' && release.status !== 'released' && (
-          <Checkbox checked={value.pinned} onCheckedChange={(pinned) => settle({ pinned })}>
-            <span>
-              {t('calendar.pinSlot')}
-              {!row && (
-                <span className="block text-xs text-faint">{t('calendar.pinSlotHint')}</span>
-              )}
-            </span>
-          </Checkbox>
+          // The hint is the box's description rather than words in its name:
+          // a name says what it is, and the line under it what it does.
+          <Field
+            beside
+            label={t('calendar.pinSlot')}
+            help={row ? undefined : t('calendar.pinSlotHint')}
+          >
+            <Checkbox checked={value.pinned} onCheckedChange={(pinned) => settle({ pinned })} />
+          </Field>
         )}
       </FieldGroup>
 
