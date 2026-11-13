@@ -48,7 +48,7 @@ export function CanonTimeline({
           <div className="flex flex-col">
             {byYear(facts).map(([year, group]) => (
               <section key={year} aria-label={year} className="pt-3">
-                <h3 className="pb-1 font-mono text-sm font-semibold text-dim">{year}</h3>
+                <h2 className="pb-1 font-mono text-sm font-semibold text-dim">{year}</h2>
                 <ol className="flex flex-col gap-0.5 border-l border-line pl-3">
                   {group.map((one) => (
                     <li

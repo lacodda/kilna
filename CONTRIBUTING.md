@@ -2,7 +2,7 @@
 
 ## Development
 
-Requires Rust (1.87 or newer), Node 22+ and pnpm.
+Requires Rust (1.90 or newer), Node 22+ and pnpm.
 
 ```sh
 pnpm install
@@ -10,11 +10,19 @@ pnpm tauri dev            # run the app
 pnpm format               # prettier, the layout of every file it covers
 pnpm lint                 # prettier --check + eslint + tsc + locales + tests
 pnpm test                 # frontend tests: logic in Node, components in jsdom
+pnpm snippets             # editor snippets for the dowel components kilna has
 cd src-tauri
 cargo test                # backend tests
 cargo clippy -- -D warnings
 cargo fmt
 ```
+
+`src/components/ui/` holds copies of [dowel](https://lacodda.github.io/dowel)'s
+components, byte for byte: `pnpm registry` fails on a copy that differs from
+the installed `dowel-ui`. Add or refresh one with
+`npx shadcn add @dowel/<name>`, and run `pnpm snippets` after: it writes
+`.vscode/dowel.code-snippets` (kept out of git) from the copies there, so
+typing `dw-` in a `.tsx` file offers each component with its props.
 
 The formatting commit is listed in `.git-blame-ignore-revs`; run
 `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame`

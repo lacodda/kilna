@@ -123,9 +123,9 @@ function IdeaPanel({ work }: Props) {
   return (
     <Panel className="flex flex-col gap-1.5 px-3 py-2.5">
       <div className="flex items-center gap-2">
-        <h3 className="caption">
+        <h2 className="caption">
           {field === undefined ? t('conception.idea') : sayLabel(field.label)}
-        </h3>
+        </h2>
         {refine !== undefined && (
           <span className="ml-auto">
             <ActionButton work={work} action={refine} icon="refine" />

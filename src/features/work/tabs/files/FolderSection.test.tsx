@@ -66,7 +66,7 @@ describe("a work's folder on disk", () => {
     expect(await within(section).findByText(FOLDER)).toBeVisible()
     // The folder's own files first, then each folder by its name.
     const headings = within(section)
-      .getAllByRole('heading', { level: 4 })
+      .getAllByRole('heading', { level: 3 })
       .map((heading) => heading.textContent)
     expect(headings).toEqual([`${en.folder.top} · 2`, 'audio-release/v1 · 2', 'clip/v1 · 1'])
     expect(within(section).getByText('mix-final.wav')).toBeVisible()

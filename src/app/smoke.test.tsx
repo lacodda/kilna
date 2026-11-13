@@ -54,7 +54,28 @@ async function open(path: string, shows: string) {
   expect(backend.unanswered, `${path} asked what the test backend does not answer`).toEqual([])
   expect(screen.queryByText(en.crash.title), `${path} fell over`).toBeNull()
   expect(complaints, `${path} complained to the console`).toEqual([])
+  expect(skippedHeadings(container), `${path} skips a level of heading`).toEqual([])
   return { area, screen: keepsTheWindow(container, path) }
+}
+
+/**
+ * The headings that skip a level: an `h3` straight after an `h1`, or a
+ * screen whose first heading is deeper than the second level.
+ *
+ * Someone moving by heading walks the outline, and a level skipped is a
+ * section that seems to be missing (5438 п.4). The primitives that draw a
+ * heading take a `level` for the place they stand in; this holds every
+ * screen and tab to having set it.
+ */
+function skippedHeadings(container: HTMLElement): string[] {
+  let previous = 1
+  const skipped: string[] = []
+  for (const heading of container.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
+    const level = Number(heading.tagName.slice(1))
+    if (level > previous + 1) skipped.push(`h${level} after h${previous}: ${heading.textContent}`)
+    previous = level
+  }
+  return skipped
 }
 
 /** The content area beside the rail: there once the workspace has answered. */

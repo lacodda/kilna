@@ -167,7 +167,7 @@ export function HistoryTab({ workId }: { workId: string }) {
               <div className="relative before:absolute before:inset-y-0 before:left-3 before:w-px before:bg-line">
                 {axis.ahead.length > 0 && (
                   <section aria-label={t('timeline.ahead')}>
-                    <h3 className="caption relative bg-raise py-1.5 pl-7">{t('timeline.ahead')}</h3>
+                    <h2 className="caption relative bg-raise py-1.5 pl-7">{t('timeline.ahead')}</h2>
                     <ul className="flex flex-col">
                       {axis.ahead.map((moment) => line(moment, true))}
                     </ul>
@@ -175,7 +175,7 @@ export function HistoryTab({ workId }: { workId: string }) {
                 )}
                 {axis.days.map((day) => (
                   <section key={day.day} aria-label={heading(day.day)}>
-                    <h3 className="caption relative bg-raise py-1.5 pl-7">{heading(day.day)}</h3>
+                    <h2 className="caption relative bg-raise py-1.5 pl-7">{heading(day.day)}</h2>
                     <ul className="flex flex-col">
                       {day.moments.map((moment) => line(moment, false))}
                     </ul>

@@ -189,7 +189,7 @@ export function ScoreList({
           one click from the number. */}
       {written.length > 0 && (
         <section className="flex flex-col gap-0.5 border-t border-line pt-2">
-          <h4 className="px-2 pb-1 caption">{t('score.written')}</h4>
+          <h2 className="px-2 pb-1 caption">{t('score.written')}</h2>
           {written.map((version) => (
             <Link
               key={version.id}

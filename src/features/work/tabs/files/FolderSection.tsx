@@ -52,10 +52,10 @@ export function FolderSection({ work }: { work: Work }) {
       className="flex flex-col gap-2 border-t border-line pt-3"
     >
       <header className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <h3 className="caption">
+        <h2 className="caption">
           {t('folder.heading')}
           {found ? ` · ${String(folder.data?.files.length ?? 0)}` : ''}
-        </h3>
+        </h2>
         {path !== undefined && (
           <span className="min-w-0 truncate font-mono text-xs text-faint" title={path}>
             {path}
@@ -297,9 +297,9 @@ function FolderFiles({
     <div className="flex flex-col gap-3">
       {groups.map((group) => (
         <section key={group.folder} className="flex flex-col gap-2">
-          <h4 className="caption font-mono normal-case">
+          <h3 className="caption font-mono normal-case">
             {group.folder === '' ? t('folder.top') : group.folder} · {group.files.length}
-          </h4>
+          </h3>
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2.5">
             {group.files.map((file) => (
               <FolderTile

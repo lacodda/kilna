@@ -54,10 +54,10 @@ export function DictionaryPanel({ composition, onPick }: Props) {
           if (offered.length === 0) return null
           return (
             <section key={part.type} className="flex flex-col gap-0.5">
-              <h4 className="caption flex items-center gap-1.5 px-1">
+              <h2 className="caption flex items-center gap-1.5 px-1">
                 <Icon aria-hidden className="size-3" />
                 {type === undefined ? part.type : sayLabel(type.label)}
-              </h4>
+              </h2>
               {offered.map((brick) => (
                 <RowButton
                   key={brick.id}

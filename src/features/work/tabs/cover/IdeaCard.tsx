@@ -120,7 +120,7 @@ export function IdeaCard({
         )}
       </div>
 
-      <h4 className="text-sm leading-tight font-semibold">{title}</h4>
+      <h2 className="text-sm leading-tight font-semibold">{title}</h2>
       {idea.trim() !== '' && <p className="line-clamp-4 text-xs text-dim">{idea}</p>}
       {built.length > 0 && (
         <p className="font-mono text-2xs leading-normal text-faint uppercase">

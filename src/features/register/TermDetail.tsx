@@ -181,7 +181,7 @@ export function TermDetail({ entry, onGone }: Props) {
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <h3 className="caption">{t('register.where')}</h3>
+          <h2 className="caption">{t('register.where')}</h2>
           <span className="text-xs text-faint tabular-nums">
             {t('register.uses', { count: entry.uses })}
           </span>

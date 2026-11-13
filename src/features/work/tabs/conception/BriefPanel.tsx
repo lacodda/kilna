@@ -81,7 +81,7 @@ export function BriefPanel({ work }: Props) {
   return (
     <Panel className="flex min-h-72 flex-col gap-1.5 px-3 py-2.5">
       <div className="flex items-center gap-2">
-        <h3 className="caption">{label}</h3>
+        <h2 className="caption">{label}</h2>
         {shown !== undefined && (
           <span className="text-2xs text-faint">
             {t('conception.revision', {

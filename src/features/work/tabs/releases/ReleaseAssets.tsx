@@ -67,7 +67,7 @@ export function ReleaseAssets({ release }: Props) {
   return (
     <section className="flex flex-col gap-2">
       <header className="flex items-center gap-2">
-        <h4 className="caption">{t('releases.files.title')}</h4>
+        <h3 className="caption">{t('releases.files.title')}</h3>
         {files.data !== undefined && files.data.length > 0 && (
           <span className="font-mono text-2xs text-faint tabular-nums">{files.data.length}</span>
         )}

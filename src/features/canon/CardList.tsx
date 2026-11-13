@@ -94,11 +94,11 @@ export function CardList({ query, total, text, onText, status, onStatus, openId,
                   : t(group.key === 'heroes' ? 'canon.heroes' : 'canon.otherKinds')
               return (
                 <section key={group.key} aria-label={caption}>
-                  <h3 className="flex items-center gap-1.5 px-2 pt-2.5 pb-1 text-2xs font-semibold tracking-caption text-faint uppercase">
+                  <h2 className="flex items-center gap-1.5 px-2 pt-2.5 pb-1 text-2xs font-semibold tracking-caption text-faint uppercase">
                     <Icon aria-hidden className="size-3" />
                     {caption}
                     <span className="ml-auto font-mono">{group.cards.length}</span>
-                  </h3>
+                  </h2>
                   <ul className="flex flex-col gap-0.5">
                     {group.cards.map((card) => (
                       <li key={card.id}>

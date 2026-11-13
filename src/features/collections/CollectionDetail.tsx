@@ -182,7 +182,7 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
           how good what it already holds is. */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] gap-3">
         <section className="flex flex-col gap-2 rounded-lg border border-line p-3">
-          <h3 className="caption">{t('collections.goalTitle')}</h3>
+          <h2 className="caption">{t('collections.goalTitle')}</h2>
           <div className="flex flex-wrap items-end gap-3">
             <InlineField
               label={t('collections.target')}
@@ -233,7 +233,7 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
         </section>
 
         <section className="flex flex-col gap-2 rounded-lg border border-line p-3">
-          <h3 className="caption">{t('collections.verdictTitle')}</h3>
+          <h2 className="caption">{t('collections.verdictTitle')}</h2>
           {standing.average === null ? (
             <p className="text-sm text-faint">{t('collections.noVerdict')}</p>
           ) : (
@@ -281,7 +281,7 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
       />
 
       <section className="flex flex-col gap-1.5">
-        <h3 className="caption">{t('collections.works')}</h3>
+        <h2 className="caption">{t('collections.works')}</h2>
         {order.length === 0 ? (
           <EmptyState
             plain

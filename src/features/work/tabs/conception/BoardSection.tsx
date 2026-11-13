@@ -222,7 +222,7 @@ export function BoardSection({ work, board }: Props) {
       className="flex flex-col gap-2.5 rounded-lg border border-line bg-softer px-3 py-2.5"
     >
       <header className="flex flex-col gap-0.5">
-        <h3 className="text-sm font-semibold">{sayLabel(board.label)}</h3>
+        <h2 className="text-sm font-semibold">{sayLabel(board.label)}</h2>
         {board.description != null && (
           <p className="text-xs text-dim">{sayLabel(board.description)}</p>
         )}
@@ -462,10 +462,10 @@ export function BoardSection({ work, board }: Props) {
             )}
           >
             {byKind ? (
-              <h4 className="caption flex items-center gap-2 px-0.5">
+              <h3 className="caption flex items-center gap-2 px-0.5">
                 {topic.name}
                 <span className="font-mono text-2xs text-faint">{topic.cards.length}</span>
-              </h4>
+              </h3>
             ) : (
               (groups.length > 1 || topic.name !== '') && (
                 <TopicHeading
@@ -584,7 +584,7 @@ function TopicHeading({
     if (text.trim() !== name) onRename(text.trim())
   })
   if (name === '') {
-    return <h4 className="caption px-0.5">{t('board.noTopicHeading', { count })}</h4>
+    return <h3 className="caption px-0.5">{t('board.noTopicHeading', { count })}</h3>
   }
   return (
     <div className="flex items-center gap-2">

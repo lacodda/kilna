@@ -28,7 +28,7 @@ export function TrialList({ series, selected, onSelect, fresh, coming }: Props) 
     <div className="flex flex-col gap-3 p-1.5">
       {series.map((group) => (
         <section key={group.series} aria-label={group.series || t('trials.noSeries')}>
-          <h3 className="caption px-2.5 pb-1">{group.series || t('trials.noSeries')}</h3>
+          <h2 className="caption px-2.5 pb-1">{group.series || t('trials.noSeries')}</h2>
           <ul className="flex flex-col">
             {group.rows.map(({ card, depth }) => (
               <li key={card.trial.id} style={{ paddingLeft: `${Math.min(depth, 6) * 14}px` }}>

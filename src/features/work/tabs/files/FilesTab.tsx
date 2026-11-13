@@ -168,9 +168,9 @@ export function FilesTab({ work }: Props) {
                   them. */}
               {groupMaterials(data).map((group) => (
                 <section key={group.kind} className="flex flex-col gap-2">
-                  <h3 className="caption">
+                  <h2 className="caption">
                     {t(`files.group.${group.kind}`)} · {group.assets.length}
-                  </h3>
+                  </h2>
                   <ul className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2.5">
                     {group.assets.map((asset) => (
                       <FileTile

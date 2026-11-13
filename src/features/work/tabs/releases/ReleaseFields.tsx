@@ -146,7 +146,7 @@ export function ReleaseFields({ release }: Props) {
   return (
     <section className="flex flex-col gap-2.5">
       <header className="flex flex-wrap items-center gap-2">
-        <h4 className="caption">{t('releases.meta.title')}</h4>
+        <h3 className="caption">{t('releases.meta.title')}</h3>
         <Badge variant={count.complete ? 'good' : 'outline'}>
           {count.complete
             ? t('releases.meta.complete')

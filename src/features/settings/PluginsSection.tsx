@@ -178,7 +178,7 @@ function PluginBlock({ plugin }: { plugin: Plugin }) {
 
       {manifest !== null && manifest.settings.length > 0 && (
         <div className="flex flex-col gap-3 border-t border-line pt-3">
-          <h4 className="caption">{t('plugins.settings')}</h4>
+          <h3 className="caption">{t('plugins.settings')}</h3>
           <div className="flex max-w-105 flex-col gap-3">
             {manifest.settings.map((setting) => (
               <SettingField key={setting.key} plugin={plugin} setting={setting} />

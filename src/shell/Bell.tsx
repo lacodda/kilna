@@ -85,6 +85,11 @@ export function Bell() {
       count={count + waiting.length}
       label={t('journal.open')}
       title={t('journal.recent')}
+      // The panel is a place of its own over whatever screen is open, as a
+      // dialog is, so its heading is the second level - after the screen's
+      // own outline it would otherwise skip one wherever the screen has no
+      // heading of the second level.
+      level={2}
       open={open}
       onOpenChange={setOpen}
       // "Mark all seen" clears read marks on the journal and nothing else.
