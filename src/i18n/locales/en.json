@@ -1883,16 +1883,13 @@
     "title": "Keyboard shortcuts",
     "description": "What the application answers to, wherever you are in it.",
     "group": {
-      "going": "Going places",
       "moving": "Moving around",
-      "everywhere": "Everywhere",
       "sung": "In a sung text, while writing"
     },
     "action": {
       "search": "Find anything",
       "back": "Back",
       "forward": "Forward",
-      "help": "This list",
       "close": "Close what is open",
       "undo": "Take back the last change",
       "stressVowel": "Mark the stress on the vowel clicked; again takes it off, and е turns to Е, ё and back",
