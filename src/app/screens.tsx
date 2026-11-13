@@ -238,16 +238,6 @@ export const drawn = (dev: boolean): readonly ScreenSpec[] =>
 export const onRail = (dev: boolean, config: ProfileConfig): readonly ScreenSpec[] =>
   drawn(dev).filter((screen) => screen.rail !== undefined && (screen.rail.when?.(config) ?? true))
 
-/** Where `g` then a letter goes. */
-export const JUMPS: Readonly<Record<string, string>> = Object.freeze(
-  Object.fromEntries(
-    SCREENS.filter((screen) => screen.jump !== undefined).map((screen) => [
-      screen.jump!,
-      `/${screen.key}`,
-    ]),
-  ),
-)
-
 /**
  * The screen at `pathname`, by the first segment of the address. An address
  * no screen has is sent to the dashboard by the router, so that is what it is.

@@ -3,14 +3,19 @@ title: Keyboard
 description: Every shortcut the application answers to, what happens while you are typing, and where the arrows belong to something else.
 ---
 
-Press `?` anywhere to see this list inside the application. It is generated
-from the same table the shortcuts are read from, so it cannot fall behind them.
+Press `?` anywhere to see this list inside the application. It is written
+from the one list of commands the keyboard and the search box read too, so it
+cannot fall behind them, and a key a screen adds of its own is listed while
+that screen is open.
 
-## Going places
+## Screens
 
 Press `G`, then a letter. The letters are the initials of the English screen
 names, and they stay the same in every language — a shortcut that moved with
-the translation would have to be relearned per language.
+the translation would have to be relearned per language. They are read by the
+place of the key, not by what it types: on a Russian layout the key that types
+`п` is still `G`. A screen the rail does not show for the space's craft has
+no letter either.
 
 | Keys | Screen |
 | --- | --- |
@@ -23,8 +28,8 @@ the translation would have to be relearned per language.
 | `G` `T` | Trash |
 | `G` `S` | Settings |
 
-The chord waits about a second and a half for its second key. If none arrives,
-or the key goes nowhere, the chord is dropped and nothing happens — a forgotten
+The sequence waits about a second and a half for its second key. If none arrives,
+or the key goes nowhere, the sequence is dropped and nothing happens — a forgotten
 `G` never turns a later keystroke into a jump.
 
 ## Moving around
@@ -41,12 +46,12 @@ address ([ADR 0006](https://github.com/lacodda/kilna/blob/main/docs/adr/0006-bro
 Opening a work, switching to its Score tab and pressing `Alt+←` twice puts you
 back where you started.
 
-## Everywhere
+## Actions
 
 | Keys | What it does |
 | --- | --- |
 | `Ctrl+Z` / `⌘Z` | Take back the last thing you changed |
-| `?` | This list |
+| `?` | Keyboard shortcuts — this list |
 | `Esc` | Close what is open — a dialog, the search box; a text on the whole screen steps back one level |
 
 Undo takes back one thing: the last change to the workspace. Not every change

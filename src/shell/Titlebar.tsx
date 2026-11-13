@@ -17,6 +17,7 @@ import { NewWorkDialog } from '@/components/NewWorkDialog'
 import { AssistantButton } from '@/features/assistant/AssistantDrawer'
 import { Bell } from '@/shell/Bell'
 import { CommandPalette } from '@/shell/CommandPalette'
+import { useShellCommands } from '@/shell/useShellCommands'
 
 interface Props {
   works: number
@@ -24,8 +25,6 @@ interface Props {
    *  will go. */
   compact: boolean
   onToggleRail: () => void
-  /** Open the list of shortcuts - the palette offers it among its actions. */
-  onShowKeys: () => void
 }
 
 /**
@@ -151,7 +150,7 @@ function NewButton({ onPress }: { onPress: () => void }) {
  * by and holds the search at the window's centre, whatever the trail beside
  * it says.
  */
-export function Titlebar({ works, compact, onToggleRail, onShowKeys }: Props) {
+export function Titlebar({ works, compact, onToggleRail }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { config } = useProfile()
@@ -164,16 +163,22 @@ export function Titlebar({ works, compact, onToggleRail, onShowKeys }: Props) {
 
   // Ctrl+K anywhere, including from inside a text field: the palette is a way
   // out of wherever you are, not a control that belongs to one screen. Bound
-  // and drawn from the same `['Mod', 'K']`, so the key on the button and the
-  // key that works cannot drift apart.
+  // and drawn from the same `Mod+K`, so the key on the button and the key
+  // that works cannot drift apart. Not offered by the palette, from inside
+  // which it would do nothing.
   const openPalette = useCallback(() => setSearching(true), [])
   useCommand({
     id: 'search',
     label: t('keys.action.search'),
+    group: t('keys.group.moving'),
     keys: 'Mod+K',
     whileTyping: true,
+    offered: false,
     run: openPalette,
   })
+  // What the palette offers and the keyboard answers, from the bar that holds
+  // the New dialog and the rail's handle.
+  useShellCommands({ newWork, toggleRail: onToggleRail, compact })
 
   return (
     <>
@@ -234,11 +239,7 @@ export function Titlebar({ works, compact, onToggleRail, onShowKeys }: Props) {
         onClose={() => setKind(null)}
         onCreated={(workId) => navigate(`/works/${workId}`)}
       />
-      <CommandPalette
-        open={searching}
-        onOpenChange={setSearching}
-        shell={{ newWork, showKeys: onShowKeys, toggleRail: onToggleRail, compact }}
-      />
+      <CommandPalette open={searching} onOpenChange={setSearching} />
     </>
   )
 }

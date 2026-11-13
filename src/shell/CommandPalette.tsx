@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import type { Hit, HitKind } from '@/lib/api/types'
-import { matchCommands } from '@/lib/commands'
 import { coverImageFor } from '@/lib/cover'
 import { cardKindsOf } from '@/lib/canon'
 import { hrefOfHit } from '@/lib/hits'
@@ -25,13 +24,17 @@ import {
   CommandPaletteRow,
   commandPaletteItemVariants,
 } from '@/components/ui/command-palette'
+import {
+  groupCommands,
+  matchCommands,
+  useCommandList,
+  type ListedCommand,
+} from '@/components/ui/commands'
 import { Kbd } from '@/components/ui/kbd'
-import { usePaletteCommands, type Command, type ShellCommands } from '@/shell/usePaletteCommands'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  shell: ShellCommands
 }
 
 /** The order the groups of hits appear in, coarsest first. */
@@ -40,7 +43,7 @@ const GROUPS: HitKind[] = ['work', 'version', 'note', 'fact', 'comment', 'messag
 /** A row of the palette: something found, or something to do. `id` is unique
  *  across both, and is what the highlight compares by. */
 type Entry =
-  { type: 'hit'; id: string; hit: Hit } | { type: 'command'; id: string; command: Command }
+  { type: 'hit'; id: string; hit: Hit } | { type: 'command'; id: string; command: ListedCommand }
 
 /** One captioned group of rows, in the shape Base UI reads a grouped list in. */
 interface Group {
@@ -55,7 +58,7 @@ const hitEntry = (hit: Hit): Entry => ({
   hit,
 })
 
-const commandEntry = (command: Command): Entry => ({
+const commandEntry = (command: ListedCommand): Entry => ({
   type: 'command',
   id: `command-${command.id}`,
   command,
@@ -67,33 +70,31 @@ const commandEntry = (command: Command): Entry => ({
  * What it finds is for recognising something you already know exists - a song
  * whose title you half remember, a line you wrote last month - so it shows a
  * few hits per kind rather than everything, and every hit opens where it lives
- * (`hrefOfHit`). Under the hits are two groups of its own, the mockup's:
- * Actions - a new work, the theme, the menu, the shortcuts, and for an open
- * work its score and its release - and Screens, every door of the rail with
- * the `g` chord that opens it. Opened on nothing, the palette is a list of
- * what can be done; typed into, the same list narrows.
+ * (`hrefOfHit`). Under the hits are the commands, read from dowel's list -
+ * the one the keyboard and the sheet of shortcuts read too (wish 4308), so a
+ * row's keys are the keys that work: Actions - a new work, the theme, the
+ * menu, the shortcuts, and for an open work its score and its release -
+ * Screens, every door of the rail with the `G` sequence that opens it, and
+ * the ways of moving about. Opened on nothing, the palette is a list of what
+ * can be done; typed into, the same list narrows.
  */
-export function CommandPalette({ open, onOpenChange, shell }: Props) {
+export function CommandPalette({ open, onOpenChange }: Props) {
   // Mounted only while open, so every visit starts from an empty box: the
   // palette is somewhere you pass through, not somewhere you return to with
   // your last query still in it.
-  return open ? <Contents onOpenChange={onOpenChange} shell={shell} /> : null
+  return open ? <Contents onOpenChange={onOpenChange} /> : null
 }
 
-function Contents({
-  onOpenChange,
-  shell,
-}: {
-  onOpenChange: (open: boolean) => void
-  shell: ShellCommands
-}) {
+function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   const covers = useCovers()
   const { t } = useTranslation()
   // A note of a kind of card opens on the Canon screen, where it lives.
   const cardKinds = cardKindsOf(useProfile().config)
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const { actions, screens } = usePaletteCommands(shell)
+  // What can be run from a list: declared with something to run, enabled,
+  // and not tied to where the focus is.
+  const commands = useCommandList().filter((command) => command.run !== undefined)
 
   // The query trails the keystrokes: typing is faster than SQLite is slow, but
   // not by much once a workspace has a few hundred bodies in it. The actions
@@ -149,24 +150,28 @@ function Contents({
     })).filter((group) => group.items.length > 0)
   }, [empty, hits.data, recent, t])
 
-  const groups: Group[] = [
-    ...found,
-    {
-      id: 'actions',
-      label: t('search.group.action'),
-      items: matchCommands(settled, actions).map(commandEntry),
-    },
-    {
-      id: 'screens',
-      label: t('search.group.screen'),
-      items: matchCommands(settled, screens).map(commandEntry),
-    },
-  ].filter((group) => group.items.length > 0)
+  // The commands under the headings they declare, in the palette's order:
+  // what to do, where to go, how to move about - any heading the palette
+  // does not know after those.
+  const order = [t('search.group.action'), t('search.group.screen'), t('keys.group.moving')]
+  const rank = (group: string | undefined) => {
+    const at = order.indexOf(group ?? '')
+    return at === -1 ? order.length : at
+  }
+  const commanded = groupCommands(matchCommands(settled, commands))
+    .sort((left, right) => rank(left.group) - rank(right.group))
+    .map((entry): Group => ({
+      id: `commands-${entry.group ?? ''}`,
+      label: entry.group ?? t('search.group.action'),
+      items: entry.commands.map(commandEntry),
+    }))
+
+  const groups: Group[] = [...found, ...commanded].filter((group) => group.items.length > 0)
 
   const run = (entry: Entry) => {
     onOpenChange(false)
     if (entry.type === 'hit') navigate(hrefOfHit(entry.hit, cardKinds))
-    else entry.command.run()
+    else entry.command.run?.()
   }
 
   // What is shown while there is nothing to show: the wait, then the miss.
@@ -282,16 +287,19 @@ function HitRow({ hit, cover }: { hit: Hit; cover: string | undefined }) {
 }
 
 /** A thing to do: its glyph where a hit has its cover, and its keys. */
-function CommandRow({ command }: { command: Command }) {
-  const Icon = command.icon
+function CommandRow({ command }: { command: ListedCommand }) {
+  const keys = command.keys[0]
   return (
     <CommandPaletteRow
       icon={
-        <span aria-hidden className="grid size-6 shrink-0 place-items-center text-faint">
-          <Icon className="size-4" />
+        <span
+          aria-hidden
+          className="grid size-6 shrink-0 place-items-center text-faint [&_svg]:size-4"
+        >
+          {command.icon}
         </span>
       }
-      hint={command.keys === undefined ? undefined : <Kbd keys={command.keys} aria-hidden />}
+      hint={keys === undefined ? undefined : <Kbd keys={keys} aria-hidden />}
     >
       <span className="block truncate text-sm">{command.label}</span>
     </CommandPaletteRow>

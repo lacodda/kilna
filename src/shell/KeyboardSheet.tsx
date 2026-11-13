@@ -1,133 +1,60 @@
-import type { ReactNode } from 'react'
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X } from 'lucide-react'
-import { SCREENS } from '@/app/screens'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogBody,
-  DialogClose,
-  DialogDescription,
-  DialogHeader,
-  DialogPopup,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Kbd, keyLabel } from '@/components/ui/kbd'
-
-interface Props {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
+import { ShortcutsDialog } from '@/components/ui/shortcuts-dialog'
 
 /**
- * One line of the sheet: what the keys are, and what they do. A press of the
- * pointer is no key the notation can name, so a gesture with one gives the
- * modifier held (`hold`) and the press (`then`) as caps of their own.
- */
-function Row({
-  keys,
-  hold,
-  then,
-  children,
-}: {
-  keys?: string
-  hold?: string
-  then?: string
-  children: string
-}) {
-  return (
-    <div className="flex items-baseline gap-3 py-1">
-      <span className="inline-flex shrink-0 items-center gap-0.5">
-        {keys !== undefined && <Kbd keys={keys} />}
-        {hold !== undefined && <Kbd>{keyLabel(hold)}</Kbd>}
-        {then !== undefined && <Kbd>{then}</Kbd>}
-      </span>
-      <span className="min-w-0 text-sm text-dim">{children}</span>
-    </div>
-  )
-}
-
-/** A heading over a group of shortcuts. */
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section>
-      <h3 className="pb-1 caption">{title}</h3>
-      {children}
-    </section>
-  )
-}
-
-/**
- * The list of shortcuts, opened by `?`.
+ * The list of shortcuts, opened by `?`: dowel's ShortcutsDialog, written from
+ * the list of commands rather than by hand (wish 4308).
  *
- * Built on dowel's dialog parts rather than on this app's `Dialog`, and that
- * is the difference between a sheet and a decision: `Dialog` ends in Cancel
- * beside an affirmative button, and a reference has neither — there is nothing
- * here to confirm and nothing to take back. Close is the only way out, so it
- * is the only button.
+ * It lists what the shell and the open screen have declared, under the
+ * headings they give themselves, with the keys they answer to now - so it
+ * cannot promise a key that does not work, the failure mode of every
+ * hand-written sheet. It declares its own command, so `?` opens it, the
+ * palette offers it, and it lists itself.
  *
- * The going-places group is written from the screens' own letters
- * (`app/screens.tsx`) rather than typed out, so a chord given to a screen
- * appears here without anyone remembering to come back. The failure mode of every hand-written shortcut sheet is being a
- * version behind what the application actually answers to.
+ * What keys cannot say is drawn after the list: the stress gesture of a sung
+ * text (ADR 0053), which is a press of the pointer with a modifier held, and
+ * the rule that letter shortcuts stand aside while someone types.
  */
-export function KeyboardSheet({ open, onOpenChange }: Props) {
+export function KeyboardSheet() {
   const { t } = useTranslation()
+  const heading = useId()
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPopup size="lg">
-        <DialogHeader
-          action={
-            <DialogClose
-              render={<Button variant="icon" size="icon-sm" aria-label={t('dialog.close')} />}
-            >
-              <X aria-hidden />
-            </DialogClose>
-          }
-        >
-          <DialogTitle>{t('keys.title')}</DialogTitle>
-          <DialogDescription>{t('keys.description')}</DialogDescription>
-        </DialogHeader>
-
-        <DialogBody>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Group title={t('keys.group.going')}>
-              {SCREENS.filter((screen) => screen.jump !== undefined).map((screen) => (
-                <Row key={screen.key} keys={`G ${screen.jump!.toUpperCase()}`}>
-                  {t(screen.nav)}
-                </Row>
-              ))}
-            </Group>
-
-            <div className="grid gap-4">
-              <Group title={t('keys.group.moving')}>
-                <Row keys="Mod+K">{t('keys.action.search')}</Row>
-                <Row keys="Alt+ArrowLeft">{t('keys.action.back')}</Row>
-                <Row keys="Alt+ArrowRight">{t('keys.action.forward')}</Row>
-              </Group>
-
-              <Group title={t('keys.group.everywhere')}>
-                <Row keys="Mod+Z">{t('keys.action.undo')}</Row>
-                <Row keys="?">{t('keys.action.help')}</Row>
-                <Row keys="Escape">{t('keys.action.close')}</Row>
-              </Group>
-
-              {/* The stress gesture of a sung text (ADR 0053): on a vowel
-                  under the pointer, or at the caret - the same key on a
-                  Cyrillic layout, where it types э. */}
-              <Group title={t('keys.group.sung')}>
-                <Row hold="Alt" then={t('keys.click')}>
-                  {t('keys.action.stressVowel')}
-                </Row>
-                <Row keys="Alt+'">{t('keys.action.stressCaret')}</Row>
-              </Group>
-            </div>
+    <ShortcutsDialog
+      title={t('keys.title')}
+      closeLabel={t('dialog.close')}
+      description={t('keys.description')}
+      group={t('search.group.action')}
+    >
+      {/* On a vowel under the pointer, or at the caret - the same key on a
+          Cyrillic layout, where it types э. The editor answers both itself:
+          they belong to the text being written, not to the window. */}
+      <div role="group" aria-labelledby={heading} className="mt-4">
+        <h3 id={heading} className="caption pb-1">
+          {t('keys.group.sung')}
+        </h3>
+        <dl>
+          <div className="flex items-baseline justify-between gap-3 py-1">
+            <dt className="min-w-0 text-sm">{t('keys.action.stressVowel')}</dt>
+            {/* A press of the pointer is no key the notation can name: the
+                modifier held and the press are caps of their own. */}
+            <dd className="flex shrink-0 items-center gap-0.5">
+              <Kbd>{keyLabel('Alt')}</Kbd>
+              <Kbd>{t('keys.click')}</Kbd>
+            </dd>
           </div>
+          <div className="flex items-baseline justify-between gap-3 py-1">
+            <dt className="min-w-0 text-sm">{t('keys.action.stressCaret')}</dt>
+            <dd className="flex shrink-0">
+              <Kbd keys="Alt+'" />
+            </dd>
+          </div>
+        </dl>
+      </div>
 
-          <p className="mt-4 text-xs text-faint">{t('keys.typing')}</p>
-        </DialogBody>
-      </DialogPopup>
-    </Dialog>
+      <p className="mt-4 text-xs text-faint">{t('keys.typing')}</p>
+    </ShortcutsDialog>
   )
 }

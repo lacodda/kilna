@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { humanError } from '@/lib/errors'
 import { queries } from '@/lib/query/queries'
-import { useKeys } from '@/app/useKeys'
 import { RAIL_WIDTH, useRail } from '@/lib/rail'
 import { ProfileContext } from '@/lib/useProfile'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -14,6 +13,7 @@ import { HeldBanner } from '@/features/spaces/HeldBanner'
 import { NameSpaceDialog } from '@/features/spaces/NameSpaceDialog'
 import { useOpenRequests } from '@/features/spaces/useOpenRequests'
 import { KeyboardSheet } from '@/shell/KeyboardSheet'
+import { useShellKeys } from '@/shell/useShellKeys'
 import { Outside } from '@/shell/Outside'
 import { ResizeEdges } from '@/components/ui/window-frame'
 import { Sidebar } from '@/shell/Sidebar'
@@ -31,7 +31,7 @@ export default function App() {
   // Before the early returns below, because a hook cannot be conditional -
   // and because the shortcuts should answer while the workspace is still
   // loading rather than arriving a moment after the shell does.
-  const { helpOpen, setHelpOpen } = useKeys()
+  useShellKeys()
   const { rail, toggle: toggleRail } = useRail()
   // A link or a space's file handed to kilna opens from the first frame on.
   useOpenRequests()
@@ -97,7 +97,6 @@ export default function App() {
               works={workspace.works}
               compact={rail === 'compact'}
               onToggleRail={toggleRail}
-              onShowKeys={() => setHelpOpen(true)}
             />
           }
           side={<Sidebar compact={rail === 'compact'} />}
@@ -159,7 +158,7 @@ export default function App() {
         </AppShell>
       </AssistantLauncher>
 
-      <KeyboardSheet open={helpOpen} onOpenChange={setHelpOpen} />
+      <KeyboardSheet />
       <NameSpaceDialog />
       <ResizeEdges />
       {/* The tray, the badges, the notices said outside the window, and the

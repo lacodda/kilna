@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ProfileConfig } from '@/lib/api/types'
-import { drawn, JUMPS, onRail, railAt, SCREENS, SOON, screenAt } from '@/app/screens'
+import { drawn, onRail, railAt, SCREENS, SOON, screenAt } from '@/app/screens'
 import { CARD_TABS, SCREENS as PLACES } from '@/test/places'
 import { studio } from '@/test/workspace'
 import { version } from '../../package.json'
@@ -17,13 +17,10 @@ describe('the screens', () => {
     expect(new Set(keys).size).toBe(keys.length)
   })
 
-  it('give each shortcut letter to one screen, and every letter a real address', () => {
+  it('give each shortcut letter to one screen', () => {
     const letters = SCREENS.flatMap((screen) => (screen.jump === undefined ? [] : [screen.jump]))
     expect(new Set(letters).size).toBe(letters.length)
     for (const letter of letters) expect(letter).toMatch(/^[a-z]$/)
-    for (const where of Object.values(JUMPS)) {
-      expect(SCREENS.some((screen) => `/${screen.key}` === where)).toBe(true)
-    }
   })
 
   it('are all in the rail, but for an open work, which is reached from the others', () => {

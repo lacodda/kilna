@@ -128,3 +128,44 @@ describe('the palette', () => {
     expect(await screen.findByRole('dialog', { name: en.keys.title })).toBeInTheDocument()
   })
 })
+
+describe('the keys', () => {
+  it('jumps to a screen by G and its letter, by the place of the keys', async () => {
+    // On a Russian layout the G key types п and the D key в: a jump read off
+    // the letter was dead while the owner typed in Russian (wish 4308).
+    await open('/dashboard')
+    act(() => {
+      fireEvent.keyDown(document.body, { key: 'п', code: 'KeyG' })
+      fireEvent.keyDown(document.body, { key: 'в', code: 'KeyD' })
+    })
+    // D is the dashboard's own letter, so the jump goes nowhere new; K is
+    // the calendar's.
+    act(() => {
+      fireEvent.keyDown(document.body, { key: 'п', code: 'KeyG' })
+      fireEvent.keyDown(document.body, { key: 'л', code: 'KeyK' })
+    })
+    await waitFor(() =>
+      expect(within(rail()).getByRole('link', { name: en.nav.calendar })).toHaveAttribute(
+        'aria-current',
+        'page',
+      ),
+    )
+  })
+
+  it('lists in the sheet the keys that work, written from the commands', async () => {
+    await open('/dashboard')
+    act(() => {
+      fireEvent.keyDown(document.body, { key: '?', code: 'Slash', shiftKey: true })
+    })
+    const sheet = await screen.findByRole('dialog', { name: en.keys.title })
+
+    // A screen and its sequence, the palette's key and undo: one list for the
+    // keyboard, the palette and the sheet.
+    const row = (label: string) => within(sheet).getByText(label).closest('div')!
+    expect(row(en.nav.calendar)).toHaveTextContent(/G\W*K/)
+    expect(row(en.keys.action.search)).toBeInTheDocument()
+    expect(row(en.keys.action.undo)).toBeInTheDocument()
+    // What keys cannot say comes after the list.
+    expect(within(sheet).getByText(en.keys.action.stressCaret)).toBeInTheDocument()
+  })
+})

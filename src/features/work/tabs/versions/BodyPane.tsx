@@ -23,7 +23,7 @@ import {
 import { cleanText } from '@/lib/api/register'
 import type { Composition, StressNote, TextCheck } from '@/lib/api/types'
 import { PHRASE_MARK, insertPhrase, phraseAt } from '@/lib/phrases'
-import { typing } from '@/lib/keys'
+import { isTypingTarget } from '@/components/ui/shortcut'
 import { queries } from '@/lib/query/queries'
 import { strictnessStatus, termMark } from '@/lib/register'
 import {
@@ -299,7 +299,7 @@ export function BodyPane({
   // Cyrillic layout, where that key types `у`.
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (reading !== 'view' || body === null || event.defaultPrevented) return
-    if (event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) return
+    if (event.ctrlKey || event.metaKey || event.altKey || isTypingTarget(event.target)) return
     const onControl =
       event.target instanceof Element &&
       event.target.closest('button, a, [role="menuitem"]') !== null
