@@ -28,7 +28,12 @@ const REGISTRY = join(ROOT, 'node_modules/dowel-ui/dist/registry.json')
 
 /** Copies allowed to differ, each with the reason. Empty is the goal; an entry
  * here is a debt with a name, not a way to make the check pass. */
-const EXCEPTIONS = new Map()
+const EXCEPTIONS = new Map([
+  [
+    'frame.tsx',
+    "a head whose parts all draw nothing costs no gap (`empty:hidden`, kilna's fix of 05.11, after the harvest) - ordered from dowel",
+  ],
+])
 
 const registry = JSON.parse(readFileSync(REGISTRY, 'utf8'))
 const { version } = JSON.parse(

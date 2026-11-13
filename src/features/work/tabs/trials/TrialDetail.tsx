@@ -29,7 +29,7 @@ import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from '@/compone
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { InlineField } from '@/components/ui/inline-field'
 import { Textarea } from '@/components/ui/textarea'
-import { Pane } from '@/components/frame'
+import { Pane } from '@/components/ui/frame'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { PhraseStrip } from '@/features/work/tabs/versions/PhraseStrip'
 import { PHRASE_MARK } from '@/lib/phrases'

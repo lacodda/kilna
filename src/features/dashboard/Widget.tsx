@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Panel } from '@/components/ui/panel'
-import { Scroll } from '@/components/frame'
+import { Scroll } from '@/components/Scroll'
 import { cn } from '@/lib/utils'
 
 interface Props {

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { ListDetail, Pane } from '@/components/frame'
+import { ListDetail, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { LineItem } from '@/features/notes/LineItem'
@@ -165,6 +165,7 @@ export function LineBank({ kind, filter, tag, filtered: narrowed, total }: Props
   return (
     <>
       <ListDetail
+        open
         list={
           <Shelves
             shelves={shelves}

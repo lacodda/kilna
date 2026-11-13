@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { ListRow } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { Pane } from '@/components/frame'
+import { Pane } from '@/components/ui/frame'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import {
   KindPicker,

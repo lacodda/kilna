@@ -15,7 +15,7 @@ import { readPlanImport } from '@/lib/api/releases'
 import { calendarIcs, monthMarkdown } from '@/lib/calendarFiles'
 import { queries } from '@/lib/query/queries'
 import { CarriedLabel } from '@/components/CarriedLabel'
-import { Frame, ListDetail } from '@/components/frame'
+import { Frame, ListDetail } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { AgendaList } from '@/features/calendar/AgendaList'
 import { CalendarDialogs, type CalendarDialog } from '@/features/calendar/CalendarDialogs'
@@ -403,6 +403,7 @@ export function CalendarView({ onSelect }: Props) {
         plan
       ) : (
         <ListDetail
+          open
           side="end"
           detail={plan}
           list={

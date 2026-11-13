@@ -14,7 +14,7 @@ import { RowButton } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { StatusDot } from '@/components/ui/status-dot'
 import { Select } from '@/components/AppSelect'
-import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { NewTermDialog } from '@/features/register/NewTermDialog'
 import { TermDetail } from '@/features/register/TermDetail'
@@ -114,6 +114,7 @@ export function RegisterView() {
       }
     >
       <ListDetail
+        open={selected !== undefined}
         list={
           <Pane label={t('nav.register')} bodyClassName="p-1.5">
             <Loaded

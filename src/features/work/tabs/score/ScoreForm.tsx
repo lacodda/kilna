@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/AppSelect'
-import { Pane } from '@/components/frame'
+import { Pane } from '@/components/ui/frame'
 import { AxisGrid, AxisRow } from '@/features/work/tabs/score/AxisRow'
 import { ScoreFoot } from '@/features/work/tabs/score/ScoreFoot'
 

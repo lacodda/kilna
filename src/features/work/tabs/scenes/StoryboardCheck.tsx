@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { chipVariants } from '@/components/ui/chip'
 import { RowButton } from '@/components/ui/list-row'
 import { Popover, PopoverPopup, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
-import { Scroll } from '@/components/frame'
+import { Scroll } from '@/components/Scroll'
 
 /*
  * What the board still owes, as a chip at the foot of the board.

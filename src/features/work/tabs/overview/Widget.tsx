@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import { Skeleton } from '@/components/ui/skeleton'
-import { BOUND, Scroll } from '@/components/frame'
+import { BOUND, Scroll } from '@/components/Scroll'
 
 /*
  * One widget of the overview: the mockup's `.w`, and the one object every

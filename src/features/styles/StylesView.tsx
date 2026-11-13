@@ -18,7 +18,8 @@ import { Input } from '@/components/ui/input'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeleton'
-import { Frame, ListDetail, Scroll } from '@/components/frame'
+import { Frame, ListDetail } from '@/components/ui/frame'
+import { Scroll } from '@/components/Scroll'
 import { Loaded } from '@/components/Loaded'
 import { pictureIn, readPicture } from '@/features/styles/pastedPicture'
 import { StyleBrickCard } from '@/features/styles/StyleBrickCard'
@@ -407,7 +408,7 @@ export function StylesView() {
         </>
       }
     >
-      {styleId === undefined ? dictionary : <ListDetail list={dictionary} detail={detail} />}
+      {styleId === undefined ? dictionary : <ListDetail open list={dictionary} detail={detail} />}
       {fromTexts && half?.composition != null && (
         <FromStylesDialog open onOpenChange={setFromTexts} composition={half.composition} />
       )}

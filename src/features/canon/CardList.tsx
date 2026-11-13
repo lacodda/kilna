@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { RowButton } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Pane } from '@/components/frame'
+import { Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { CardAvatar } from '@/features/canon/CardAvatar'
 

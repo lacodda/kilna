@@ -10,7 +10,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { PluginBar } from '@/features/work/PluginBar'
 import { ScoreForm } from '@/features/work/tabs/score/ScoreForm'
 import { ScoreList } from '@/features/work/tabs/score/ScoreList'
@@ -178,6 +178,7 @@ export function ScorePanel({ workId }: Props) {
       }
     >
       <ListDetail
+        open
         list={
           <ScoreList
             workId={workId}

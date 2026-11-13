@@ -11,7 +11,7 @@ import { Chip, ChipGroup } from '@/components/ui/chip'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SectionLabel } from '@/components/ui/panel'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame, Pane } from '@/components/frame'
+import { Frame, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { useSayMoment } from '@/features/work/tabs/history/moments'
 

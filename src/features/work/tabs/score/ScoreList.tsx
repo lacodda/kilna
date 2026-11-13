@@ -11,7 +11,7 @@ import { Chip } from '@/components/ui/chip'
 import { EmptyState } from '@/components/ui/empty-state'
 import { RowButton } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Pane } from '@/components/frame'
+import { Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { cn } from '@/lib/utils'
 

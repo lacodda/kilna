@@ -95,7 +95,7 @@ type Rule = ((facts: CardFacts) => boolean) | null
 
 // Every tab is held by the card since v0.78: none is a page that scrolls
 // whole, so there is no rule for it here any more - each lays itself out on
-// `components/frame`.
+// `components/ui/frame`.
 const RULES: Readonly<Record<Tab, Rule>> = {
   overview: null,
   // Every work has notes to attach; a kind that names a conception draws its

@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ConfirmAction } from '@/components/ConfirmAction'
-import { Frame, Pane } from '@/components/frame'
+import { Frame, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { cn } from '@/lib/utils'
 import { formatStamp } from '@/lib/format'

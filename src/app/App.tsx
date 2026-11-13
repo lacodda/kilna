@@ -122,7 +122,7 @@ export default function App() {
 
                 This box does not scroll, and neither does any screen: each
                 is held against the height it is handed and lays itself out
-                on `components/frame` - a head that stands and a part that
+                on `components/ui/frame` - a head that stands and a part that
                 scrolls. The window having no scrollbar of its own is the
                 point. `data-screen-area` is how the tests find it to hold
                 every screen to that (`app/smoke.test.tsx`). */}

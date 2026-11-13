@@ -9,7 +9,7 @@ import { useDebounced } from '@/lib/useDebounced'
 import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
 import { Input } from '@/components/ui/input'
 import { RowButton } from '@/components/ui/list-row'
-import { Scroll } from '@/components/frame'
+import { Scroll } from '@/components/Scroll'
 
 interface Props {
   composition: Composition

@@ -40,7 +40,7 @@ import { RowButton } from '@/components/ui/list-row'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Dialog } from '@/components/AppDialog'
-import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
@@ -266,6 +266,7 @@ function Board({ work, board }: { work: Work; board: TrialBoard }) {
         />
       ) : (
         <ListDetail
+          open={open !== undefined}
           list={
             <Pane label={t('trials.list')}>
               <TrialList

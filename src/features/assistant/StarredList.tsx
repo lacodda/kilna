@@ -6,7 +6,7 @@ import { queries } from '@/lib/query/queries'
 import { EmptyState } from '@/components/ui/empty-state'
 import { RowButton } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Pane } from '@/components/frame'
+import { Pane } from '@/components/ui/frame'
 
 interface Props {
   /** The work whose chats' answers these are. Absent: every chat's. */

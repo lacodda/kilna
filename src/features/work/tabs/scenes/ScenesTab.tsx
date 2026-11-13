@@ -17,7 +17,7 @@ import { allOf, useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfi
 import { EmptyState } from '@/components/ui/empty-state'
 import { Panel } from '@/components/ui/panel'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame } from '@/components/frame'
+import { Frame } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import type { RowAction } from '@/components/RowMenu'
 import { ActionBar, actionsFor } from '@/features/assistant/ActionBar'

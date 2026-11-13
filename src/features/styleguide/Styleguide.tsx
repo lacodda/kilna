@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Panel, SectionLabel } from '@/components/ui/panel'
 import { Select } from '@/components/AppSelect'
-import { Frame, Scroll } from '@/components/frame'
+import { Frame } from '@/components/ui/frame'
+import { Scroll } from '@/components/Scroll'
 
 const TOKENS = [
   'bg',

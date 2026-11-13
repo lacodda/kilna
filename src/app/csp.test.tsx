@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { Providers } from '@/app/Providers'
-import { Scroll } from '@/components/frame'
+import { Scroll } from '@/components/Scroll'
 import { createQueryClient } from '@/lib/query/client'
 import { mockBackend } from '@/test/backend'
 

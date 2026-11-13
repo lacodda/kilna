@@ -5,7 +5,7 @@ import { shownChat } from '@/lib/chat'
 import { formatCost } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Frame, ListDetail } from '@/components/frame'
+import { Frame, ListDetail } from '@/components/ui/frame'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { ChatChips, ChatRows, type ChatListProps } from '@/features/assistant/ChatList'
 import { ChatView } from '@/features/assistant/ChatView'
@@ -197,6 +197,7 @@ export function ChatSurface({ workId, list, initialChat = null, title, end, onOp
         </div>
       ) : (
         <ListDetail
+          open={open !== null}
           list={starred ? starredList : <ChatRows {...listProps} />}
           detail={conversation}
         />

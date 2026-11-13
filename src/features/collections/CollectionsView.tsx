@@ -8,7 +8,8 @@ import { queries } from '@/lib/query/queries'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeleton'
-import { Frame, ListDetail, Scroll } from '@/components/frame'
+import { Frame, ListDetail } from '@/components/ui/frame'
+import { Scroll } from '@/components/Scroll'
 import { Loaded } from '@/components/Loaded'
 import { CollectionCard } from './CollectionCard'
 import { CollectionDetail } from './CollectionDetail'
@@ -122,7 +123,7 @@ export function CollectionsView() {
         </Button>
       }
     >
-      {collectionId === undefined ? grid : <ListDetail list={grid} detail={detail} />}
+      {collectionId === undefined ? grid : <ListDetail open list={grid} detail={detail} />}
       <NewCollectionDialog
         open={making}
         onOpenChange={setMaking}

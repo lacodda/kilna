@@ -21,7 +21,7 @@ import { RowButton } from '@/components/ui/list-row'
 import { Select } from '@/components/AppSelect'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { LineBank } from '@/features/notes/LineBank'
 import { NoteDetail } from '@/features/notes/NoteDetail'
@@ -205,6 +205,7 @@ export function NotesView() {
         <LineBank kind={kind} filter={filter} tag={tag} filtered={filtered} total={total} />
       ) : (
         <ListDetail
+          open={selected !== undefined}
           list={
             <Pane label={t('nav.notes')} bodyClassName="p-1.5">
               <Loaded

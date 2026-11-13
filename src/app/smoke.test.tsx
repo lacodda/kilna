@@ -74,7 +74,7 @@ async function waitForArea(container: HTMLElement): Promise<HTMLElement> {
  * under two hundred rows. Since v0.78 no screen scrolls as a whole either:
  * each `<Screen>` (a `<main>`) is held against the height it was given, and
  * what it draws takes that height and scrolls inside - a head that stands, a
- * part that moves (`components/frame`). Until then five screens still flowed,
+ * part that moves (`components/ui/frame`). Until then five screens still flowed,
  * and their heads went up with their content.
  *
  * A held box clips, so a root that grows with its content instead of taking

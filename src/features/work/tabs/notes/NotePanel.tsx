@@ -21,7 +21,8 @@ import { Panel, SectionLabel, panelVariants } from '@/components/ui/panel'
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame, Scroll } from '@/components/frame'
+import { Frame } from '@/components/ui/frame'
+import { Scroll } from '@/components/Scroll'
 import { Loaded } from '@/components/Loaded'
 
 interface Props {

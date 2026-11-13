@@ -25,7 +25,7 @@ import { formatTotal } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonList } from '@/components/ui/skeleton'
-import { ListDetail, Pane } from '@/components/frame'
+import { ListDetail, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { ToCanonButton } from '@/features/canon/ToCanonButton'
@@ -614,7 +614,7 @@ export function VersionPanel({ workId }: Props) {
   // same tab.
   return (
     <>
-      <ListDetail list={list} detail={detail} />
+      <ListDetail open={showForm || openSummary !== null} list={list} detail={detail} />
       {composing && composition !== undefined && (
         <ComposeDialog
           open

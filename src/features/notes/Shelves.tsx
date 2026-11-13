@@ -19,7 +19,7 @@ import {
   type Reorder,
 } from '@/components/ui/reorderable-list'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Pane } from '@/components/frame'
+import { Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { RowMenu, type RowAction } from '@/components/RowMenu'
 

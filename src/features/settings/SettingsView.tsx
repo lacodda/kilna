@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/query/queries'
 import { SectionNav } from '@/components/ui/section-nav'
 import { StatusDot } from '@/components/ui/status-dot'
-import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { AgentsSection } from '@/features/settings/AgentsSection'
 import { AssistantSection } from '@/features/settings/AssistantSection'
 import { CardSection } from '@/features/settings/CardSection'
@@ -99,6 +99,7 @@ export function SettingsView() {
     // narrow window, the whole screen scrolled as one.
     <Frame>
       <ListDetail
+        open
         width="rail"
         list={
           <Pane label={t('settings.title')} bodyClassName="flex flex-col gap-4 p-1.5">

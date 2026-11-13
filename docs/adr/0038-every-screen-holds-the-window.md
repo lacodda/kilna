@@ -74,3 +74,17 @@ The note being edited still scrolls a column of its own natively: its text
 area sizes against the column, which ScrollArea's content box does not give
 it. The Versions editor stopped doing so in v0.80, when a new version began to
 replace the open one instead of following it down the column.
+
+## Update - v0.110
+
+`Frame`, `Pane` and `ListDetail` moved into dowel (0.36, harvested from this
+file) and kilna takes them from the registry copy, `components/ui/frame.tsx`.
+`Scroll` and `BOUND` stayed kilna's, in `components/Scroll.tsx`: dowel took no
+`bound` or `fit` region. The list widths are the theme's tokens now (`w-list`,
+`w-rail`), and a scrolling region holds its content to the vertical axis
+through ScrollArea's `orientation="vertical"` rather than `*:min-w-0!`.
+
+Below 672px of its own width dowel's `ListDetail` shows one of its two columns,
+so every call says whether something is open. The window's floor rose from 900
+to 960px so that no screen and no tab of a card gets that narrow beside the
+full rail: on the desktop, the list stands beside what is open at every size.

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Panel } from '@/components/ui/panel'
 import { Switch } from '@/components/ui/switch'
-import { BOUND, Scroll } from '@/components/frame'
+import { BOUND, Scroll } from '@/components/Scroll'
 import { DraftText } from '@/features/cover/Section'
 
 type Part = 'picture' | 'negative' | 'typography'

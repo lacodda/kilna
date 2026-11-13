@@ -15,7 +15,7 @@
         "title": "kilna",
         "width": 1200,
         "height": 800,
-        "minWidth": 900,
+        "minWidth": 960,
         "minHeight": 600,
         "dragDropEnabled": true,
         "decorations": false,

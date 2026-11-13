@@ -13,15 +13,16 @@ import { ScrollArea } from '@/components/ui/scroll-area'
  * the text - or the box it is typed into - can take the whole panel and
  * still grow past it and scroll.
  *
- * `min-w-0` for the same reason the frame's has it: a text wraps to the
+ * Held to the vertical axis, as the frame's `Scroll` is: a text wraps to the
  * column rather than pushing it wider.
  */
 export function TextScroll({ label, children }: { label: string; children: ReactNode }) {
   return (
     <ScrollArea
       label={label}
+      orientation="vertical"
       className="flex-1"
-      viewportClassName="*:flex! *:min-h-full! *:min-w-0! *:flex-col!"
+      viewportClassName="*:flex! *:min-h-full! *:flex-col!"
     >
       {children}
     </ScrollArea>

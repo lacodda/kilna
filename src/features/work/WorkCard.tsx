@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { QueryState } from '@/components/ui/query-state'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Frame } from '@/components/frame'
+import { Frame } from '@/components/ui/frame'
 import { CardHeader } from '@/features/work/CardHeader'
 import {
   DEFAULT_TAB,
@@ -158,7 +158,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
 
           {/* The header stands and the open tab takes the rest. No tab is a
             page that scrolls within this box: each lays itself out against
-            its height on `components/frame` and scrolls inside, so the card
+            its height on `components/ui/frame` and scrolls inside, so the card
             itself never scrolls - which is what let the header stop being
             sticky, and what keeps a tab's own head and foot on screen.
             `data-tab-body` is how the smoke test holds every tab to it. */}

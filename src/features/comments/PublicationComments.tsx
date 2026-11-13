@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame, Pane } from '@/components/frame'
+import { Frame, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { STANDING_DOT } from '@/features/comments/CommentBoard'
 

@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/input'
 import { RowButton } from '@/components/ui/list-row'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { CommentDetail } from '@/features/comments/CommentDetail'
 import { NewCommentDialog } from '@/features/comments/NewCommentDialog'
@@ -183,6 +183,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
       }
     >
       <ListDetail
+        open={selected !== undefined}
         list={
           <Pane label={t('nav.comments')} bodyClassName="flex flex-col gap-1.5 p-1.5">
             {reading.map((key) => (
