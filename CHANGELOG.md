@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.111.0] - 2026-11-15
+
+The calendar and the queue. A clip, a short and an audio release carry the
+tier of the song they are made from, so the plan is read by strength again -
+and a month can be held to goals by tier or by kind of work
+(`rhythm.monthly`), with the dashboard saying which one it falls short of.
+The day's plus chooses a work that exists and says what its song would repeat
+on that day before it books; a work carried from the pane is told the same.
+Carrying a chip no longer waits for the guard of repeats: the workspace is
+read once and each day answered from that reading (ADR 0078), a day is asked
+about only once the pointer rests on it, and the date is written first - on
+the owner's workspace seven days cost five seconds, and now cost one reading.
+The queue narrows by the catalogue's stage funnel, "no stage" included; the
+catalogue slices by repeats, all of them or the red ones. Plans whose day has
+passed are answered together on the dashboard - marked as out on their own
+days, or taken off the calendar - and a "not ready" line of the history says
+what is missing. Underneath, dowel 1.0: the week is BigCalendar's, the
+catalogue's headings sort through TableSortButton, every pressable picture
+and card is a TileButton, and the registry check has no exceptions left.
+
+### Bug Fixes
+- Warn of the first match while the highlight catches up
+
+### Features
+- Plan by the song's tier and ask a day once per carry
+- Pick, filter and answer the plan where it is read
+
+### Refactoring
+- Take the shapes dowel 1.0 built for kilna
+
 ## [0.110.0] - 2026-11-13
 
 dowel's primitives, taken from the registry instead of drawn by hand. The
