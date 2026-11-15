@@ -7,8 +7,7 @@ import type {
   CoverMarkWay,
 } from '@/lib/api/types'
 import { fileSrc } from '@/lib/api/assets'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 
 const CORNERS: readonly CoverCorner[] = ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']
@@ -46,17 +45,13 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
           const on = option.id === mark.variant
           return (
             <li key={option.id} className="flex">
-              <Button
-                variant="ghost"
-                size={null}
+              <TileButton
+                selected={on}
                 aria-pressed={on}
                 title={option.name}
                 disabled={disabled}
                 onClick={() => set({ variant: on ? null : option.id })}
-                className={cn(
-                  'w-full flex-col gap-0.5 p-1 font-normal',
-                  on && 'border-accent text-accent',
-                )}
+                className="w-full gap-0.5 p-1"
               >
                 {option.file === null ? (
                   <span className="grid aspect-square w-full place-items-center rounded-sm bg-soft text-xs font-semibold">
@@ -73,7 +68,7 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
                 <span className="w-full truncate text-center font-mono text-2xs">
                   {option.file === null ? meaningOf(option) : (option.code ?? option.name)}
                 </span>
-              </Button>
+              </TileButton>
             </li>
           )
         })}

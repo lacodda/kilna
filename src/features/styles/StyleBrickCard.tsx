@@ -16,7 +16,7 @@ import {
 import { say as sayLabel } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 import { Chip } from '@/components/ui/chip'
 // The typefaces the lettering samples are drawn with; the window fetches a
 // file only when a sample needs it.
@@ -92,19 +92,12 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, house = false, o
 
   return (
     <li ref={card} className="flex">
-      {/* A quiet Button in the shape of a card rather than a row of a list:
-          the top, two lines of what it says and the chips do not fit a row's
-          slots. No size, because a card is as tall as what it holds. */}
-      <Button
-        variant="ghost"
-        size={null}
+      {/* A card rather than a row of a list: the top, two lines of what it
+          says and the chips do not fit a row's slots. */}
+      <TileButton
+        selected={open}
         onClick={onOpen}
-        aria-current={open ? 'true' : undefined}
-        className={cn(
-          'w-full flex-col items-stretch justify-start gap-0 overflow-hidden rounded-lg bg-raise p-0 text-left font-normal whitespace-normal',
-          open && 'border-accent',
-          brick.status === 'dropped' && 'opacity-55',
-        )}
+        className={cn('w-full rounded-lg bg-raise', brick.status === 'dropped' && 'opacity-55')}
       >
         <BrickFace brick={brick} type={type} />
 
@@ -141,7 +134,7 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, house = false, o
             {t(`styles.origin.${brick.origin}`)}
           </span>
         </span>
-      </Button>
+      </TileButton>
     </li>
   )
 }

@@ -4,7 +4,7 @@ import { open as openFile } from '@tauri-apps/plugin-dialog'
 import { ImagePlus } from 'lucide-react'
 import { PICTURES } from '@/lib/media'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 import { useWindowDrop } from '@/features/styles/useWindowDrop'
 
 interface Props {
@@ -39,16 +39,12 @@ export function StyleDropCard({ onPaths, busy }: Props) {
 
   return (
     <li ref={zone} className="flex">
-      {/* A quiet Button in the shape of a card, dashed like every "not there
-          yet" of the line; no size, because a card is as tall as what it
-          holds. */}
-      <Button
-        variant="ghost"
-        size={null}
+      {/* A card, dashed like every "not there yet" of the line. */}
+      <TileButton
         onClick={() => void pick()}
         disabled={busy}
         className={cn(
-          'min-h-37.5 w-full flex-col justify-center gap-1.5 rounded-lg border-dashed bg-softer p-4.5 text-center font-normal whitespace-normal',
+          'min-h-37.5 w-full items-center justify-center gap-1.5 rounded-lg border-dashed bg-softer p-4.5 text-center',
           over && 'border-accent bg-accent-soft',
         )}
       >
@@ -57,7 +53,7 @@ export function StyleDropCard({ onPaths, busy }: Props) {
         <span className="text-sm text-faint">
           {over ? t('styles.dropToMake') : t('styles.dropHint')}
         </span>
-      </Button>
+      </TileButton>
     </li>
   )
 }

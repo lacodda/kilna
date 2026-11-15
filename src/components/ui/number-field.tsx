@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import { NumberField as Base } from '@base-ui/react/number-field'
 import { cn, useLocale } from 'dowel-ui'
 import { fieldClasses } from './input'
@@ -106,8 +106,21 @@ export function NumberField({
    * to look (aria-prohibited-attr). */
   const root: Record<string, unknown> = { ...props }
   for (const key of ['id', 'aria-labelledby', 'aria-describedby', 'aria-invalid']) delete root[key]
+  /* Base UI submits the number through a hidden `<input type="number">` and
+   * gives it `step` as well, so a browser refuses to submit any form whose
+   * number is off the grid `min + k * step` - and says nothing, because the
+   * input it would point at is hidden. kilna's weekly budget (min 0.01, step
+   * 1) would not take 15. `step` here is what the arrows change the number
+   * by, not a rule about which numbers are allowed, so the hidden input takes
+   * any. Set again whenever React writes `step` back, which it does only
+   * when the prop changes - and so does this callback. */
+  const anyStep = useCallback(
+    (input: HTMLInputElement | null) => input?.setAttribute('step', 'any'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run when React rewrites the attribute
+    [props.step, props.min],
+  )
   return (
-    <Base.Root {...root} locale={language} className={cn('inline-flex items-center gap-2', className)}>
+    <Base.Root {...root} inputRef={anyStep} locale={language} className={cn('inline-flex items-center gap-2', className)}>
       <Base.Group
         className={cn(
           fieldClasses,

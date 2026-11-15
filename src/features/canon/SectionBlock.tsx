@@ -269,7 +269,7 @@ export function LayerMark({ layer }: { layer: 'public' | 'internal' | 'inWorks' 
     <span
       title={t(`canon.layer.long.${layer}`)}
       className={cn(
-        'mt-0.5 grid h-5 w-5.5 shrink-0 place-items-center rounded-md font-mono text-2xs font-bold',
+        'mt-0.5 grid h-5 w-5.5 shrink-0 place-items-center rounded-md font-mono text-2xs font-semibold',
         layer === 'public' && 'bg-good-soft text-good',
         layer === 'internal' && 'bg-warn-soft text-warn',
         layer === 'inWorks' && 'bg-accent-soft text-accent-2',

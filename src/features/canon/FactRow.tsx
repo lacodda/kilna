@@ -356,7 +356,7 @@ function FactWords({ fact, shape }: { fact: ReadFact['fact']; shape: SectionShap
         <>
           <span className="flex flex-wrap items-center gap-1.5">
             {text('code') !== '' && (
-              <span className="font-mono text-xs font-bold">{text('code')}</span>
+              <span className="font-mono text-xs font-semibold">{text('code')}</span>
             )}
             <b className="font-semibold">{fact.body}</b>
           </span>

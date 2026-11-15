@@ -554,7 +554,7 @@ export function BoardSection({ work, board }: Props) {
       {carry.dragging !== null && carried != null && (
         <div
           aria-hidden
-          className="pointer-events-none fixed z-50 rounded-lg border border-accent bg-raise px-2.5 py-2 text-sm font-semibold shadow-lg"
+          className="pointer-events-none fixed z-50 rounded-lg border border-accent bg-raise px-2.5 py-2 text-sm font-semibold shadow-float"
           style={{
             left: carry.dragging.ghost.left,
             top: carry.dragging.ghost.top,

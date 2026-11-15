@@ -46,7 +46,7 @@ export function CardAvatar({
   return (
     <span
       aria-hidden
-      className={cn('grid shrink-0 place-items-center font-bold', box, toneOf(title ?? ''))}
+      className={cn('grid shrink-0 place-items-center font-semibold', box, toneOf(title ?? ''))}
     >
       {initialOf(title)}
     </span>

@@ -3,7 +3,7 @@ import { coverImageFor } from '@/lib/cover'
 import { formatDay } from '@/lib/format'
 import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 
 /**
@@ -25,13 +25,10 @@ export function SlotCard({
 
   return (
     // A card, not a row: a cover over two lines, which no row's slots hold.
-    // So the quiet button with no size of its own, laid out as a column; its
-    // border and hover are the card's.
-    <Button
-      variant="ghost"
-      size={null}
+    // So a tile pressed whole, whose border and hover are the card's.
+    <TileButton
       onClick={() => onSelect(release.work_id, 'overview')}
-      className="flex-col items-stretch gap-0 overflow-hidden rounded-lg bg-raise text-left"
+      className="rounded-lg bg-raise"
     >
       <span
         aria-hidden
@@ -52,6 +49,6 @@ export function SlotCard({
           {formatDay(release.scheduled_at as string)}
         </span>
       </span>
-    </Button>
+    </TileButton>
   )
 }

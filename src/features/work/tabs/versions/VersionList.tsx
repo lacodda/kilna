@@ -199,9 +199,6 @@ export function VersionList({
               role="option"
               selected={isOpen}
               aria-selected={isOpen}
-              // In a listbox the open row is the selected option; `aria-current`
-              // on top of it would announce the same fact twice.
-              aria-current={undefined}
               data-version={version.id}
               // Roving focus: one stop for the whole history, and the arrows do
               // the rest. Tabbing past twenty revisions is not navigation.

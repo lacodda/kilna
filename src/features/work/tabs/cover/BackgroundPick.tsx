@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/query/queries'
 import { colourFill, styleName } from '@/lib/styleBrick'
 import { styleTypesOf, useProfile } from '@/lib/useProfile'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 
 interface Props {
   brickId: string | null
@@ -45,18 +44,14 @@ export function BackgroundPick({ brickId, disabled, onChange }: Props) {
           const name = `${styleName(brick)} · ${brick.colours.join(' → ')}`
           return (
             <li key={brick.id}>
-              <Button
-                variant="icon"
-                size={null}
+              <TileButton
+                selected={on}
                 aria-pressed={on}
                 aria-label={name}
                 title={name}
                 disabled={disabled}
                 onClick={() => onChange(on ? null : brick.id)}
-                className={cn(
-                  'size-6 rounded-md ring-1 ring-line-2',
-                  on && 'ring-2 ring-accent ring-offset-2 ring-offset-raise',
-                )}
+                className="size-6"
                 style={{ background: colourFill(brick.colours) }}
               />
             </li>

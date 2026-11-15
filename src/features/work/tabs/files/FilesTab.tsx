@@ -253,7 +253,7 @@ function FileTile({
         {name}
       </p>
       {isCover && (
-        <span className="absolute top-1.5 left-1.5 rounded-xs bg-accent px-1.5 text-2xs font-bold tracking-wide text-on-accent">
+        <span className="absolute top-1.5 left-1.5 rounded-xs bg-accent px-1.5 text-2xs font-semibold tracking-wide text-on-accent">
           {t('files.cover')}
         </span>
       )}

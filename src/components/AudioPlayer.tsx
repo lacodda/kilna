@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Slider } from '@base-ui/react/slider'
 import { ChevronDown, Pause, Play } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { Slider } from '@/components/ui/slider'
 
 /** One thing the player can play: a file on disk and how it is named. */
 export interface Track {
@@ -23,9 +23,9 @@ export interface Track {
  *
  * The browser's own controls were the other way, and they draw in the
  * system's colours at a width of their own; this is the same `<audio>`
- * underneath with the line's tokens on top. The bar is base-ui's slider, so
+ * underneath with the line's tokens on top. The bar is dowel's slider, so
  * the arrows, Home and End and a press anywhere along it work as a slider's
- * do. dowel has no slider yet - asked for (v0.93).
+ * do.
  *
  * `selected` and `onSelect` are the caller's, so that something else on the
  * screen - a file's tile - can choose what plays; `request` is a counter the
@@ -153,36 +153,26 @@ export function AudioPlayer({
         <span className="text-xs text-bad">{t('player.broken')}</span>
       ) : (
         <>
-          <Slider.Root
+          <Slider
             value={time}
             min={0}
             max={duration > 0 ? duration : 1}
             step={0.1}
             disabled={duration === 0}
+            aria-label={t('player.position')}
+            getValueText={(_, value) =>
+              t('player.at', { time: clock(value), length: clock(duration) })
+            }
             onValueChange={(next) => {
               const element = audio.current
-              if (element === null) return
-              element.currentTime = next
-              setTime(next)
+              // One thumb, so one number; dowel's type allows a range too.
+              const at = typeof next === 'number' ? next : next[0]
+              if (element === null || at === undefined) return
+              element.currentTime = at
+              setTime(at)
             }}
             className="min-w-24 flex-1"
-          >
-            <Slider.Control className="flex h-4 w-full touch-none items-center select-none data-disabled:opacity-50">
-              <Slider.Track className="relative h-1 w-full rounded-full bg-soft">
-                <Slider.Indicator className="rounded-full bg-accent" />
-                <Slider.Thumb
-                  getAriaLabel={() => t('player.position')}
-                  getAriaValueText={(_, value) =>
-                    t('player.at', { time: clock(value), length: clock(duration) })
-                  }
-                  className={cn(
-                    'size-3 rounded-full bg-accent shadow-lift',
-                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                  )}
-                />
-              </Slider.Track>
-            </Slider.Control>
-          </Slider.Root>
+          />
           <span className="shrink-0 font-mono text-xs text-dim tabular-nums">
             {clock(time)} / {duration > 0 ? clock(duration) : '–:––'}
           </span>

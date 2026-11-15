@@ -36,8 +36,8 @@ importers:
         specifier: ^3.4.17
         version: 3.4.17
       dowel-ui:
-        specifier: ^0.43.1
-        version: 0.43.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: ^1.0.0
+        version: 1.0.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       i18next:
         specifier: ^27.1.1
         version: 27.1.1(typescript@6.0.3)
@@ -1359,8 +1359,8 @@ packages:
   dompurify@3.4.17:
     resolution: {integrity: sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==}
 
-  dowel-ui@0.43.1:
-    resolution: {integrity: sha512-tWFty/JbX/X00nS7KbmIexG7KFaVtQFbkCVISrHVZ2SsVl0Z3U7krjO2XuU2PlucNgCBfEZOfDOhXpOfU6Jstw==}
+  dowel-ui@1.0.0:
+    resolution: {integrity: sha512-NYnUL8Yyjf7zK3x5dIp68/LO6QKwJRmVYgMDXSlSp/pOmDE8lUZOHQRKw+ljCVB59UzK2pRW9PZTvtGBU9lhGQ==}
     hasBin: true
     peerDependencies:
       react: ^19.0.0
@@ -3164,7 +3164,7 @@ snapshots:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dowel-ui@0.43.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  dowel-ui@1.0.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       clsx: 2.1.1
       react: 19.3.1

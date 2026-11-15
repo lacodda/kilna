@@ -1,0 +1,147 @@
+import { Slider as Base } from '@base-ui/react/slider'
+import { cn } from 'dowel-ui'
+
+/*
+ * Slider - a value picked by position, and a range picked by two.
+ *
+ * The case for it over a NumberField is that the number does not matter much:
+ * a volume, an opacity, a weight in a search filter. Where the exact figure
+ * does matter, a slider is a worse field with more pixels - it cannot be
+ * typed into, it cannot be pasted into, and it has no state for "empty".
+ *
+ * Range is the same component with an array. That is Base UI's arrangement
+ * and it is the right one: a range slider is not a second control but the
+ * same track with two thumbs, and splitting them would double the styling
+ * and let the two drift apart. `value={[10, 40]}` is a range; `value={30}` is
+ * a single.
+ *
+ * The parts are separate for a reason worth knowing. The Control is the whole
+ * hit area - much taller than the visible track, so a pointer does not have
+ * to find four pixels - while the Track is what is drawn, and the Indicator
+ * is the filled part behind the thumb. Making the drawn track the hit area is
+ * the commonest way a slider ends up hard to grab.
+ */
+
+export interface SliderProps {
+  /** A number for one thumb, an array for a range. */
+  value?: number | readonly number[]
+  /** The starting value for an uncontrolled slider: a number, or an array for a range. */
+  defaultValue?: number | readonly number[]
+  /* `readonly` because that is what Base UI hands over, and narrowing it here
+   * only moves the cast into every caller. */
+  /** Called on every change while the thumb moves, with a number or an array to match `value`. */
+  onValueChange?: (value: number | readonly number[]) => void
+  /** Fires once when the drag ends, for the expensive thing a product does
+   * not want to run on every pixel of movement. */
+  onValueCommitted?: (value: number | readonly number[]) => void
+  /** The lowest value; Base UI's default is `0`. */
+  min?: number
+  /** The highest value; Base UI's default is `100`. */
+  max?: number
+  /** The increment a thumb moves by; Base UI's default is `1`. */
+  step?: number
+  /** How close the thumbs of a range may come, in steps. */
+  minStepsBetweenValues?: number
+  /** How the value reads when it is shown: `Intl.NumberFormat` options. */
+  format?: Intl.NumberFormatOptions
+  /** The direction the track runs. A vertical slider is a fixed `h-40` tall. */
+  orientation?: 'horizontal' | 'vertical'
+  /** Show the current value beside the track. Off by default: on a row of
+   * settings the numbers are noise, and where the figure matters a
+   * NumberField is the better control. */
+  showValue?: boolean
+  /** What each thumb is called, by index.
+   *
+   * The thumb is the control - a hidden `<input type="range">` - and
+   * `aria-label` on the root names the *group* around it, which leaves every
+   * thumb unnamed. axe reports it for a single slider as loudly as for a
+   * range. Without this prop the group's own label is used for each thumb,
+   * which is right for one and merely adequate for two: a range wants
+   * "Lowest price" and "Highest price", not the same word twice. */
+  getThumbLabel?: (index: number) => string
+  /** What a thumb's value is read out as, in the product's words: a
+   * position in a recording is "1:23 of 3:45", not "83". Given the value as
+   * `format` writes it, the number, and the thumb's index. Without it a
+   * reader hears the formatted number. */
+  getValueText?: (formatted: string, value: number, index: number) => string
+  /** Stops the slider taking input. */
+  disabled?: boolean
+  /** The field name, for a form that posts the value. */
+  name?: string
+  /** Names the slider as a group, and is the fallback label of every thumb. */
+  'aria-label'?: string
+  className?: string
+}
+
+export function Slider({ showValue = false, getThumbLabel, getValueText, className, ...props }: SliderProps) {
+  const vertical = props.orientation === 'vertical'
+
+  /* Every thumb needs a name of its own, so the group's label is the fallback
+   * rather than nothing. A slider whose only name sits on the group is one
+   * where a reader lands on the control and is told a number. */
+  const groupLabel = props['aria-label']
+  const nameThumb = getThumbLabel ?? (groupLabel === undefined ? undefined : () => groupLabel)
+
+  /* One thumb per value. Base UI addresses them by index, so a range needs as
+   * many as the array is long - a single Thumb on a range renders one handle
+   * that moves the first value and leaves the second unreachable. Read from
+   * whichever of the two props is present, because the component is useful
+   * both controlled and not. */
+  const current = props.value ?? props.defaultValue ?? 0
+  const thumbCount = Array.isArray(current) ? current.length : 1
+
+  return (
+    <Base.Root
+      {...props}
+      className={cn(
+        // Disabled is a look as well as a state: the track and the thumb fade
+        // together, and the pointer says why nothing moves.
+        'flex items-center gap-3 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
+        vertical && 'h-40 flex-col',
+        !vertical && 'w-full',
+        className,
+      )}
+    >
+      <Base.Control
+        className={cn(
+          // The hit area, deliberately larger than what is drawn: a four-pixel
+          // target is a four-pixel target however pretty the track is. It is
+          // the pointer floor across the track (`--target-min`, WCAG 2.5.8),
+          // which a 20px control was not.
+          'flex touch-none items-center',
+          vertical ? 'h-full w-(--target-min) justify-center' : 'h-(--target-min) w-full flex-1',
+        )}
+      >
+        <Base.Track
+          className={cn(
+            'relative rounded-full bg-soft',
+            // Four pixels drawn: the line's weight for a track, as kilna's
+            // player drew it; the thumb is what is grabbed.
+            vertical ? 'h-full w-1' : 'h-1 w-full',
+          )}
+        >
+          <Base.Indicator className={cn('rounded-full bg-accent', vertical ? 'w-full' : 'h-full')} />
+          {Array.from({ length: thumbCount }, (_, index) => (
+            <Base.Thumb
+              key={index}
+              index={index}
+              getAriaLabel={nameThumb}
+              getAriaValueText={getValueText}
+              className={cn(
+                'size-4 rounded-full bg-accent shadow-lift',
+                'transition-[box-shadow,transform] duration-quick ease-out',
+                'hover:scale-110',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                'data-[dragging]:scale-110',
+              )}
+            />
+          ))}
+        </Base.Track>
+      </Base.Control>
+
+      {showValue && (
+        <Base.Value className="shrink-0 text-xs tabular-nums text-dim" />
+      )}
+    </Base.Root>
+  )
+}

@@ -12,7 +12,7 @@ import {
 } from 'react'
 import { cn, useLocale } from 'dowel-ui'
 import { BigCalendarDayContext } from './big-calendar-item'
-import { firstDayOfWeek, keyStep, monthWeeks, parts, today, weekdayNames, type IsoDate } from './calendar-math'
+import { addDays, firstDayOfWeek, keyStep, monthWeeks, parts, today, weekdayNames, weekRange, type IsoDate } from './calendar-math'
 import { ScrollArea } from './scroll-area'
 
 /*
@@ -40,6 +40,14 @@ import { ScrollArea } from './scroll-area'
  * can be dragged onto the 31st of August from the September page. Today is
  * filled with the accent rather than coloured: on a grid of thirty-five cells
  * a coloured digit is not where the eye starts.
+ *
+ * A week is the same grid cut shorter: `week` instead of `month`, and the
+ * grid draws whole weeks from the one that day is in - one by default, two
+ * for a fortnight - with each day the whole height of the box. kilna kept a
+ * row of days of its own for its week view until this was here; the days
+ * are the month's, the same lines and the same fold, so they belong to the
+ * same component. No day of a week is on a quieter ground: the neighbouring
+ * month is a month view's idea.
  *
  * The month's name and the arrows that turn it are not here. They belong to
  * the screen's head, in one row with its filters and actions, which is where
@@ -87,6 +95,15 @@ export function foldDay(count: number, lines: number): { shown: number; more: nu
   return { shown, more: count - shown }
 }
 
+/** The lines of a day with a space between each two. A day is named by its
+ * lines, and lines that are not buttons are blocks whose words a reader's
+ * name runs together - "ClipSingle" - while the face shows them apart, which
+ * axe reports as a name that does not match the words on screen. The day is a
+ * flex column, which draws a space-only run as nothing. */
+function spaced(lines: readonly ReactNode[]): ReactNode[] {
+  return lines.flatMap((line, index) => (index === 0 ? [line] : [' ', line]))
+}
+
 /** The day an element is in, or `null` - for the target of a drop, or for
  * `document.elementFromPoint` under a pointer that is carrying something. */
 export function dayOf(target: EventTarget | null): IsoDate | null {
@@ -105,13 +122,37 @@ type AddDay =
     }
   | { onAddDay?: undefined; addDayLabel?: undefined }
 
+/* What the grid shows: a month, or whole weeks. One or the other, and each
+ * with the word that turns it - a month view asked for a new week, or a week
+ * view for a new month, would be a state nothing can draw. */
+type Shown =
+  | {
+      /** Any day of the month to show. */
+      month: IsoDate
+      /** Asked for when the keyboard walks off the grid; any day of the new
+       * month. Without it the cursor stops at the edge. */
+      onMonthChange?: (month: IsoDate) => void
+      week?: undefined
+      weeks?: undefined
+      onWeekChange?: undefined
+    }
+  | {
+      /** Any day of the first week to show. With it the grid draws whole
+       * weeks rather than a month, each day the whole height of the box. */
+      week: IsoDate
+      /** How many weeks from that one: one by default, two for a fortnight. */
+      weeks?: number
+      /** Asked for when the keyboard walks off the weeks, or PageUp and
+       * PageDown turn them: any day of the new first week, a whole range on
+       * from the one shown. Without it the cursor stops at the edge. */
+      onWeekChange?: (week: IsoDate) => void
+      month?: undefined
+      onMonthChange?: undefined
+    }
+
 export type BigCalendarProps = AddDay &
+  Shown &
   Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'onSelect'> & {
-    /** Any day of the month to show. */
-    month: IsoDate
-    /** Asked for when the keyboard walks off the grid; any day of the new
-     * month. Without it the cursor stops at the edge. */
-    onMonthChange?: (month: IsoDate) => void
     /** What a day holds, one node per line, each with a `key`. */
     renderDay: (date: IsoDate) => readonly ReactNode[]
     /** The words of the count a full day folds into, given how many are
@@ -138,6 +179,9 @@ const CONTROL = 'button, a, input, select, textarea, [role="button"]'
 export function BigCalendar({
   month,
   onMonthChange,
+  week,
+  weeks: weekCount = 1,
+  onWeekChange,
   renderDay,
   moreLabel,
   fewerLabel,
@@ -154,28 +198,39 @@ export function BigCalendar({
 }: BigCalendarProps) {
   const language = useLocale(locale)
   const start = firstDayOfWeek(language)
-  const weeks = useMemo(() => monthWeeks(month, language), [month, language])
+  // The day the product named: of the month, or of the first week. The type
+  // gives exactly one of the two; it cannot see that through destructuring.
+  const anchor = (week ?? month) as IsoDate
+  const weeks = useMemo(
+    () => (week === undefined ? monthWeeks(anchor, language) : weekRange(anchor, weekCount, language)),
+    [anchor, week, weekCount, language],
+  )
   const names = useMemo(() => weekdayNames(language, start), [language, start])
   const format = useMemo(
     () => ({
       heading: new Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' }),
+      range: new Intl.DateTimeFormat(language, { day: 'numeric', month: 'long', year: 'numeric' }),
       day: new Intl.DateTimeFormat(language, { dateStyle: 'full' }),
     }),
     [language],
   )
   const asDate = (date: IsoDate) => new Date(parts(date).year, parts(date).month - 1, parts(date).day)
 
-  const shown = parts(month)
-  const inMonth = (date: IsoDate) => parts(date).year === shown.year && parts(date).month === shown.month
   const days = weeks.flat()
+  const first = days[0]!
+  const last = days[days.length - 1]!
+  const shown = parts(anchor)
+  // A week view has no neighbouring month: every day in it is in range.
+  const inRange = (date: IsoDate) =>
+    week === undefined ? parts(date).year === shown.year && parts(date).month === shown.month : days.includes(date)
   const now = today()
   const id = useId()
 
   /* The keyboard's cursor. When the product turns the month with its own
    * arrows the old cursor is off the grid, and the keyboard starts again on
-   * today if today is in this month, or on the day `month` names. */
+   * today if today is in range, or on the day the product named. */
   const [cursor, setCursor] = useState<IsoDate>(now)
-  const active = days.includes(cursor) ? cursor : inMonth(now) ? now : month
+  const active = days.includes(cursor) ? cursor : inRange(now) ? now : anchor
 
   const grid = useRef<HTMLDivElement>(null)
   const refocus = useRef(false)
@@ -229,13 +284,24 @@ export function BigCalendar({
       return
     }
 
-    const next = keyStep(event.key, from, start)
+    // PageUp and PageDown turn what is shown: a month in a month, and the
+    // range in a week view - a week, or a fortnight - rather than a month of
+    // weeks the grid never drew.
+    const page = event.key === 'PageDown' ? 1 : event.key === 'PageUp' ? -1 : 0
+    const next = week !== undefined && page !== 0 ? addDays(from, page * 7 * weeks.length) : keyStep(event.key, from, start)
     if (next === undefined) return
     event.preventDefault()
     if (!days.includes(next)) {
-      // Off the grid. The month is the product's, so it is asked to turn.
-      if (!onMonthChange) return
-      onMonthChange(next)
+      // Off the grid. What is shown is the product's, so it is asked to turn.
+      if (week === undefined) {
+        if (!onMonthChange) return
+        onMonthChange(next)
+      } else {
+        if (!onWeekChange) return
+        // A whole range on, back or forward, so the cursor lands inside it
+        // whichever key took it off: no key moves it further than a range.
+        onWeekChange(addDays(first, (next < first ? -7 : 7) * weeks.length))
+      }
     }
     moveTo(next)
   }
@@ -250,7 +316,10 @@ export function BigCalendar({
     <div
       ref={grid}
       role="grid"
-      aria-label={ariaLabel ?? format.heading.format(asDate(month))}
+      aria-label={
+        ariaLabel ??
+        (week === undefined ? format.heading.format(asDate(anchor)) : format.range.formatRange(asDate(first), asDate(last)))
+      }
       onKeyDown={keyDown}
       className={cn(
         'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-raise',
@@ -275,7 +344,7 @@ export function BigCalendar({
               const items = renderDay(date)
               const fold = foldDay(items.length, lines)
               const isOpen = open === date && fold.more > 0
-              const outside = !inMonth(date)
+              const outside = !inRange(date)
               const target = dropTarget === date
 
               return (
@@ -362,7 +431,7 @@ export function BigCalendar({
                     {isOpen ? (
                       <ScrollArea label={format.day.format(asDate(date))} orientation="vertical" className="flex-1">
                         <div id={`${id}${date}l`} className="flex flex-col">
-                          {items}
+                          {spaced(items)}
                           <Fold onClick={() => { setOpen(null); moveTo(date) }}>{fewerLabel}</Fold>
                         </div>
                       </ScrollArea>
@@ -373,7 +442,7 @@ export function BigCalendar({
                         id={`${id}${date}l`}
                         className="flex min-h-0 flex-1 flex-col overflow-hidden"
                       >
-                        {items.slice(0, fold.shown)}
+                        {spaced(items.slice(0, fold.shown))}
                         {fold.more > 0 && (
                           <Fold onClick={() => { setOpen(date); moveTo(date) }}>{moreLabel(fold.more)}</Fold>
                         )}

@@ -50,16 +50,26 @@ export interface FrameProps extends Omit<HTMLAttributes<HTMLDivElement>, 'childr
   children: ReactNode
 }
 
+/*
+ * A bar whose parts all draw nothing is not drawn either: `empty:hidden`.
+ * A head is often a list of things each shown on a condition - a filter only
+ * while there is something to filter, an action only for an owner - and when
+ * every one of them renders nothing the bar was an empty box that still cost
+ * the screen a gap of ten pixels above the body. kilna found it on 05.11 and
+ * kept its own copy of this file until the set had it.
+ */
+const BAR = 'flex shrink-0 flex-wrap items-center gap-2 empty:hidden'
+
 /** A screen's column. Hands its height to the body and scrolls nowhere. */
 export function Frame({ head, foot, children, className, ...props }: FrameProps) {
   return (
     <div data-frame className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-2.5', className)} {...props}>
-      {head === undefined ? null : <div className="flex shrink-0 flex-wrap items-center gap-2 empty:hidden">{head}</div>}
+      {head === undefined ? null : <div className={BAR}>{head}</div>}
       {/* `min-h-0` and `min-w-0`: a flex child will not shrink below its
           content without them, and a body that does not shrink pushes the
           foot off the bottom of the window - the defect this exists for. */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
-      {foot === undefined ? null : <div className="flex shrink-0 flex-wrap items-center gap-2">{foot}</div>}
+      {foot === undefined ? null : <div className={BAR}>{foot}</div>}
     </div>
   )
 }
@@ -92,7 +102,7 @@ export function Pane({ label, head, foot, children, className, bodyClassName, vi
       {...props}
     >
       {head === undefined ? null : (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">{head}</div>
+        <div className={cn(BAR, 'border-b border-line px-3 py-2')}>{head}</div>
       )}
       {/* `vertical`: a pane scrolls down, not across. Base UI sizes its
           content to `fit-content`, and without this a row that should
@@ -105,7 +115,7 @@ export function Pane({ label, head, foot, children, className, bodyClassName, vi
         <div className={bodyClassName}>{children}</div>
       </ScrollArea>
       {foot === undefined ? null : (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-line px-3 py-2">{foot}</div>
+        <div className={cn(BAR, 'border-t border-line px-3 py-2')}>{foot}</div>
       )}
     </section>
   )

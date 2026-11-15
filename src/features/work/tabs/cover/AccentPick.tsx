@@ -5,8 +5,7 @@ import type { CoverAccent, CoverPaletteColour, StyleBrick } from '@/lib/api/type
 import { queries } from '@/lib/query/queries'
 import { HEX, colourFill, styleName } from '@/lib/styleBrick'
 import { styleTypesOf, useProfile } from '@/lib/useProfile'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 import { DraftText } from '@/features/cover/Section'
 
 interface Props {
@@ -166,18 +165,14 @@ interface SwatchProps {
 function Swatch({ name, fill, on, disabled, onClick }: SwatchProps) {
   return (
     <li>
-      <Button
-        variant="icon"
-        size={null}
+      <TileButton
+        selected={on}
         aria-pressed={on}
         aria-label={name}
         title={name}
         disabled={disabled}
         onClick={onClick}
-        className={cn(
-          'size-6 rounded-full ring-1 ring-line-2',
-          on && 'ring-2 ring-accent ring-offset-2 ring-offset-raise',
-        )}
+        className="size-6 rounded-full"
         // The colour is the subject here, not the styling: it is the accent's own.
         style={{ background: fill }}
       />

@@ -23,6 +23,7 @@ import { movedTo, VIDEO } from '@/lib/scenes'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/reorderable-list'
+import { TileButton } from '@/components/ui/tile-button'
 
 interface Props {
   workId: string
@@ -242,14 +243,10 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
                 ) : (
                   <span aria-hidden className="w-3.5 shrink-0" />
                 )}
-                {/* eslint-disable-next-line dowel/no-raw-button -- a thumbnail: the picture is the control and its border is the chosen state; no primitive draws a pressable picture */}
-                <button
-                  type="button"
+                <TileButton
+                  selected={frame.is_selected}
                   onClick={() => onOpen(frame)}
-                  className={cn(
-                    'block shrink-0 overflow-hidden rounded border bg-soft',
-                    frame.is_selected ? 'border-good ring-1 ring-good' : 'border-line',
-                  )}
+                  className="shrink-0"
                   title={frame.original_name ?? word('openFrame')}
                 >
                   {/* Contained, never cropped: a frame may be wide or tall and
@@ -272,7 +269,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
                       className="size-20 object-contain"
                     />
                   )}
-                </button>
+                </TileButton>
                 <span className="min-w-0 flex-1 truncate text-xs text-dim">
                   {frame.original_name ?? ''}
                 </span>

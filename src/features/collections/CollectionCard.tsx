@@ -4,10 +4,9 @@ import type { Collection, ScoredWork } from '@/lib/api/types'
 import { progressOf, standingOf } from '@/lib/collections'
 import { formatTotal } from '@/lib/format'
 import { labelOf, useProfile } from '@/lib/useProfile'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import { Progress } from '@/components/ui/progress'
+import { TileButton } from '@/components/ui/tile-button'
 import { GoalLine } from './GoalLine'
 
 interface Props {
@@ -45,18 +44,12 @@ export function CollectionCard({ collection, rows, today, open, onOpen }: Props)
 
   return (
     <li ref={card} className="flex">
-      {/* A quiet Button in the shape of a card, as a style's is: the bar and
-          the chips do not fit a row's slots. No size, because a card is as
-          tall as what it holds. */}
-      <Button
-        variant="ghost"
-        size={null}
+      {/* A card, as a style's is: the bar and the chips do not fit a row's
+          slots. */}
+      <TileButton
+        selected={open}
         onClick={onOpen}
-        aria-current={open ? 'true' : undefined}
-        className={cn(
-          'w-full flex-col items-stretch justify-start gap-2 rounded-lg bg-raise px-3 pt-2.5 pb-3 text-left font-normal whitespace-normal',
-          open && 'border-accent',
-        )}
+        className="w-full gap-2 rounded-lg bg-raise px-3 pt-2.5 pb-3"
       >
         <span className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 flex-1 truncate caption">
@@ -107,7 +100,7 @@ export function CollectionCard({ collection, rows, today, open, onOpen }: Props)
             )}
           </span>
         )}
-      </Button>
+      </TileButton>
     </li>
   )
 }

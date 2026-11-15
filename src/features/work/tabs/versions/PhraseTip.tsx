@@ -23,7 +23,7 @@ export function PhraseTip({ hit, box }: Props) {
   return (
     <div
       role="tooltip"
-      className="pointer-events-none fixed z-50 flex max-w-80 flex-col gap-1 rounded-md border border-line bg-raise px-3 py-2 text-xs shadow-lg"
+      className="pointer-events-none fixed z-50 flex max-w-80 flex-col gap-1 rounded-md border border-line bg-raise px-3 py-2 text-xs shadow-float"
       style={{ top: box.bottom + 6, left: Math.max(8, box.left) }}
     >
       <span className="flex items-center gap-1.5 text-faint">

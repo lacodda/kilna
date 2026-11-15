@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { InlineField, numberCodec } from '@/components/ui/inline-field'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TileButton } from '@/components/ui/tile-button'
 import { MediaPreview } from '@/components/MediaPreview'
 import { usePlayer } from '@/features/work/player'
 
@@ -371,13 +372,11 @@ function FolderTile({ file, work, finished }: { file: FolderFile; work: Work; fi
 
   return (
     <li className="group relative overflow-hidden rounded-md border border-line bg-raise">
-      {/* eslint-disable-next-line dowel/no-raw-button -- a thumbnail: the picture is the control; no primitive draws a pressable picture (the Button's control height would flatten the well) */}
-      <button
-        type="button"
-        className={cn(
-          'flex h-26 w-full items-center justify-center bg-bg transition-colors hover:bg-soft',
-          'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
-        )}
+      {/* The card around it already draws the edge and the corners, so the
+          tile keeps neither; the focus ring is drawn inward to stay inside
+          the card's clipping. */}
+      <TileButton
+        className="h-26 w-full items-center justify-center rounded-none border-0 bg-bg hover:bg-soft focus-visible:-outline-offset-2"
         title={kind === 'sound' ? t('player.play', { name }) : t('folder.open', { name })}
         aria-label={kind === 'sound' ? t('player.play', { name }) : t('folder.open', { name })}
         onClick={open}
@@ -395,7 +394,7 @@ function FolderTile({ file, work, finished }: { file: FolderFile; work: Work; fi
             className="max-h-full max-w-full object-contain"
           />
         )}
-      </button>
+      </TileButton>
       <p className="flex items-center gap-1 px-2 py-1.5 text-xs" title={file.relative}>
         {finished && (
           <CircleCheck

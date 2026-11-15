@@ -57,9 +57,15 @@ describe('the catalogue', () => {
     expect(within(main).queryAllByRole('combobox')).toEqual([])
     expect(within(main).getByRole('textbox', { name: en.works.search })).toBeInTheDocument()
 
+    // The words of a heading, as they are read out: the sort arrow beside
+    // them is `aria-hidden`, and the cell's `aria-sort` says the direction.
     const headings = within(main)
       .getAllByRole('columnheader')
-      .map((cell) => cell.textContent)
+      .map((cell) => {
+        const read = cell.cloneNode(true) as HTMLElement
+        read.querySelectorAll('[aria-hidden]').forEach((mark) => mark.remove())
+        return read.textContent
+      })
     expect(headings).toEqual(
       expect.arrayContaining([
         en.catalogue.column.status,

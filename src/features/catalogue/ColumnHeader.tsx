@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowDown, ArrowUp } from 'lucide-react'
 import { MIN_COLUMN_WIDTH, type ColumnId, type Sort, type SortColumn } from '@/lib/catalogue'
 import { cn } from '@/lib/utils'
 import { ColumnResizeHandle, type ColumnWidths } from '@/components/ui/column-resize-handle'
-import { TableHeader } from '@/components/ui/table'
+import { TableHeader, TableSortButton } from '@/components/ui/table'
+import { ariaSort } from '@/components/ui/table-sort'
 import { STUCK_HEADING, TITLE_HOLD } from './columns'
 
 interface Props {
@@ -46,8 +46,6 @@ export function ColumnHeader({
   stuck = false,
 }: Props) {
   const { t } = useTranslation()
-  const active = sortable !== null && sort.column === sortable
-  const Arrow = sort.direction === 'asc' ? ArrowUp : ArrowDown
 
   return (
     // `aria-sort` goes on the cell rather than the button: it describes the
@@ -56,15 +54,7 @@ export function ColumnHeader({
     // the whole cell rather than of its own few pixels.
     <TableHeader
       data-column={id}
-      aria-sort={
-        sortable === null
-          ? undefined
-          : active
-            ? sort.direction === 'asc'
-              ? 'ascending'
-              : 'descending'
-            : 'none'
-      }
+      aria-sort={sortable === null ? undefined : ariaSort(sort, sortable)}
       // Padding on both sides, not just the one the text runs towards: a
       // right-aligned column followed by a left-aligned one used to put its
       // last letter against the next header's first, and "Total"/"Scored" read
@@ -87,24 +77,19 @@ export function ColumnHeader({
         {sortable === null ? (
           <span className="truncate">{label}</span>
         ) : (
-          // dowel's TableSortHeader draws the whole cell and takes its children
-          // inside its button, and this heading holds two more controls beside
-          // the button - the funnel and the resize grip - which inside it would
-          // be buttons in a button. A link Button would paint the sortable
-          // headings accent beside the plain ones.
-          // eslint-disable-next-line dowel/no-raw-button -- a sortable heading beside a funnel and a resize grip; TableSortHeader holds neither
-          <button
-            type="button"
-            onClick={() => onReorder(sortable)}
+          // dowel's TableSortHeader takes the whole cell, and this heading
+          // holds two more controls - the funnel and the resize grip - which
+          // inside its button would be buttons in a button. So the cell is
+          // written here and the button stands beside them.
+          <TableSortButton
+            column={sortable}
+            sort={sort}
+            onSortChange={() => onReorder(sortable)}
             title={t('catalogue.sortBy', { column: label })}
-            className={cn(
-              'inline-flex min-w-0 cursor-pointer items-center gap-1 caption transition-colors hover:text-text',
-              active && 'text-text',
-            )}
+            className="caption"
           >
-            <span className="truncate">{label}</span>
-            {active && <Arrow aria-hidden className="size-3 shrink-0" />}
-          </button>
+            {label}
+          </TableSortButton>
         )}
         {funnel}
       </span>

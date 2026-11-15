@@ -123,9 +123,6 @@ export function Composer({
                 role="option"
                 selected={action.key === chosen?.key}
                 aria-selected={action.key === chosen?.key}
-                // In a listbox the highlighted entry is the selected option;
-                // `aria-current` on top of it would say the same thing twice.
-                aria-current={undefined}
                 // Pointer down, not click: the composer keeps focus, so the
                 // draft the choice replaces is still the one on screen.
                 onMouseDown={(event) => {

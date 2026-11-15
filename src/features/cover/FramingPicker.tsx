@@ -9,7 +9,7 @@ import type {
   Framing,
 } from '@/lib/api/types'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SchemeView } from '@/features/cover/SchemeView'
 
@@ -63,21 +63,17 @@ export function FramingPicker({ framing, layouts, lettering, disabled, onChange 
           const name = t(`cover.layout.${option.framing.layout}`)
           return (
             <li key={option.framing.layout} className="flex">
-              <Button
-                variant="ghost"
-                size={null}
+              <TileButton
+                selected={on}
                 aria-pressed={on}
                 disabled={disabled}
                 title={name}
                 onClick={() => onChange(option.framing)}
-                className={cn(
-                  'w-full flex-col items-stretch gap-1 p-1 text-left text-2xs font-normal whitespace-normal',
-                  on && 'border-accent text-accent',
-                )}
+                className={cn('w-full gap-1 p-1 text-2xs', on && 'text-accent')}
               >
                 <SchemeView scheme={option.scheme} label={name} decorative />
                 <span className="truncate">{name}</span>
-              </Button>
+              </TileButton>
             </li>
           )
         })}

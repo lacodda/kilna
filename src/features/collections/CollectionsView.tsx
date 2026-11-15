@@ -6,6 +6,7 @@ import { FolderPlus, Plus } from 'lucide-react'
 import { today as todayOf } from '@/lib/month'
 import { queries } from '@/lib/query/queries'
 import { Button } from '@/components/ui/button'
+import { TileButton } from '@/components/ui/tile-button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeleton'
 import { Frame, ListDetail } from '@/components/ui/frame'
@@ -76,16 +77,14 @@ export function CollectionsView() {
             ))}
             <li className="flex">
               {/* Dashed, like every "not there yet" of the line. */}
-              <Button
-                variant="ghost"
-                size={null}
+              <TileButton
                 onClick={() => setMaking(true)}
-                className="min-h-32 w-full flex-col justify-center gap-1.5 rounded-lg border-dashed bg-softer p-4 text-center font-normal whitespace-normal"
+                className="min-h-32 w-full items-center justify-center gap-1.5 rounded-lg border-dashed bg-softer p-4 text-center"
               >
                 <FolderPlus aria-hidden className="size-5 text-faint" />
                 <span className="caption">{t('collections.new')}</span>
                 <span className="text-sm text-faint">{t('collections.newHint')}</span>
-              </Button>
+              </TileButton>
             </li>
           </ul>
         </Scroll>
