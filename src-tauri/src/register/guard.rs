@@ -363,10 +363,10 @@ struct Sharing {
 /// before a day is named.
 ///
 /// Reading is the whole cost: every sung text stemmed, the register matched in
-/// each, every song held against every other. The day decides one thing only
-/// - whether a rare word was said within the window of it - so a chip carried
+/// each, every song held against every other. The day decides one thing only,
+/// whether a rare word was said within the window of it, so a chip carried
 /// across a week asks about seven days of one reading rather than reading the
-/// workspace seven times (v0.111: 0.8 s a day on the owner's workspace, and
+/// workspace seven times (v0.111: 0.7 s a day on the owner's workspace, and
 /// the date written on letting go stood in line behind them).
 pub struct Reading {
     window_days: u32,

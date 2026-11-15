@@ -87,6 +87,16 @@ function Contents({ onOpenChange, onPick, title, kinds, day }: Omit<Props, 'open
       .slice(0, 200)
   }, [rows.data, query, kind, kinds])
 
+  // The work the foot speaks of: the row under the highlight, or - while a
+  // name is typed and the highlight has not caught up, or the list was
+  // narrowed from under it - the first match, the one Enter takes.
+  const asked =
+    highlighted !== null && shown.some((row) => row.work_id === highlighted)
+      ? highlighted
+      : query.trim() === ''
+        ? null
+        : (shown[0]?.work_id ?? null)
+
   const groups = useMemo(() => (shown.length === 0 ? [] : [{ items: shown }]), [shown])
 
   const nothing = rows.isPending
@@ -178,7 +188,7 @@ function Contents({ onOpenChange, onPick, title, kinds, day }: Omit<Props, 'open
             nothing. */}
         {day !== undefined && (
           <RepeatWarning
-            landing={highlighted === null ? null : { work: highlighted }}
+            landing={asked === null ? null : { work: asked }}
             day={day}
             className="shrink-0 border-t border-line px-4 py-2"
           />
