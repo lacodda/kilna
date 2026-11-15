@@ -35,7 +35,7 @@ const NONE: ReadonlyMap<string, RepeatMark> = new Map()
  * what a workspace with nothing repeated looks like, so a mark that arrives a
  * moment late is not a flash of something wrong.
  */
-function useRepeatMarks(): ReadonlyMap<string, RepeatMark> {
+export function useRepeatMarks(): ReadonlyMap<string, RepeatMark> {
   const { data } = useQuery({ ...queries.repeatMarks(today()), select: byWork })
   return data ?? NONE
 }

@@ -11,6 +11,7 @@ import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useAssistant } from '@/lib/useAssistant'
+import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { RowButton } from '@/components/ui/list-row'
 import { NotificationBell } from '@/components/ui/notification-bell'
@@ -212,6 +213,7 @@ function ProposalLine({
 
 function RecentLine({ entry }: { entry: JournalEntry }) {
   const { t } = useTranslation()
+  const profile = useProfile()
   const needsALook = entry.level === 'warn' && entry.read_at === null
   return (
     <li className="flex items-baseline gap-2.5 border-b border-line py-2 last:border-b-0">
@@ -223,7 +225,7 @@ function RecentLine({ entry }: { entry: JournalEntry }) {
         )}
       />
       <p className={cn('min-w-0 flex-1 text-sm text-dim', needsALook && 'text-text')}>
-        {sentence(entry, t)}
+        {sentence(entry, t, profile.config)}
       </p>
       <time dateTime={entry.created_at} className="shrink-0 text-xs tabular-nums text-faint">
         {formatMoment(entry.created_at)}

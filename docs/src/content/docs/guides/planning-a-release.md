@@ -71,6 +71,19 @@ strongest if no version is current — see
 all read that one number: until v0.24 this screen used the most recent snapshot
 instead, and a work showed one figure here and another there.
 
+**The tier is the tier of what it is made from** (v0.111). A clip, a short
+and an audio release are seldom judged themselves, so until then they stood in
+the queue and on the calendar with no tier at all. Now each carries its
+song's - through the clip a short was cut from - and the one you hold the
+song at before the one its score gives. A work made from nothing carries its
+own.
+
+**Finding one of a few hundred.** The pane's head has a search by title, the
+kind of work, and the funnel of the catalogue's **Stage** column: tick the
+stops to see what stands at any of them - the last two together are "what is
+closest to going out" - or **Stage not set** for what nobody has placed yet.
+The funnel fills while it narrows the list.
+
 ## The rhythm and the auto-layout
 
 The profile can state a [rhythm](/kilna/reference/profile-document/#rhythm) —
@@ -124,6 +137,16 @@ booked - planned or already out - is four short. The rest of this month,
 from tomorrow, and all of the next are looked at; the line says how many
 releases wait in the queue to fill the gap, and pressing it opens the
 calendar on that month.
+
+**A month short of a goal** is said beside it (v0.111). The rhythm paces the
+whole output and says nothing of what it is made of - a month can keep "every
+two days" on shorts alone. **Settings → Profile → Monthly goals** says what a
+month is held to: so many releases of a tier, so many of a kind of work
+([`rhythm.monthly`](/kilna/reference/profile-document/#rhythm)). A release
+counts by the tier it carries and by the kind of its work, planned or already
+out, and the whole month is counted, the days gone by with it: *November: 2
+releases of the tier "Strong" short of the month's goal*. This month and the
+next are looked at.
 
 ### A plan from a spreadsheet
 
@@ -181,7 +204,9 @@ colour.
   from a day goes into that day's releases.
 - **Week** is the same seven columns, one row tall: every day has room for
   everything it holds, and where a day is wide enough a release also shows
-  its hour before the title.
+  its hour before the title. It is the month's grid cut to one row, so the
+  keys are the month's: the arrows walk its days and step into the next week
+  at either end, <kbd>PageUp</kbd> and <kbd>PageDown</kbd> turn a week.
 - **Agenda** is the month as a list. Each day with something on it gets a
   heading — today always does — with every release under it, and the days
   between fold into one line that says how many: *4 days with nothing
@@ -233,6 +258,14 @@ work onto a day, books it there: a release through its kind's first door,
 already holding that date, as the day's **+** books one. A song never goes
 out itself, so it is not listed; the works made from it are. The search and
 the two filters at the top narrow whichever list is up.
+
+**The day's + chooses a work that exists.** It opens the list every "which
+work" question shares - a box for the name, the kinds as chips, the stage
+beside each row - for the day it was pressed on. The work under the highlight
+is asked about before it is picked: if its song would say a rare word within
+the [guard's](/kilna/guides/the-guard-of-repeats/) window of a song out or
+booked near that day, the foot of the list says so - *Too close: пульсар — in
+"Tide", out Sep 20*. It is a warning; Enter books it all the same.
 
 ## Ready marks
 
@@ -311,6 +344,13 @@ pane and its title travels beside the pointer.
 the drop goes through anyway. It is a note about what is there, not a warning
 about what will fail. A [closed day](#time-off) says so too — *Closed: Away* —
 and takes the release all the same.
+
+**A day speaks once the pointer rests on it** (v0.111) - a sixth of a second -
+so the days a chip crosses on its way say nothing and cost nothing. Letting go
+writes the date at once; what the day repeats is said with the line that it
+landed, a moment after. Before, every day crossed was asked about in turn and
+the date waited behind all of them: on a workspace of a few hundred songs,
+several seconds after the drop.
 
 :::note[This changed in v0.44]
 Until then a day held exactly one release, and dropping onto a taken one
@@ -481,6 +521,12 @@ two days with no link kept for it is another - *it went out, and no link is
 kept for it*. Both open the publication's overview, where the release is
 marked and its link written; a dismissed one comes back only when the
 complaint changes, as a passed day moved to another day that passes.
+
+**Many at once** (v0.111). When plans have piled up behind today - a plan
+carried over from elsewhere, a month nobody marked - the dashboard gathers
+them under [Their day has passed](/kilna/guides/the-dashboard/#their-day-has-passed)
+with the two answers as two buttons: **Mark as out**, each on the day it was
+booked for, or **Take off the calendar**, back to the queue.
 
 ## What a release goes out as
 

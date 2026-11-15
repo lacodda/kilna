@@ -53,11 +53,12 @@ import {
 import { listPlugins, pluginsFolder } from '@/lib/api/plugins'
 import {
   calendar,
-  previewSchedule,
+  previewLanding,
   releaseFields,
   releaseProposals,
   releaseQueue,
   releasesForWork,
+  type Landing,
 } from '@/lib/api/releases'
 import { listTimeOff } from '@/lib/api/timeOff'
 import { listSceneFrames, listSceneNotes, listScenes, sceneFrameView } from '@/lib/api/scenes'
@@ -232,10 +233,13 @@ export const queries = {
       queryKey: keys.releaseAssets(releaseId),
       queryFn: () => listReleaseAssets(releaseId),
     }),
-  slotPreview: (releaseId: string, day: string) =>
+  slotPreview: (landing: Landing, day: string) =>
     queryOptions({
-      queryKey: keys.slotPreview(releaseId, day),
-      queryFn: () => previewSchedule(releaseId, day),
+      queryKey:
+        'work' in landing
+          ? keys.slotPreview('work', landing.work, day)
+          : keys.slotPreview('release', landing.release, day),
+      queryFn: () => previewLanding(landing, day),
     }),
 
   notesFor: (workId: string) =>

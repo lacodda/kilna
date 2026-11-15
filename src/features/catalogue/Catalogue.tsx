@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Collection } from '@/lib/api/types'
 import { unscheduleWorks } from '@/lib/api/releases'
+import { useRepeatMarks } from '@/lib/repeats'
 import { deleteWorks, numberWorks, setWorksStatus } from '@/lib/api/works'
 import { updateProfileConfig } from '@/lib/api/workspace'
 import {
@@ -11,6 +12,7 @@ import {
   saveColumnsChosen,
   withIntroduced,
   countGaps,
+  countRepeats,
   isNarrowed,
   loadColumnFilters,
   loadFilter,
@@ -155,7 +157,10 @@ export function Catalogue({ onSelect }: Props) {
   // The calendar's bookings, for the next release and whether it is ready.
   // Not waited for: the table draws without them and fills the two columns in.
   const releases = useQuery(queries.calendar())
-  const shown = useShownRows(rows.data, releases.data, filter, columnFilters, sort)
+  // Every work's mark of the guard of repeats: what the slice by repeats
+  // narrows to, and what its chips count.
+  const repeats = useRepeatMarks()
+  const shown = useShownRows(rows.data, releases.data, filter, columnFilters, sort, repeats)
   // What works can be put in, and the names `collection:` reads and writes.
   const collections = useQuery(queries.collections())
   const gestures = useCollectionGestures()
@@ -329,6 +334,7 @@ export function Catalogue({ onSelect }: Props) {
       ...parsed.filter,
       search: parsed.text === '' ? undefined : parsed.text,
       gap: filter.gap,
+      repeats: filter.repeats,
     })
   }
 
@@ -378,6 +384,7 @@ export function Catalogue({ onSelect }: Props) {
           filter={filter}
           onControl={setFromControl}
           onGap={(gap) => setFilter({ ...filter, gap })}
+          onRepeats={(repeats) => setFilter({ ...filter, repeats })}
           query={query}
           onQuery={runQuery}
           unknown={unknown[0]}
@@ -393,6 +400,7 @@ export function Catalogue({ onSelect }: Props) {
           onGroupBy={setGroupBy}
           kindCounts={kindCounts}
           gapCounts={rows.data === undefined ? undefined : countGaps(rows.data)}
+          repeatCounts={rows.data === undefined ? undefined : countRepeats(rows.data, repeats)}
           shown={shown?.visible.length}
           total={shown?.all.length}
           narrowed={isNarrowed(filter, columnFilters)}

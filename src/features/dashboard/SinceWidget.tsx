@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { formatMoment } from '@/lib/format'
 import { queries } from '@/lib/query/queries'
+import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Loaded } from '@/components/Loaded'
@@ -23,6 +24,7 @@ const SINCE_LIMIT = 6
  */
 export function SinceWidget() {
   const { t } = useTranslation()
+  const profile = useProfile()
   const navigate = useNavigate()
   const entries = useQuery(queries.journalFeed())
   // The visit in one line (v0.105): the history's unread entries, and the
@@ -72,8 +74,11 @@ export function SinceWidget() {
                     key={entry.id}
                     className="flex min-w-0 items-baseline gap-2 border-b border-line py-1.5 text-sm first:pt-0 last:border-b-0"
                   >
-                    <span className="min-w-0 flex-1 truncate" title={sentence(entry, t)}>
-                      {sentence(entry, t)}
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      title={sentence(entry, t, profile.config)}
+                    >
+                      {sentence(entry, t, profile.config)}
                     </span>
                     <time
                       dateTime={entry.created_at}

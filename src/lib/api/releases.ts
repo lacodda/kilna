@@ -31,8 +31,19 @@ const updateRelease = (id: string, patch: ReleasePatch) =>
   invoke<Release>('update_release', { id, patch })
 export const scheduleRelease = (id: string, slot: string) =>
   invoke<Scheduling>('schedule_release', { id, slot })
-export const previewSchedule = (id: string, slot: string) =>
-  invoke<SlotPreview>('preview_schedule', { id, slot })
+/**
+ * What a day is asked about: a release that would be given it, or a work
+ * with no release yet that would get one dated to it - the day's `+`, a work
+ * carried from the pane (v0.111).
+ */
+export type Landing = { release: string } | { work: string }
+
+/** The dry run of a landing: who is on the day, what the song would repeat
+ *  there, whether the day is closed. Nothing is written. */
+export const previewLanding = (landing: Landing, slot: string) =>
+  'work' in landing
+    ? invoke<SlotPreview>('preview_day', { workId: landing.work, slot })
+    : invoke<SlotPreview>('preview_schedule', { id: landing.release, slot })
 // `today` is the user's local date: the backend only knows UTC, which at a
 // negative offset is already tomorrow. Says how many gaps are standing, and
 // which releases due tomorrow this sweep warned about first (v0.107).
@@ -61,6 +72,10 @@ export const markReleased = (
   at?: string | null,
   kind?: string | null,
 ) => invoke<Release>('mark_released', { id, url, at, kind })
+/** Planned releases marked out in one gesture, each on the day it holds: the
+ *  plans whose day passed with nobody marking them (v0.111). */
+export const markReleasedBatch = (ids: string[]) =>
+  invoke<BulkOutcome>('mark_released_batch', { ids })
 // Undoing the mark. The link is kept - see the Rust side for why.
 export const unmarkReleased = (id: string) => invoke<Release>('unmark_released', { id })
 export const planLayout = (today: string) => invoke<Placement[]>('plan_layout', { today })

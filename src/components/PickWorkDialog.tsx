@@ -10,6 +10,7 @@ import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { stageAt } from '@/lib/stages'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { ComboboxGroupLabel } from '@/components/ui/combobox'
+import { RepeatWarning } from '@/components/RepeatWarning'
 import { StageDial } from '@/components/StageDial'
 import {
   CommandPalette as Palette,
@@ -33,6 +34,10 @@ interface Props {
   /** Only works of these kinds are offered, and only these kinds stand as
    *  chips - a comment is filed under a publication, never under a song. */
   kinds?: readonly string[]
+  /** The day the work is chosen for, when it is chosen for one: what the
+   *  highlighted work's song would repeat on it is said at the foot, before
+   *  it is picked (ADR 0054). */
+  day?: string
 }
 
 /**
@@ -51,17 +56,20 @@ interface Props {
  * search index, because a work with no text in it yet still has to be
  * schedulable, and the search index only knows what has been written.
  */
-export function PickWorkDialog({ open, onOpenChange, onPick, title, kinds }: Props) {
+export function PickWorkDialog({ open, onOpenChange, onPick, title, kinds, day }: Props) {
   return open ? (
-    <Contents onOpenChange={onOpenChange} onPick={onPick} title={title} kinds={kinds} />
+    <Contents onOpenChange={onOpenChange} onPick={onPick} title={title} kinds={kinds} day={day} />
   ) : null
 }
 
-function Contents({ onOpenChange, onPick, title, kinds }: Omit<Props, 'open'>) {
+function Contents({ onOpenChange, onPick, title, kinds, day }: Omit<Props, 'open'>) {
   const { t } = useTranslation()
   const profile = useProfile()
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState<string | null>(null)
+  // The row under the highlight - the one Enter or a press would take - for
+  // the warning at the foot.
+  const [highlighted, setHighlighted] = useState<string | null>(null)
 
   const rows = useQuery(queries.catalogue())
 
@@ -109,6 +117,7 @@ function Contents({ onOpenChange, onPick, title, kinds }: Omit<Props, 'open'>) {
         }
       }}
       isItemEqualToValue={(a: ScoredWork, b: ScoredWork) => a.work_id === b.work_id}
+      onItemHighlighted={(row: ScoredWork | undefined) => setHighlighted(row?.work_id ?? null)}
     >
       <CommandPalettePopup aria-label={title}>
         <CommandPaletteInput
@@ -162,6 +171,18 @@ function Contents({ onOpenChange, onPick, title, kinds }: Omit<Props, 'open'>) {
             </CommandPaletteGroup>
           )}
         </CommandPaletteList>
+
+        {/* What the highlighted work would repeat on the day, where the eye
+            ends the list: a warning before it is picked, never a refusal. It
+            draws nothing - and takes no room - for a work that repeats
+            nothing. */}
+        {day !== undefined && (
+          <RepeatWarning
+            landing={highlighted === null ? null : { work: highlighted }}
+            day={day}
+            className="shrink-0 border-t border-line px-4 py-2"
+          />
+        )}
       </CommandPalettePopup>
     </Palette>
   )

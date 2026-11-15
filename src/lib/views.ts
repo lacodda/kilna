@@ -153,6 +153,7 @@ const FILTER_FIELDS = [
   'tier',
   'tag',
   'gap',
+  'repeats',
   'bookmarked',
   'stage',
   'collection',

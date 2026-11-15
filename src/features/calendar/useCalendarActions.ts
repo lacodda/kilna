@@ -12,6 +12,7 @@ import {
   scheduleRelease,
   unscheduleRelease,
 } from '@/lib/api/releases'
+import type { Landing } from '@/lib/api/releases'
 import type { Move, NewRelease, Placement, RepeatFinding, ShiftPlan } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { today } from '@/lib/month'
@@ -93,15 +94,20 @@ export function useCalendarActions({
   }
 
   /**
-   * What a release would repeat on `date` (ADR 0054), asked before it is put
-   * there: the dry run the month ran while the chip hovered the day, read
-   * from the cache when it is that fresh. Never in the way of the write - a
-   * day it could not be asked about is a day it lands on without a word.
+   * What a release repeats on `date` (ADR 0054), for the line that says it
+   * landed: the dry run the month ran while the chip hovered the day, read
+   * from the cache when it is that fresh. Asked after the date is written,
+   * never before (v0.111): the backend answers one question at a time, and a
+   * write that waited for this one waited for every day the chip had crossed
+   * as well. What a song repeats near a day does not depend on whether its
+   * own release already stands there, so the answer is the same either side
+   * of the write. A day it could not be asked about is landed on without a
+   * word.
    */
-  const repeatsOn = async (id: string, date: string): Promise<RepeatFinding[]> => {
+  const repeatsOn = async (landing: Landing, date: string): Promise<RepeatFinding[]> => {
     try {
       const preview = await client.fetchQuery({
-        ...queries.slotPreview(id, date),
+        ...queries.slotPreview(landing, date),
         staleTime: 5_000,
       })
       return preview.repeats
@@ -121,9 +127,8 @@ export function useCalendarActions({
 
   const claim = useAppMutation({
     mutationFn: async ({ id, date }: { id: string; date: string }) => {
-      const repeats = await repeatsOn(id, date)
       await scheduleRelease(id, date)
-      return repeats
+      return repeatsOn({ release: id }, date)
     },
     failure: 'toast.releaseSaveFailed',
     refresh: REFRESHED,
@@ -136,15 +141,23 @@ export function useCalendarActions({
 
   // A work chosen for a day, booked in one step: the release is made already
   // holding its date, rather than being made and then dragged out of the
-  // queue onto the day it was asked for a moment ago.
+  // queue onto the day it was asked for a moment ago. What its song repeats
+  // there is said with the line that it landed, as a moved chip's is - until
+  // v0.111 a work booked from a day's `+` or carried from the pane landed
+  // without a word about it.
   const fillDay = useAppMutation({
-    mutationFn: (release: NewRelease) => createRelease(release),
+    mutationFn: async (release: NewRelease) => {
+      await createRelease(release)
+      return release.scheduled_at == null
+        ? []
+        : repeatsOn({ work: release.work_id }, release.scheduled_at)
+    },
     failure: 'toast.releaseSaveFailed',
     refresh: REFRESHED,
-    onSuccess: () => {
+    onSuccess: (repeats) => {
       onDayFilled()
       settle()
-      say.ok(t('toast.releaseScheduled'))
+      landed(t('toast.releaseScheduled'), repeats)
     },
   })
 
@@ -161,13 +174,13 @@ export function useCalendarActions({
   // The same call the queue uses. Until v0.44 dragging went through a contest
   // and a weaker release could be evicted by the drop; now a day holds what is
   // put on it, so moving a chip is the plainest thing on the screen - a date
-  // is written, and nothing else happens. What it would repeat there is
-  // asked first and said with the toast (ADR 0054); it refuses nothing.
+  // is written, and nothing else happens. What it repeats there is said with
+  // the toast (ADR 0054); it refuses nothing, and the write does not wait
+  // for it (`repeatsOn`).
   const move = useAppMutation({
     mutationFn: async ({ id, date }: { id: string; date: string }) => {
-      const repeats = await repeatsOn(id, date)
       await scheduleRelease(id, date)
-      return repeats
+      return repeatsOn({ release: id }, date)
     },
     failure: 'toast.releaseSaveFailed',
     refresh: REFRESHED,

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { NO_STAGE } from '@/lib/stages'
 import {
   ALL_COLUMNS,
   countGaps,
+  countRepeats,
   DEFAULT_COLUMNS,
   DEFAULT_SORT,
   groupRows,
@@ -18,7 +20,6 @@ import {
   saveWidths,
   MIN_COLUMN_WIDTH,
   narrowByColumns,
-  NO_STAGE,
   isNarrowedByColumns,
   loadColumnFilters,
   saveColumnFilters,
@@ -707,6 +708,25 @@ describe('the header funnels', () => {
 
     expect(ids(narrowByColumns(beginning, { stages: [0] }))).toEqual(['idea'])
     expect(ids(narrowByColumns(beginning, { stages: [NO_STAGE] }))).toEqual(['unsaid'])
+  })
+
+  it('slices by what the guard of repeats marks, and by what it marks red', () => {
+    // The marks are the guard's, by work: `a` repeats red, `b` orange, `c`
+    // nothing.
+    const repeats = new Map([
+      ['a', { level: 'red' as const }],
+      ['b', { level: 'orange' as const }],
+    ])
+
+    expect(ids(narrow(rows, { repeats: 'any' }, undefined, repeats))).toEqual(['a', 'b'])
+    expect(ids(narrow(rows, { repeats: 'red' }, undefined, repeats))).toEqual(['a'])
+    expect(ids(narrow(rows, {}, undefined, repeats))).toEqual(['a', 'b', 'c'])
+    // Before the marks arrive nothing is known to repeat: the slice is empty
+    // rather than everything.
+    expect(narrow(rows, { repeats: 'any' })).toEqual([])
+
+    expect(countRepeats(rows, repeats)).toEqual({ any: 2, red: 1 })
+    expect(isNarrowed({ repeats: 'red' })).toBe(true)
   })
 
   it('keeps the works in any of the ticked tiers', () => {

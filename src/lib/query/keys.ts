@@ -74,8 +74,9 @@ export const keys = {
   /** The days the calendar is closed. Under the calendar's prefix: closing
    *  a day changes what the month draws and what the layout would plan. */
   timeOff: ['calendar', 'timeOff'] as const,
-  /** What a day holds for a release being carried over it. */
-  slotPreview: (releaseId: string, day: string) => ['slotPreview', releaseId, day] as const,
+  /** What a day holds for a release, or a work, being carried over it. */
+  slotPreview: (what: 'release' | 'work', id: string, day: string) =>
+    ['slotPreview', what, id, day] as const,
   /** Every day's dry run at once: what closing a day changes. */
   slotPreviews: ['slotPreview'] as const,
 

@@ -9,6 +9,7 @@ import {
   identify,
   linesDue,
   rhythmGaps,
+  rhythmGoals,
   visible,
   type Finding,
   type FindingKind,
@@ -492,6 +493,63 @@ describe('a month short of the rhythm (v0.104)', () => {
     )
     expect(gaps).toEqual([])
     expect(rhythmGaps([], 3, null, TODAY)).toEqual([])
+  })
+})
+
+describe('a month short of its goals (v0.111)', () => {
+  const config = (monthly: NonNullable<ProfileConfig['rhythm']>['monthly']) => ({
+    work_kinds: [...CONFIG.work_kinds, { key: 'short', label: { en: 'Short', ru: 'Шортс' } }],
+    rhythm: { every_days: 2, default_time: null, monthly },
+  })
+
+  it('says which goal a month falls short of, by tier and by kind, and by how many', () => {
+    const calendar = [
+      // August: two of the top tier - one already out, on a day gone by -
+      // and one short. A release counts by the tier it carries.
+      release({ id: 'a', scheduled_at: '2026-08-03', status: 'released', tier: 'clip' }),
+      release({ id: 'b', scheduled_at: '2026-08-30', tier: 'clip' }),
+      release({ id: 'c', scheduled_at: '2026-08-30', tier: 'audio' }),
+      release({ id: 'd', scheduled_at: '2026-08-31', work_kind: 'short', tier: 'clip' }),
+      // September: nothing of the tier.
+      release({ id: 'e', scheduled_at: '2026-09-02', work_kind: 'short', tier: null }),
+    ]
+
+    const found = rhythmGoals(
+      calendar,
+      config([
+        { tier: 'clip', count: 4 },
+        { kind: 'short', count: 1 },
+      ]),
+      TODAY,
+    )
+
+    expect(
+      found.map((f) => [f.complaint, f.params?.count, f.params?.of, f.params?.context]),
+    ).toEqual([
+      // Three of the four are there, the short among them: one short.
+      ['rhythm-goal:2026-08:tier:clip:1', 1, 'Clip', 'tier'],
+      // The short goal of August is met and says nothing.
+      ['rhythm-goal:2026-09:tier:clip:4', 4, 'Clip', 'tier'],
+    ])
+    expect(found[0]!.kind).toBe('rhythm-goal')
+    expect(found[0]!.workId, 'about the plan, not a work').toBe('')
+    expect(found[1]!.to).toEqual({ path: '/calendar', day: '2026-09-01' })
+  })
+
+  it("says a kind in the profile's own word, and nothing without goals", () => {
+    const found = rhythmGoals([], config([{ kind: 'short', count: 8 }]), TODAY)
+    expect(found.map((f) => [f.complaint, f.params?.of, f.params?.context])).toEqual([
+      ['rhythm-goal:2026-08:kind:short:8', 'Short', 'kind'],
+      ['rhythm-goal:2026-09:kind:short:8', 'Short', 'kind'],
+    ])
+
+    expect(rhythmGoals([], config([]), TODAY)).toEqual([])
+    expect(rhythmGoals([], { work_kinds: CONFIG.work_kinds, rhythm: null }, TODAY)).toEqual([])
+  })
+
+  it('names a goal by its key once the profile has lost the word for it', () => {
+    const [found] = rhythmGoals([], config([{ tier: 'gone', count: 1 }]), TODAY)
+    expect(found!.params?.of).toBe('gone')
   })
 })
 

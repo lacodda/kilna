@@ -177,6 +177,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'release.unreleased': ['dim', Undo2],
   'release.deleted': ['dim', Trash2],
   'release.unscheduledBatch': ['dim', CalendarX],
+  'release.releasedBatch': ['good', Send],
   'release.fieldsBatch': ['dim', ListChecks],
   'release.metaWritten': ['accent', ListChecks],
   'layout.applied': ['warn', CalendarRange],

@@ -47,6 +47,9 @@ Four things light it today:
   where something happened *to* you rather than because of you, and the
   message announcing it was on screen for a few seconds while you were busy
   doing something else.
+- **What a release that is not ready lacks** rides with both lines below
+  (v0.111) and is said after them in the words its chip uses - *Missing:
+  lyrics, a cover* - in the language the window is showing.
 - **A release due inside the coming week that is not ready** — missing a
   required version role, or a score. kilna checks at startup and after every
   calendar change, and writes one warning per release and date.

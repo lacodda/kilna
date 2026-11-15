@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
 import { ReadyChecklist } from '@/components/ReadyChecklist'
 import { ReleaseForm, useReleaseDraft } from '@/components/ReleaseForm'
-import { RepeatWarning } from '@/features/calendar/RepeatWarning'
+import { RepeatWarning } from '@/components/RepeatWarning'
 
 interface Props {
   release: ScheduledRelease | null
@@ -121,7 +121,7 @@ export function ReleaseEditor({
               would repeat there, before Save (ADR 0054). Only for a new day -
               the one it holds already wears its mark on the month. */}
           {draft.date !== (release.scheduled_at ?? '') && (
-            <RepeatWarning releaseId={release.id} day={draft.date} className="text-sm" />
+            <RepeatWarning landing={{ release: release.id }} day={draft.date} className="text-sm" />
           )}
 
           {/* The chip's glyphs, in words: everything the place asks for, a

@@ -4,7 +4,7 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { coverImageFor } from '@/lib/cover'
 import { formatNumber } from '@/lib/format'
-import { stagesOf } from '@/lib/stages'
+import { standsAt } from '@/lib/stages'
 import { unplannedWorks } from '@/lib/unplanned'
 import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
@@ -12,16 +12,18 @@ import { Select } from '@/components/AppSelect'
 import { DatePicker } from '@/components/DatePicker'
 import { Loaded } from '@/components/Loaded'
 import { ReadyMarks } from '@/components/ReadyMarks'
+import { RepeatWarning } from '@/components/RepeatWarning'
 import { WorkRepeatMark } from '@/components/RepeatMark'
+import { StageChecks } from '@/components/StageChecks'
 import { Pane } from '@/components/ui/frame'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FilterPopover } from '@/components/ui/filter-popover'
 import { Input } from '@/components/ui/input'
 import { RowButton } from '@/components/ui/list-row'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { QueueDrop } from '@/features/calendar/QueueDrop'
-import { RepeatWarning } from '@/features/calendar/RepeatWarning'
 import { carriedWork, carryWork, type DropTarget } from '@/features/calendar/useCalendarDrag'
 import { cn } from '@/lib/utils'
 
@@ -101,15 +103,17 @@ export function QueuePane({
   // view of the month would hide work waiting.
   const [query, setQuery] = useState('')
   const [workKind, setWorkKind] = useState<string | null>(null)
-  const [stage, setStage] = useState<number | null>(null)
+  // The stops ticked, as the catalogue's stage funnel ticks them - the same
+  // boxes, read by the same rule (`standsAt`), "no stage" among them. "What
+  // is closest to going out" is the last stops ticked together. Until v0.111
+  // this was a dropdown of the pane's own that meant "has reached", and so
+  // could not find the works nobody had given a stage.
+  const [stages, setStages] = useState<number[]>([])
 
-  // `stage` is a percentage and the filter is a stop, so the comparison is
-  // "has reached this stop" rather than equality - picking "Polishing" shows
-  // what is polishing AND what is past it, which is what "closest to going
-  // out" means.
-  const matches = (kind: string, reached: number | null, title: string) =>
+  const ticked = stages.length === 0 ? null : new Set(stages)
+  const matches = (kind: string, stage: number | null, title: string) =>
     (workKind === null || kind === workKind) &&
-    (stage === null || (reached ?? -1) >= stage) &&
+    (ticked === null || standsAt(stage, ticked)) &&
     title.toLowerCase().includes(query.trim().toLowerCase())
 
   const shownQueue = (queued.data ?? []).filter((entry) =>
@@ -216,7 +220,7 @@ export function QueuePane({
               )}
               className="text-xs"
             />
-            <div className="flex gap-1.5">
+            <div className="flex items-center gap-1.5">
               <Select
                 value={workKind ?? ''}
                 onChange={(value) => setWorkKind(value === '' ? null : value)}
@@ -228,17 +232,21 @@ export function QueuePane({
                   label: sayLabel(entry.label),
                 }))}
               />
-              <Select
-                value={stage === null ? '' : String(stage)}
-                onChange={(value) => setStage(value === '' ? null : Number(value))}
-                placeholder={t('calendar.queueAnyStage')}
-                aria-label={t('calendar.queueStage')}
-                className="min-w-0 flex-1"
-                options={stagesOf(profile.config).map((stop) => ({
-                  value: String(stop.percent),
-                  label: sayLabel(stop.label),
-                }))}
-              />
+              {/* The catalogue's stage funnel, here beside the kind: filled
+                  while it narrows, so a short list does not read as a short
+                  queue. It opens towards the pane, which stands at the
+                  window's edge. */}
+              <FilterPopover
+                title={t('calendar.queueStage')}
+                label={t('calendar.queueStageFilter')}
+                active={ticked !== null}
+                clearLabel={t('catalogue.clear')}
+                onClear={() => setStages([])}
+                align="end"
+                className="size-7"
+              >
+                <StageChecks chosen={stages} onChange={setStages} />
+              </FilterPopover>
             </div>
           </div>
         }
@@ -249,9 +257,12 @@ export function QueuePane({
             <div className="flex w-full flex-col gap-1.5">
               {/* What the typed day would repeat, before Claim is pressed:
                   the month says it while a chip hovers a day, and a day
-                  typed here is the same gesture by other means. A work has
-                  no release to ask with yet; it is told when it lands. */}
-              {pickedWork === null && <RepeatWarning releaseId={picked} day={slot} />}
+                  typed here is the same gesture by other means - for a
+                  queued release and for a work with none yet alike. */}
+              <RepeatWarning
+                landing={pickedWork === null ? { release: picked } : { work: pickedWork }}
+                day={slot}
+              />
               <form
                 className="flex w-full gap-2"
                 onSubmit={(event) => {

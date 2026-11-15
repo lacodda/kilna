@@ -120,8 +120,15 @@ function sources(dir) {
   return found
 }
 
+// The copies of dowel's components are not read for calls: a component of
+// the set takes its words as props and asks kilna for none, and what looks
+// like a call in one is an example in its comments (`{t('stage')}` in the
+// table's, since dowel 1.0) - a file kilna may not edit to make it pass.
+const COPIES = join(SOURCE_DIR, 'components', 'ui')
+
 const used = new Map()
 for (const file of sources(SOURCE_DIR)) {
+  if (file.startsWith(COPIES)) continue
   const text = readFileSync(file, 'utf8')
   // Only literal keys: `t(\`card.tab.${tab}\`)` is built at runtime from a
   // union the type checker already constrains, and guessing its arms here

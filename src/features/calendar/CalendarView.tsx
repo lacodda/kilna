@@ -21,11 +21,10 @@ import { AgendaList } from '@/features/calendar/AgendaList'
 import { CalendarDialogs, type CalendarDialog } from '@/features/calendar/CalendarDialogs'
 import { CalendarHead } from '@/features/calendar/CalendarHead'
 import { LayoutPreview } from '@/features/calendar/LayoutPreview'
-import { MonthGrid } from '@/features/calendar/MonthGrid'
+import { DayGrid } from '@/features/calendar/DayGrid'
 import { MonthSkeleton } from '@/features/calendar/MonthSkeleton'
 import { QueuePane, type PaneSource } from '@/features/calendar/QueuePane'
 import { ShiftPreview } from '@/features/calendar/ShiftPreview'
-import { WeekGrid } from '@/features/calendar/WeekGrid'
 import { useCalendarActions } from '@/features/calendar/useCalendarActions'
 import { QUEUE, carriedWork, useCalendarDrag } from '@/features/calendar/useCalendarDrag'
 import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
@@ -75,8 +74,8 @@ type Preview =
  *
  * This file is the screen's state and how its parts are joined. The parts
  * are their own files: the head (`CalendarHead`), the pane (`QueuePane`), the
- * days (`MonthGrid` on dowel's BigCalendar, `WeekGrid` for the week, `AgendaList`
- * for the agenda), the
+ * days (`DayGrid` on dowel's BigCalendar for the month and the week,
+ * `AgendaList` for the agenda), the
  * dialogs (`CalendarDialogs`), the writes (`useCalendarActions`) and the
  * carried chip (`useCalendarDrag`).
  */
@@ -304,7 +303,6 @@ export function CalendarView({ onSelect }: Props) {
       {(data) => {
         const shared = {
           slots: filterByKind(data, kind),
-          booked: data,
           ghosts: ghostsFor(data),
           closed,
           // Something is waiting for a date: the days become a way to pick
@@ -322,13 +320,11 @@ export function CalendarView({ onSelect }: Props) {
           over: drag.over,
         }
         if (view === 'agenda') return <AgendaList days={days} target={drag.target} {...shared} />
-        if (view === 'week') {
-          return <WeekGrid days={days} gridRef={drag.gridRef} pointer={drag.days} {...shared} />
-        }
         return (
-          <MonthGrid
-            month={anchor}
-            onMonthChange={setAnchor}
+          <DayGrid
+            view={view}
+            anchor={anchor}
+            onAnchorChange={setAnchor}
             gridRef={drag.gridRef}
             pointer={drag.days}
             {...shared}

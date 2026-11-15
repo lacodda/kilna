@@ -1,10 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
+import type { Landing } from '@/lib/api/releases'
 import { queries } from '@/lib/query/queries'
 import { landingWarning } from '@/lib/repeats'
+import { useRested } from '@/lib/useRested'
 import { cn } from '@/lib/utils'
 
 interface Props {
-  releaseId: string
+  /** What would land: a release, or a work that has none yet. Nothing is
+   *  asked while there is none. */
+  landing: Landing | null
   /** The day being considered, `yyyy-mm-dd`; nothing is asked while empty. */
   day: string
   className?: string
@@ -18,16 +22,20 @@ interface Props {
  * A warning, never a refusal - the same footing as a day that is taken or
  * kept: the person may still put it there, and the calendar says why it
  * might not be wise. Asked through the same dry run the month uses while a
- * chip is carried (`preview_schedule`), so the dialog and the month cannot
- * disagree about the same day.
+ * chip is carried, so a dialog and the month cannot disagree about the same
+ * day - and once what is asked about has rested, so a list walked with the
+ * arrows asks about the row it stops on, not every row on the way.
  */
-export function RepeatWarning({ releaseId, day, className }: Props) {
+export function RepeatWarning({ landing, day, className }: Props) {
+  const id = landing === null ? null : 'work' in landing ? landing.work : landing.release
+  const rested = useRested(`${id ?? ''}:${day}`)
   const preview = useQuery({
-    ...queries.slotPreview(releaseId, day),
-    enabled: day !== '',
+    ...queries.slotPreview(landing ?? { release: '' }, day),
+    enabled: landing !== null && day !== '' && rested,
     staleTime: 5_000,
   })
-  const said = preview.data === undefined ? null : landingWarning(preview.data.repeats)
+  const said =
+    landing === null || preview.data === undefined ? null : landingWarning(preview.data.repeats)
   if (said === null) return null
   return (
     // `status`: the line appears as a date is picked, and a reader who picked

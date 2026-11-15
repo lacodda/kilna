@@ -890,13 +890,29 @@ v0.90: a document without it is the same document.
 The pace releases go out at:
 
 ```jsonc
-{ "every_days": 3, "default_time": "12:00" }
+{
+  "every_days": 3,
+  "default_time": "12:00",
+  "monthly": [
+    { "tier": "clip", "count": 4 },
+    { "kind": "short", "count": 8 }
+  ]
+}
 ```
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `every_days` | number | Days the [auto-layout](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout) keeps between releases. `1` is daily. |
 | `default_time` | string, optional | Time of day (`HH:MM`) a release usually ships, shown beside the date when editing a release. |
+| `monthly` | list, optional | What a month should hold (v0.111): each entry counts releases of one `tier`, or of works of one `kind`, and asks for `count` of them a month. |
+
+A monthly goal names a tier **or** a kind, never both: a tier some kind of
+work has, or a kind the profile has, and a `count` of at least one. A month
+has one goal for each thing counted. A release counts by the tier it carries -
+its song's, for a clip, a short and an audio release - and by the kind of its
+work; the dashboard says which goal a month falls short of. The auto-layout
+does not read the goals: it keeps the pace, and the goals say what the pace
+should be made of.
 
 Calendar slots stay whole days, and the usual time lives here as a single fact
 about the craft. The original reason was that a date was contested per day and

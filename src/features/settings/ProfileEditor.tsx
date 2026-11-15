@@ -59,7 +59,7 @@ export function ProfileEditor() {
       ))}
 
       <Divider />
-      <RhythmEditor rhythm={config.rhythm} onChange={(rhythm) => patch({ rhythm })} />
+      <RhythmEditor config={config} onChange={(rhythm) => patch({ rhythm })} />
       <CoverIdeasEditor config={config} onChange={(cover_ideas) => patch({ cover_ideas })} />
       <GuardEditor config={config} onChange={(guard) => patch({ guard })} />
       <Vocabulary

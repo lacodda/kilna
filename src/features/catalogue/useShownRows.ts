@@ -8,6 +8,7 @@ import {
   type CatalogueFilter,
   type CatalogueRow,
   type ColumnFilters,
+  type RepeatLevels,
   type Sort,
 } from '@/lib/catalogue'
 import { queries } from '@/lib/query/queries'
@@ -35,6 +36,8 @@ export function useShownRows(
   filter: CatalogueFilter,
   columnFilters: ColumnFilters,
   sort: Sort,
+  /** Every work's mark of the guard, for the slice by repeats. */
+  repeats: RepeatLevels,
 ): Shown | undefined {
   const text = filter.search?.trim() ?? ''
   const settled = useDebounced(text, 160)
@@ -55,6 +58,9 @@ export function useShownRows(
   const all = withNextReleases(rows, releases)
   // The funnels narrow what the query left: the two compose as AND, and the
   // count above the table reads both.
-  const visible = sortRows(narrowByColumns(narrow(all, filter, matching), columnFilters), sort)
+  const visible = sortRows(
+    narrowByColumns(narrow(all, filter, matching, repeats), columnFilters),
+    sort,
+  )
   return { all, visible }
 }

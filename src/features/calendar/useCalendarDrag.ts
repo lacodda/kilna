@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Landing } from '@/lib/api/releases'
 import { dayOf } from '@/components/ui/big-calendar'
 import { useChipDrag } from '@/lib/useChipDrag'
 
@@ -19,6 +20,12 @@ export function carryWork(workId: string): string {
 /** The work a carried id names, or `null` for a release. */
 export function carriedWork(id: string): string | null {
   return id.startsWith(WORK) ? id.slice(WORK.length) : null
+}
+
+/** What a carried id would land as: the work it names, or the release. */
+export function landingOf(id: string): Landing {
+  const work = carriedWork(id)
+  return work === null ? { release: id } : { work }
 }
 
 /** The pointer handlers a place to land wears, so it can light up under a chip. */

@@ -1,6 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { Star } from 'lucide-react'
-import { GAPS, type CatalogueFilter, type ColumnId, type Gap, type GroupBy } from '@/lib/catalogue'
+import {
+  GAPS,
+  REPEAT_SLICES,
+  type CatalogueFilter,
+  type ColumnId,
+  type Gap,
+  type GroupBy,
+  type RepeatSlice,
+} from '@/lib/catalogue'
 import type { SavedView, ViewShape } from '@/lib/views'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -16,6 +24,8 @@ interface Props {
   onControl: (change: Partial<CatalogueFilter>) => void
   /** The gap chips write it this way: they are not part of the line. */
   onGap: (gap: Gap | undefined) => void
+  /** The repeats chips write it this way, as the gap chips do. */
+  onRepeats: (slice: RepeatSlice | undefined) => void
   query: string
   onQuery: (line: string) => void
   unknown: { field: string; value: string } | undefined
@@ -32,6 +42,7 @@ interface Props {
   /** Every work, by kind, and every gap: the chips count the whole catalogue. */
   kindCounts: ReadonlyMap<string, number>
   gapCounts: Record<Gap, number> | undefined
+  repeatCounts: Record<RepeatSlice, number> | undefined
   /** What the table shows, and of how many; undefined while it loads. */
   shown: number | undefined
   total: number | undefined
@@ -160,6 +171,34 @@ export function CatalogueToolbar(props: Props) {
             </Chip>
           ))}
         </ChipGroup>
+
+        {/* What the guard of repeats marks, and what it marks red (ADR 0054):
+            the mark has been on every row since v0.90, and finding the dozen
+            red ones among four hundred meant reading the column. Dashed, as
+            the gaps are - each is something to look at before the song goes
+            out. Not drawn in a workspace where nothing repeats, where two
+            chips reading 0 would be a control with nothing to switch. */}
+        {(filter.repeats !== undefined || (props.repeatCounts?.any ?? 0) > 0) && (
+          <ChipGroup
+            aria-label={t('catalogue.repeats')}
+            value={filter.repeats === undefined ? [] : [filter.repeats]}
+            onValueChange={(next) =>
+              props.onRepeats(REPEAT_SLICES.find((slice) => slice === next[0]))
+            }
+          >
+            {REPEAT_SLICES.map((slice) => (
+              <Chip
+                key={slice}
+                value={slice}
+                variant="dashed"
+                count={props.repeatCounts?.[slice]}
+                title={t(`catalogue.repeatHint.${slice}`)}
+              >
+                {t(`catalogue.repeat.${slice}`)}
+              </Chip>
+            ))}
+          </ChipGroup>
+        )}
 
         <Tally {...props} />
       </div>

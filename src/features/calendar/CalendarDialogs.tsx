@@ -82,6 +82,10 @@ export function CalendarDialogs({
         open={dialog?.kind === 'fill'}
         onOpenChange={close('fill')}
         title={t('calendar.fillDay', { date: dialog?.kind === 'fill' ? dialog.date : '' })}
+        // The day it is chosen for: what the highlighted work's song would
+        // repeat there is said in the dialog, before anything is booked
+        // (v0.111) - the last way onto a day that said it only afterwards.
+        day={dialog?.kind === 'fill' ? dialog.date : undefined}
         onPick={(work) => {
           if (dialog?.kind !== 'fill') return
           const door = vocabularyOf(profile.config, work.kind).release_kinds[0]

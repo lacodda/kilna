@@ -91,6 +91,63 @@ describe('the calendar', () => {
     noScrollerInAnother(dialog, 'the choice of a work')
   })
 
+  it('says what a work would repeat on the day before the plus books it', async () => {
+    // The last way onto a day that said a repeat only afterwards (wish 4002):
+    // the work under the highlight is asked about, for the day the dialog
+    // was opened on, and nothing is written by asking.
+    const repeat = {
+      word: 'пульсар',
+      level: 'red',
+      why: 'rare',
+      neighbour_id: 'w-tide',
+      neighbour_title: 'Tide',
+      day: '2026-09-20',
+      booked: false,
+      also: 0,
+      kept: false,
+    } satisfies RepeatFinding
+    backend.answer('preview_day', () => ({
+      verdict: 'empty',
+      holder_title: null,
+      repeats: [repeat],
+      closed: null,
+    }))
+    const { client, container } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const day = container.querySelector<HTMLElement>('[data-day="2026-09-24"]')!
+    fireEvent.click(within(day).getByRole('button', { name: en.calendar.addOnDay }))
+
+    const dialog = await screen.findByRole('dialog', {
+      name: (name) => name.startsWith(en.calendar.fillDay.split('{{')[0]!),
+    })
+    const box = within(dialog).getByRole('combobox')
+    fireEvent.change(box, { target: { value: 'Harbour' } })
+    await within(dialog).findByText('Harbour Lights')
+    // The arrow puts the highlight on the row, as the pointer would.
+    fireEvent.keyDown(box, { key: 'ArrowDown' })
+
+    // By its words: the list keeps a live region of its own in the dialog.
+    const warning = await within(dialog).findByText(/пульсар/)
+    expect(warning).toHaveAttribute('role', 'status')
+    expect(warning).toHaveTextContent('Tide')
+    expect(backend.argsOf('preview_day')).toEqual([{ workId: IDS.draft, slot: '2026-09-24' }])
+    expect(backend.argsOf('create_release'), 'asking books nothing').toEqual([])
+    expect(main).toBeInTheDocument()
+  })
+
+  it('writes the date before it asks what the day repeats', async () => {
+    // The backend answers one question at a time: a write that waited for
+    // the dry run waited for every day the chip had crossed (wish 4764).
+    await carryTo('[data-day="2026-09-24"]')
+
+    const order = backend.calls
+      .map((call) => call.cmd)
+      .filter((cmd) => cmd === 'schedule_release' || cmd === 'preview_schedule')
+    expect(order[0]).toBe('schedule_release')
+    expect(order).toContain('preview_schedule')
+  })
+
   it('starts the week on Monday in English, and is one tab stop', async () => {
     // dowel's month follows the language's week, and English alone would
     // start it on Sunday; a release plan is read in working weeks.

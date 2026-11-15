@@ -1,7 +1,41 @@
-import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import type { RepeatLevel, ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import { standsAt } from '@/lib/stages'
 
 /** A working gap: something started but not carried through. */
 export type Gap = 'unscored' | 'unscheduled' | 'stale'
+
+/**
+ * A slice by what the guard of repeats says of a work (ADR 0054): `any` for
+ * every work that wears a mark, `red` for the ones whose song says a rare
+ * word a song out or booked within the window says. The mark was on every
+ * row since v0.90 and could only be looked for by eye.
+ */
+export type RepeatSlice = 'any' | 'red'
+
+/** The slices, in the order they are offered - one list for the chips and for
+ * the check on a stored filter, as `GAPS` is. */
+export const REPEAT_SLICES: RepeatSlice[] = ['any', 'red']
+
+/** Every work's mark, by work, as far as a slice reads it. */
+export type RepeatLevels = ReadonlyMap<string, { level: RepeatLevel }>
+
+function inSlice(level: RepeatLevel | undefined, slice: RepeatSlice): boolean {
+  return level !== undefined && (slice === 'any' || level === 'red')
+}
+
+/** How many works are in each slice, across the whole catalogue - as the gap
+ * chips count, and for the same reason. */
+export function countRepeats(
+  rows: readonly ScoredWork[],
+  repeats: RepeatLevels,
+): Record<RepeatSlice, number> {
+  const counts: Record<RepeatSlice, number> = { any: 0, red: 0 }
+  for (const row of rows) {
+    const level = repeats.get(row.work_id)?.level
+    for (const slice of REPEAT_SLICES) if (inSlice(level, slice)) counts[slice] += 1
+  }
+  return counts
+}
 
 export interface CatalogueFilter {
   search?: string
@@ -11,6 +45,8 @@ export interface CatalogueFilter {
   /** One of the author's own words, matched whole and case-insensitively. */
   tag?: string
   gap?: Gap
+  /** Only the works the guard of repeats marks, or marks red. */
+  repeats?: RepeatSlice
   /** Only the starred: works marked to come back to. */
   bookmarked?: true
   /** A stage stop, as its percentage — works standing at exactly that stop.
@@ -123,6 +159,7 @@ export function narrow<Row extends ScoredWork>(
   rows: Row[],
   filter: CatalogueFilter,
   matching?: readonly string[],
+  repeats?: RepeatLevels,
 ): Row[] {
   const needle = filter.search?.trim().toLowerCase() ?? ''
   const found = matching === undefined ? undefined : new Set(matching)
@@ -137,6 +174,14 @@ export function narrow<Row extends ScoredWork>(
     // tool in the box the vaguest.
     if (filter.tag !== undefined && !hasTag(row, filter.tag)) return false
     if (filter.gap !== undefined && !hasGap(row, filter.gap)) return false
+    // The marks are read off the guard, not off the row. Until they arrive
+    // nothing is known to repeat, and the slice is empty rather than wrong.
+    if (
+      filter.repeats !== undefined &&
+      !inSlice(repeats?.get(row.work_id)?.level, filter.repeats)
+    ) {
+      return false
+    }
     if (filter.bookmarked === true && row.bookmarked_at === null) return false
     if (filter.stage !== undefined && row.stage !== filter.stage) return false
     if (filter.collection !== undefined && row.collection_id !== filter.collection) return false
@@ -209,6 +254,7 @@ export function isNarrowed(filter: CatalogueFilter, columns?: ColumnFilters): bo
     filter.tier !== undefined ||
     filter.tag !== undefined ||
     filter.gap !== undefined ||
+    filter.repeats !== undefined ||
     filter.bookmarked === true ||
     // Left out when the stage filter arrived, so a catalogue narrowed to one
     // stop showed no count and no "clear" — and an empty result blamed nothing.
@@ -217,19 +263,6 @@ export function isNarrowed(filter: CatalogueFilter, columns?: ColumnFilters): bo
     isNarrowedByColumns(columns)
   )
 }
-
-/**
- * The ticked entry standing for "no stage at all".
- *
- * A stage is stored as the percentage of its stop, so the funnel could say
- * "standing at this stop" and had no way to say "standing nowhere" — and the
- * works that had never been given a stage were exactly the ones the owner
- * wanted to find. Negative, because every real stop is 0..=100, and a
- * sentinel that cannot collide with a value is the only kind worth having.
- * `narrow` already tells a stage of 0 from no stage; this lets the funnel do
- * the same.
- */
-export const NO_STAGE = -1
 
 /**
  * What the funnels in the column headers hold.
@@ -297,13 +330,7 @@ export function narrowByColumns<Row extends ScoredWork>(
   return rows.filter((row) => {
     if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
     if (statuses !== undefined && !statuses.has(row.status)) return false
-    if (stages !== undefined) {
-      // A work with no stage matches only the "no stage" tick, and a work
-      // with one matches only its own stop. Ticking both asks for either,
-      // the way two ticked marks do.
-      const matched = row.stage === null ? stages.has(NO_STAGE) : stages.has(row.stage)
-      if (!matched) return false
-    }
+    if (stages !== undefined && !standsAt(row.stage, stages)) return false
     if (tiers !== undefined && (row.tier === null || !tiers.has(row.tier))) return false
     if (marks !== undefined && !row.marks.some((key) => marks.has(key))) return false
     return true
@@ -556,6 +583,10 @@ function isFilter(value: unknown): value is CatalogueFilter {
   }
 
   if (candidate.bookmarked !== undefined && candidate.bookmarked !== true) return false
+
+  // A slice is switched on exhaustively too.
+  const repeats = candidate.repeats
+  if (repeats !== undefined && !REPEAT_SLICES.includes(repeats as RepeatSlice)) return false
 
   const gap = candidate.gap
   return gap === undefined || GAPS.includes(gap as Gap)

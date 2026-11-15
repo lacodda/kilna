@@ -45,6 +45,9 @@ export interface Dashboard {
   nearest: Slot[]
   /** Works nothing has judged, so nothing can rank them. */
   unscored: ScoredWork[]
+  /** Planned releases whose day has passed, ready or not, longest overdue
+   *  first: each went out unmarked, or did not go out (v0.111). */
+  overdue: Slot[]
 }
 
 /**
@@ -96,7 +99,16 @@ export function summarise(
     .filter((work) => work.total === null && work.released === 0)
     .sort((a, b) => a.title.localeCompare(b.title))
 
-  return { decisions, week, nearest, unscored }
+  // Every plan dated in the past, whether or not it could have gone out: the
+  // question it asks is not "what does it lack" but "did it go out". Fifty-
+  // eight of these stood on the owner's board as fifty-eight cards, each to
+  // be opened and answered by hand; together they are one question with two
+  // answers (`Overdue`).
+  const overdue = pending
+    .filter(({ release, daysLeft }) => release.status === 'planned' && daysLeft < 0)
+    .sort(bySoonest)
+
+  return { decisions, week, nearest, unscored, overdue }
 }
 
 /** Soonest first, and a passed date before an approaching one. */
@@ -114,6 +126,7 @@ function bySoonest(a: Slot, b: Slot): number {
 export function isQuiet(dashboard: Dashboard): boolean {
   return (
     dashboard.decisions.length === 0 &&
+    dashboard.overdue.length === 0 &&
     dashboard.week.length === 0 &&
     dashboard.nearest.length === 0 &&
     dashboard.unscored.length === 0

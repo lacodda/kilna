@@ -65,12 +65,12 @@ describe('a draft carried onto what is stored', () => {
     const gone = draft.prompts.shift()!
     const stored = copy()
     const alsoGone = stored.work_kinds[0]!.axes!.pop()!
-    stored.rhythm = { every_days: 3, default_time: null }
+    stored.rhythm = { every_days: 3, default_time: null, monthly: [] }
 
     const merged = rebaseDraft({ base: shipped, config: draft }, stored)
     expect(merged.prompts.map((action) => action.key)).not.toContain(gone.key)
     expect(merged.work_kinds[0]!.axes!.map((axis) => axis.key)).not.toContain(alsoGone.key)
-    expect(merged.rhythm).toEqual({ every_days: 3, default_time: null })
+    expect(merged.rhythm).toEqual({ every_days: 3, default_time: null, monthly: [] })
   })
 
   it('gives a part both sides changed to the person editing it', () => {

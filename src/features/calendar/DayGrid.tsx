@@ -15,14 +15,13 @@ import { useLandingVerdict } from '@/features/calendar/useLandingVerdict'
 import { dayActions, mondayFirst } from '@/features/calendar/days'
 
 interface Props {
-  /** Any day of the month to draw. */
-  month: string
-  /** The keyboard walked off the grid: any day of the month it reached. */
-  onMonthChange: (date: string) => void
+  /** What the grid draws: the anchor's month, or its week. */
+  view: 'month' | 'week'
+  /** Any day of the month, or of the week, to draw. */
+  anchor: string
+  /** The keyboard walked off the grid: a day of the month or week it reached. */
+  onAnchorChange: (date: string) => void
   slots: readonly ScheduledRelease[]
-  /** Everything booked, whatever the kind filter shows: who is on a day is
-   *  not a question the filter answers. */
-  booked: readonly ScheduledRelease[]
   /** The closed days among them, with the span that closes each. */
   closed: ReadonlyMap<string, TimeOff>
   /** An auto-layout preview by day: where the queue would land, booked by
@@ -39,7 +38,7 @@ interface Props {
   onTimeOff: (date: string, closedBy: TimeOff | null) => void
   /** Shift everything planned from the day on. */
   onShiftFrom: (date: string) => void
-  /** The month's edges, for the carried line to turn it (`useCalendarDrag`). */
+  /** The grid's edges, for the carried line to turn it (`useCalendarDrag`). */
   gridRef: RefObject<HTMLDivElement | null>
   dragging: Dragging | null
   onGrab: (event: React.PointerEvent, releaseId: string) => void
@@ -50,7 +49,8 @@ interface Props {
 }
 
 /**
- * The month: dowel's BigCalendar, with kilna's releases on its days.
+ * The month and the week: dowel's BigCalendar, with kilna's releases on its
+ * days.
  *
  * The grid holds the window's height: its weeks share it and a day never
  * grows past its share, so the screen under it cannot scroll. What a day has
@@ -59,18 +59,21 @@ interface Props {
  *
  * The question a release plan is read for is "is that week empty", and the
  * month answers it. Weeks start on Monday in every language: a release plan
- * is read in working weeks (`mondayFirst`).
+ * is read in working weeks (`mondayFirst`). The week is the same grid cut to
+ * one row, each day the whole height of the box - everything a busy Friday
+ * holds. Until dowel 1.0 drew a week, kilna kept a row of days of its own for
+ * it, a second copy of the fold, the hatch and the landing verdict.
  *
  * What kilna adds to dowel's month is its own: a closed day, hatched and named
  * in its first line (v0.96); the plan of the auto-layout as dashed lines; the
  * right-click menu of a day; and what landing on a day would mean, said at its
  * foot while something is carried over it.
  */
-export function MonthGrid({
-  month,
-  onMonthChange,
+export function DayGrid({
+  view,
+  anchor,
+  onAnchorChange,
   slots,
-  booked,
   closed,
   ghosts,
   claimingId,
@@ -99,12 +102,7 @@ export function MonthGrid({
   // before it lands, never a refusal (`useLandingVerdict`).
   const moving = dragging?.id ?? claimingId
   const onDay = over !== null && over !== QUEUE
-  const verdictFor = useLandingVerdict({
-    moving,
-    over: onDay ? over : null,
-    slots: booked,
-    closed,
-  })
+  const verdictFor = useLandingVerdict({ moving, over: onDay ? over : null })
   const verdict = onDay ? verdictFor(over) : null
   const live = claiming || dragging !== null
 
@@ -176,8 +174,11 @@ export function MonthGrid({
       }
     >
       <BigCalendar
-        month={month}
-        onMonthChange={onMonthChange}
+        // One or the other: a month view turned by weeks would be a state
+        // nothing can draw, and dowel's props say so.
+        {...(view === 'week'
+          ? { week: anchor, onWeekChange: onAnchorChange }
+          : { month: anchor, onMonthChange: onAnchorChange })}
         locale={mondayFirst(i18n.language)}
         renderDay={renderDay}
         moreLabel={(count) => t('calendar.moreOnDay', { count })}

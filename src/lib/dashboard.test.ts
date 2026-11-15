@@ -83,6 +83,28 @@ describe('summarise', () => {
     expect(summary.week).toHaveLength(1)
   })
 
+  it('gathers the plans whose day has passed, ready or not, longest overdue first', () => {
+    const summary = summarise(
+      [],
+      [
+        release({ id: 'ready', scheduled_at: '2026-08-25' }),
+        release({ id: 'unready', scheduled_at: '2026-08-20', readiness: UNREADY }),
+        // Today is not passed; a release that went out is not a plan.
+        release({ id: 'today', scheduled_at: TODAY }),
+        release({
+          id: 'out',
+          scheduled_at: '2026-08-10',
+          released_at: '2026-08-10',
+          status: 'released',
+        }),
+      ],
+      TODAY,
+    )
+
+    expect(summary.overdue.map((slot) => slot.release.id)).toEqual(['unready', 'ready'])
+    expect(isQuiet(summary), 'a passed day is something to answer').toBe(false)
+  })
+
   /** The rule the catalogue's gaps already carry: only what is still open. */
   it('says nothing about a release that has already gone out', () => {
     const summary = summarise(

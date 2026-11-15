@@ -1,12 +1,14 @@
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import type { JournalEntry } from '@/lib/api/types'
+import type { JournalEntry, Need, ProfileConfig } from '@/lib/api/types'
 import { Chip, type ChipProps } from '@/components/ui/chip'
 import { ListRow } from '@/components/ui/list-row'
 import { cn } from '@/lib/utils'
 import { formatStamp } from '@/lib/format'
 import { journalLook, needsALook, type JournalTone } from '@/lib/journalLook'
+import { sayNeed } from '@/lib/readiness'
+import { useProfile } from '@/lib/useProfile'
 import type { Tab } from '@/features/work/tabs'
 
 /** A `{{name}}` i18next left standing because the entry carried no such value,
@@ -30,8 +32,14 @@ const UNFILLED = /\s*[«"']?\{\{\s*[\w.]+\s*\}\}[»"']?\s*/g
  *
  * The quotes go with the hole: «» left standing empty reads as a work whose
  * name is blank, rather than one whose name was never kept.
+ *
+ * A warning that a release is not ready carries what it lacks, as the
+ * checklist's needs (v0.111), and they are said after the sentence in the
+ * words the chip says them in - a role and a field by the profile's names,
+ * which is why the profile is asked for. A line written before the needs
+ * rode with it says what it always said.
  */
-export function sentence(entry: JournalEntry, t: TFunction): string {
+export function sentence(entry: JournalEntry, t: TFunction, config: ProfileConfig): string {
   const key = `journal.${entry.action}`
   const said = t(key, entry.params)
   if (said === key) return entry.action
@@ -40,7 +48,24 @@ export function sentence(entry: JournalEntry, t: TFunction): string {
   // carries `lastIndex` between calls, so testing first would skip every
   // other line it was asked about.
   const filled = said.replace(UNFILLED, ' ')
-  return filled === said ? said : filled.replace(/\s+/g, ' ').trim()
+  const line = filled === said ? said : filled.replace(/\s+/g, ' ').trim()
+  const gaps = gapsOf(entry, t, config)
+  return gaps === null ? line : `${line} ${gaps}`
+}
+
+/** "Missing: lyrics, a cover" for a line that carries a release's gaps. */
+function gapsOf(entry: JournalEntry, t: TFunction, config: ProfileConfig): string | null {
+  const needs = entry.params.needs
+  if (!Array.isArray(needs) || needs.length === 0) return null
+  // What the backend wrote is the checklist's own `Need`, key for key; the
+  // work's kind and the door ride beside it, for the names of a role and a
+  // field.
+  const owner = {
+    work_kind: String(entry.params.kind ?? ''),
+    kind: String(entry.params.door ?? ''),
+  }
+  const list = (needs as unknown as Need[]).map((need) => sayNeed(need, config, owner, t))
+  return t('calendar.notReadyHint', { list: list.join(', ') })
 }
 
 /**
@@ -90,9 +115,10 @@ const TILE: Record<JournalTone, string> = {
  */
 function Line({ entry }: { entry: JournalEntry }) {
   const { t } = useTranslation()
+  const profile = useProfile()
   const look = journalLook(entry)
   const to = destinationOf(entry)
-  const said = sentence(entry, t)
+  const said = sentence(entry, t, profile.config)
 
   // The quieter line: the area the line is about, and how many times it
   // happened. The count used to be a badge beside the sentence, which a long

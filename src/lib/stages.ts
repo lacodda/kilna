@@ -18,6 +18,31 @@ const DEFAULT_STAGES: Stage[] = [
   { key: 'final', label: 'Final', percent: 100, colour: 'good' },
 ]
 
+/**
+ * The ticked entry standing for "no stage at all".
+ *
+ * A stage is stored as the percentage of its stop, so a filter could say
+ * "standing at this stop" and had no way to say "standing nowhere" - and the
+ * works that had never been given a stage were exactly the ones the owner
+ * wanted to find. Negative, because every real stop is 0..=100, and a
+ * sentinel that cannot collide with a value is the only kind worth having.
+ */
+export const NO_STAGE = -1
+
+/**
+ * Whether a work stands at one of the ticked stops.
+ *
+ * A work with no stage matches only the "no stage" tick, and a work with one
+ * matches only its own stop. Ticking several asks for any of them, the way
+ * two ticked marks do. One rule for the catalogue's funnel and the calendar's
+ * queue (v0.111): the queue used to ask "has reached this stop" through a
+ * dropdown of its own, which could not say "no stage" and read a stop's
+ * number differently from the column beside it.
+ */
+export function standsAt(stage: number | null, ticked: ReadonlySet<number>): boolean {
+  return stage === null ? ticked.has(NO_STAGE) : ticked.has(stage)
+}
+
 /** The stops this profile works by, in order. */
 export function stagesOf(config: ProfileConfig): Stage[] {
   const named = config.stages ?? []

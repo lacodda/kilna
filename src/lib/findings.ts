@@ -7,6 +7,7 @@ import type {
   Tier,
 } from '@/lib/api/types'
 import { formatDay, formatMonth } from '@/lib/format'
+import { goalChoices, goalKey } from '@/lib/rhythm'
 import { addDays, daysInMonth, monthOf, shiftMonth } from '@/lib/month'
 import { daysBetween } from '@/lib/readiness'
 
@@ -58,6 +59,10 @@ export type FindingKind =
    *  (v0.104). About the plan, not a work: it has no work and opens the
    *  calendar on the month. */
   | 'rhythm-gap'
+  /** A month holds fewer releases of a tier, or of a kind of work, than the
+   *  profile's goal for a month asks (v0.111). About the plan, as a gap in
+   *  the rhythm is: it opens the calendar on the month. */
+  | 'rhythm-goal'
   /** A line of the board whose day has come (v0.105): written by the person,
    *  said on the day. Opens its work when it has one. */
   | 'line-due'
@@ -335,6 +340,7 @@ export function answeredOn(kind: FindingKind): 'score' | 'overview' | undefined 
       return 'overview'
     case 'stale-draft':
     case 'rhythm-gap':
+    case 'rhythm-goal':
     case 'line-due':
       return undefined
   }
@@ -384,6 +390,65 @@ export function rhythmGaps(
       params: { month: formatMonth(real.year, real.month), count: missing, queued },
       to: { path: '/calendar', day: first },
     })
+  }
+  return found
+}
+
+/**
+ * The months that hold fewer releases of a tier, or of a kind of work, than
+ * the profile asks of a month (`rhythm.monthly`, v0.111): this one, whole,
+ * and the next.
+ *
+ * The rhythm paces the whole output and says nothing of what it is made of:
+ * a month can keep "every two days" on shorts alone. A goal is what the owner
+ * holds a month to - four of the strongest tier, eight shorts - and this
+ * says which one a month falls short of, and by how many. A release counts
+ * by the tier it carries, which a clip, a short and an audio release take
+ * from their song, and by the kind of its work; planned or already out, it
+ * is in the month. The whole month is counted, the days gone by with it: a
+ * goal is about the month, and what went out on the 3rd went towards it.
+ *
+ * The count is in the complaint, as a gap's is: a month put away comes back
+ * when it falls further behind or fills partly.
+ */
+export function rhythmGoals(
+  calendar: readonly ScheduledRelease[],
+  config: Pick<ProfileConfig, 'work_kinds' | 'rhythm'>,
+  today: string,
+): Finding[] {
+  const goals = config.rhythm?.monthly ?? []
+  if (goals.length === 0) return []
+  const choices = new Map(goalChoices(config).map((choice) => [choice.key, choice]))
+  const now = monthOf(today)
+  const found: Finding[] = []
+  for (const real of [now, shiftMonth(now, 1)]) {
+    const key = `${real.year}-${String(real.month).padStart(2, '0')}`
+    const inMonth = calendar.filter((entry) => entry.scheduled_at?.startsWith(key) === true)
+    for (const goal of goals) {
+      const held = inMonth.filter((entry) =>
+        'tier' in goal ? entry.tier === goal.tier : entry.work_kind === goal.kind,
+      ).length
+      const missing = goal.count - held
+      if (missing <= 0) continue
+      const name = goalKey(goal)
+      const choice = choices.get(name)
+      found.push({
+        kind: 'rhythm-goal',
+        workId: '',
+        title: formatMonth(real.year, real.month),
+        complaint: `rhythm-goal:${key}:${name}:${missing}`,
+        params: {
+          month: formatMonth(real.year, real.month),
+          count: missing,
+          // The profile's word for the tier or the kind; its key when the
+          // profile has since lost it, said rather than left blank.
+          of: choice?.label ?? name.slice(name.indexOf(':') + 1),
+          // Which of the two sentences says it (i18next's context).
+          context: 'tier' in goal ? 'tier' : 'kind',
+        },
+        to: { path: '/calendar', day: `${key}-01` },
+      })
+    }
   }
   return found
 }

@@ -78,7 +78,7 @@ export function useSayMoment(workId: string): (moment: Moment) => SaidMoment {
       }
       case 'entry':
         return {
-          text: sentence(moment.entry, t),
+          text: sentence(moment.entry, t, config),
           to: destinationOf(moment.entry),
           chip: <JournalChip entry={moment.entry} />,
         }

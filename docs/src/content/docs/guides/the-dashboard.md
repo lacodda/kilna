@@ -33,6 +33,25 @@ the work still unfinished is the loudest thing kilna has to say.
 A gap further off than a week is not listed here. It is real, but it is not a
 decision yet, and a dashboard that lists everything eventually gets ignored.
 
+## Their day has passed
+
+A planned release dated in the past is one of two things: it went out and
+nobody marked it, or it did not go out. When there are any, they are counted
+here with the two answers as two buttons (v0.111):
+
+- **Mark as out** marks every one of them released on the day it was booked
+  for - not today - with one line in [History](/kilna/guides/the-history/)
+  for the lot. No link is asked for; a release out with no link kept is a
+  finding of its own, a couple of days later.
+- **Take off the calendar** returns them to the queue with no day. Nothing is
+  deleted.
+
+Each asks once before it does it, because neither is taken back in one step:
+a mark is undone on its own release (*It did not go out*), a release taken
+off is given a day again. This is the one place on the dashboard that changes
+anything - there is no single place these are answered, there are as many as
+there are releases.
+
 ## Next 7 days
 
 Everything holding a slot inside the week, soonest first, ready or not — the
@@ -73,8 +92,11 @@ out, and one out for two days with no link kept for it - see
 v0.104, a month that holds fewer releases than the
 [rhythm](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout)
 makes room for, with how many wait in the queue; pressing it opens the
-calendar on the month. And since v0.105, one of [your own lines](#your-own-lines)
-whose day has come.
+calendar on the month. Since v0.111, a month that holds fewer releases of a
+tier or of a kind of work than the profile's
+[monthly goals](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout)
+ask - *November: 2 releases of the tier "Strong" short of the month's goal*.
+And since v0.105, one of [your own lines](#your-own-lines) whose day has come.
 
 **Nothing here changes anything.** A finding names a work and what is off about
 it; clicking the text opens the work at the tab that answers it. Where a profile

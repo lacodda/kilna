@@ -22,8 +22,6 @@ interface Props {
   /** The month's own days, in order. */
   days: readonly Day[]
   slots: readonly ScheduledRelease[]
-  /** Everything booked, whatever the kind filter shows. */
-  booked: readonly ScheduledRelease[]
   ghosts?: Map<string, Ghost[]>
   closed: ReadonlyMap<string, TimeOff>
   claimingId: string | null
@@ -51,7 +49,6 @@ interface Props {
 export function AgendaList({
   days,
   slots,
-  booked,
   ghosts,
   closed,
   claimingId,
@@ -74,12 +71,7 @@ export function AgendaList({
 
   const moving = dragging?.id ?? claimingId
   const onDay = over !== null && days.some((day) => day.date === over)
-  const verdictFor = useLandingVerdict({
-    moving,
-    over: onDay ? over : null,
-    slots: booked,
-    closed,
-  })
+  const verdictFor = useLandingVerdict({ moving, over: onDay ? over : null })
 
   const runs = agendaRuns(
     days.map((day) => day.date),

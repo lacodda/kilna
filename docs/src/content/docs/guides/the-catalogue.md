@@ -256,6 +256,14 @@ something about:
 | Nothing planned | Judged, but nothing has gone out and nothing is booked |
 | Score is old | The work changed after it was scored |
 
+**Two more chips slice by repeats** (v0.111), when anything repeats:
+**With repeats** keeps every work the
+[guard of repeats](/kilna/guides/the-guard-of-repeats/) marks, **Red** only
+those whose song says a rare word a song out or booked within the window
+says. A clip, a short and an audio release are in the slice their song is in.
+Like the gap chips they count the whole catalogue, and are not part of the
+query line.
+
 *Nothing planned* deliberately leaves out anything already released: it needs
 nothing from you. That rule comes from the predecessor of this app, whose
 first version of the same idea listed ten songs that had already shipped and

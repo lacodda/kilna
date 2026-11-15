@@ -65,6 +65,16 @@ would put it within the window of a song it shares a rare word with: *Too
 close: пульсар — in “Tide”, out Sep 20*. It is a warning, not a refusal - the
 release lands where you put it.
 
+Since v0.111 every way onto a day says it before the day is taken: a release
+carried from the month or the queue, a date typed in the pane's foot or in
+the release's dialog, a work carried from **Works** - which has no release
+yet, and used to land without a word - and the work under the highlight in
+the list the day's **+** opens. A day is asked about once the pointer, or the
+highlight, has rested on it.
+
+The catalogue has a slice for them: the **With repeats** and **Red** chips
+beside the gaps (see [The catalogue](/kilna/guides/the-catalogue/)).
+
 ## Meanings
 
 The guard catches words. An image told in other words - *a lighthouse nobody

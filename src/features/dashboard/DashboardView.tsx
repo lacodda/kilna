@@ -4,7 +4,15 @@ import { AlertTriangle, CalendarDays } from 'lucide-react'
 import { dismissFinding, restoreFinding } from '@/lib/api/focus'
 import type { Dismissal, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { aside, decide, isQuiet, summarise } from '@/lib/dashboard'
-import { dismissalKey, findings, linesDue, rhythmGaps, visible, type Finding } from '@/lib/findings'
+import {
+  dismissalKey,
+  findings,
+  linesDue,
+  rhythmGaps,
+  rhythmGoals,
+  visible,
+  type Finding,
+} from '@/lib/findings'
 import { today } from '@/lib/month'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
@@ -20,6 +28,7 @@ import { Loaded } from '@/components/Loaded'
 import { DecisionCard } from '@/features/dashboard/DecisionCard'
 import { FindingsWidget } from '@/features/dashboard/FindingsWidget'
 import { NotesWidget } from '@/features/dashboard/NotesWidget'
+import { Overdue } from '@/features/dashboard/Overdue'
 import { RunningWidget } from '@/features/dashboard/RunningWidget'
 import { SinceWidget } from '@/features/dashboard/SinceWidget'
 import { SlotCard } from '@/features/dashboard/SlotCard'
@@ -46,7 +55,8 @@ interface Props {
  * "is this ready" to be decided, and the two would drift apart.
  *
  * Everything here is a way into something else. Nothing on this screen changes
- * the work: it is a place to look before deciding where to go.
+ * the work: it is a place to look before deciding where to go - but for the
+ * plans whose day has passed, which are answered here, together (`Overdue`).
  */
 export function DashboardView({ onSelect }: Props) {
   const works = useQuery(queries.catalogue())
@@ -126,6 +136,9 @@ function Summary({
       ...(queue.data === undefined
         ? []
         : rhythmGaps(slots, queue.data.length, profile.config.rhythm?.every_days, day)),
+      // What a month is short of by tier or by kind, beside how many it is
+      // short of altogether.
+      ...rhythmGoals(slots, profile.config, day),
       ...linesDue(lines.data ?? [], day),
     ],
     dismissed,
@@ -177,6 +190,8 @@ function Summary({
             </div>
           </section>
         )}
+
+        {summary.overdue.length > 0 && <Overdue slots={summary.overdue} />}
 
         {summary.week.length > 0 && (
           <section className="flex flex-col gap-2">
