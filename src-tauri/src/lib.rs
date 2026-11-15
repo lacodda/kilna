@@ -412,6 +412,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::releases::generate_release_fields,
             commands::releases::generate_release_fields_batch,
             commands::releases::preview_schedule,
+            commands::releases::preview_day,
+            commands::releases::mark_released_batch,
             commands::releases::warn_unready_releases,
             commands::releases::schedule_release,
             commands::releases::set_slot_pin,

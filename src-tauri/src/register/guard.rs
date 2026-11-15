@@ -334,14 +334,160 @@ fn stems_of(text: &str, stems: &mut Stems) -> BTreeMap<String, String> {
 /// on `today` (`YYYY-MM-DD`): the songs it shares something with, and how
 /// loudly. Songs with nothing to say are left out.
 pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repeats>> {
-    let config = crate::profile::config_for(conn, profile_id)?;
-    let guard = config.guard.unwrap_or_default();
-    let Some(today) = day_of(today) else {
+    let Some(day) = day_of(today) else {
         return Err(crate::error::Error::refused("release.badDay").param("value", today));
     };
+    Ok(read(conn, profile_id)?.on(day))
+}
+
+/// What a song shares with one neighbour, before a day is named.
+struct Shared {
+    /// What the finding is counted by: the stem, or the work of culture.
+    key: String,
+    /// The finding as it stands when the neighbour's day is far away.
+    finding: RepeatFinding,
+    /// The neighbour's day, for a rare word: red when it is within the window
+    /// of the day asked about. A spent term and a shared source are orange
+    /// whenever the neighbour said them.
+    rare_on: Option<Date>,
+}
+
+/// A song that has not gone out, and everything it shares.
+struct Sharing {
+    id: String,
+    title: String,
+    shared: Vec<Shared>,
+}
+
+/// Everything the guard reads off the texts, the register and the calendar,
+/// before a day is named.
+///
+/// Reading is the whole cost: every sung text stemmed, the register matched in
+/// each, every song held against every other. The day decides one thing only
+/// - whether a rare word was said within the window of it - so a chip carried
+/// across a week asks about seven days of one reading rather than reading the
+/// workspace seven times (v0.111: 0.8 s a day on the owner's workspace, and
+/// the date written on letting go stood in line behind them).
+pub struct Reading {
+    window_days: u32,
+    /// The songs that share something, in the order the workspace lists them.
+    songs: Vec<Sharing>,
+}
+
+impl Reading {
+    /// What the guard says on `today`, song by song.
+    pub fn on(&self, today: Date) -> Vec<Repeats> {
+        self.songs
+            .iter()
+            .map(|song| self.song_on(song, today))
+            .collect()
+    }
+
+    /// One song's findings on `today`: one a stem, the loudest neighbour
+    /// speaking for it.
+    fn song_on(&self, song: &Sharing, today: Date) -> Repeats {
+        let near =
+            |day: Date| (day - today).whole_days().unsigned_abs() <= u64::from(self.window_days);
+        let mut by_stem: BTreeMap<&str, (RepeatFinding, BTreeSet<&str>)> = BTreeMap::new();
+        for entry in &song.shared {
+            let mut found = entry.finding.clone();
+            if entry.rare_on.is_some_and(near) {
+                found.level = RepeatLevel::Red;
+            }
+            let neighbour = entry.finding.neighbour_id.as_str();
+            match by_stem.get_mut(entry.key.as_str()) {
+                Some((known, neighbours)) => {
+                    if found.outranks(known) {
+                        *known = found;
+                    }
+                    neighbours.insert(neighbour);
+                }
+                None => {
+                    by_stem.insert(entry.key.as_str(), (found, BTreeSet::from([neighbour])));
+                }
+            }
+        }
+        let mut findings: Vec<RepeatFinding> = by_stem
+            .into_values()
+            .map(|(mut found, neighbours)| {
+                found.also = u32::try_from(neighbours.len().saturating_sub(1)).unwrap_or(u32::MAX);
+                found
+            })
+            .collect();
+        findings.sort_by(|a, b| {
+            a.kept
+                .cmp(&b.kept)
+                .then(b.level.cmp(&a.level))
+                .then_with(|| b.day.cmp(&a.day))
+                .then_with(|| a.word.cmp(&b.word))
+        });
+        let level = findings
+            .iter()
+            .filter(|finding| !finding.kept)
+            .map(|finding| finding.level)
+            .max();
+        Repeats {
+            work_id: song.id.clone(),
+            title: song.title.clone(),
+            level,
+            findings,
+        }
+    }
+
+    /// What the guard says on `today` about the song a work is, or is made
+    /// from: its own, or the nearest up the chain with anything to say.
+    fn of_work(&self, conn: &Connection, work_id: &str, today: Date) -> Result<Option<Repeats>> {
+        let named = |id: &str| self.songs.iter().find(|song| song.id == id);
+        if let Some(own) = named(work_id) {
+            return Ok(Some(self.song_on(own, today)));
+        }
+        for id in crate::link::ancestors(conn, work_id)? {
+            if let Some(theirs) = named(&id) {
+                return Ok(Some(self.song_on(theirs, today)));
+            }
+        }
+        Ok(None)
+    }
+
+    /// The findings that would be red were `work_id` to go out on `slot`
+    /// ([`at_slot`]), off this reading.
+    pub fn at_slot(
+        &self,
+        conn: &Connection,
+        work_id: &str,
+        slot: &str,
+    ) -> Result<Vec<RepeatFinding>> {
+        let Some(slot_day) = day_of(slot) else {
+            return Ok(Vec::new());
+        };
+        let Some(repeats) = self.of_work(conn, work_id, slot_day)? else {
+            return Ok(Vec::new());
+        };
+        Ok(repeats
+            .findings
+            .into_iter()
+            .filter(|finding| !finding.kept && finding.neighbour_id != work_id)
+            .filter(|finding| {
+                day_of(&finding.day).is_some_and(|day| {
+                    (day - slot_day).whole_days().unsigned_abs() <= u64::from(self.window_days)
+                })
+            })
+            .filter(|finding| finding.level == RepeatLevel::Red)
+            .collect())
+    }
+}
+
+/// Read the workspace once for the guard: what every song that has not gone
+/// out shares with every song that has a day ([`Reading`]).
+pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
+    let config = crate::profile::config_for(conn, profile_id)?;
+    let guard = config.guard.unwrap_or_default();
     let songs = songs(conn, profile_id)?;
     if songs.is_empty() {
-        return Ok(Vec::new());
+        return Ok(Reading {
+            window_days: guard.window_days,
+            songs: Vec::new(),
+        });
     }
 
     let mut stems = Stems::default();
@@ -413,9 +559,6 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
         let in_works = corpus.get(stem).copied().unwrap_or(0);
         in_language && in_works <= guard.rare_in_works as usize
     };
-    let near =
-        |day: Date| (day - today).whole_days().unsigned_abs() <= u64::from(guard.window_days);
-
     let kept = kept_pairs(conn, profile_id, &mut stems)?;
     let drawn = drawn_on(conn, profile_id)?;
 
@@ -424,22 +567,7 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
         if song.out.is_some() {
             continue;
         }
-        // One finding a stem, with the songs that say it.
-        let mut by_stem: BTreeMap<String, (RepeatFinding, BTreeSet<String>)> = BTreeMap::new();
-        let mut add = |stem: String, found: RepeatFinding| {
-            let neighbour = found.neighbour_id.clone();
-            match by_stem.get_mut(&stem) {
-                Some((known, neighbours)) => {
-                    if found.outranks(known) {
-                        *known = found;
-                    }
-                    neighbours.insert(neighbour);
-                }
-                None => {
-                    by_stem.insert(stem, (found, BTreeSet::from([neighbour])));
-                }
-            }
-        };
+        let mut shared: Vec<Shared> = Vec::new();
         for (other, neighbour) in songs.iter().enumerate() {
             if other == index {
                 continue;
@@ -467,7 +595,11 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
                 let stem = stems.of(word);
                 said.insert(stem.clone());
                 let found = finding(word, RepeatWhy::Register, RepeatLevel::Orange, &stem);
-                add(stem, found);
+                shared.push(Shared {
+                    key: stem,
+                    finding: found,
+                    rare_on: None,
+                });
             }
             for (stem, word) in &words_of[index] {
                 if said.contains(stem)
@@ -476,12 +608,11 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
                 {
                     continue;
                 }
-                let level = if near(day) {
-                    RepeatLevel::Red
-                } else {
-                    RepeatLevel::Orange
-                };
-                add(stem.clone(), finding(word, RepeatWhy::Rare, level, stem));
+                shared.push(Shared {
+                    key: stem.clone(),
+                    finding: finding(word, RepeatWhy::Rare, RepeatLevel::Orange, stem),
+                    rare_on: Some(day),
+                });
             }
             // The works of culture both drew on: "Old Joy already worked in
             // that song" - kept by its title, as a word is.
@@ -492,40 +623,26 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
                     }
                     let key = stems.of(title);
                     let found = finding(title, RepeatWhy::Source, RepeatLevel::Orange, &key);
-                    add(format!("source:{note_id}"), found);
+                    shared.push(Shared {
+                        key: format!("source:{note_id}"),
+                        finding: found,
+                        rare_on: None,
+                    });
                 }
             }
         }
-        if by_stem.is_empty() {
-            continue;
+        if !shared.is_empty() {
+            out.push(Sharing {
+                id: song.id.clone(),
+                title: song.title.clone(),
+                shared,
+            });
         }
-        let mut findings: Vec<RepeatFinding> = by_stem
-            .into_values()
-            .map(|(mut found, neighbours)| {
-                found.also = u32::try_from(neighbours.len().saturating_sub(1)).unwrap_or(u32::MAX);
-                found
-            })
-            .collect();
-        findings.sort_by(|a, b| {
-            a.kept
-                .cmp(&b.kept)
-                .then(b.level.cmp(&a.level))
-                .then_with(|| b.day.cmp(&a.day))
-                .then_with(|| a.word.cmp(&b.word))
-        });
-        let level = findings
-            .iter()
-            .filter(|finding| !finding.kept)
-            .map(|finding| finding.level)
-            .max();
-        out.push(Repeats {
-            work_id: song.id.clone(),
-            title: song.title.clone(),
-            level,
-            findings,
-        });
     }
-    Ok(out)
+    Ok(Reading {
+        window_days: guard.window_days,
+        songs: out,
+    })
 }
 
 /// The songs that went out, newest first, each with its day and its words -
@@ -618,16 +735,10 @@ pub fn of_work(conn: &Connection, work_id: &str, today: &str) -> Result<Option<R
     let Some(work) = crate::work::get(conn, work_id)? else {
         return Ok(None);
     };
-    let found = all(conn, &work.profile_id, today)?;
-    if let Some(own) = found.iter().find(|repeats| repeats.work_id == work_id) {
-        return Ok(Some(own.clone()));
-    }
-    for id in crate::link::ancestors(conn, work_id)? {
-        if let Some(theirs) = found.iter().find(|repeats| repeats.work_id == id) {
-            return Ok(Some(theirs.clone()));
-        }
-    }
-    Ok(None)
+    let Some(day) = day_of(today) else {
+        return Err(crate::error::Error::refused("release.badDay").param("value", today));
+    };
+    read(conn, &work.profile_id)?.of_work(conn, work_id, day)
 }
 
 /// The findings that would be red were `work_id` to go out on `slot`: a rare
@@ -637,26 +748,7 @@ pub fn at_slot(conn: &Connection, work_id: &str, slot: &str) -> Result<Vec<Repea
     let Some(work) = crate::work::get(conn, work_id)? else {
         return Ok(Vec::new());
     };
-    let Some(slot_day) = day_of(slot) else {
-        return Ok(Vec::new());
-    };
-    let guard = crate::profile::config_for(conn, &work.profile_id)?
-        .guard
-        .unwrap_or_default();
-    let Some(repeats) = of_work(conn, work_id, slot)? else {
-        return Ok(Vec::new());
-    };
-    Ok(repeats
-        .findings
-        .into_iter()
-        .filter(|finding| !finding.kept && finding.neighbour_id != work_id)
-        .filter(|finding| {
-            day_of(&finding.day).is_some_and(|day| {
-                (day - slot_day).whole_days().unsigned_abs() <= u64::from(guard.window_days)
-            })
-        })
-        .filter(|finding| finding.level == RepeatLevel::Red)
-        .collect())
+    read(conn, &work.profile_id)?.at_slot(conn, work_id, slot)
 }
 
 /// Whether the person said they keep `word` in `work_id`'s song.
@@ -968,6 +1060,60 @@ mod tests {
                 ("кофе", RepeatLevel::Orange, lately.as_str(), 1),
             ],
             "the loudest song names the word, the latest of equals; the other is counted"
+        );
+    }
+
+    /// One reading answers for every day asked about (v0.111): what a chip
+    /// carried across the calendar is told on each day is what a fresh
+    /// reading of the workspace would tell it there - red inside the window
+    /// of the neighbour's day, nothing outside it.
+    #[test]
+    fn one_reading_says_on_each_day_what_a_fresh_one_would() {
+        let (conn, profile_id) = fixtures::workspace();
+        song(
+            &conn,
+            &profile_id,
+            "Out",
+            "пульсар в ночи",
+            Some("2026-09-20"),
+        );
+        let draft = song(&conn, &profile_id, "Draft", "пульсар, опять", None);
+        let audio = crate::actions::work::derive(&conn, &draft, "audio", None, None, None)
+            .unwrap()
+            .work
+            .id;
+
+        let reading = read(&conn, &profile_id).unwrap();
+        let mut red_days = 0;
+        for day in [
+            "2026-06-01",
+            "2026-09-21",
+            "2026-10-15",
+            "2026-12-18",
+            "2027-03-01",
+        ] {
+            for work in [&draft, &audio] {
+                let kept = reading.at_slot(&conn, work, day).unwrap();
+                assert_eq!(
+                    kept,
+                    at_slot(&conn, work, day).unwrap(),
+                    "{day}: the kept reading and a fresh one disagree"
+                );
+                red_days += usize::from(!kept.is_empty());
+            }
+        }
+        // The window is ninety days either side of 20 September: the three
+        // days inside it are red for the song and for what is made from it.
+        assert_eq!(red_days, 6, "three days inside the window, two works");
+        assert!(
+            reading
+                .at_slot(&conn, &draft, "2027-03-01")
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            reading.at_slot(&conn, &audio, "2026-10-15").unwrap()[0].word,
+            "пульсар"
         );
     }
 

@@ -1233,6 +1233,36 @@ pub struct Rhythm {
     /// and a time would split it.
     #[serde(default)]
     pub default_time: Option<String>,
+    /// What a month should hold, by tier or by kind of work (v0.111): "four of
+    /// the top tier a month", "eight shorts a month". `every_days` paces the
+    /// whole output and says nothing of what it is made of; a month can keep
+    /// the pace on shorts alone. The window says which goal a month falls
+    /// short of, and by how many. Empty for a profile that sets none.
+    #[serde(default)]
+    pub monthly: Vec<MonthlyGoal>,
+}
+
+/// How many releases of one sort a month should hold.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct MonthlyGoal {
+    /// What is counted.
+    #[serde(flatten)]
+    pub of: GoalOf,
+    /// How many a month, at least one.
+    pub count: u32,
+}
+
+/// What a monthly goal counts: one or the other, never both and never
+/// neither - a goal "of the top tier and of shorts" is two goals, and a goal
+/// of nothing counts nothing.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
+pub enum GoalOf {
+    /// Releases whose tier this is - the tier of what goes out, which a clip,
+    /// a short and an audio release take from their song.
+    Tier(String),
+    /// Releases of works of this kind.
+    Kind(String),
 }
 
 /// A word of the craft's vocabulary, in the languages the profile carries it in.
@@ -3258,6 +3288,41 @@ impl ProfileConfig {
                     "the rhythm's default time `{time}` is not a time of day (HH:MM)"
                 ));
             }
+            // A goal names a tier or a kind the profile has: one that names
+            // neither would stand unmet every month and say so every month.
+            let mut counted: Vec<&GoalOf> = Vec::new();
+            for goal in &rhythm.monthly {
+                match &goal.of {
+                    GoalOf::Tier(key) => {
+                        let known = self
+                            .work_kinds
+                            .iter()
+                            .any(|kind| kind.tiers.iter().any(|tier| tier.key == *key));
+                        if !known {
+                            problems.push(format!(
+                                "a monthly goal counts the tier `{key}`, which no kind of work has"
+                            ));
+                        }
+                    }
+                    GoalOf::Kind(key) => {
+                        if !self.work_kinds.iter().any(|kind| kind.key == *key) {
+                            problems.push(format!(
+                                "a monthly goal counts works of the kind `{key}`, which the profile does not have"
+                            ));
+                        }
+                    }
+                }
+                if goal.count == 0 {
+                    problems.push("a monthly goal must ask for at least one release".into());
+                }
+                if counted.contains(&&goal.of) {
+                    problems.push(
+                        "two monthly goals count the same thing; a month has one goal for each"
+                            .into(),
+                    );
+                }
+                counted.push(&goal.of);
+            }
         }
 
         if let Some(overview) = &self.overview {
@@ -4276,6 +4341,73 @@ mod tests {
     }
 
     #[test]
+    fn a_monthly_goal_counts_a_tier_or_a_kind_the_profile_has() {
+        // As a profile writes it: what is counted, and how many.
+        let rhythm: Rhythm = serde_json::from_value(json!({
+            "every_days": 2,
+            "monthly": [{ "tier": "clip", "count": 4 }, { "kind": "short", "count": 8 }],
+        }))
+        .unwrap();
+        assert_eq!(
+            rhythm.monthly,
+            vec![
+                MonthlyGoal {
+                    of: GoalOf::Tier("clip".into()),
+                    count: 4
+                },
+                MonthlyGoal {
+                    of: GoalOf::Kind("short".into()),
+                    count: 8
+                },
+            ]
+        );
+        // And reads back as it was written.
+        assert_eq!(
+            serde_json::to_value(&rhythm.monthly).unwrap(),
+            json!([{ "tier": "clip", "count": 4 }, { "kind": "short", "count": 8 }])
+        );
+        // Neither, and both, are not goals.
+        assert!(serde_json::from_value::<MonthlyGoal>(json!({ "count": 4 })).is_err());
+
+        let mut config = config();
+        let tier = config.work_kinds[0].tiers[0].key.clone();
+        let kind = config.work_kinds[0].key.clone();
+        let goal = |of: GoalOf, count: u32| MonthlyGoal { of, count };
+        config.rhythm = Some(Rhythm {
+            every_days: 2,
+            default_time: None,
+            monthly: vec![
+                goal(GoalOf::Tier(tier.clone()), 4),
+                goal(GoalOf::Kind(kind.clone()), 8),
+            ],
+        });
+        assert_eq!(config.validate(), Vec::<String>::new());
+
+        config.rhythm = Some(Rhythm {
+            every_days: 2,
+            default_time: None,
+            monthly: vec![
+                goal(GoalOf::Tier("no-such-tier".into()), 4),
+                goal(GoalOf::Kind("no-such-kind".into()), 8),
+                goal(GoalOf::Kind(kind.clone()), 0),
+                goal(GoalOf::Kind(kind), 3),
+            ],
+        });
+        let problems = config.validate();
+        for needle in [
+            "counts the tier `no-such-tier`",
+            "works of the kind `no-such-kind`",
+            "at least one release",
+            "count the same thing",
+        ] {
+            assert!(
+                problems.iter().any(|problem| problem.contains(needle)),
+                "expected `{needle}` in {problems:?}"
+            );
+        }
+    }
+
+    #[test]
     fn a_rhythm_needs_no_default_time() {
         let rhythm: Rhythm = serde_json::from_value(json!({ "every_days": 3 })).unwrap();
         assert_eq!(rhythm.every_days, 3);
@@ -4477,6 +4609,7 @@ mod tests {
         config.rhythm = Some(Rhythm {
             every_days: 0,
             default_time: Some("noon".into()),
+            monthly: Vec::new(),
         });
 
         let problems = config.validate();

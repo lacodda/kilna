@@ -15,7 +15,13 @@ work_kind: string,
 /**
  * Latest total for the work, so a slot can be judged against its neighbours.
  */
-total: number | null, tier: string | null, 
+total: number | null, 
+/**
+ * The tier of what goes out: of the work it was made from, when it was
+ * made from one - a clip, a short and an audio release carry their
+ * song's tier (v0.111) - and its own otherwise.
+ */
+tier: string | null, 
 /**
  * How far this release is from shippable — see [`crate::readiness`].
  */

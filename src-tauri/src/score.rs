@@ -141,6 +141,22 @@ pub fn speaking_score_for(work_column: &str) -> String {
     )
 }
 
+/// The tier every work of a profile stands at, by work: the one a person
+/// holds it at, or its speaking score's. Works at no tier are left out.
+pub fn tiers(
+    conn: &Connection,
+    profile_id: &str,
+) -> Result<std::collections::HashMap<String, String>> {
+    let mut statement = conn.prepare(&format!(
+        "SELECT w.id, coalesce(w.tier_pinned, s.tier) FROM work w
+           LEFT JOIN work_score s ON s.id = {speaking}
+          WHERE w.profile_id = ?1 AND coalesce(w.tier_pinned, s.tier) IS NOT NULL",
+        speaking = speaking_score_for("w.id"),
+    ))?;
+    let rows = statement.query_map(params![profile_id], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
 /// Record a score for a work.
 ///
 /// The total and tier are computed from the active profile rather than accepted

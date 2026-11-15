@@ -3185,6 +3185,7 @@ mod tests {
         config.rhythm = Some(config::Rhythm {
             every_days: 30,
             default_time: None,
+            monthly: Vec::new(),
         });
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",

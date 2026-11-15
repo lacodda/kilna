@@ -9,6 +9,7 @@ use crate::db;
 use crate::error::{Error, Result};
 use crate::journal;
 use crate::profile;
+use crate::register::guard::Reading;
 use crate::space::lock::{self, Hold, Holder};
 use crate::space::{self, Folder, Manifest, registry};
 
@@ -57,6 +58,21 @@ pub struct AppState {
     /// Tasks asked for while every slot was taken. Memory only — see
     /// [`crate::assistant::queue`].
     queue: Arc<Queue>,
+    /// The guard's reading of the open space, good while nothing is written
+    /// ([`AppState::guard_reading`]).
+    guard: Mutex<Option<(Written, Arc<Reading>)>>,
+}
+
+/// What a kept reading was read from: the space and the profile, and the two
+/// counters SQLite keeps of what has been written - by this connection, and
+/// by any other since this one last looked. Either moving means the reading
+/// may be of a workspace that no longer is.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Written {
+    space: String,
+    profile: String,
+    here: u64,
+    elsewhere: i64,
 }
 
 impl AppState {
@@ -96,6 +112,7 @@ impl AppState {
             }),
             runs,
             queue: Arc::new(Queue::new()),
+            guard: Mutex::new(None),
         })
     }
 
@@ -125,6 +142,7 @@ impl AppState {
             }),
             runs,
             queue: Arc::new(Queue::new()),
+            guard: Mutex::new(None),
         })
     }
 
@@ -168,6 +186,36 @@ impl AppState {
         self.connection
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// The guard of repeats' reading of `profile_id` (ADR 0054), read once and
+    /// kept until something is written.
+    ///
+    /// Nothing is stored and nothing is trusted past a write: the reading is
+    /// derived as it always was, and is read again the moment either of
+    /// SQLite's counters has moved - this connection's own changes, or a
+    /// commit from another one, as the agent's server makes. So a chip carried
+    /// across a week reads the workspace once, and the date written when it
+    /// is let go is not behind seven readings.
+    pub fn guard_reading(&self, conn: &Connection, profile_id: &str) -> Result<Arc<Reading>> {
+        let written = Written {
+            space: self.space_id(),
+            profile: profile_id.to_owned(),
+            here: conn.total_changes(),
+            elsewhere: conn.query_row("PRAGMA data_version", [], |row| row.get(0))?,
+        };
+        let mut kept = self
+            .guard
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some((at, reading)) = kept.as_ref()
+            && *at == written
+        {
+            return Ok(Arc::clone(reading));
+        }
+        let reading = Arc::new(crate::register::guard::read(conn, profile_id)?);
+        *kept = Some((written, Arc::clone(&reading)));
+        Ok(reading)
     }
 
     /// Borrow the application's own database.

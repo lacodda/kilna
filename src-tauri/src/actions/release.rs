@@ -541,6 +541,84 @@ pub fn mark_released(
     })
 }
 
+/// Mark several planned releases as out, each on the day it was booked for.
+///
+/// For the plans whose day passed with nobody marking them (v0.111): the
+/// dashboard listed fifty-eight of the owner's, each to be opened and marked
+/// by hand. One gesture and one line in the history, as a batch taken off the
+/// calendar is one - fifty-eight "went out" lines dated today would be a
+/// history of the bookkeeping, not of what went out.
+///
+/// Only a planned release holding a day is touched: the day is what it is
+/// marked with, and one with none has no day to have gone out on. No link is
+/// asked for; the finding about a release out with no address says so after.
+pub fn mark_released_batch(conn: &Connection, ids: &[String]) -> Result<BulkOutcome> {
+    gesture(conn, "release.markReleasedBatch", |act| {
+        let mut marked: Vec<String> = Vec::new();
+        let mut works: Vec<String> = Vec::new();
+        let mut skipped: Vec<Skipped> = Vec::new();
+
+        for id in ids {
+            let Some(found) = release::get(act, id)? else {
+                return Err(Error::not_found("release", id));
+            };
+            let title = crate::journal::work_title(act, &found.work_id);
+            let day = match (&found.scheduled_at, found.status.as_str()) {
+                (Some(day), release::PLANNED) => day.get(..10).unwrap_or(day).to_owned(),
+                (_, release::RELEASED) => {
+                    skipped.push(Skipped {
+                        id: id.clone(),
+                        title,
+                        reason: Reason::of("skip.alreadyThere"),
+                    });
+                    continue;
+                }
+                _ => {
+                    skipped.push(Skipped {
+                        id: id.clone(),
+                        title,
+                        reason: Reason::of("skip.nothingBooked"),
+                    });
+                    continue;
+                }
+            };
+            match atomically(act, |tx| {
+                release::mark_released_at(tx, id, None, Some(day.clone()), act.at())
+            }) {
+                Ok(_) => {
+                    marked.push(id.clone());
+                    works.push(found.work_id);
+                }
+                Err(cause) => skipped.push(Skipped {
+                    id: id.clone(),
+                    title,
+                    reason: cause.reason(),
+                }),
+            }
+        }
+
+        for work_id in &works {
+            act.restate(work_id);
+        }
+
+        // Only the releases actually marked go in the log, as only the ones
+        // taken off the calendar do: a repeat run must not mark one this run
+        // passed over.
+        if marked.is_empty() {
+            act.unchanged();
+        } else {
+            act.json("releaseIds", &marked)?;
+            act.stamped();
+            act.journal(Record::new("release.releasedBatch").param("count", count(marked.len())));
+        }
+
+        Ok(BulkOutcome {
+            changed: marked.len(),
+            skipped,
+        })
+    })
+}
+
 /// Undoing the mark: it did not go out after all.
 ///
 /// The work's status follows on its own — it is derived from the facts. The
@@ -654,12 +732,21 @@ pub fn warn_unready(conn: &Connection, today: &str) -> Result<UnreadyWarnings> {
     let mut news = Vec::new();
     for entry in &unready {
         let date = entry.release.scheduled_at.clone().unwrap_or_default();
+        // What it lacks, as the checklist's own needs (v0.111): the line used
+        // to say "not ready" and leave the reader to open the work to learn
+        // of what. Keys, not words (ADR 0007): the window names a role, a
+        // field and a cover in the language it is showing - by the work's
+        // kind and the door, which ride with them.
+        let needs = serde_json::to_value(entry.readiness.missing().collect::<Vec<_>>())?;
         crate::journal::record(
             conn,
             &profile_id,
             Record::new("release.notReady")
                 .param("title", entry.work_title.clone())
                 .param("date", date.clone())
+                .param("needs", needs.clone())
+                .param("kind", entry.work_kind.clone())
+                .param("door", entry.release.kind.clone())
                 .about("work", entry.release.work_id.clone())
                 .once(format!("ready:{}:{date}", entry.release.id))
                 .warn(),
@@ -671,6 +758,9 @@ pub fn warn_unready(conn: &Connection, today: &str) -> Result<UnreadyWarnings> {
                 Record::new("release.notReadyTomorrow")
                     .param("title", entry.work_title.clone())
                     .param("date", date.clone())
+                    .param("needs", needs)
+                    .param("kind", entry.work_kind.clone())
+                    .param("door", entry.release.kind.clone())
                     .about("work", entry.release.work_id.clone())
                     .once(format!("tomorrow:{}:{date}", entry.release.id))
                     .warn(),
@@ -757,6 +847,20 @@ mod tests {
             .expect("the gap inside the window is worth a line");
         assert_eq!(warning.params["title"], "Subject");
         assert_eq!(warning.params["date"], "2026-09-03");
+        // What it lacks rides with the line, as the checklist names it: the
+        // window says each need in its own language.
+        let needs = warning.params["needs"]
+            .as_array()
+            .expect("the line carries the gaps");
+        let missing: Vec<_> = release::calendar(&conn, &profile_id).unwrap()[0]
+            .readiness
+            .missing()
+            .map(|need| serde_json::to_value(need).unwrap())
+            .collect();
+        assert!(!needs.is_empty(), "an unready release lacks something");
+        assert_eq!(needs, &missing);
+        assert_eq!(warning.params["kind"], "song");
+        assert_eq!(warning.params["door"], "clip");
         assert_eq!(journal::unread_count(&conn, &profile_id).unwrap(), 1);
 
         journal::mark_read(&conn, &profile_id).unwrap();
@@ -776,6 +880,58 @@ mod tests {
             0,
             "a dismissed warning stays dismissed"
         );
+    }
+
+    /// Plans whose day passed are marked in one gesture, each on its own day,
+    /// with one line in the history; what is already out or holds no day is
+    /// passed over and said.
+    #[test]
+    fn overdue_plans_are_marked_out_on_their_own_days_in_one_gesture() {
+        let (conn, profile_id) = fixtures::workspace();
+        let first = fixtures::song(&conn, &profile_id, "First");
+        let second = fixtures::song(&conn, &profile_id, "Second");
+        let queued = fixtures::song(&conn, &profile_id, "Queued");
+        let a = fixtures::release(&conn, &first.id, "clip", Some("2026-08-03"));
+        let b = fixtures::release(&conn, &second.id, "clip", Some("2026-08-10"));
+        let c = fixtures::release(&conn, &queued.id, "clip", None);
+        let before = crate::operation::count(&conn).unwrap();
+
+        let ids = vec![a.id.clone(), b.id.clone(), c.id.clone()];
+        let outcome = mark_released_batch(&conn, &ids).unwrap();
+        assert_eq!(outcome.changed, 2);
+        assert_eq!(outcome.skipped.len(), 1, "{:?}", outcome.skipped);
+        assert_eq!(outcome.skipped[0].id, c.id);
+
+        let out = release::get(&conn, &a.id).unwrap().unwrap();
+        assert_eq!(out.status, release::RELEASED);
+        assert_eq!(
+            out.released_at.as_deref().map(|at| &at[..10]),
+            Some("2026-08-03"),
+            "the day it was booked for, not the day of the mark"
+        );
+        assert_eq!(out.scheduled_at.as_deref(), Some("2026-08-03"));
+        let other = release::get(&conn, &b.id).unwrap().unwrap();
+        assert_eq!(
+            other.released_at.as_deref().map(|at| &at[..10]),
+            Some("2026-08-10")
+        );
+        let waiting = release::get(&conn, &c.id).unwrap().unwrap();
+        assert_eq!(waiting.status, release::PLANNED, "no day, no mark");
+
+        assert_eq!(crate::operation::count(&conn).unwrap(), before + 1);
+        let lines: Vec<_> = journal::list(&conn, &profile_id)
+            .unwrap()
+            .into_iter()
+            .filter(|entry| entry.action == "release.releasedBatch")
+            .collect();
+        assert_eq!(lines.len(), 1, "one line for the batch");
+        assert_eq!(lines[0].params["count"], 2);
+
+        // Said again, there is nothing left to mark - and nothing is logged.
+        let again = mark_released_batch(&conn, &ids).unwrap();
+        assert_eq!(again.changed, 0);
+        assert_eq!(again.skipped.len(), 3);
+        assert_eq!(crate::operation::count(&conn).unwrap(), before + 1);
     }
 
     /// The day before the slot is said again, once (v0.107): the sweep that

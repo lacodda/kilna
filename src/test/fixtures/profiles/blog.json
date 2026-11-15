@@ -352,7 +352,8 @@
     ],
     "rhythm": {
       "default_time": null,
-      "every_days": 2
+      "every_days": 2,
+      "monthly": []
     },
     "stages": [],
     "style_types": [],

@@ -84,7 +84,32 @@ pub fn preview_schedule(
     id: String,
     slot: String,
 ) -> Result<release::SlotPreview> {
-    release::preview(&state.conn(), &id, &slot)
+    preview_landing(&state, release::Landing::Release(&id), &slot)
+}
+
+/// The same dry run for a work that has no release yet: what the day holds,
+/// and what the work's song would repeat on it - asked by the day's `+`
+/// before it books, and by a work carried over a day (v0.111).
+#[tauri::command]
+pub fn preview_day(
+    state: State<'_, AppState>,
+    work_id: String,
+    slot: String,
+) -> Result<release::SlotPreview> {
+    preview_landing(&state, release::Landing::Work(&work_id), &slot)
+}
+
+/// A dry run off the guard's reading the window keeps while nothing is
+/// written ([`AppState::guard_reading`]): the days a chip is carried across
+/// are asked about one after another, and each used to read every song anew.
+fn preview_landing(
+    state: &AppState,
+    landing: release::Landing<'_>,
+    slot: &str,
+) -> Result<release::SlotPreview> {
+    let conn = state.conn();
+    let reading = state.guard_reading(&conn, &active(&conn)?)?;
+    release::preview_landing(&conn, landing, slot, Some(&reading))
 }
 
 #[tauri::command]
@@ -128,6 +153,12 @@ pub fn mark_released(
     kind: Option<String>,
 ) -> Result<Release> {
     actions::release::mark_released(&state.conn(), &id, url, at, kind)
+}
+
+/// Mark the planned releases `ids` as out, each on the day it holds.
+#[tauri::command]
+pub fn mark_released_batch(state: State<'_, AppState>, ids: Vec<String>) -> Result<BulkOutcome> {
+    actions::release::mark_released_batch(&state.conn(), &ids)
 }
 
 #[tauri::command]

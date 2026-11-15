@@ -517,6 +517,7 @@ mod tests {
         config.rhythm = every_days.map(|every_days| Rhythm {
             every_days,
             default_time: None,
+            monthly: Vec::new(),
         });
         profile::update_config(conn, profile_id, &config).unwrap();
     }

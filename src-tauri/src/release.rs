@@ -44,6 +44,9 @@ pub struct ScheduledRelease {
     pub work_kind: String,
     /// Latest total for the work, so a slot can be judged against its neighbours.
     pub total: Option<f64>,
+    /// The tier of what goes out: of the work it was made from, when it was
+    /// made from one - a clip, a short and an audio release carry their
+    /// song's tier (v0.111) - and its own otherwise.
     pub tier: Option<String>,
     /// How far this release is from shippable — see [`crate::readiness`].
     pub readiness: crate::readiness::Readiness,
@@ -325,20 +328,42 @@ pub fn schedule_at(conn: &Connection, id: &str, slot: &str, at: &str) -> Result<
 /// only fills free days, and the calendar, which says what a day holds before
 /// a release lands beside it.
 pub fn preview(conn: &Connection, id: &str, slot: &str) -> Result<SlotPreview> {
-    let judged = judge(conn, id, slot)?;
+    preview_landing(conn, Landing::Release(id), slot, None)
+}
+
+/// What is asked about a day.
+#[derive(Debug, Clone, Copy)]
+pub enum Landing<'a> {
+    /// A release that would be given the day, or moved onto it.
+    Release(&'a str),
+    /// A work with no release yet, which would get one dated to the day: the
+    /// day's `+`, and a work carried onto a day from the pane (v0.111). Until
+    /// then the day was read off the screen for it, and what its song would
+    /// repeat there was said by nothing - before or after it landed.
+    Work(&'a str),
+}
+
+/// [`preview`], for a release or for a work, off a reading of the guard the
+/// caller already holds - a chip carried across a week asks about seven days
+/// of one reading - or a fresh one.
+pub fn preview_landing(
+    conn: &Connection,
+    landing: Landing<'_>,
+    slot: &str,
+    reading: Option<&crate::register::guard::Reading>,
+) -> Result<SlotPreview> {
+    let judged = judge(conn, landing, slot)?;
 
     let holder_title = judged
         .occupant
         .as_ref()
         .map(|occupant| crate::journal::work_title(conn, &occupant.work_id).unwrap_or_default());
 
-    let (work_id, profile_id): (String, String) = conn.query_row(
-        "SELECT r.work_id, w.profile_id FROM release r JOIN work w ON w.id = r.work_id
-          WHERE r.id = ?1",
-        params![id],
-        |row| Ok((row.get(0)?, row.get(1)?)),
-    )?;
-    let repeats = crate::register::guard::at_slot(conn, &work_id, slot)?;
+    let (work_id, profile_id) = landing_work(conn, landing)?;
+    let repeats = match reading {
+        Some(reading) => reading.at_slot(conn, &work_id, slot)?,
+        None => crate::register::guard::at_slot(conn, &work_id, slot)?,
+    };
     let closed = crate::time_off::covering(conn, &profile_id, slot)?.map(|span| span.label);
     Ok(SlotPreview {
         verdict: judged.verdict,
@@ -355,22 +380,18 @@ pub fn preview(conn: &Connection, id: &str, slot: &str) -> Result<SlotPreview> {
 /// done in one place because two callers depend on it agreeing with itself —
 /// the auto-layout refuses a day that is not `Empty`, and the calendar tells a
 /// person what a day holds.
-fn judge(conn: &Connection, id: &str, slot: &str) -> Result<Contest> {
+fn judge(conn: &Connection, landing: Landing<'_>, slot: &str) -> Result<Contest> {
     // Read first purely so an unknown id errs rather than reporting an empty
     // day. Nothing else is needed from the row: it used to supply the work
     // whose score was weighed against the occupant's, and nothing is weighed
     // any more.
-    if conn
-        .query_row(
-            &format!("{SELECT_RELEASE} WHERE id = ?1"),
-            params![id],
-            read_row,
-        )
-        .optional()?
-        .is_none()
-    {
-        return Err(unknown_release(id));
-    }
+    landing_work(conn, landing)?;
+    // A work has no release on the day to leave out: no release has an empty
+    // id.
+    let id = match landing {
+        Landing::Release(id) => id,
+        Landing::Work(_) => "",
+    };
 
     // Whoever is already on the day, ignoring this release itself.
     let occupant = conn
@@ -969,10 +990,27 @@ fn read_scheduled_where(
         .into_iter()
         .map(|(work_id, _)| work_id)
         .collect();
+    // The tier a release is planned by is the tier of what it is made from
+    // (v0.111). A publication is seldom judged itself - of the owner's seventy
+    // waiting releases not one had a tier - and where it is, on a video's own
+    // axes, that says how the clip came out, not how strong the song under it
+    // is, which is what a month's plan is balanced by. So the furthest work up
+    // the chain that stands at a tier speaks: the song, past the clip a short
+    // was cut from. A work made from nothing speaks for itself.
+    let tiers = crate::score::tiers(conn, profile_id)?;
+    let up = crate::link::ancestors_by_work(conn, profile_id)?;
+    let tier_of = |work_id: &str, own: Option<String>| -> Option<String> {
+        up.get(work_id)
+            .and_then(|chain| chain.iter().rev().find_map(|id| tiers.get(id)))
+            .or_else(|| tiers.get(work_id))
+            .cloned()
+            .or(own)
+    };
 
     rows.into_iter()
         .map(|(raw, work_title, total, tier)| {
             let release = raw.into_release()?;
+            let tier = tier_of(&release.work_id, tier);
             let readiness = crate::readiness::assess(
                 &config,
                 kinds.get(&release.work_id).map_or("", String::as_str),
@@ -999,6 +1037,27 @@ fn read_scheduled_where(
 
 fn unknown_release(id: &str) -> Error {
     Error::not_found("release", id)
+}
+
+/// The work a landing is about and its profile; an id that names nothing is
+/// refused rather than read as an empty day.
+fn landing_work(conn: &Connection, landing: Landing<'_>) -> Result<(String, String)> {
+    let (sql, id, missing) = match landing {
+        Landing::Release(id) => (
+            "SELECT r.work_id, w.profile_id FROM release r JOIN work w ON w.id = r.work_id
+              WHERE r.id = ?1",
+            id,
+            unknown_release(id),
+        ),
+        Landing::Work(id) => (
+            "SELECT id, profile_id FROM work WHERE id = ?1",
+            id,
+            Error::not_found("work", id),
+        ),
+    };
+    conn.query_row(sql, params![id], |row| Ok((row.get(0)?, row.get(1)?)))
+        .optional()?
+        .ok_or(missing)
 }
 
 struct RawRelease {
@@ -1721,6 +1780,103 @@ mod tests {
 
         // And an unknown release errs rather than reporting an empty day.
         assert!(preview(&conn, "nope", "2026-09-01").is_err());
+    }
+
+    /// A work with no release yet is asked about a day as a release is
+    /// (v0.111): the day's `+` and a work carried from the pane hear who is
+    /// there before anything is written.
+    #[test]
+    fn a_day_is_previewed_for_a_work_that_has_no_release_yet() {
+        let (conn, profile_id) = fixtures::workspace();
+        let first = planned(&conn, &profile_id, "First", Some(9.0));
+        schedule(&conn, &first.id, "2026-09-01").unwrap();
+        let waiting = fixtures::song(&conn, &profile_id, "Waiting");
+
+        let free = preview_landing(&conn, Landing::Work(&waiting.id), "2026-09-02", None).unwrap();
+        assert_eq!(free.verdict, Verdict::Empty);
+
+        let taken = preview_landing(&conn, Landing::Work(&waiting.id), "2026-09-01", None).unwrap();
+        assert_eq!(taken.verdict, Verdict::Taken);
+        assert_eq!(taken.holder_title.as_deref(), Some("First"));
+
+        // Nothing was written by asking.
+        assert!(of_work(&conn, &waiting.id).unwrap().is_none());
+        // And a work that is not there errs rather than reading an empty day.
+        assert!(preview_landing(&conn, Landing::Work("nope"), "2026-09-01", None).is_err());
+    }
+
+    /// The tier a release is planned by is the tier of what it is made from
+    /// (v0.111): the song's, through the clip a short is cut from - a tier
+    /// the person holds the song at before the one its score gives.
+    #[test]
+    fn a_publication_carries_the_tier_of_the_song_it_is_made_from() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        fixtures::score(&conn, &song.id, json!({ "hook": 9.0 }));
+        let song_tier = crate::score::latest(&conn, &song.id)
+            .unwrap()
+            .unwrap()
+            .tier
+            .expect("a scored song stands at a tier");
+
+        let made_from = |work_id: &str, source_id: &str| {
+            crate::link::create(
+                &conn,
+                &profile_id,
+                crate::link::NewLink {
+                    work_id: work_id.to_owned(),
+                    source_id: source_id.to_owned(),
+                    role: None,
+                    source_version_id: None,
+                },
+            )
+            .unwrap();
+        };
+        // A clip judged on its own axes, and a short cut from the clip.
+        let clip = planned_video(&conn, &profile_id, "Harbour lights - clip", Some(2.0));
+        made_from(&clip.work_id, &song.id);
+        let short = planned_video(&conn, &profile_id, "Harbour lights - short", None);
+        made_from(&short.work_id, &clip.work_id);
+        // And a video made from nothing, which speaks for itself.
+        let alone = planned_video(&conn, &profile_id, "Alone", Some(2.0));
+        let alone_tier = crate::score::latest(&conn, &alone.work_id)
+            .unwrap()
+            .unwrap()
+            .tier;
+
+        let tier_of = |id: &str| {
+            queue(&conn, &profile_id)
+                .unwrap()
+                .into_iter()
+                .find(|row| row.release.id == id)
+                .unwrap()
+                .tier
+        };
+        assert_eq!(tier_of(&clip.id).as_deref(), Some(song_tier.as_str()));
+        assert_eq!(
+            tier_of(&short.id).as_deref(),
+            Some(song_tier.as_str()),
+            "through the clip, to the song"
+        );
+        assert_eq!(tier_of(&alone.id), alone_tier);
+
+        // The tier the person holds the song at is the one its releases carry.
+        let held = crate::profile::config_for(&conn, &profile_id)
+            .unwrap()
+            .vocabulary("song")
+            .tiers
+            .iter()
+            .map(|tier| tier.key.clone())
+            .find(|key| *key != song_tier)
+            .expect("the shipped song has more than one tier");
+        work::pin_tier(&conn, &song.id, &held, "held by hand").unwrap();
+        assert_eq!(tier_of(&short.id).as_deref(), Some(held.as_str()));
+        schedule(&conn, &clip.id, "2026-09-01").unwrap();
+        assert_eq!(
+            calendar(&conn, &profile_id).unwrap()[0].tier.as_deref(),
+            Some(held.as_str()),
+            "on the calendar as in the queue"
+        );
     }
 
     /// A video with a YouTube release planned for it: a door that asks for

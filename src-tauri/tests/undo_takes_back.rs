@@ -529,7 +529,7 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 23] = [
+    const NOT_UNDOABLE: [(&str, &str); 24] = [
         (
             "style.attachReference",
             "it carries a file into the workspace, as `asset.attach` does, and \
@@ -550,6 +550,11 @@ fn every_operation_is_undoable_or_says_why_not() {
             "as above, and each work has its own trash entry",
         ),
         ("release.unscheduleBatch", "as above"),
+        (
+            "release.markReleasedBatch",
+            "as above; each mark is taken back on its own release, where \
+             \"It did not go out\" is",
+        ),
         (
             "work.unpinStatus",
             "handing a status back to the automation immediately recomputes it; \
@@ -1810,6 +1815,7 @@ fn a_booked_layout_is_one_step_back() {
     config.rhythm = Some(kilna_lib::profile::config::Rhythm {
         every_days: 2,
         default_time: None,
+        monthly: Vec::new(),
     });
     profile::update_config(&conn, &profile_id, &config).unwrap();
     for title in ["First", "Second"] {

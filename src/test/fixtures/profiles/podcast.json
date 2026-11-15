@@ -436,7 +436,8 @@
     ],
     "rhythm": {
       "default_time": "08:00",
-      "every_days": 7
+      "every_days": 7,
+      "monthly": []
     },
     "stages": [],
     "style_types": [],

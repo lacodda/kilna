@@ -421,6 +421,22 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             }
         }
 
+        "release.markReleasedBatch" => {
+            let release_ids: Vec<String> = from_params(params, "releaseIds")?;
+            let at = required(params, "at")?;
+            // Each on the day it was booked for, which the row still holds
+            // when the batch is replayed: the mark does not move the day.
+            for release_id in &release_ids {
+                let day: Option<String> = conn.query_row(
+                    "SELECT scheduled_at FROM release WHERE id = ?1",
+                    rusqlite::params![release_id],
+                    |row| row.get(0),
+                )?;
+                let day = day.map(|day| day.get(..10).unwrap_or(&day).to_owned());
+                release::mark_released_at(conn, release_id, None, day, &at)?;
+            }
+        }
+
         "release.markReleased" => {
             let id = required(params, "id")?;
             let url = params.get("url").and_then(Value::as_str).map(str::to_owned);

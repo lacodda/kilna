@@ -1968,7 +1968,8 @@
     ],
     "rhythm": {
       "default_time": "12:00",
-      "every_days": 3
+      "every_days": 3,
+      "monthly": []
     },
     "stages": [
       {
