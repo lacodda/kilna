@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.120.0] - 2026-11-17
+
+A folder by id. Every shipped profile names a work's folder on disk by the
+work's id, one per work and flat, so renaming a work never loses sight of its
+files. A folder is made when it is first needed: "Open the folder", on the
+Files tab and in a catalogue row's menu, makes it and opens it, and "Make the
+folder" is gone. A work that goes to the trash takes a folder with nothing in
+it; a folder holding a file is never removed by anything. A space made before
+this release keeps its templates and its folders as they are. To move them to
+the new layout there is `kilna --rehome-media`: a plan and a report by
+default, and with `--apply` a copy of the database, the files moved without
+writing over any, and the templates switched last.
+
+### Features
+- A folder named by id, made when needed, and a planned move
+
+### Testing
+- Look for a work's folder where the shipped template puts it
+
 ## [0.119.0] - 2026-11-17
 
 Five stages. A work stands at one of five stops - 0, 25, 50, 75, 100 - in
