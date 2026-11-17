@@ -483,6 +483,9 @@ fn tools() -> Vec<Value> {
                 "query": text_arg("A case-insensitive substring of the title"),
                 "kind": text_arg("A work kind key, as `workspace` lists them"),
                 "status": text_arg("A status key, as `workspace` lists them"),
+                "mood": text_arg("A mood key, as `workspace` lists them under `vibe`: the works that show it, their own or the one of what they were made from"),
+                "character": text_arg("A character key, as `workspace` lists them under `vibe`"),
+                "complexity": text_arg("A complexity key, as `workspace` lists them under `vibe`"),
                 "limit": limit_arg(100),
                 "offset": offset_arg(),
                 "summary": summary_arg("id, title, kind, status and when it was last touched"),
@@ -693,6 +696,15 @@ fn tools() -> Vec<Value> {
             json!({
                 "work": text_arg("An existing work to package changes for: its id, or its exact title. Omit to propose a new work"),
                 "title": text_arg("The title of the new work; required without `work`"),
+                "vibe": {
+                    "type": "object",
+                    "description": "What the work feels like, a word on each of three lines as `workspace` lists them under `vibe`; leave out a line you cannot tell. Kept only where the author has said nothing.",
+                    "properties": {
+                        "mood": text_arg("A mood key"),
+                        "character": text_arg("A character key"),
+                        "complexity": text_arg("A complexity key"),
+                    },
+                },
                 "kind": text_arg("The kind of the new work, as `workspace` lists them; required without `work`"),
                 "fields": { "type": "object", "description": "Overview field key to value, as `workspace` lists the fields", "additionalProperties": true },
                 "versions": {
@@ -1441,6 +1453,8 @@ pub fn run_tool(
                 "style_types": style_types,
                 "compose": config.compose,
                 "boards": config.boards,
+                // The three lines a work's feel is said along (FR-02).
+                "vibe": config.vibe(),
             }))
         }
 
@@ -1448,6 +1462,11 @@ pub fn run_tool(
             let query = arg(args, "query").map(|q| q.to_lowercase());
             let kind = arg(args, "kind");
             let status = arg(args, "status");
+            let felt = [
+                ("mood", arg(args, "mood")),
+                ("character", arg(args, "character")),
+                ("complexity", arg(args, "complexity")),
+            ];
             let page = Page::of(args, 100);
             // The guard's mark, by work (ADR 0054): what a song that has not
             // gone out shares with songs that have.
@@ -1462,6 +1481,19 @@ pub fn run_tool(
                 .filter(|row| query.as_ref().is_none_or(|q| row.title.to_lowercase().contains(q)))
                 .filter(|row| kind.is_none_or(|k| row.kind == k))
                 .filter(|row| status.is_none_or(|s| row.status == s))
+                .filter(|row| {
+                    felt.iter().all(|(line, wanted)| {
+                        wanted.is_none_or(|wanted| {
+                            let shown = row.vibe.as_ref().map(|shown| &shown.vibe);
+                            let said = shown.and_then(|vibe| match *line {
+                                "mood" => vibe.mood.as_deref(),
+                                "character" => vibe.character.as_deref(),
+                                _ => vibe.complexity.as_deref(),
+                            });
+                            said == Some(wanted)
+                        })
+                    })
+                })
                 .map(|row| if page.summary { json!({
                     "id": row.work_id, "title": row.title, "kind": row.kind, "status": row.status,
                     "updated_at": row.updated_at,
@@ -1470,6 +1502,10 @@ pub fn run_tool(
                     "total": row.total, "tier": row.tier, "tier_pinned": row.tier_pinned,
                     "stale": row.stale, "released": row.released, "scheduled": row.scheduled,
                     "scored_at": row.scored_at, "updated_at": row.updated_at,
+                    "stage": row.stage,
+                    // What it feels like, its own or taken from what it was
+                    // made from (`from`), when anybody has said (FR-02).
+                    "vibe": row.vibe,
                     "repeats": marks.get(&row.work_id).map(|mark| json!({
                         "level": mark.level, "count": mark.count, "word": mark.top.word,
                         "with": mark.top.neighbour_title, "day": mark.top.day,
@@ -1540,6 +1576,10 @@ pub fn run_tool(
                 // agent: a full lyric at stage 20 is a sketch to build on, not
                 // a work to polish, and nothing else in this shape says so.
                 "stage": found.stage,
+                // What it feels like (FR-02): its own, as said for it, and the
+                // one it shows - its own, or that of what it was made from.
+                "vibe": found.vibe,
+                "shown_vibe": crate::work::shown_vibes(conn, &profile.id)?.remove(&found.id),
                 "tier_pinned": found.tier_pinned, "tier_pin_reason": found.tier_pin_reason,
                 "created_at": found.created_at, "updated_at": found.updated_at,
                 "versions": by_role,
@@ -2099,6 +2139,21 @@ pub fn run_tool(
                 &config,
             );
 
+            // What the work feels like (FR-02), in the profile's words: a
+            // word it does not have is refused with the ones it has.
+            let vibe = match args.get("vibe") {
+                None | Some(Value::Null) => None,
+                Some(raw) => {
+                    let said: crate::work::Vibe = serde_json::from_value(raw.clone())
+                        .map_err(|_| Error::refused("mcp.badVibe"))?;
+                    let said = said.kept();
+                    if let Some(said) = &said {
+                        config.vibe().check(said)?;
+                    }
+                    said
+                }
+            };
+
             let mut versions = Vec::new();
             for item in args
                 .get("versions")
@@ -2272,6 +2327,7 @@ pub fn run_tool(
 
             if found.is_some()
                 && fields.is_empty()
+                && vibe.is_none()
                 && versions.is_empty()
                 && score.is_none()
                 && notes.is_empty()
@@ -2284,6 +2340,7 @@ pub fn run_tool(
             }
 
             let proposal = Proposal::Work {
+                vibe: vibe.map(Box::new),
                 title,
                 work_kind: Some(kind.clone()),
                 fields,
@@ -4260,6 +4317,68 @@ mod tests {
         .unwrap();
 
         assert!(answer.contains("1 release"), "{answer}");
+    }
+
+    #[test]
+    fn an_agent_reads_the_lines_of_a_vibe_proposes_one_and_finds_works_by_it() {
+        let (conn, work_id) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+
+        let said = run_tool(&conn, &claude(), "workspace", &Map::new()).unwrap();
+        let said: Value = serde_json::from_str(&said).unwrap();
+        assert_eq!(said["vibe"]["moods"].as_array().unwrap().len(), 5);
+        assert_eq!(said["vibe"]["complexities"][2]["strokes"], 3);
+
+        // A word the profile does not have is refused, with the ones it has.
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "work": work_id, "vibe": { "mood": "sunny" } })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("work.unknownVibe"));
+
+        // A vibe alone is a package worth proposing; kept, it is the work's.
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "work": work_id, "vibe": { "mood": "dark", "character": "edgy" } })),
+        )
+        .unwrap();
+        assert!(answer.contains("Proposed"), "{answer}");
+        let message = first_message(&conn, &work_id);
+        assert!(message.body.contains("Dark · Raw"), "{}", message.body);
+        crate::actions::proposal::apply(
+            &conn,
+            &message.id,
+            crate::actions::proposal::Overrides::default(),
+        )
+        .unwrap();
+
+        let catalogue = |filter: Value| -> Value {
+            serde_json::from_str(&run_tool(&conn, &claude(), "catalogue", &args(filter)).unwrap())
+                .unwrap()
+        };
+        let found = catalogue(json!({ "mood": "dark" }));
+        assert_eq!(found["works"].as_array().unwrap().len(), 1);
+        assert_eq!(found["works"][0]["vibe"]["vibe"]["character"], "edgy");
+        assert_eq!(
+            catalogue(json!({ "mood": "joyful" }))["works"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+
+        let work: Value = serde_json::from_str(
+            &run_tool(&conn, &claude(), "work", &args(json!({ "work": work_id }))).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(work["vibe"]["mood"], "dark");
+        assert_eq!(work["shown_vibe"]["vibe"]["mood"], "dark");
+        let _ = profile_id;
     }
 
     fn args(value: Value) -> Map<String, Value> {

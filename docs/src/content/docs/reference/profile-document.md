@@ -882,6 +882,41 @@ before it goes out. It is set by hand like every other stop - the stage stays
 a judgement, and whether a release actually shipped is what the status
 already derives.
 
+## `vibe`
+
+The three lines a work's feel is said along (since v0.124) - and the words
+on each. A work's mark is built from one word of each line: the mood's
+colour, the character's shape, the complexity's strokes.
+
+```jsonc
+"vibe": {
+  "moods":        [{ "key": "melancholy", "label": { "en": "Melancholy", "ru": "Меланхоличная" }, "color": "#608EBA" }, ...],
+  "characters":   [{ "key": "edgy", "label": { "en": "Raw", "ru": "Надрывная" }, "glyph": "edgy" }, ...],
+  "complexities": [{ "key": "complex", "label": { "en": "Complex", "ru": "Сложная" }, "strokes": 3 }, ...],
+  "labels":       { "complexity": { "en": "How deep it goes", "ru": "Глубина разбора" } }
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `moods[]` | `key`, `label`, `hint`?, `color` | A mood, and the colour its mark is drawn in: `#RRGGBB` as it reads on the dark theme - the window deepens it on a light one. |
+| `characters[]` | `key`, `label`, `hint`?, `glyph` | A character, and the shape its mark takes: `calm` (a level wave), `playful` (a diamond), `steady` (a circle), `edgy` (a broken line) or `drive` (a chevron). |
+| `complexities[]` | `key`, `label`, `hint`?, `strokes` | How complex, and how many strokes the mark is drawn with: 1, 2 or 3. |
+| `labels` | optional | What a line is called, where the craft has its own word for it: a blog calls the third *How deep it goes*, a novel *Layers of the plot*. |
+| `neutral` | optional | The word a line stands at while it is unsaid and another is said - its middle word unless named. |
+
+Every shipped profile carries the same five moods, five characters and three
+complexities; a stored profile that names none takes them on the next start,
+and one that has them keeps its words. The five colours are told apart from
+each other and from the five colours of the [stage dial](#stages), which
+stands beside a mark in every row - the joyful one is a coral, since a lime
+sat right against the green of a finished stage.
+
+A work keeps its vibe as the keys it was said with, any of the three left
+out. A key the profile does not have is refused when it is set, and a work
+that holds one after the profile changed reads it as unsaid. A space's older
+free-text `mood` field is a field like any other and is not this.
+
 ## `cover_ideas`
 
 How many ideas for its cover a publication is given when it is made -

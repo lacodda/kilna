@@ -237,6 +237,7 @@ pub fn render_package(
         releases,
         trials,
         boards,
+        vibe,
         ..
     } = proposal
     else {
@@ -294,6 +295,33 @@ pub fn render_package(
             }
         }
         out.push('\n');
+    }
+    if let Some(vibe) = vibe {
+        let axes = config.vibe();
+        let words: Vec<&str> = [
+            axes.moods
+                .iter()
+                .find(|m| Some(&m.key) == vibe.mood.as_ref())
+                .map(|m| speech.word(&m.label)),
+            axes.characters
+                .iter()
+                .find(|c| Some(&c.key) == vibe.character.as_ref())
+                .map(|c| speech.word(&c.label)),
+            axes.complexities
+                .iter()
+                .find(|c| Some(&c.key) == vibe.complexity.as_ref())
+                .map(|c| speech.word(&c.label)),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        if !words.is_empty() {
+            out.push_str(&format!(
+                "- **{}:** {}\n\n",
+                speech.say("proposalBody.vibe"),
+                words.join(" · ")
+            ));
+        }
     }
     if !unknown_fields.is_empty() {
         out.push_str(&format!(

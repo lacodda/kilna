@@ -4,7 +4,9 @@ import { formatTotal } from '@/lib/format'
 import { keys } from '@/lib/query/keys'
 import { total } from '@/lib/scoring'
 import { useApplyProposal } from '@/lib/useApplyProposal'
-import { say, useVocabulary } from '@/lib/useProfile'
+import { say, useProfile, useVocabulary } from '@/lib/useProfile'
+import { axesOf, resolveVibe, vibeWords } from '@/lib/vibe'
+import { VibeIcon } from '@/components/VibeIcon'
 import { ProposalCard } from '@/features/assistant/ProposalCard'
 
 interface Props {
@@ -44,8 +46,11 @@ export function ProposedScore({
   dismissed,
   client = null,
 }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const axes = useVocabulary(workId).axes
+  const profile = useProfile()
+  // What the answer read the work as feeling like (FR-02), when it said.
+  const vibe = resolveVibe(axesOf(profile.config), proposal.vibe)
 
   const apply = useApplyProposal({
     messageId,
@@ -118,6 +123,13 @@ export function ProposedScore({
         ))}
       </dl>
       {proposal.note !== undefined && <p>{proposal.note}</p>}
+      {vibe !== null && (
+        <p className="flex items-center gap-1.5">
+          <VibeIcon vibe={vibe} words={vibeWords(vibe, i18n.resolvedLanguage ?? 'en')} size={16} />
+          <span>{vibeWords(vibe, i18n.resolvedLanguage ?? 'en')}</span>
+          <span className="text-faint">{t('assistant.vibeIfNone')}</span>
+        </p>
+      )}
     </ProposalCard>
   )
 }

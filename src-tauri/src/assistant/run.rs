@@ -1050,6 +1050,7 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 return Read::Nothing;
             }
             value(super::proposal::Proposal::Work {
+                vibe: None,
                 title: None,
                 work_kind: None,
                 fields,

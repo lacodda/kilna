@@ -653,8 +653,11 @@ fn keep(
             outcome.versions.push(version.id);
         }
 
-        Proposal::Score { axes, note, .. } => {
+        Proposal::Score {
+            axes, note, vibe, ..
+        } => {
             let work_id = on_work(chat)?;
+            keep_vibe(conn, &work_id, vibe)?;
             // Tied to the version the chat is about, when it is about one:
             // a score judged revision 2 is a snapshot of revision 2.
             let version_id = about_version(conn, chat, &work_id);
@@ -710,6 +713,7 @@ fn keep(
             releases,
             trials,
             boards,
+            vibe,
             ..
         } => {
             let (work_id, kind, fresh) = match &chat.work_id {
@@ -732,6 +736,8 @@ fn keep(
                     (created.id, kind, true)
                 }
             };
+
+            keep_vibe(conn, &work_id, vibe.map(|vibe| *vibe))?;
 
             if !fresh && !fields.is_empty() {
                 outcome.fields = fields.keys().cloned().collect();
@@ -1097,6 +1103,29 @@ fn about_version(conn: &Connection, chat: &Chat, work_id: &str) -> Option<String
     (found.work_id == work_id).then_some(found.id)
 }
 
+/// A proposed vibe, kept only where nobody has said one (FR-02): an answer
+/// or an agent suggests what a work feels like, and the author's own word,
+/// once said, is never written over by a suggestion. Written as the edit a
+/// hand makes, so an undo takes it back with the rest of what was kept.
+fn keep_vibe(conn: &Connection, work_id: &str, vibe: Option<crate::work::Vibe>) -> Result<()> {
+    let Some(vibe) = vibe.and_then(crate::work::Vibe::kept) else {
+        return Ok(());
+    };
+    let found = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    if found.vibe.is_some() {
+        return Ok(());
+    }
+    super::work::update(
+        conn,
+        work_id,
+        WorkPatch {
+            vibe: Some(Some(vibe)),
+            ..WorkPatch::default()
+        },
+    )?;
+    Ok(())
+}
+
 fn score(
     conn: &Connection,
     work_id: &str,
@@ -1330,6 +1359,7 @@ mod tests {
             axes.insert(axis.into(), json!(7.0));
         }
         Proposal::Work {
+            vibe: None,
             title: Some("Winter road".into()),
             work_kind: Some("song".into()),
             fields,
@@ -1563,6 +1593,7 @@ mod tests {
             &chat,
             "rendered",
             Proposal::Work {
+                vibe: None,
                 title: Some("Winter road — the clip".into()),
                 work_kind: Some("video".into()),
                 fields: Map::new(),
@@ -1981,6 +2012,60 @@ mod tests {
     }
 
     #[test]
+    fn a_proposed_vibe_is_kept_where_nobody_said_one_and_never_over_the_authors() {
+        let (conn, profile_id, work_id) = workspace();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let mut axes = Map::new();
+        axes.insert("hook".into(), json!(6.0));
+        let felt = |mood: &str| crate::work::Vibe {
+            mood: Some(mood.into()),
+            ..crate::work::Vibe::default()
+        };
+        let scored = |mood: &str| {
+            propose(
+                &conn,
+                &chat,
+                "steady",
+                Proposal::Score {
+                    vibe: Some(felt(mood)),
+                    axes: axes.clone(),
+                    note: None,
+                    unknown: Vec::new(),
+                    missing: Vec::new(),
+                },
+            )
+        };
+
+        // Nobody has said: the suggestion is kept with the score.
+        apply(&conn, &scored("dark"), Overrides::default()).unwrap();
+        assert_eq!(
+            work::get(&conn, &work_id).unwrap().unwrap().vibe,
+            Some(felt("dark"))
+        );
+
+        // The author says otherwise; a later suggestion leaves their word.
+        work::update(
+            &conn,
+            &work_id,
+            WorkPatch {
+                vibe: Some(Some(felt("joyful"))),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+        apply(&conn, &scored("melancholy"), Overrides::default()).unwrap();
+        assert_eq!(
+            work::get(&conn, &work_id).unwrap().unwrap().vibe,
+            Some(felt("joyful"))
+        );
+        assert_eq!(
+            score::history(&conn, &work_id).unwrap().len(),
+            2,
+            "both scores kept"
+        );
+    }
+
+    #[test]
     fn a_score_from_an_agent_is_judged_by_the_agent() {
         let (conn, profile_id, work_id) = workspace();
         let chat = chat_on(&conn, &profile_id, Some(&work_id));
@@ -1991,6 +2076,7 @@ mod tests {
             &chat,
             "strong chorus",
             Proposal::Score {
+                vibe: None,
                 axes,
                 note: Some("strong chorus".into()),
                 unknown: Vec::new(),
@@ -2018,6 +2104,7 @@ mod tests {
             &chat,
             "steady",
             Proposal::Score {
+                vibe: None,
                 axes,
                 note: None,
                 unknown: Vec::new(),
@@ -2134,6 +2221,7 @@ mod tests {
             &chat,
             "rendered",
             Proposal::Work {
+                vibe: None,
                 title: None,
                 work_kind: Some("song".into()),
                 fields: Map::new(),
@@ -2178,6 +2266,7 @@ mod tests {
             &chat,
             "rendered",
             Proposal::Work {
+                vibe: None,
                 title: Some("Winter road".into()),
                 work_kind: Some("song".into()),
                 fields,
@@ -2231,6 +2320,7 @@ mod tests {
             &chat,
             "rendered",
             Proposal::Work {
+                vibe: None,
                 title: Some("The clip".into()),
                 work_kind: Some("video".into()),
                 fields,
@@ -2319,6 +2409,7 @@ mod tests {
             &chat,
             "rendered",
             Proposal::Work {
+                vibe: None,
                 title: None,
                 work_kind: None,
                 fields,
@@ -2618,6 +2709,7 @@ mod tests {
         let (conn, profile_id, _) = workspace();
         let config = profile::config_for(&conn, &profile_id).unwrap();
         let proposal = Proposal::Work {
+            vibe: None,
             title: None,
             work_kind: None,
             fields: Map::new(),
@@ -3322,6 +3414,7 @@ mod bound_to_a_version_tests {
         let meta = proposal_meta(
             "Claude Code",
             &Proposal::Score {
+                vibe: None,
                 axes,
                 note: None,
                 unknown: Vec::new(),
@@ -3463,6 +3556,7 @@ mod bound_to_a_version_tests {
         let meta = proposal_meta(
             "Claude Code",
             &Proposal::Score {
+                vibe: None,
                 axes,
                 note: None,
                 unknown: Vec::new(),

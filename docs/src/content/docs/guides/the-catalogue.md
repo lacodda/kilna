@@ -144,6 +144,26 @@ chip and on the dashboard. It is not the status: a work is routinely *Scored*
 and still at 75. See [`stages`](/kilna/reference/profile-document/#stages)
 for the stops and how to word them.
 
+**The vibe** beside it says what the work feels like, along three lines:
+its **mood**, its **character**, and how **complex** it is. One mark is built
+from the three - the mood's colour, the character's shape (a wave, a diamond,
+a circle, a broken line, a chevron), as many strokes as it is complex - so
+"melancholy, raw, complex" is a smoky-blue broken line in three strokes, and
+a column of them is read at a glance. Point at a mark and it says its words.
+Click it, or the quiet **+** of a work nobody has said anything of, and the
+three lines open as words to press: say one, two or all three - a line left
+unsaid stands at its middle word while the mark is drawn - and press a word
+again to take it off. The same picker stands in the card's header beside the
+stage, and the mark on a calendar's slot.
+
+A clip, an audio release or a short with no vibe of its own shows the one of
+what it was made from, drawn quieter, and says whose it is; saying one for
+it makes it its own, and **Take it from what it was made from** gives the
+source's back. The assistant reads a vibe when it scores a text, and an
+agent may propose one: either is kept only where you have said nothing. A
+free word under the **Mood** field of a song made before v0.124 is left as it
+is. See [`vibe`](/kilna/reference/profile-document/#vibe) for the words.
+
 **Each row says where the work stands** as a badge in the status's own
 colour — *Scored*, *Scheduled*, *Released* — and what it is in outline
 until the catalogue is narrowed to a kind. The colours are the profile's
@@ -169,6 +189,7 @@ tier:clip status:draft winter
 | `tag:` | A tag you put on the work yourself |
 | `stage:` | How far along the work is — a stop's name, or its number |
 | `collection:` | A [collection](/kilna/guides/collections/), by its name |
+| `mood:` `character:` `complexity:` | What the work feels like - a word of the line, or its key; a work with no vibe of its own is found by the one it shows |
 
 Anything that is not an operator searches the full text. **Quote a phrase** to
 keep it together: `"paper boats" tier:clip`.
@@ -213,6 +234,7 @@ and staying on, filled, while that column is narrowing the list:
 | Stage | One or more of your profile's stops — works standing at any of them |
 | Tier | One or more tiers |
 | Marks | One or more marks — works carrying any of them |
+| Vibe | Words of each line, and **Nobody has said** - ticks on one line ask for any of them, ticks on two lines for both |
 
 Ticking two stops means *either*, the way the status dropdown means one
 status; the funnels on different columns combine as *and*, with each other

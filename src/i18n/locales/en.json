@@ -1033,7 +1033,8 @@
       "public": "public",
       "internal": "internal",
       "inWorks": "only inside the works"
-    }
+    },
+    "vibeIfNone": "kept only if you have not said one"
   },
   "links": {
     "sources": "Made from",
@@ -3167,7 +3168,8 @@
       "unknownTerm": "No word “{{term}}” in the record; “register” lists them.",
       "unknownTrial": "No trial “{{trial}}” on this board; “trials” lists them.",
       "notesNotArray": "“notes” must be a non-empty array of notes.",
-      "unknownLayer": "No layer “{{layer}}”: public, internal or inWorks."
+      "unknownLayer": "No layer “{{layer}}”: public, internal or inWorks.",
+      "badVibe": "A vibe is an object: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, each a key `workspace` lists under `vibe`."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -3476,7 +3478,8 @@
     "relations": "Relations:",
     "pictures": "Pictures:",
     "reference": "reference",
-    "descriptions": "Descriptions for pictures:"
+    "descriptions": "Descriptions for pictures:",
+    "vibe": "What it feels like"
   },
   "skip": {
     "alreadyThere": "already that way",

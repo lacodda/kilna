@@ -15,6 +15,7 @@ import type { PackagedTrial } from "./PackagedTrial";
 import type { PackagedVersion } from "./PackagedVersion";
 import type { ProposedNote } from "./ProposedNote";
 import type { TrialDropped } from "./TrialDropped";
+import type { Vibe } from "./Vibe";
 import type { WordsPackage } from "./WordsPackage";
 import type { JsonValue } from "./serde_json/JsonValue";
 
@@ -35,7 +36,12 @@ note?: string | null,
  * the profile the answer skipped. Shown rather than hidden: a
  * proposal that only half fits is worth applying, but not silently.
  */
-unknown?: Array<string>, missing?: Array<string>, } | { "kind": "version", role: string, label?: string | null, 
+unknown?: Array<string>, missing?: Array<string>, 
+/**
+ * What the work feels like, as the answer read it (FR-02): words of
+ * the profile's lines, kept only where the author said nothing.
+ */
+vibe?: Vibe, } | { "kind": "version", role: string, label?: string | null, 
 /**
  * The version the text was written from, when the agent rewrote one
  * (ADR 0055): kept as the new version's parent if it is still a
@@ -58,7 +64,13 @@ fields?: { [key in string]: JsonValue },
 /**
  * Field keys the package named that the profile does not have.
  */
-unknown_fields?: Array<string>, versions?: Array<PackagedVersion>, score?: Marks | null, notes?: Array<PackagedNote>, 
+unknown_fields?: Array<string>, 
+/**
+ * What the work feels like (FR-02). On a new work it is its own; on
+ * one that has a vibe the author said, it is left alone. Boxed: a
+ * package is the largest proposal there is, and most carry none.
+ */
+vibe?: Vibe, versions?: Array<PackagedVersion>, score?: Marks | null, notes?: Array<PackagedNote>, 
 /**
  * The storyboard of a new video, or scenes added to an existing
  * one's board. Only for a kind that has a storyboard.

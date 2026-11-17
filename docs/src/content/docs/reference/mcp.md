@@ -57,6 +57,12 @@ uses.
 A work is named by id, or by its exact title. A title two works share is
 refused with the ids to choose from, rather than guessed.
 
+**What a work feels like** (since v0.124): `workspace` lists the profile's
+`vibe` - its moods, characters and complexities with their keys; `work`
+answers its own `vibe` and its `shown_vibe` - its own, or the one of what it
+was made from, with `from` naming that work; `catalogue` answers each row's
+`vibe` and its `stage`, and narrows by `mood`, `character` and `complexity`.
+
 ## What an agent can propose
 
 Nothing an agent does writes a work, a version, a score, a note or a
@@ -82,6 +88,13 @@ proposals apply these:
 | `propose_cards` | Cards for a board of a work's [conception](/kilna/guides/the-conception/), by its key (`board`: `research`, `scenarios`): each names its `kind` - which may be left out on a board of one kind - its `fields` by the keys of that kind, and optionally a `topic`. A kind marked `library` names its work of culture under `entry` - `title` (required), `author`, `year`, `medium`, `original` - and links to the library's entry of that name, written into the library when there is none; a `proof` that is not a link, and every quote of a medium that is not quoted, are left out and named. `starred: true` carries over a choice the person already made; `directions` - two to four places the next run could dig. A kind or field the board does not have is left out and named in the answer; the rest lands. The cards wait in the chat on the work and above the board; **Put on the board** puts them there. Nothing is written until the person does - the window's own **Propose scenarios** puts its cards on the board as they come. |
 | `propose_words` | Words for the record, kept in one click: to keep as a phrase (`phrase: true`, and a `shelf` by name, made when there is none), how a word is sung (`sung`: `[{written, sung}]`), a term for the register (`strictness`), the works a meaning is in (`works`: ids or exact titles). A plain string is a phrase to keep. A word kept only as a phrase writes no term; a word with `sung`, `strictness`, forms or `works` also writes or updates the term, and one the record already keeps gains what is proposed and loses nothing. A phrase already kept in the same words is not kept twice; a work that cannot be found is named and left out. The message lists every word under a box; keep all of them or some. Since v0.116 a word the record already keeps is **changed** by what is proposed - `strictness` replaces the one it has (`null` unspends it), `forms` join (or replace, with `replace_forms: true`), `kind`, `topic` and `note` are written over - and the proposal says each change, was and becomes; a field the register would not take when it is kept is said, never dropped in silence. `action: "delete"` takes a word out of the record, into the trash; `action: "split"` with `into: [...]` makes a word that is several into them, each with what the one held and the works named for it. A new `word` written with a comma or a slash is warned about: one word is one thing a text can say. |
 | `propose_canon` | Cards, facts and relations for the [canon](/kilna/guides/the-canon/). A fact is an `add` to a card (by id, name, or the `handle` of a card proposed in the same call), a `refine` of a fact's id, or a `retire` with its reason; one that contradicts the canon says which fact in `contradicts`. `work` is where the facts were read from: every fact with no other source cites it, with the line in `line`, and a card with `on_work: true` lives at it. The message lists every item under a box, with the facts it contradicts beside it; **Keep all** writes the package, or untick what you do not want and keep the rest. A fact kept from a proposal is a draft — the works read it, a cover and a public text do not — until you settle it; one proposed as `open` stays a live zone. An item the canon has no place for — a kind or a section it does not have, a card it cannot find — is named in the answer and left out. `pictures` attach files on this machine (`path`, absolute; JPEG, PNG, WebP, GIF or AVIF) to a `card`, or to one `fact` of it such as an outfit, with a `role` — portrait, reference, outfit, mood, still or mark, reference when absent; a file is copied into the workspace only when the picture is kept. `descriptions` write what a generator is told about an existing `card`, in English, from its appearance facts; kept, one replaces the card's description and is fingerprinted against its facts as they stand. |
+
+`propose_work` also takes a `vibe` - `{"mood", "character", "complexity"}`,
+any of them left out - in the profile's keys; a key it does not have is
+refused with the ones it has. A vibe alone is a package worth proposing.
+Kept, it is the work's own only where the author has said none: a proposal
+never writes over the author's word. A score the assistant writes may carry
+a vibe the same way.
 
 An applied proposal stays marked in the chat — *Inserted*, *Scored*,
 *Created*, with a link to the work a package made — and cannot be applied

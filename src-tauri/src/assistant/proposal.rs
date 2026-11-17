@@ -103,6 +103,11 @@ pub enum Proposal {
         unknown: Vec<String>,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         missing: Vec<String>,
+        /// What the work feels like, as the answer read it (FR-02): words of
+        /// the profile's lines, kept only where the author said nothing.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        vibe: Option<crate::work::Vibe>,
     },
     /// A new version in a role. The text itself is the message body — that
     /// is what *insert as version* keeps, verbatim — so the proposal carries
@@ -160,6 +165,12 @@ pub enum Proposal {
         /// Field keys the package named that the profile does not have.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         unknown_fields: Vec<String>,
+        /// What the work feels like (FR-02). On a new work it is its own; on
+        /// one that has a vibe the author said, it is left alone. Boxed: a
+        /// package is the largest proposal there is, and most carry none.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, as = "Option<crate::work::Vibe>")]
+        vibe: Option<Box<crate::work::Vibe>>,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         versions: Vec<PackagedVersion>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -455,6 +466,8 @@ struct RawScore {
     axes: Map<String, Value>,
     #[serde(default)]
     note: Option<String>,
+    #[serde(default)]
+    vibe: Option<crate::work::Vibe>,
 }
 
 /// What a scoring action appends to its prompt.
@@ -526,12 +539,26 @@ pub fn scoring_instruction(config: &ProfileConfig, kind: &str) -> String {
         .collect::<Vec<_>>()
         .join(",\n");
 
+    // What it feels like (FR-02), asked beside the marks and never in
+    // their place: the words of the profile's three lines, any of which may
+    // be left out. Kept only where the author has said nothing themselves.
+    let axes = config.vibe();
+    let words = |keys: Vec<&str>| keys.join(" | ");
+    let vibe_shape = format!(
+        ",\n  \"vibe\": {{ \"mood\": \"{}\", \"character\": \"{}\", \"complexity\": \"{}\" }}",
+        words(axes.moods.iter().map(|m| m.key.as_str()).collect()),
+        words(axes.characters.iter().map(|c| c.key.as_str()).collect()),
+        words(axes.complexities.iter().map(|c| c.key.as_str()).collect()),
+    );
+
     format!(
         "\n\nJudge it along these axes, exactly as the profile defines them:\n\n{guide}{tiers}\n\
          End your reply with a fenced json block, exactly this shape and \
          nothing else inside it:\n\n```json\n{{\n  \"axes\": {{\n{shape}\n  }},\n  \
-         \"note\": \"one sentence on why\"\n}}\n```\n\nSay whatever you like \
-         above the block. Use every axis listed and no others."
+         \"note\": \"one sentence on why\"{vibe_shape}\n}}\n```\n\nSay whatever you like \
+         above the block. Use every axis listed and no others. The `vibe` is what \
+         the work feels like: one word from each list, or leave out a line you \
+         cannot tell."
     )
 }
 
@@ -953,7 +980,40 @@ struct RawScenes {
 /// not a failure to report.
 pub fn read_score(body: &str, config: &ProfileConfig, kind: &str) -> Option<Proposal> {
     let raw: RawScore = serde_json::from_str(&fenced_json(body)?).ok()?;
-    score_from(raw.axes, raw.note, config.vocabulary(kind))
+    let mut proposal = score_from(raw.axes, raw.note, config.vocabulary(kind))?;
+    if let Proposal::Score { vibe, .. } = &mut proposal {
+        *vibe = vibe_from(raw.vibe, config);
+    }
+    Some(proposal)
+}
+
+/// A vibe an answer or an agent proposed, as it can be kept: only the lines
+/// said with a word of the profile's (FR-02). A word the profile does not
+/// have is dropped rather than refusing the score it came with - the marks
+/// are the answer, the vibe a suggestion beside them.
+pub fn vibe_from(
+    raw: Option<crate::work::Vibe>,
+    config: &ProfileConfig,
+) -> Option<crate::work::Vibe> {
+    let axes = config.vibe();
+    let raw = raw?.kept()?;
+    let known =
+        |key: Option<String>, words: Vec<&str>| key.filter(|key| words.contains(&key.as_str()));
+    crate::work::Vibe {
+        mood: known(
+            raw.mood,
+            axes.moods.iter().map(|m| m.key.as_str()).collect(),
+        ),
+        character: known(
+            raw.character,
+            axes.characters.iter().map(|c| c.key.as_str()).collect(),
+        ),
+        complexity: known(
+            raw.complexity,
+            axes.complexities.iter().map(|c| c.key.as_str()).collect(),
+        ),
+    }
+    .kept()
 }
 
 /// A scoring proposal out of marks by axis key, checked against the profile.
@@ -973,6 +1033,7 @@ pub fn score_from(
         missing,
     } = marks_from(raw, note, config)?;
     Some(Proposal::Score {
+        vibe: None,
         axes,
         note,
         unknown,
@@ -1366,6 +1427,7 @@ mod tests {
             note,
             unknown,
             missing,
+            ..
         } = proposal
         else {
             panic!("a fenced block reads as a score");
@@ -1385,6 +1447,39 @@ mod tests {
 
         assert_eq!(axes.get(&first).and_then(Value::as_f64), Some(7.0));
         assert_eq!(note.as_deref(), Some("the chorus carries it"));
+    }
+
+    #[test]
+    fn a_score_may_say_what_the_work_feels_like_in_the_profiles_words() {
+        let config = config();
+        let first = config.work_kinds[0].axes[0].key.clone();
+        let body = block(&format!(
+            r#"{{"axes": {{"{first}": 7}}, "note": "n",
+                "vibe": {{"mood": "melancholy", "character": "sunny", "complexity": "complex"}}}}"#
+        ));
+
+        let Some(Proposal::Score { vibe, .. }) = read_score(&body, &config, "song") else {
+            panic!("a score");
+        };
+        // A word the profile does not have is dropped; the marks stand.
+        assert_eq!(
+            vibe,
+            Some(crate::work::Vibe {
+                mood: Some("melancholy".into()),
+                character: None,
+                complexity: Some("complex".into()),
+            })
+        );
+
+        let without = block(&format!(r#"{{"axes": {{"{first}": 7}}}}"#));
+        let Some(Proposal::Score { vibe, .. }) = read_score(&without, &config, "song") else {
+            panic!("a score");
+        };
+        assert_eq!(vibe, None, "a score without a vibe proposes none");
+        // And the instruction asks for one, by the profile's words.
+        let asked = scoring_instruction(&config, "song");
+        assert!(asked.contains("\"vibe\""), "{asked}");
+        assert!(asked.contains("melancholy"), "{asked}");
     }
 
     #[test]
@@ -1604,6 +1699,7 @@ mod tests {
     #[test]
     fn a_stored_proposal_reads_back_as_it_was_written() {
         let proposal = Proposal::Work {
+            vibe: None,
             title: Some("Harbour lights".into()),
             work_kind: Some("song".into()),
             fields: Map::new(),

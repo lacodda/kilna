@@ -1142,7 +1142,8 @@
       "public": "публичное",
       "internal": "внутреннее",
       "inWorks": "только внутри произведений"
-    }
+    },
+    "vibeIfNone": "запишется, только если вы своё не задали"
   },
   "links": {
     "sources": "Сделано из",
@@ -3372,7 +3373,8 @@
       "unknownTerm": "В реестре нет слова «{{term}}»; их перечисляет «register».",
       "unknownTrial": "На этой доске нет пробы «{{trial}}»; их перечисляет «trials».",
       "notesNotArray": "«notes» - это непустой массив заметок.",
-      "unknownLayer": "Слоя «{{layer}}» нет: public, internal или inWorks."
+      "unknownLayer": "Слоя «{{layer}}» нет: public, internal или inWorks.",
+      "badVibe": "Настроение - это объект: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, где каждое значение - ключ из `vibe` в ответе `workspace`."
     },
     "note": {
       "promoteNeedsTitle": "У произведения должно быть название.",
@@ -3681,7 +3683,8 @@
     "relations": "Связи:",
     "pictures": "Картинки:",
     "reference": "референс",
-    "descriptions": "Описания к картинкам:"
+    "descriptions": "Описания к картинкам:",
+    "vibe": "Настроение"
   },
   "skip": {
     "alreadyThere": "уже так",
