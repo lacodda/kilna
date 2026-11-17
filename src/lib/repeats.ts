@@ -137,7 +137,7 @@ export function landingWarning(
 
 /** The guard as kilna reads it when the profile says nothing: 90 days, past
  *  the 20 000th stem of the language, in no more than two of the owner's
- *  works. The backend's defaults (`profile/config.rs`), said again here so
+ *  works. The backend's defaults (`profile/config/`), said again here so
  *  the settings can show them. */
 export const GUARD_DEFAULTS: Readonly<Guard> = {
   window_days: 90,
