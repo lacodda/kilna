@@ -39,8 +39,12 @@ describe('a field as it is read', () => {
     const keysOf = (kind: string) => fieldsFor(studio, kind).map((f) => f.key)
     expect(keysOf('audio')).toContain('variant')
     expect(keysOf('song')).not.toContain('variant')
-    // A field naming no kinds is every kind's.
+    // And a song's tempo is not its audio release's (v0.117): what is a
+    // fact of the song stands on the song's card alone.
     expect(keysOf('song')).toContain('bpm')
-    expect(keysOf('audio')).toContain('bpm')
+    expect(keysOf('audio')).not.toContain('bpm')
+    // A field naming several kinds is each of theirs.
+    expect(keysOf('song')).toContain('duration')
+    expect(keysOf('audio')).toContain('duration')
   })
 })

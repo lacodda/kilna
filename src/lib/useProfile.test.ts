@@ -25,7 +25,13 @@ describe('one kind of work', () => {
         const vocabulary = vocabularyOf(config, kind.key)
         // A kind that can be judged has somewhere to put the verdict.
         expect(vocabulary.statuses.length, `${key}/${kind.key} statuses`).toBeGreaterThan(0)
-        expect(vocabulary.version_roles.length, `${key}/${kind.key} roles`).toBeGreaterThan(0)
+        // A kind with a text of its own names the roles it is written in;
+        // one that plays under a single picture - an audio release - is its
+        // song, whole, and names none (v0.117).
+        expect(
+          vocabulary.version_roles.length > 0 || vocabulary.frame,
+          `${key}/${kind.key} roles`,
+        ).toBe(true)
         // A kind nobody judges - an audio release goes out for a song that
         // was judged - names no axes and so no tiers; one that names axes
         // has somewhere for the total to land.
