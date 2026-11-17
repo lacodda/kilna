@@ -342,6 +342,84 @@ fn scenes_arg(description: &str) -> Value {
     })
 }
 
+/// How many of a long list to give at once.
+fn limit_arg(default: usize) -> Value {
+    json!({
+        "type": "integer",
+        "description": format!("At most this many; {default} by default, {MOST} at most")
+    })
+}
+
+/// Where a page starts.
+fn offset_arg() -> Value {
+    json!({ "type": "integer", "description": "Skip this many: the `offset` of the page before plus its `limit`. 0 by default" })
+}
+
+/// The short form of a long list.
+fn summary_arg(fields: &str) -> Value {
+    json!({
+        "type": "boolean",
+        "description": format!("Leave the long texts out: only {fields}. Read one whole afterwards by its id")
+    })
+}
+
+/// The most a page may hold, whatever is asked.
+const MOST: usize = 500;
+
+/// The part of a long reading an agent asked for (FR-08 8.4).
+///
+/// The heavy tools gave everything at once: a record of two thousand words,
+/// a bank of fifteen hundred notes with their bodies, into a context that
+/// holds a few hundred thousand tokens for the whole conversation. A page
+/// says how many there are and whether more follow, so an agent can walk the
+/// list, read it short first, and take one entry whole.
+struct Page {
+    limit: usize,
+    offset: usize,
+    summary: bool,
+}
+
+impl Page {
+    fn of(args: &Map<String, Value>, default: usize) -> Self {
+        let number = |key: &str| {
+            args.get(key)
+                .and_then(Value::as_u64)
+                .and_then(|n| usize::try_from(n).ok())
+        };
+        Self {
+            limit: number("limit").unwrap_or(default).clamp(1, MOST),
+            offset: number("offset").unwrap_or(0),
+            summary: args
+                .get("summary")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+        }
+    }
+
+    /// This page of `items` under `key`, with how many there are in all and
+    /// whether more follow.
+    fn cut(&self, key: &str, items: Vec<Value>) -> Map<String, Value> {
+        let total = items.len();
+        let shown: Vec<Value> = items
+            .into_iter()
+            .skip(self.offset)
+            .take(self.limit)
+            .collect();
+        let mut out = Map::new();
+        out.insert("total".into(), json!(total));
+        out.insert("limit".into(), json!(self.limit));
+        out.insert("offset".into(), json!(self.offset));
+        out.insert("has_more".into(), json!(self.offset + shown.len() < total));
+        out.insert(key.to_owned(), Value::Array(shown));
+        out
+    }
+}
+
+/// How long a text is, as a summary says it: in characters.
+fn length_of(text: &str) -> usize {
+    text.chars().count()
+}
+
 fn text_arg(description: &str) -> Value {
     json!({ "type": "string", "description": description })
 }
@@ -398,12 +476,16 @@ fn tools() -> Vec<Value> {
             "catalogue",
             "Every work in the profile with its verdict: id, title, kind, status, score total and \
              tier, whether the score is stale (the text changed since), releases out and scheduled, \
-             when it was last touched. Filter by a substring of the title, a kind or a status.",
+             when it was last touched. Filter by a substring of the title, a kind or a status. \
+             The answer is a page: `works`, with `total`, `limit`, `offset` and `has_more` - ask \
+             for the next with `offset`.",
             json!({
                 "query": text_arg("A case-insensitive substring of the title"),
                 "kind": text_arg("A work kind key, as `workspace` lists them"),
                 "status": text_arg("A status key, as `workspace` lists them"),
-                "limit": { "type": "integer", "description": "At most this many rows; 200 by default" },
+                "limit": limit_arg(100),
+                "offset": offset_arg(),
+                "summary": summary_arg("id, title, kind, status and when it was last touched"),
             }),
             &[],
         ),
@@ -432,8 +514,16 @@ fn tools() -> Vec<Value> {
              `outcome` (what came out once heard), `verdict` (keep, drop, or null - not judged), \
              `source` (the song's style it reworks), the anchors it has lost, how many takes it \
              has, and where a kept one went. Plus `choices`: the phrases of the dictionary a \
-             trial is written from, with their ids.",
-            json!({ "work": work_arg() }),
+             trial is written from, with their ids. The trials come a page at a time \
+             (`total`, `limit`, `offset`, `has_more`); `summary` leaves the texts out; `trial` \
+             reads one trial whole by its id.",
+            json!({
+                "work": work_arg(),
+                "trial": text_arg("One trial of the board, by its id: read whole"),
+                "limit": limit_arg(50),
+                "offset": offset_arg(),
+                "summary": summary_arg("id, series, parent, angle, verdict, the length of the text and how many takes"),
+            }),
             &["work"],
         ),
         tool(
@@ -478,13 +568,19 @@ fn tools() -> Vec<Value> {
              the kind marked `library` is a work of culture: its `title`, its author as \
              `attribution`, its other titles as `aliases`, its `medium` and `year`. Without \
              arguments, also `shelves`: every shelf in the owner's order with how many \
-             phrases it holds.",
+             phrases it holds. The notes come a page at a time, in `notes`, with `total`, \
+             `limit`, `offset` and `has_more`; `summary` leaves the bodies out; `note` reads \
+             one note whole, by its id or its exact title.",
             json!({
                 "work": work_arg(),
                 "query": text_arg("A substring of the title, the body or whose words they are"),
                 "kind": text_arg("Only notes of this kind, as `workspace` lists them"),
                 "state": text_arg("Only notes in this state: fresh, used, parked or dropped"),
                 "shelf": text_arg("Only the phrases on this shelf, by id or by name"),
+                "note": text_arg("One note, by its id or its exact title: read whole"),
+                "limit": limit_arg(50),
+                "offset": offset_arg(),
+                "summary": summary_arg("id, title (or the first words), kind, state, tags, the length of the body and when it was last touched"),
             }),
             &[],
         ),
@@ -500,10 +596,18 @@ fn tools() -> Vec<Value> {
              often, and the words it leans on within itself; with `work`, also `guard`: the songs \
              out or booked that the work's song shares a spent term (orange) or a rare word \
              (red within 90 days, orange before) with, and the words kept on purpose. Read it \
-             before writing or judging a text; a meaning told in other words is yours to catch.",
+             before writing or judging a text; a meaning told in other words is yours to catch. \
+             The record comes a page at a time, in `terms`, with `total`, `limit`, `offset` and \
+             `has_more`; `summary` gives the word, its kind, its strictness and its uses alone; \
+             `term` reads one word whole, by its id or the word itself, with the works that \
+             carry it.",
             json!({
                 "text": text_arg("A text to check against the register"),
                 "work": text_arg("A work whose current text to check: its id, or its exact title"),
+                "term": text_arg("One word of the record, by its id or the word itself: read whole"),
+                "limit": limit_arg(100),
+                "offset": offset_arg(),
+                "summary": summary_arg("id, word, kind, strictness and uses"),
             }),
             &[],
         ),
@@ -1324,7 +1428,7 @@ pub fn run_tool(
             let query = arg(args, "query").map(|q| q.to_lowercase());
             let kind = arg(args, "kind");
             let status = arg(args, "status");
-            let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(200) as usize;
+            let page = Page::of(args, 100);
             // The guard's mark, by work (ADR 0054): what a song that has not
             // gone out shares with songs that have.
             let today = crate::time::now();
@@ -1338,8 +1442,10 @@ pub fn run_tool(
                 .filter(|row| query.as_ref().is_none_or(|q| row.title.to_lowercase().contains(q)))
                 .filter(|row| kind.is_none_or(|k| row.kind == k))
                 .filter(|row| status.is_none_or(|s| row.status == s))
-                .take(limit)
-                .map(|row| json!({
+                .map(|row| if page.summary { json!({
+                    "id": row.work_id, "title": row.title, "kind": row.kind, "status": row.status,
+                    "updated_at": row.updated_at,
+                }) } else { json!({
                     "id": row.work_id, "title": row.title, "kind": row.kind, "status": row.status,
                     "total": row.total, "tier": row.tier, "tier_pinned": row.tier_pinned,
                     "stale": row.stale, "released": row.released, "scheduled": row.scheduled,
@@ -1348,9 +1454,9 @@ pub fn run_tool(
                         "level": mark.level, "count": mark.count, "word": mark.top.word,
                         "with": mark.top.neighbour_title, "day": mark.top.day,
                     })),
-                }))
+                }) })
                 .collect();
-            pretty(&rows)
+            pretty(&page.cut("works", rows))
         }
 
         "work" => {
@@ -1539,14 +1645,49 @@ pub fn run_tool(
                 state,
                 ..NoteFilter::default()
             };
-            read_notes(
-                conn,
-                &profile.id,
-                &config,
-                &filter,
-                arg(args, "shelf"),
-                args.is_empty(),
-            )
+            // One note whole, by its id or its exact title: what a summary
+            // of the list is read down to.
+            if let Some(named) = arg(args, "note") {
+                let found = find_note(conn, &profile.id, named)?;
+                let whole = read_notes(
+                    conn,
+                    &profile.id,
+                    &config,
+                    &NoteFilter {
+                        kind: Some(found.kind.clone()),
+                        ..NoteFilter::default()
+                    },
+                    None,
+                )?
+                .into_iter()
+                .find(|shown| shown["id"] == json!(found.id))
+                .map_or_else(|| serde_json::to_value(&found), Ok)?;
+                return pretty(&whole);
+            }
+            let page = Page::of(args, 50);
+            let mut notes = read_notes(conn, &profile.id, &config, &filter, arg(args, "shelf"))?;
+            if page.summary {
+                notes = notes.iter().map(note_summary).collect();
+            }
+            let mut answer = page.cut("notes", notes);
+            // With no question asked, the shelves too: what there is to ask
+            // for. Narrowing by a page is no question.
+            let asked = args
+                .keys()
+                .any(|key| !["limit", "offset", "summary", "space"].contains(&key.as_str()));
+            if !asked {
+                let shelves: Vec<Value> = crate::shelf::views(conn, &profile.id)?
+                    .iter()
+                    .map(|view| {
+                        json!({
+                            "id": view.shelf.id, "name": view.shelf.name,
+                            "phrases": view.note_ids.len(),
+                        })
+                    })
+                    .collect();
+                answer.insert("shelves".into(), Value::Array(shelves));
+            }
+            pretty(&answer)
         }
 
         // The register of repeats (ADR 0044): the whole of it, or a text
@@ -1584,7 +1725,47 @@ pub fn run_tool(
                         "guard": guard,
                     }))
                 }
-                None => pretty(&crate::register::entries(conn, &profile.id)?),
+                None => {
+                    let entries = crate::register::entries(conn, &profile.id)?;
+                    // One word whole, with the works that carry it.
+                    if let Some(named) = arg(args, "term") {
+                        let entry = entries
+                            .iter()
+                            .find(|entry| entry.term.id == named)
+                            .or_else(|| {
+                                entries.iter().find(|entry| {
+                                    entry.term.word.to_lowercase() == named.trim().to_lowercase()
+                                })
+                            })
+                            .ok_or_else(|| {
+                                Error::refused("mcp.unknownTerm").param("term", named)
+                            })?;
+                        let mut whole = serde_json::to_value(entry)?;
+                        if let Some(object) = whole.as_object_mut() {
+                            object.insert(
+                                "works".into(),
+                                serde_json::to_value(crate::register::uses(conn, &entry.term.id)?)?,
+                            );
+                        }
+                        return pretty(&whole);
+                    }
+                    let page = Page::of(args, 100);
+                    let terms: Vec<Value> = entries
+                        .iter()
+                        .map(|entry| {
+                            if page.summary {
+                                Ok(json!({
+                                    "id": entry.term.id, "word": entry.term.word,
+                                    "kind": entry.term.kind,
+                                    "strictness": entry.term.strictness, "uses": entry.uses,
+                                }))
+                            } else {
+                                serde_json::to_value(entry)
+                            }
+                        })
+                        .collect::<std::result::Result<_, _>>()?;
+                    pretty(&page.cut("terms", terms))
+                }
             }
         }
 
@@ -2312,10 +2493,25 @@ pub fn run_tool(
         "trials" => {
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
             let board = crate::lab::trial::board(conn, &found.id)?;
+            let page = Page::of(args, 50);
+            let one = arg(args, "trial");
+            let summary = page.summary && one.is_none();
             let trials: Vec<Value> = board
                 .trials
                 .iter()
+                .filter(|card| one.is_none_or(|id| card.trial.id == id))
                 .map(|card| {
+                    if summary {
+                        return json!({
+                            "id": card.trial.id,
+                            "series": card.trial.series,
+                            "parent": card.trial.parent_id,
+                            "angle": card.trial.angle,
+                            "verdict": card.trial.verdict,
+                            "length": length_of(&card.trial.body),
+                            "takes": card.takes.len(),
+                        });
+                    }
                     json!({
                         "id": card.trial.id,
                         "series": card.trial.series,
@@ -2337,16 +2533,30 @@ pub fn run_tool(
                     })
                 })
                 .collect();
-            pretty(&json!({
-                "work": found.id,
-                "title": found.title,
-                "anchors": board.anchors,
-                "harvest_role": board.harvest_role,
-                "harvest_kinds": board.harvest_kinds,
-                "series": board.series,
-                "trials": trials,
-                "choices": crate::lab::answer::choices_sheet(conn, &found)?,
-            }))
+            // One trial, by its id: whole, and nothing of the board around it.
+            if let Some(id) = one {
+                let whole = trials
+                    .into_iter()
+                    .next()
+                    .ok_or_else(|| Error::refused("mcp.unknownTrial").param("trial", id))?;
+                return pretty(&whole);
+            }
+            let mut answer = page.cut("trials", trials);
+            answer.insert("work".into(), json!(found.id));
+            answer.insert("title".into(), json!(found.title));
+            answer.insert("anchors".into(), json!(board.anchors));
+            answer.insert("harvest_role".into(), json!(board.harvest_role));
+            answer.insert("harvest_kinds".into(), json!(board.harvest_kinds));
+            answer.insert("series".into(), json!(board.series));
+            // The phrases a trial is written from are the long half of the
+            // board: left out of a summary, like the texts.
+            if !page.summary {
+                answer.insert(
+                    "choices".into(),
+                    serde_json::to_value(crate::lab::answer::choices_sheet(conn, &found)?)?,
+                );
+            }
+            pretty(&answer)
         }
 
         "propose_trials" => {
@@ -2554,8 +2764,7 @@ fn read_notes(
     config: &profile::config::ProfileConfig,
     filter: &NoteFilter,
     shelf: Option<&str>,
-    everything: bool,
-) -> Result<String> {
+) -> Result<Vec<Value>> {
     let shelves = crate::shelf::views(conn, profile_id)?;
     let only = match shelf {
         Some(named) => Some(
@@ -2599,15 +2808,46 @@ fn read_notes(
         }
         out.push(shown);
     }
-    if everything {
-        return pretty(&json!({
-            "shelves": shelves.iter().map(|view| json!({
-                "id": view.shelf.id, "name": view.shelf.name, "phrases": view.note_ids.len(),
-            })).collect::<Vec<_>>(),
-            "notes": out,
-        }));
+    Ok(out)
+}
+
+/// A note as a summary gives it: what it is and how much there is of it,
+/// without its body. A note with no title is called by its first words.
+fn note_summary(note: &Value) -> Value {
+    let body = note["body"].as_str().unwrap_or_default();
+    let title = match note["title"]
+        .as_str()
+        .filter(|title| !title.trim().is_empty())
+    {
+        Some(title) => title.to_owned(),
+        None => {
+            let first = body
+                .lines()
+                .find(|line| !line.trim().is_empty())
+                .unwrap_or("");
+            first.trim().chars().take(80).collect()
+        }
+    };
+    json!({
+        "id": note["id"], "title": title, "kind": note["kind"], "state": note["state"],
+        "tags": note["tags"], "work_id": note["work_id"],
+        "length": length_of(body), "updated_at": note["updated_at"],
+    })
+}
+
+/// A note by its id, or by its exact title.
+fn find_note(conn: &Connection, profile_id: &str, named: &str) -> Result<note::Note> {
+    if let Some(found) = note::get(conn, named)?.filter(|found| found.profile_id == profile_id) {
+        return Ok(found);
     }
-    pretty(&out)
+    let mut titled = note::list(conn, profile_id, &NoteFilter::default())?
+        .into_iter()
+        .filter(|found| found.title.as_deref().map(str::trim) == Some(named.trim()));
+    match (titled.next(), titled.next()) {
+        (Some(found), None) => Ok(found),
+        (Some(_), Some(_)) => Err(Error::refused("mcp.ambiguousNote").param("note", named)),
+        (None, _) => Err(Error::refused("mcp.unknownNote").param("note", named)),
+    }
 }
 
 /// The `canon` tool: the list of cards, one card through a lens, a search of
@@ -3814,6 +4054,147 @@ mod tests {
 
     fn args(value: Value) -> Map<String, Value> {
         value.as_object().cloned().unwrap()
+    }
+
+    /// A tool's answer, read back as the JSON it is.
+    fn read(conn: &Connection, name: &str, with: Value) -> Value {
+        serde_json::from_str(&run_tool(conn, &claude(), name, &args(with)).unwrap()).unwrap()
+    }
+
+    /// The long readings come a page at a time (FR-08 8.4): how many there
+    /// are, whether more follow, and the next page by its offset - so an
+    /// agent walks a record of thousands rather than swallowing it.
+    #[test]
+    fn a_long_reading_comes_a_page_at_a_time() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        for n in 1..=6 {
+            fixtures::song(&conn, &profile_id, &format!("Song {n}"));
+        }
+
+        let first = read(&conn, "catalogue", json!({ "limit": 3 }));
+        assert_eq!(first["total"], 7);
+        assert_eq!(
+            (first["limit"].clone(), first["offset"].clone()),
+            (json!(3), json!(0))
+        );
+        assert_eq!(first["has_more"], true);
+        assert_eq!(first["works"].as_array().unwrap().len(), 3);
+
+        let last = read(&conn, "catalogue", json!({ "limit": 3, "offset": 6 }));
+        assert_eq!(last["works"].as_array().unwrap().len(), 1);
+        assert_eq!(last["has_more"], false);
+
+        // Every work once across the pages, none twice.
+        let mut seen: Vec<String> = Vec::new();
+        for offset in [0, 3, 6] {
+            let page = read(&conn, "catalogue", json!({ "limit": 3, "offset": offset }));
+            seen.extend(
+                page["works"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|work| work["id"].as_str().unwrap().to_owned()),
+            );
+        }
+        seen.sort();
+        seen.dedup();
+        assert_eq!(seen.len(), 7);
+
+        // A filter narrows what is counted, not only what is shown.
+        let narrowed = read(&conn, "catalogue", json!({ "query": "song 1" }));
+        assert_eq!(narrowed["total"], 1);
+        // And a page can ask for no more than the most.
+        let greedy = read(&conn, "catalogue", json!({ "limit": 100_000 }));
+        assert_eq!(greedy["limit"], MOST);
+    }
+
+    /// A summary leaves the long texts out and says how long they are; one
+    /// entry is then read whole by its id or its name.
+    #[test]
+    fn a_summary_leaves_the_texts_out_and_one_entry_is_read_whole() {
+        let (conn, work_id) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let body = "a long thought about harbours\n".repeat(40);
+        let kept = note::create(
+            &conn,
+            &profile_id,
+            note::NewNote {
+                body: body.clone(),
+                title: Some("On harbours".into()),
+                tags: vec!["sea".into()],
+                ..note::NewNote::default()
+            },
+        )
+        .unwrap();
+        note::create(
+            &conn,
+            &profile_id,
+            note::NewNote {
+                body: "no title here, only a first line\nand a second".into(),
+                ..note::NewNote::default()
+            },
+        )
+        .unwrap();
+
+        let short = read(&conn, "notes", json!({ "summary": true }));
+        assert_eq!(short["total"], 2);
+        let listed = short["notes"].as_array().unwrap();
+        let harbours = listed
+            .iter()
+            .find(|one| one["id"] == json!(kept.id))
+            .unwrap();
+        assert!(harbours.get("body").is_none(), "a summary carries a body");
+        assert_eq!(harbours["title"], "On harbours");
+        assert_eq!(harbours["length"], body.chars().count());
+        assert_eq!(harbours["tags"], json!(["sea"]));
+        let untitled = listed
+            .iter()
+            .find(|one| one["id"] != json!(kept.id))
+            .unwrap();
+        assert_eq!(untitled["title"], "no title here, only a first line");
+        // With no question asked, the shelves are still said.
+        assert!(short.get("shelves").is_some());
+
+        // Whole, by id and by its exact title.
+        for named in [kept.id.as_str(), "On harbours"] {
+            let whole = read(&conn, "notes", json!({ "note": named }));
+            assert_eq!(whole["id"], json!(kept.id));
+            assert_eq!(whole["body"], json!(body));
+        }
+        let unknown = run_tool(
+            &conn,
+            &claude(),
+            "notes",
+            &args(json!({ "note": "No such" })),
+        );
+        assert_eq!(unknown.unwrap_err().reason().key, "refusal.mcp.unknownNote");
+
+        // The register: a word short, then whole with the works that carry it.
+        let term = crate::register::create(
+            &conn,
+            &profile_id,
+            crate::register::NewTerm {
+                word: "lines".into(),
+                note: Some("the song's own word".into()),
+                ..crate::register::NewTerm::default()
+            },
+        )
+        .unwrap();
+        let record = read(&conn, "register", json!({ "summary": true }));
+        assert_eq!(record["total"], 1);
+        let word = &record["terms"][0];
+        assert_eq!(word["word"], "lines");
+        assert!(word.get("note").is_none() && word.get("forms").is_none());
+        for named in [term.id.as_str(), "Lines"] {
+            let whole = read(&conn, "register", json!({ "term": named }));
+            assert_eq!(whole["note"], "the song's own word");
+            assert_eq!(
+                whole["works"][0]["work_id"],
+                json!(work_id),
+                "the work whose text says it: {whole}"
+            );
+        }
     }
 
     #[test]

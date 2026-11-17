@@ -3037,7 +3037,11 @@
       "unknownBrick": "No brick of this text's types is called “{{named}}”; `styles` lists them.",
       "ambiguousBrick": "More than one brick is called “{{named}}”; name one by id: {{ids}}.",
       "trialsNotArray": "`trials` has to be a list with at least one trial in it.",
-      "cardsNotArray": "`cards` must be a list of at least one card."
+      "cardsNotArray": "`cards` must be a list of at least one card.",
+      "unknownNote": "No note with id or title “{{note}}”; “notes” lists them.",
+      "ambiguousNote": "More than one note is titled “{{note}}”; name one by id.",
+      "unknownTerm": "No word “{{term}}” in the record; “register” lists them.",
+      "unknownTrial": "No trial “{{trial}}” on this board; “trials” lists them."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
