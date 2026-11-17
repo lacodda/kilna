@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.112.0] - 2026-11-16
+
+Profiles, whole. Settings → Profile edits the whole document, laid out in
+parts - the craft, each kind of work, the fields, the actions. Kinds of work,
+axes, tiers, statuses, roles, kinds of release, fields, flags and the stops of
+the dial are added under a key, taken out and dragged into order; an axis has
+its scale, its kind of answer, what it asks, the answers of a choice and its
+rubric; a kind of release weighs the axes its own way; an action can be about,
+and become, everything the backend reads. A word is edited in the window's
+language and keeps its other one. What would not save is said as it is typed,
+beside the row it is about, and Save waits for it: the validator's hundred and
+fifty sentences travel as codes with their place (ADR 0080), so a Russian
+window reads them in Russian - as it now reads why a plugin cannot run, and
+the body of a proposal an agent sent. A profile is a document that travels
+(ADR 0079): written to a file, read back as a draft, and kept as a type new
+spaces are made of - with an empty type shipped for a craft kilna does not
+ship. Blog, Novel and Podcast speak Russian whole, as Studio does, and a
+stored word still reading as it shipped in English gains its Russian at
+start. A field can be a list - the anchors of an experiment are one; a scene
+has a layer beside its kind of shot; an entry shipped later stands after its
+shipped neighbour in every list; the critiques read the version before and
+the last score, and Studio gains "Place in the album", which reads the
+collection.
+
+### Features
+- Edit, check, keep and move the whole profile
+
 ## [0.111.0] - 2026-11-15
 
 The calendar and the queue. A clip, a short and an audio release carry the
