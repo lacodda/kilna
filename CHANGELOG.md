@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.115.0] - 2026-11-17
+
+A prompt without ghosts. A cover's frame places a subject, not a hero: the
+picture is of a person, a thing or nobody, and a cover with no hero never
+says hero, head, chest, face, figure, eyes or skin - not in the framing, not
+in where the title is set (ADR 0084). The frame is said once, as one FRAMING
+paragraph of geometry, without the motifs every layout used to add. The
+accent is a colour unless a disc is switched on; a background is the
+picture's palette unless taken as a flat ground with no scenery. A detail of
+the channel with no English for a generator and a lettering on a cover with
+no title are left out and said in the tab; an empty slot in brackets is no
+longer reported; a title sent to a second prompt keeps no room in the first
+unless asked. The frame under a track and a scene of a clip follow the same
+rules, a frame's own words are said with the scene, and a close look is
+drawn inside the scheme. Ten prompts are kept whole in the repository, so a
+reworded sentence shows as a difference before it ships. Covers built before
+this read differently; the prompt last copied out stays on the cover.
+
+### Features
+- Place a subject, not a hero, and say geometry alone
+
 ## [0.114.0] - 2026-11-17
 
 A safety net. kilna keeps a copy of a space's database by itself: once a day,
