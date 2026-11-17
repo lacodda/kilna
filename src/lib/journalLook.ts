@@ -122,6 +122,7 @@ const KIND_OF_PREFIX: Readonly<Record<string, Kind>> = {
   cut: 'cut',
   link: 'link',
   asset: 'file',
+  file: 'file',
   note: 'note',
   comment: 'comment',
   style: 'style',
