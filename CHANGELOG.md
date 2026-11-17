@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.117.0] - 2026-11-17
+
+A card without leftovers. A work's card shows the tabs its kind has something
+for. The Conception tab stands for a kind prepared on a conception, and for a
+work that already holds a note; a clip, an audio release and a short open
+without it. Comments are a tab of what goes out: a song and an experiment
+have none, and a song no longer sums up its publications' comments - they are
+on each publication and on the Comments screen. An experiment's Links appear
+with its first link. A song's own facts - tempo, key, mood, vocal, language,
+premise - stand on the song's card alone, not on its clip, its audio release
+and every short, and an audio release names no version roles; a stored Studio
+profile still as it shipped follows, and what you changed stays yours. A slot
+that went out says so in its dialog and always leads to the work, link or no
+link. The Release and Repeats widgets stand at their natural height, and the
+task preview scrolls once.
+
+### Features
+- Drop the tabs and fields a kind has nothing for
+
+### Testing
+- Give the checklist's audio kind a role of its own
+- An audio release names no roles and none of its song's fields
+
 ## [0.116.0] - 2026-11-17
 
 An agent that mends, not only adds. Through `kilna --mcp` a note that is
