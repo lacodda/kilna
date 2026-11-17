@@ -7,7 +7,10 @@ import {
   entryOfAsset,
   entryOfFolderFile,
   loadLook,
+  neighbour,
+  opensInSystem,
   saveLook,
+  sightOf,
   type FileEntry,
   type FilesLook,
 } from '@/lib/fileList'
@@ -224,5 +227,43 @@ describe('the look', () => {
         }),
       ),
     ).toEqual({ ...DEFAULT_LOOK, only: ['video'] })
+  })
+})
+
+describe('looking at a file', () => {
+  it('shows what the window can draw, and says what is known of the rest', () => {
+    for (const [name, sight] of [
+      ['cover.png', 'image'],
+      ['logo.svg', 'image'],
+      ['take.mp4', 'video'],
+      // Filed as a clip by its ending, and not one the window plays.
+      ['old.avi', 'other'],
+      ['mix.wav', 'sound'],
+      ['lyrics.txt', 'text'],
+      ['subs.srt', 'text'],
+      ['notes.md', 'text'],
+      ['data.json', 'text'],
+      ['brief.pdf', 'pdf'],
+      ['stems.zip', 'other'],
+      ['brief.docx', 'other'],
+    ] as const) {
+      expect(sightOf(entry(name)), name).toBe(sight)
+    }
+  })
+
+  it('asks the system to open only what the backend will: never a program', () => {
+    expect(['a.png', 'a.mp4', 'a.wav', 'a.pdf', 'a.txt', 'a.md'].every(opensInSystem)).toBe(true)
+    expect(['a.exe', 'a.zip', 'a.srt', 'a.bat', 'a'].some(opensInSystem)).toBe(false)
+  })
+
+  it('pages through the files that are looked at, going round at either end', () => {
+    const files = [entry('a.png'), entry('mix.wav'), entry('b.mp4'), entry('c.txt')]
+    // A sound is heard, not looked at: the arrows step over it.
+    expect(neighbour(files, 'a.png', 1)?.name).toBe('b.mp4')
+    expect(neighbour(files, 'c.txt', 1)?.name).toBe('a.png')
+    expect(neighbour(files, 'a.png', -1)?.name).toBe('c.txt')
+    // Alone, or not among them, there is nowhere to go.
+    expect(neighbour([entry('a.png'), entry('mix.wav')], 'a.png', 1)).toBeUndefined()
+    expect(neighbour(files, 'gone.png', 1)).toBeUndefined()
   })
 })

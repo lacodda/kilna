@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { cloneElement, type ReactElement, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CircleCheck, File, Film, Image as ImageIcon, Music, Play } from 'lucide-react'
 import type { FileCategory, FileEntry, FileGroup, FileRole, FileView } from '@/lib/fileList'
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table'
 import { TileButton } from '@/components/ui/tile-button'
 import { MediaPreview } from '@/components/MediaPreview'
+import { RowContextMenu, type RowAction } from '@/components/RowMenu'
 
 interface Props {
   groups: FileGroup[]
@@ -29,6 +30,12 @@ interface Props {
   openLabel: (entry: FileEntry) => string
   /** What else can be done with a file: the buttons beside it. */
   actions?: (entry: FileEntry) => ReactNode
+  /** Everything that can be done with a file, by name: the menu a right
+   *  click on it opens. */
+  menu?: (entry: FileEntry) => RowAction[]
+  /** The file the card's player has on, by its path: it is marked, so the
+   *  one that is heard is seen among forty. */
+  playing?: string | null
 }
 
 const CATEGORY_ICON: Record<FileCategory, typeof File> = {
@@ -54,6 +61,8 @@ export function FileEntries({
   onOpen,
   openLabel,
   actions,
+  menu,
+  playing,
 }: Props) {
   return (
     <div className="flex flex-col gap-3">
@@ -73,6 +82,8 @@ export function FileEntries({
               onOpen={onOpen}
               openLabel={openLabel}
               actions={actions}
+              menu={menu}
+              playing={playing}
             />
           ) : view === 'list' ? (
             <ul className="flex flex-col">
@@ -83,6 +94,8 @@ export function FileEntries({
                   onOpen={onOpen}
                   openLabel={openLabel}
                   actions={actions}
+                  menu={menu}
+                  playing={playing}
                 />
               ))}
             </ul>
@@ -103,6 +116,8 @@ export function FileEntries({
                   onOpen={onOpen}
                   openLabel={openLabel}
                   actions={actions}
+                  menu={menu}
+                  playing={playing}
                 />
               ))}
             </ul>
@@ -113,7 +128,36 @@ export function FileEntries({
   )
 }
 
-type One = Pick<Props, 'onOpen' | 'openLabel' | 'actions'> & { entry: FileEntry }
+type One = Pick<Props, 'onOpen' | 'openLabel' | 'actions' | 'menu' | 'playing'> & {
+  entry: FileEntry
+}
+
+/**
+ * The element a file is drawn as, with its menu on a right click when it has
+ * one. The menu's trigger is the element itself, not a wrapper around it: a
+ * box put between a table and its row is not a table any more.
+ */
+function Held({
+  entry,
+  menu,
+  render,
+  children,
+}: {
+  entry: FileEntry
+  menu: Props['menu']
+  render: ReactElement<Record<string, unknown>>
+  children: ReactNode
+}) {
+  if (menu === undefined) return cloneElement(render, undefined, children)
+  return (
+    <RowContextMenu actions={menu(entry)} render={render}>
+      {children}
+    </RowContextMenu>
+  )
+}
+
+/** The mark of the file that is playing. */
+const PLAYING = 'ring-1 ring-accent ring-inset'
 
 /**
  * A file as a tile: what it looks like, what it is called, and what can be
@@ -124,10 +168,29 @@ type One = Pick<Props, 'onOpen' | 'openLabel' | 'actions'> & { entry: FileEntry 
  * square, a reference a tall screenshot, and a gallery that crops both to
  * one rectangle shows neither.
  */
-function EntryTile({ entry, large, onOpen, openLabel, actions }: One & { large: boolean }) {
+function EntryTile({
+  entry,
+  large,
+  onOpen,
+  openLabel,
+  actions,
+  menu,
+  playing,
+}: One & { large: boolean }) {
   const { t } = useTranslation()
   return (
-    <li className="group relative overflow-hidden rounded-md border border-line bg-raise">
+    <Held
+      entry={entry}
+      menu={menu}
+      render={
+        <li
+          className={cn(
+            'group relative overflow-hidden rounded-md border border-line bg-raise',
+            playing === entry.path && PLAYING,
+          )}
+        />
+      }
+    >
       {/* The card around it draws the edge and the corners, so the tile
           keeps neither; the focus ring is drawn inward to stay inside the
           card's clipping. */}
@@ -185,15 +248,26 @@ function EntryTile({ entry, large, onOpen, openLabel, actions }: One & { large: 
           {actions(entry)}
         </span>
       )}
-    </li>
+    </Held>
   )
 }
 
 /** A file as a line of a list: its kind, its name, what it is, its size. */
-function EntryRow({ entry, onOpen, openLabel, actions }: One) {
+function EntryRow({ entry, onOpen, openLabel, actions, menu, playing }: One) {
   const Icon = CATEGORY_ICON[entry.category]
   return (
-    <li className="group flex min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5 hover:bg-soft">
+    <Held
+      entry={entry}
+      menu={menu}
+      render={
+        <li
+          className={cn(
+            'group flex min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5 hover:bg-soft',
+            playing === entry.path && PLAYING,
+          )}
+        />
+      }
+    >
       <Icon aria-hidden className="size-3.5 shrink-0 text-faint" />
       <Button
         variant="link"
@@ -214,7 +288,7 @@ function EntryRow({ entry, onOpen, openLabel, actions }: One) {
           {formatBytes(entry.size)}
         </span>
       </span>
-    </li>
+    </Held>
   )
 }
 
@@ -224,7 +298,11 @@ function EntryTable({
   onOpen,
   openLabel,
   actions,
-}: Pick<Props, 'onOpen' | 'openLabel' | 'actions'> & { entries: FileEntry[] }) {
+  menu,
+  playing,
+}: Pick<Props, 'onOpen' | 'openLabel' | 'actions' | 'menu' | 'playing'> & {
+  entries: FileEntry[]
+}) {
   const { t } = useTranslation()
   return (
     // Fixed widths: each group is a table of its own, and columns sized by
@@ -257,7 +335,12 @@ function EntryTable({
           const Icon = CATEGORY_ICON[entry.category]
           const ending = extensionOf(entry.name)
           return (
-            <TableRow key={entry.key} className="group">
+            <Held
+              key={entry.key}
+              entry={entry}
+              menu={menu}
+              render={<TableRow className="group" selected={playing === entry.path} />}
+            >
               <TableCell className="min-w-0">
                 <span className="flex min-w-0 items-center gap-2">
                   <Icon aria-hidden className="size-3.5 shrink-0 text-faint" />
@@ -293,7 +376,7 @@ function EntryTable({
                   </span>
                 </TableCell>
               )}
-            </TableRow>
+            </Held>
           )
         })}
       </TableBody>

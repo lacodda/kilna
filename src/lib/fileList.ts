@@ -239,3 +239,65 @@ function sorted(entries: FileEntry[], sort: SortBy, descending: boolean): FileEn
     return descending && !unknownLast(a, b) ? -order : order
   })
 }
+
+/** What looking at a file inside kilna shows (FR-14): the picture, the
+ *  clip, the text, the document - or, for anything else, what is known of
+ *  it. A sound is not looked at: it plays in the card's player. */
+export type Sight = 'image' | 'video' | 'text' | 'pdf' | 'sound' | 'other'
+
+/** The endings read inside the window as text - the list the backend holds
+ *  the reading to (`folder::TEXTS`). */
+const TEXTS = ['txt', 'md', 'srt', 'vtt', 'lrc', 'json', 'csv', 'log', 'yaml', 'yml']
+
+/** What the window itself can draw of the pictures and clips: a file filed
+ *  as one by its ending and not among these is shown as what is known. */
+const DRAWN = [
+  'png',
+  'jpg',
+  'jpeg',
+  'webp',
+  'gif',
+  'avif',
+  'svg',
+  'bmp',
+  'mp4',
+  'webm',
+  'mov',
+  'm4v',
+]
+
+export function sightOf(entry: Pick<FileEntry, 'name' | 'category'>): Sight {
+  const ending = extensionOf(entry.name)
+  if (entry.category === 'audio') return 'sound'
+  if (entry.category === 'image') return DRAWN.includes(ending) ? 'image' : 'other'
+  if (entry.category === 'video') return DRAWN.includes(ending) ? 'video' : 'other'
+  if (ending === 'pdf') return 'pdf'
+  return TEXTS.includes(ending) ? 'text' : 'other'
+}
+
+/** The endings the system may be asked to open a file of: what the backend
+ *  will open (`folder::OPENABLE`) - a picture, a clip, a sound, a plain
+ *  document, never a program. */
+const OPENABLE = [
+  ...['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'],
+  ...['mp4', 'webm', 'mov', 'm4v'],
+  ...['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'oga', 'opus'],
+  ...['pdf', 'txt', 'md'],
+]
+
+export function opensInSystem(name: string): boolean {
+  return OPENABLE.includes(extensionOf(name))
+}
+
+/** The entry `step` places from `key` among those that are looked at - the
+ *  sounds left out - going round at either end. */
+export function neighbour(
+  entries: readonly FileEntry[],
+  key: string,
+  step: 1 | -1,
+): FileEntry | undefined {
+  const seen = entries.filter((one) => sightOf(one) !== 'sound')
+  const at = seen.findIndex((one) => one.key === key)
+  if (at === -1 || seen.length < 2) return undefined
+  return seen[(at + step + seen.length) % seen.length]
+}

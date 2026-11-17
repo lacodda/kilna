@@ -1902,9 +1902,24 @@ version = "0.2.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26699905cc795a23e3949585cc7ba3ee8ade090872a27e4316304a777297894a"
 dependencies = [
- "jiff-core",
- "jiff-static",
+ "jiff-core 0.1.5",
+ "jiff-static 0.2.43",
  "jiff-tzdb-platform",
+ "log",
+ "portable-atomic",
+ "portable-atomic-util",
+ "serde_core",
+ "windows-link",
+]
+
+[[package]]
+name = "jiff"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cc767b5763de45e810109520123bb2829a653f3a7ed9be40b2bc4f81158f595"
+dependencies = [
+ "jiff-core 1.0.0",
+ "jiff-static 1.0.0",
  "log",
  "portable-atomic",
  "portable-atomic-util",
@@ -1922,15 +1937,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "jiff-core"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "894f7ac42105f584100691b3bf6e6b92dd12fcfa225f6c397f95c8a94b47b68f"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "jiff-static"
 version = "0.2.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b4ff49b2887190c760b86207b55cdcaabbdecaf7a0660d68aa2ed6f652abf0a"
 dependencies = [
- "jiff-core",
+ "jiff-core 0.1.5",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "jiff-static"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "955491488dc99b572ea6d67b172dcd98787d00744b1fb44a5689b4e6413695a6"
+dependencies = [
+ "jiff-core 1.0.0",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -2055,6 +2091,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "time",
+ "trash",
  "ts-rs",
  "uuid",
  "windows",
@@ -3424,7 +3461,7 @@ dependencies = [
  "hex",
  "indexmap 1.9.3",
  "indexmap 2.14.2",
- "jiff",
+ "jiff 0.2.43",
  "schemars 0.9.0",
  "schemars 1.2.3",
  "serde_core",
@@ -4514,6 +4551,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "trash"
+version = "5.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7363f9516b65bd2e855f4e6c3338b1a98efc2773c25349c958908897e1170ded"
+dependencies = [
+ "jiff 1.0.0",
+ "libc",
+ "log",
+ "objc2",
+ "objc2-foundation",
+ "once_cell",
+ "percent-encoding",
+ "scopeguard",
+ "urlencoding",
+ "windows",
+ "windows-core",
+]
+
+[[package]]
 name = "tray-icon"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4617,6 +4673,12 @@ dependencies = [
  "serde",
  "serde_derive",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "urlpattern"

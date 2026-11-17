@@ -924,6 +924,139 @@ pub fn may_open(path: &Path, places: &[PathBuf]) -> bool {
         && places.iter().any(|place| path.starts_with(place))
 }
 
+/// The endings of what is read inside the window as text: a lyric, a
+/// subtitle track, notes, a table, a log.
+pub const TEXTS: &[&str] = &[
+    "txt", "md", "srt", "vtt", "lrc", "json", "csv", "log", "yaml", "yml",
+];
+
+/// How much of a text the window is given: enough for a long lyric and a
+/// film's subtitles, not a log of a week.
+pub const MOST_TEXT: u64 = 512 * 1024;
+
+/// A text read for the viewer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+pub struct TextFile {
+    pub text: String,
+    /// Whether the file is longer than what was read.
+    pub truncated: bool,
+    /// The file's whole size in bytes.
+    pub size: u64,
+}
+
+/// Whether `path` lies under one of `places` with no step that climbs: the
+/// folders kilna looks at, and nothing beside them.
+fn within(path: &Path, places: &[PathBuf]) -> bool {
+    !path
+        .components()
+        .any(|step| matches!(step, Component::ParentDir | Component::CurDir))
+        && places.iter().any(|place| path.starts_with(place))
+}
+
+/// Read a text for the viewer (FR-14): only a file under one of `places`,
+/// only one of [`TEXTS`], and no more than [`MOST_TEXT`] of it. Bytes that
+/// are not UTF-8 are shown as the mark for one rather than refusing the
+/// file - a subtitle track in an old encoding is still worth a look.
+pub fn read_text(path: &Path, places: &[PathBuf]) -> Result<TextFile> {
+    use std::io::Read as _;
+    let ending = path
+        .extension()
+        .map(|ending| ending.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    let shown = path.to_string_lossy().into_owned();
+    if !within(path, places) || !TEXTS.contains(&ending.as_str()) {
+        return Err(Error::refused("folder.notReadable").param("path", shown));
+    }
+    let failed = |cause: std::io::Error| {
+        Error::refused("folder.readFailed")
+            .param("path", path.to_string_lossy().into_owned())
+            .param("cause", cause.to_string())
+    };
+    let file = std::fs::File::open(path).map_err(failed)?;
+    let size = file.metadata().map_err(failed)?.len();
+    let mut bytes = Vec::new();
+    file.take(MOST_TEXT)
+        .read_to_end(&mut bytes)
+        .map_err(failed)?;
+    Ok(TextFile {
+        text: String::from_utf8_lossy(&bytes).into_owned(),
+        truncated: size > MOST_TEXT,
+        size,
+    })
+}
+
+/// A file of a work's folder, by its path inside it: there, and a file.
+pub fn file_in(folder: &Path, relative: &str) -> Result<PathBuf> {
+    let relative = inside(relative)?;
+    let path = folder.join(relative.replace('/', std::path::MAIN_SEPARATOR_STR));
+    if !path.is_file() {
+        return Err(Error::refused("folder.fileMissing").param("path", relative));
+    }
+    Ok(path)
+}
+
+/// Give a file of a work's folder another name, in the folder it lies in
+/// (FR-14). Answers with its new path inside the work's folder.
+///
+/// A name, not a place: no step, no character a file may not hold, no name
+/// the system keeps for a device. Never onto another file - a rename that
+/// lands on a take already there would be a take lost. The one thing kilna
+/// changes in a folder it otherwise only looks at, and only when asked to.
+pub fn rename_file(folder: &Path, relative: &str, name: &str) -> Result<String> {
+    let from = file_in(folder, relative)?;
+    let name = name.trim();
+    let stem = name.split('.').next().unwrap_or_default();
+    let bad = name.is_empty()
+        || name.chars().any(is_forbidden)
+        || name.ends_with(['.', ' '])
+        || name.chars().all(|c| c == '.')
+        || name.chars().count() > LONGEST_VALUE
+        || RESERVED
+            .iter()
+            .any(|reserved| stem.eq_ignore_ascii_case(reserved));
+    if bad {
+        return Err(Error::refused("folder.badName").param("name", name));
+    }
+    let to = from.with_file_name(name);
+    let relative = inside(relative)?;
+    let renamed = match relative.rfind('/') {
+        Some(cut) => format!("{}/{name}", &relative[..cut]),
+        None => name.to_owned(),
+    };
+    if to == from {
+        return Ok(renamed);
+    }
+    // The same file under another case is this file, where names are told
+    // apart by case or not; any other file there is somebody else's.
+    let same_file = to.to_string_lossy().to_lowercase() == from.to_string_lossy().to_lowercase();
+    if to.exists() && !same_file {
+        return Err(Error::refused("folder.nameTaken").param("name", name));
+    }
+    std::fs::rename(&from, &to).map_err(|cause| {
+        Error::refused("folder.renameFailed")
+            .param("name", name)
+            .param("cause", cause.to_string())
+    })?;
+    Ok(renamed)
+}
+
+/// Copy a file kilna looks at to a place the person chose - "save a copy".
+/// Only a file under one of `places`; where it goes is the person's answer
+/// to the system's own dialog, which has already asked about writing over.
+pub fn save_copy(source: &Path, places: &[PathBuf], destination: &Path) -> Result<()> {
+    if !within(source, places) || !source.is_file() {
+        return Err(Error::refused("folder.notReadable")
+            .param("path", source.to_string_lossy().into_owned()));
+    }
+    std::fs::copy(source, destination)
+        .map(|_| ())
+        .map_err(|cause| {
+            Error::refused("folder.copyFailed")
+                .param("path", destination.to_string_lossy().into_owned())
+                .param("cause", cause.to_string())
+        })
+}
+
 /// When a file last changed, as RFC 3339 - what a listing says of a file in
 /// a work's folder and of one kept in the workspace alike.
 pub fn stamp(moment: std::time::SystemTime) -> Option<String> {
@@ -1329,6 +1462,149 @@ mod tests {
         let steps = steps_of("*.mp4").unwrap();
         let (_, relative) = newest(folder, &steps).unwrap();
         assert_eq!(relative, "final.mp4");
+    }
+
+    /// A text is read for the viewer only where kilna looks, only when it is
+    /// one, and only so much of it (FR-14).
+    #[test]
+    fn a_text_is_read_under_the_media_folder_and_nowhere_else() {
+        let dir = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let places = [dir.path().to_path_buf()];
+        let lyric = dir.path().join("lyrics.txt");
+        std::fs::write(&lyric, "Tide\nturns").unwrap();
+
+        let read = read_text(&lyric, &places).unwrap();
+        assert_eq!(
+            (read.text.as_str(), read.truncated, read.size),
+            ("Tide\nturns", false, 10)
+        );
+
+        // Not UTF-8: shown, with the mark where a letter could not be read.
+        let old = dir.path().join("subs.srt");
+        std::fs::write(&old, [b'a', 0xFF, b'b']).unwrap();
+        assert_eq!(read_text(&old, &places).unwrap().text, "a\u{FFFD}b");
+
+        // Longer than the viewer shows: the beginning, and that there is more.
+        let long = dir.path().join("week.log");
+        std::fs::write(&long, vec![b'x'; usize::try_from(MOST_TEXT).unwrap() + 10]).unwrap();
+        let read = read_text(&long, &places).unwrap();
+        assert!(read.truncated);
+        assert_eq!(read.text.len() as u64, MOST_TEXT);
+        assert_eq!(read.size, MOST_TEXT + 10);
+
+        let refused = |path: &Path| {
+            read_text(path, &places)
+                .unwrap_err()
+                .refusal()
+                .map(|refusal| refusal.code)
+        };
+        // Beside the media folder, a path that climbs out of it, and a file
+        // that is not a text.
+        let elsewhere = outside.path().join("secret.txt");
+        std::fs::write(&elsewhere, "no").unwrap();
+        assert_eq!(refused(&elsewhere), Some("folder.notReadable"));
+        assert_eq!(
+            refused(&dir.path().join("..").join("secret.txt")),
+            Some("folder.notReadable")
+        );
+        let program = dir.path().join("run.exe");
+        std::fs::write(&program, "MZ").unwrap();
+        assert_eq!(refused(&program), Some("folder.notReadable"));
+        assert_eq!(
+            refused(&dir.path().join("gone.txt")),
+            Some("folder.readFailed")
+        );
+    }
+
+    /// A file of the folder is renamed where it lies, to a name and not a
+    /// place, and never onto another file (FR-14).
+    #[test]
+    fn a_file_is_renamed_in_its_folder_and_never_onto_another() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path();
+        std::fs::create_dir_all(folder.join("scenes")).unwrap();
+        std::fs::write(folder.join("scenes").join("take 1.mp4"), b"one").unwrap();
+        std::fs::write(folder.join("scenes").join("take 2.mp4"), b"two").unwrap();
+        std::fs::write(folder.join("final.mp4"), b"final").unwrap();
+
+        assert_eq!(
+            rename_file(folder, "scenes/take 1.mp4", "  opening.mp4 ").unwrap(),
+            "scenes/opening.mp4"
+        );
+        assert!(folder.join("scenes").join("opening.mp4").is_file());
+        assert!(!folder.join("scenes").join("take 1.mp4").exists());
+        assert_eq!(
+            rename_file(folder, "final.mp4", "Final.mp4").unwrap(),
+            "Final.mp4"
+        );
+        // To the name it has: nothing to do, and nothing wrong.
+        assert_eq!(
+            rename_file(folder, "Final.mp4", "Final.mp4").unwrap(),
+            "Final.mp4"
+        );
+
+        let refused = |relative: &str, name: &str| {
+            rename_file(folder, relative, name)
+                .unwrap_err()
+                .refusal()
+                .map(|refusal| refusal.code)
+        };
+        // Onto the take beside it: both stay as they are.
+        assert_eq!(
+            refused("scenes/opening.mp4", "take 2.mp4"),
+            Some("folder.nameTaken")
+        );
+        assert_eq!(
+            std::fs::read(folder.join("scenes").join("take 2.mp4")).unwrap(),
+            b"two"
+        );
+        for name in [
+            "",
+            "  ",
+            "a/b.mp4",
+            "..\\up.mp4",
+            "what?.mp4",
+            "CON.mp4",
+            "ends.",
+            "..",
+        ] {
+            assert_eq!(
+                refused("scenes/opening.mp4", name),
+                Some("folder.badName"),
+                "{name:?}"
+            );
+        }
+        assert_eq!(
+            refused("scenes/gone.mp4", "x.mp4"),
+            Some("folder.fileMissing")
+        );
+        assert_eq!(
+            refused("../outside.mp4", "x.mp4"),
+            Some("folder.fileOutside")
+        );
+        assert_eq!(refused("scenes", "x"), Some("folder.fileMissing"));
+    }
+
+    /// A copy is saved of what kilna looks at, and of nothing else.
+    #[test]
+    fn a_copy_is_saved_only_of_a_file_under_the_media_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let places = [dir.path().to_path_buf()];
+        let mix = dir.path().join("mix.wav");
+        std::fs::write(&mix, b"RIFF").unwrap();
+        let to = outside.path().join("copy.wav");
+
+        save_copy(&mix, &places, &to).unwrap();
+        assert_eq!(std::fs::read(&to).unwrap(), b"RIFF");
+        assert!(mix.is_file(), "a copy: the file stays where it was");
+
+        let refused = save_copy(&to, &places, &dir.path().join("in.wav")).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|refusal| refusal.code),
+            Some("folder.notReadable")
+        );
     }
 
     /// `{n}` reads the work's number among its kind made from the same

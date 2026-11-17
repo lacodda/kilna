@@ -4,8 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { Image as ImageIcon, Paperclip, Upload, X } from 'lucide-react'
-import { attachAsset, detachAsset } from '@/lib/api/assets'
-import { openMedia } from '@/lib/api/folders'
+import { attachAsset, chooseCover, detachAsset } from '@/lib/api/assets'
 import type { Asset, Work } from '@/lib/api/types'
 import {
   arrange,
@@ -14,7 +13,9 @@ import {
   categoryOf,
   entryOfAsset,
   loadLook,
+  opensInSystem,
   saveLook,
+  sightOf,
   type FileCategory,
   type FileEntry,
   type FilesLook,
@@ -33,9 +34,12 @@ import { Frame } from '@/components/ui/frame'
 import { Scroll } from '@/components/Scroll'
 import { Loaded } from '@/components/Loaded'
 import { usePlayer } from '@/features/work/player'
+import type { RowAction } from '@/components/RowMenu'
 import { FileEntries } from '@/features/work/tabs/files/FileEntries'
+import { FileViewer } from '@/features/work/tabs/files/FileViewer'
 import { FilesToolbar } from '@/features/work/tabs/files/FilesToolbar'
 import { FolderSection } from '@/features/work/tabs/files/FolderSection'
+import { useFileGestures } from '@/features/work/tabs/files/useFileGestures'
 
 interface Props {
   work: Work
@@ -74,6 +78,9 @@ export function FilesTab({ work }: Props) {
     saveLook(next)
   }
   const player = usePlayer()
+  const gestures = useFileGestures()
+  // The attached file open in the viewer, by its key.
+  const [viewing, setViewing] = useState<string | null>(null)
 
   const files = useQuery(queries.assets(work.id))
   // Read here as well as in the section that draws it, from one cache: the
@@ -112,6 +119,14 @@ export function FilesTab({ work }: Props) {
       setLeaving(null)
       say.ok(t('files.detached'))
     },
+  })
+
+  // An attached picture made the cover: the one the work wears from now on.
+  const wear = useAppMutation({
+    mutationFn: (assetId: string) => chooseCover(assetId),
+    failure: 'files.attachFailed',
+    refresh: [keys.assetsFor(work.id), keys.covers],
+    onSuccess: () => say.ok(t('files.menu.coverSet')),
   })
 
   /** Ask for files and attach them - the other way in is dropping them on
@@ -182,19 +197,57 @@ export function FilesTab({ work }: Props) {
     return counted
   }, [entries, folder.data?.files])
 
-  // A sound is played here, in the card; everything else opens where the
-  // system opens it.
+  // A sound is played here, in the card's player; everything else is looked
+  // at here too, in the viewer (FR-14) - the program the system opens it
+  // with is one press further, for working on it.
   const openEntry = (entry: FileEntry) => {
-    if (entry.category === 'audio' && player !== null) {
+    if (sightOf(entry) === 'sound' && player !== null) {
       player.play(entry.path)
       return
     }
-    openMedia(entry.path).catch((cause: unknown) => say.failed(cause))
+    setViewing(entry.key)
   }
   const openLabel = (entry: FileEntry) =>
-    entry.category === 'audio'
+    sightOf(entry) === 'sound'
       ? t('player.play', { name: entry.name })
-      : t('folder.open', { name: entry.name })
+      : t('files.menu.viewNamed', { name: entry.name })
+
+  // Everything an attached file can have done to it, by name: what a right
+  // click on it offers.
+  const menuOf = (entry: FileEntry): RowAction[] => [
+    {
+      key: 'view',
+      label: sightOf(entry) === 'sound' ? t('files.menu.play') : t('files.menu.view'),
+      onSelect: () => openEntry(entry),
+    },
+    ...(opensInSystem(entry.name)
+      ? [
+          {
+            key: 'outside',
+            label: t('viewer.openOutside'),
+            onSelect: () => gestures.openOutside(entry),
+          },
+        ]
+      : []),
+    { key: 'reveal', label: t('folder.reveal'), onSelect: () => gestures.reveal(entry) },
+    { key: 'save', label: t('files.menu.saveCopy'), onSelect: () => gestures.saveCopy(entry) },
+    { key: 'path', label: t('files.menu.copyPath'), onSelect: () => gestures.copyPath(entry) },
+    ...(covered && entry.category === 'image' && !entry.roles.includes('cover')
+      ? [
+          {
+            key: 'cover',
+            label: t('files.menu.setCover'),
+            onSelect: () => wear.mutate(entry.key),
+          },
+        ]
+      : []),
+    {
+      key: 'remove',
+      label: t('files.detach'),
+      danger: true,
+      onSelect: () => setLeaving(all.find((asset) => asset.id === entry.key) ?? null),
+    },
+  ]
 
   return (
     <Frame
@@ -262,6 +315,8 @@ export function FilesTab({ work }: Props) {
                 }
                 onOpen={openEntry}
                 openLabel={openLabel}
+                menu={menuOf}
+                playing={player?.selected}
                 actions={(entry) => (
                   <Button
                     variant="icon"
@@ -283,6 +338,14 @@ export function FilesTab({ work }: Props) {
         </Loaded>
         <FolderSection work={work} look={look} />
       </Scroll>
+
+      <FileViewer
+        entries={groups.flatMap((group) => group.entries)}
+        current={viewing}
+        onChange={setViewing}
+        onOpenOutside={gestures.openOutside}
+        onReveal={gestures.reveal}
+      />
 
       {/* Asked, because nothing brings it back: the file leaves the workspace
           with its row, outside the trash and outside the undo. The one

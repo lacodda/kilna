@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { WorkFolder } from '@/lib/api/types'
+import type { TextFile, WorkFolder } from '@/lib/api/types'
 
 // Folders on disk the workspace looks at (ADR 0057): the media folder this
 // machine keeps for the open workspace, and each work's folder under it.
@@ -20,3 +20,17 @@ export const mediaDirectory = () => invoke<string>('media_directory')
 /** Open a picture, a clip, a sound or a document kilna looks at in the
     program the system opens it with. Anything else is refused by the backend. */
 export const openMedia = (path: string) => invoke<void>('open_media', { path })
+/** A text read for the viewer: a lyric, subtitles, notes. Only a text under
+    the media folder or among the workspace's own files, and only so much
+    of it - the answer says when there is more. */
+export const readTextFile = (path: string) => invoke<TextFile>('read_text_file', { path })
+/** Save a copy of a file kilna looks at where the person chose. */
+export const saveFileCopy = (source: string, destination: string) =>
+  invoke<void>('save_file_copy', { source, destination })
+/** Rename a file of a work's folder, by its path inside it. Refused onto a
+    name that is taken; a finished file chosen by hand follows its name. */
+export const renameFolderFile = (workId: string, relative: string, name: string) =>
+  invoke<WorkFolder>('rename_folder_file', { workId, relative, name })
+/** Move a file of a work's folder to the system's recycle bin. */
+export const trashFolderFile = (workId: string, relative: string) =>
+  invoke<WorkFolder>('trash_folder_file', { workId, relative })

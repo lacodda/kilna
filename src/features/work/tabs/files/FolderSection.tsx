@@ -1,14 +1,20 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { CircleCheck, Copy, FolderOpen, RefreshCw, Undo2 } from 'lucide-react'
 import { attachAsset } from '@/lib/api/assets'
-import { openMedia, openWorkFolder } from '@/lib/api/folders'
+import { openWorkFolder, renameFolderFile, trashFolderFile } from '@/lib/api/folders'
 import type { FinishedFile, FolderFile, Work, WorkFolder } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
-import { arrange, entryOfFolderFile, type FileEntry, type FilesLook } from '@/lib/fileList'
+import {
+  arrange,
+  entryOfFolderFile,
+  opensInSystem,
+  sightOf,
+  type FileEntry,
+  type FilesLook,
+} from '@/lib/fileList'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
@@ -19,7 +25,13 @@ import { Button } from '@/components/ui/button'
 import { InlineField, numberCodec } from '@/components/ui/inline-field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePlayer } from '@/features/work/player'
+import { hasDoors, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { PromptDialog } from '@/components/AppDialog'
+import { ConfirmAction } from '@/components/ConfirmAction'
+import type { RowAction } from '@/components/RowMenu'
 import { FileEntries } from '@/features/work/tabs/files/FileEntries'
+import { FileViewer } from '@/features/work/tabs/files/FileViewer'
+import { useFileGestures } from '@/features/work/tabs/files/useFileGestures'
 
 /**
  * The work's folder on disk (v0.93, ADR 0057): what the person keeps for the
@@ -292,7 +304,16 @@ function FolderFiles({
   look: FilesLook
 }) {
   const { t } = useTranslation()
+  const { config } = useProfile()
   const player = usePlayer()
+  const gestures = useFileGestures()
+  const covered = hasDoors(config, work.kind) || vocabularyOf(config, work.kind).cover
+  // The file open in the viewer, the one being renamed, the one on its way
+  // to the recycle bin.
+  const [viewing, setViewing] = useState<string | null>(null)
+  const [renaming, setRenaming] = useState<FileEntry | null>(null)
+  const [binning, setBinning] = useState<FileEntry | null>(null)
+
   const entries = useMemo(
     () => files.map((file) => entryOfFolderFile(file, finished.path)),
     [files, finished.path],
@@ -301,16 +322,91 @@ function FolderFiles({
     () => new Map(files.map((file) => [file.path, file.relative])),
     [files],
   )
+  const relative = (entry: FileEntry) => relativeOf.get(entry.path) ?? entry.name
   const groups = arrange(entries, look)
 
-  // A sound is played here, in the card; everything else opens where the
-  // system opens it.
+  const rename = useAppMutation({
+    mutationFn: ({ entry, name }: { entry: FileEntry; name: string }) =>
+      renameFolderFile(work.id, relative(entry), name),
+    failure: 'files.menu.renameFailed',
+    // The finished file follows its name, so the work is read again too.
+    refresh: refresh.finishedFile(work.id),
+    onSuccess: () => say.ok(t('files.menu.renamed')),
+  })
+  const bin = useAppMutation({
+    mutationFn: (entry: FileEntry) => trashFolderFile(work.id, relative(entry)),
+    failure: 'files.menu.toBinFailed',
+    refresh: refresh.finishedFile(work.id),
+    onSuccess: () => {
+      setBinning(null)
+      say.ok(t('files.menu.binned'))
+    },
+  })
+  const choose = useAppMutation({
+    mutationFn: (entry: FileEntry) => updateWork(work.id, { file: relative(entry) }),
+    refresh: refresh.finishedFile(work.id),
+    onSuccess: (_, entry) => say.ok(t('folder.finished.madeIt', { name: entry.name })),
+  })
+  const copyIn = useAppMutation({
+    mutationFn: ({ entry, kind }: { entry: FileEntry; kind?: string }) =>
+      attachAsset(entry.path, { work_id: work.id, kind }),
+    failure: 'files.attachFailed',
+    refresh: [keys.assetsFor(work.id), keys.covers, keys.cardCounts(work.id)],
+    onSuccess: (_, { entry, kind }) =>
+      say.ok(
+        kind === 'cover' ? t('files.menu.coverSet') : t('files.attached', { name: entry.name }),
+      ),
+  })
+
+  // A sound is played here, in the card's player; everything else is looked
+  // at in the viewer.
   const open = (entry: FileEntry) => {
-    if (entry.category === 'audio' && player !== null) {
+    if (sightOf(entry) === 'sound' && player !== null) {
       player.play(entry.path)
       return
     }
-    openMedia(entry.path).catch((cause: unknown) => say.failed(cause))
+    setViewing(entry.key)
+  }
+
+  // Everything a file of the folder can have done to it, by name. Renaming
+  // and the recycle bin are the two things kilna does to a file it otherwise
+  // only looks at, and each is asked for here and nowhere else.
+  const menuOf = (entry: FileEntry): RowAction[] => {
+    const finishable = entry.category === 'video' || entry.category === 'audio'
+    const optional = (wanted: boolean, action: RowAction) => (wanted ? [action] : [])
+    return [
+      {
+        key: 'view',
+        label: sightOf(entry) === 'sound' ? t('files.menu.play') : t('files.menu.view'),
+        onSelect: () => open(entry),
+      },
+      ...optional(opensInSystem(entry.name), {
+        key: 'outside',
+        label: t('viewer.openOutside'),
+        onSelect: () => gestures.openOutside(entry),
+      }),
+      { key: 'reveal', label: t('folder.reveal'), onSelect: () => gestures.reveal(entry) },
+      { key: 'rename', label: t('files.menu.rename'), onSelect: () => setRenaming(entry) },
+      { key: 'save', label: t('files.menu.saveCopy'), onSelect: () => gestures.saveCopy(entry) },
+      { key: 'path', label: t('files.menu.copyPath'), onSelect: () => gestures.copyPath(entry) },
+      ...optional(finishable && !entry.roles.includes('finished'), {
+        key: 'finished',
+        label: t('folder.finished.makeIt'),
+        onSelect: () => choose.mutate(entry),
+      }),
+      ...optional(covered && entry.category === 'image', {
+        key: 'cover',
+        label: t('files.menu.setCover'),
+        onSelect: () => copyIn.mutate({ entry, kind: 'cover' }),
+      }),
+      { key: 'copyIn', label: t('folder.copyIn'), onSelect: () => copyIn.mutate({ entry }) },
+      {
+        key: 'bin',
+        label: t('files.menu.toBin'),
+        danger: true,
+        onSelect: () => setBinning(entry),
+      },
+    ]
   }
 
   return (
@@ -331,36 +427,86 @@ function FolderFiles({
           }
           onOpen={open}
           openLabel={(entry) =>
-            entry.category === 'audio'
+            sightOf(entry) === 'sound'
               ? t('player.play', { name: entry.name })
-              : t('folder.open', { name: entry.name })
+              : t('files.menu.viewNamed', { name: entry.name })
           }
+          menu={menuOf}
+          playing={player?.selected}
           actions={(entry) => (
             <FolderActions
               entry={entry}
-              relative={relativeOf.get(entry.path) ?? entry.name}
-              work={work}
+              onReveal={() => gestures.reveal(entry)}
+              onFinished={() => choose.mutate(entry)}
+              onCopyIn={() => copyIn.mutate({ entry })}
+              busy={choose.isPending || copyIn.isPending}
             />
           )}
         />
       )}
       {truncated && <Said>{t('folder.truncated', { count: files.length })}</Said>}
+
+      <FileViewer
+        entries={groups.flatMap((group) => group.entries)}
+        current={viewing}
+        onChange={setViewing}
+        onOpenOutside={gestures.openOutside}
+        onReveal={gestures.reveal}
+      />
+
+      {/* A name, not a place: the file stays in the folder it lies in, and
+          a name that is taken is refused rather than written over. */}
+      <PromptDialog
+        open={renaming !== null}
+        onOpenChange={(asking) => {
+          if (!asking) setRenaming(null)
+        }}
+        title={t('files.menu.renameTitle', { name: renaming?.name ?? '' })}
+        label={t('files.menu.renameLabel')}
+        initialValue={renaming?.name ?? ''}
+        confirmLabel={t('files.menu.renameConfirm')}
+        onSubmit={(name) => {
+          if (renaming !== null && name !== renaming.name) rename.mutate({ entry: renaming, name })
+        }}
+      />
+
+      {/* Asked, because it leaves the folder: to the system's recycle bin,
+          where it can be brought back from - kilna's own undo does not
+          reach a file on disk. */}
+      <ConfirmAction
+        open={binning !== null}
+        onOpenChange={(asking) => {
+          if (!asking) setBinning(null)
+        }}
+        title={t('files.menu.toBinTitle', { name: binning?.name ?? '' })}
+        description={t('files.menu.toBinBody')}
+        actionLabel={t('files.menu.toBinConfirm')}
+        pending={bin.isPending}
+        onConfirm={() => {
+          if (binning !== null) bin.mutate(binning)
+        }}
+      />
     </div>
   )
 }
 
 /**
- * What can be done with a file of the folder beyond opening it: shown where
- * it lies, made the work's finished file, copied into the workspace.
+ * The three things done most with a file of the folder, a press away on the
+ * file itself: shown where it lies, made the work's finished file, copied
+ * into the workspace. The rest are in its menu.
  */
 function FolderActions({
   entry,
-  relative,
-  work,
+  onReveal,
+  onFinished,
+  onCopyIn,
+  busy,
 }: {
   entry: FileEntry
-  relative: string
-  work: Work
+  onReveal: () => void
+  onFinished: () => void
+  onCopyIn: () => void
+  busy: boolean
 }) {
   const { t } = useTranslation()
   // A clip or a sound can be what a work is finished as; a picture or a note
@@ -368,19 +514,6 @@ function FolderActions({
   const finishable = entry.category === 'video' || entry.category === 'audio'
   const finished = entry.roles.includes('finished')
   const onPicture = 'rounded-sm bg-raise/85 shadow-lift not-data-disabled:hover:bg-raise'
-
-  const choose = useAppMutation({
-    mutationFn: () => updateWork(work.id, { file: relative }),
-    refresh: refresh.finishedFile(work.id),
-    onSuccess: () => say.ok(t('folder.finished.madeIt', { name: entry.name })),
-  })
-
-  const copyIn = useAppMutation({
-    mutationFn: () => attachAsset(entry.path, { work_id: work.id }),
-    failure: 'files.attachFailed',
-    refresh: [keys.assetsFor(work.id), keys.covers, keys.cardCounts(work.id)],
-    onSuccess: () => say.ok(t('files.attached', { name: entry.name })),
-  })
 
   return (
     <>
@@ -390,9 +523,7 @@ function FolderActions({
         title={t('folder.reveal')}
         aria-label={t('folder.reveal')}
         className={onPicture}
-        onClick={() => {
-          revealItemInDir(entry.path).catch((cause: unknown) => say.failed(cause))
-        }}
+        onClick={onReveal}
       >
         <FolderOpen aria-hidden />
       </Button>
@@ -402,9 +533,9 @@ function FolderActions({
           size="icon-xs"
           title={t('folder.finished.makeIt')}
           aria-label={t('folder.finished.makeIt')}
-          disabled={choose.isPending}
+          disabled={busy}
           className={onPicture}
-          onClick={() => choose.mutate()}
+          onClick={onFinished}
         >
           <CircleCheck aria-hidden />
         </Button>
@@ -414,9 +545,9 @@ function FolderActions({
         size="icon-xs"
         title={t('folder.copyIn')}
         aria-label={t('folder.copyIn')}
-        disabled={copyIn.isPending}
+        disabled={busy}
         className={onPicture}
-        onClick={() => copyIn.mutate()}
+        onClick={onCopyIn}
       >
         <Copy aria-hidden />
       </Button>

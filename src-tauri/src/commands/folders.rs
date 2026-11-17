@@ -104,6 +104,103 @@ pub fn open_media(state: State<'_, AppState>, path: String) -> Result<()> {
     })
 }
 
+/// The folders the window may read a file from: every media folder, and the
+/// workspace's own files.
+fn places(state: &State<'_, AppState>) -> Result<Vec<std::path::PathBuf>> {
+    let mut places: Vec<std::path::PathBuf> = folder::roots(&state.conn())?
+        .into_iter()
+        .map(std::path::PathBuf::from)
+        .collect();
+    places.push(state.media_dir()?);
+    Ok(places)
+}
+
+/// A text, read for the viewer: a lyric, a subtitle track, notes (FR-14).
+/// Only under the media folder or the workspace's own files, only a text,
+/// and no more than the viewer shows.
+#[tauri::command(async)]
+pub fn read_text_file(state: State<'_, AppState>, path: String) -> Result<folder::TextFile> {
+    folder::read_text(Path::new(&path), &places(&state)?)
+}
+
+/// Save a copy of a file kilna looks at where the person said.
+#[tauri::command(async)]
+pub fn save_file_copy(
+    state: State<'_, AppState>,
+    source: String,
+    destination: String,
+) -> Result<()> {
+    folder::save_copy(
+        Path::new(&source),
+        &places(&state)?,
+        Path::new(&destination),
+    )
+}
+
+/// The folder of a work that is there, or why it is not.
+fn folder_there(
+    conn: &rusqlite::Connection,
+    work: &crate::work::Work,
+    config: &crate::profile::config::ProfileConfig,
+) -> Result<std::path::PathBuf> {
+    let found = folder::locate(conn, config, work)?;
+    match (found.state, found.path) {
+        (folder::FolderState::Found, Some(path)) => Ok(std::path::PathBuf::from(path)),
+        _ => Err(Error::refused("folder.fileMissing").param("path", work.title.clone())),
+    }
+}
+
+/// Rename a file of a work's folder (FR-14). When it is the file the work
+/// was said to be finished as, the work's choice follows the name - through
+/// the ordinary edit of a work, so an undo puts the choice back.
+#[tauri::command(async)]
+pub fn rename_folder_file(
+    state: State<'_, AppState>,
+    work_id: String,
+    relative: String,
+    name: String,
+) -> Result<WorkFolder> {
+    let conn = state.conn();
+    let (work, config) = work_and_config(&conn, &work_id)?;
+    let at = folder_there(&conn, &work, &config)?;
+    let renamed = folder::rename_file(&at, &relative, &name)?;
+    if work.file.as_deref() == Some(folder::inside(&relative)?.as_str()) && renamed != relative {
+        crate::actions::work::update(
+            &conn,
+            &work_id,
+            crate::work::WorkPatch {
+                file: Some(Some(renamed)),
+                ..Default::default()
+            },
+        )?;
+    }
+    let work =
+        crate::work::get(&conn, &work_id)?.ok_or_else(|| Error::not_found("work", &work_id))?;
+    folder::of_work(&conn, &config, &work)
+}
+
+/// Put a file of a work's folder into the system's recycle bin (FR-14) -
+/// never deleted outright: what a person throws away by a slip of the hand
+/// is brought back where every other file they threw away is. The folder
+/// itself is never removed this way.
+#[tauri::command(async)]
+pub fn trash_folder_file(
+    state: State<'_, AppState>,
+    work_id: String,
+    relative: String,
+) -> Result<WorkFolder> {
+    let conn = state.conn();
+    let (work, config) = work_and_config(&conn, &work_id)?;
+    let at = folder_there(&conn, &work, &config)?;
+    let path = folder::file_in(&at, &relative)?;
+    trash::delete(&path).map_err(|cause| {
+        Error::refused("folder.trashFailed")
+            .param("path", relative.clone())
+            .param("cause", cause.to_string())
+    })?;
+    folder::of_work(&conn, &config, &work)
+}
+
 fn work_and_config(
     conn: &rusqlite::Connection,
     work_id: &str,

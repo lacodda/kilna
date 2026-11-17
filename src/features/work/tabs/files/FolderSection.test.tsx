@@ -58,6 +58,9 @@ beforeEach(() => {
     },
     open_media: () => null,
     attach_asset: () => ({}),
+    read_text_file: () => ({ text: 'First line of the notes.', truncated: false, size: 24 }),
+    rename_folder_file: () => folder,
+    trash_folder_file: () => folder,
   })
 })
 
@@ -104,7 +107,7 @@ describe("a work's folder on disk", () => {
     expect(screen.queryByRole('button', { name: en.files.setCover })).toBeNull()
   })
 
-  it('opens a file where the system opens it, and copies one in only when asked', async () => {
+  it('shows a file inside kilna, pages to the next, and opens its program only when asked', async () => {
     const { client } = renderApp(`/works/${IDS.song}/files`)
     const section = await screen.findByRole('region', { name: en.folder.heading })
     await within(section).findByText('still.png')
@@ -112,19 +115,81 @@ describe("a work's folder on disk", () => {
 
     fireEvent.click(
       within(section).getByRole('button', {
-        name: en.folder.open.replace('{{name}}', 'still.png'),
+        name: en.files.menu.viewNamed.replace('{{name}}', 'still.png'),
       }),
     )
+    // Looked at here (FR-14): nothing is handed to another program.
+    const viewer = await screen.findByRole('dialog', { name: 'still.png' })
+    expect(within(viewer).getByRole('img', { name: 'still.png' })).toBeVisible()
+    expect(backend.argsOf('open_media')).toEqual([])
+
+    // The next file the tab shows that is looked at - the sounds are heard,
+    // not looked at - is the clip, and after it the text, read by the backend.
+    fireEvent.click(within(viewer).getByRole('button', { name: en.viewer.next }))
+    expect(await screen.findByRole('dialog', { name: 'take-2.mp4' })).toBeVisible()
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'take-2.mp4' })).getByRole('button', {
+        name: en.viewer.next,
+      }),
+    )
+    const text = await screen.findByRole('dialog', { name: 'notes.md' })
+    expect(await within(text).findByText('First line of the notes.')).toBeVisible()
+    expect(backend.argsOf('read_text_file')).toEqual([{ path: `${FOLDER}\\notes.md` }])
+
+    fireEvent.click(within(text).getByRole('button', { name: en.viewer.openOutside }))
     await waitFor(() =>
-      expect(backend.argsOf('open_media')).toEqual([{ path: `${FOLDER}\\still.png` }]),
+      expect(backend.argsOf('open_media')).toEqual([{ path: `${FOLDER}\\notes.md` }]),
     )
     expect(backend.argsOf('attach_asset')).toEqual([])
+  })
+
+  it('copies a file in only when asked', async () => {
+    const { client } = renderApp(`/works/${IDS.song}/files`)
+    const section = await screen.findByRole('region', { name: en.folder.heading })
+    await within(section).findByText('still.png')
+    await settled(client)
 
     const tile = within(section).getByText('still.png').closest('li')!
     fireEvent.click(within(tile).getByRole('button', { name: en.folder.copyIn }))
     await waitFor(() =>
       expect(backend.argsOf('attach_asset')).toEqual([
         { source: `${FOLDER}\\still.png`, asset: { work_id: IDS.song } },
+      ]),
+    )
+  })
+
+  it('renames a file and moves one to the recycle bin from its menu, each only once asked', async () => {
+    const { client } = renderApp(`/works/${IDS.song}/files`)
+    const section = await screen.findByRole('region', { name: en.folder.heading })
+    await within(section).findByText('mix-rough.wav')
+    await settled(client)
+    const rough = () => within(section).getByText('mix-rough.wav').closest('li')!
+
+    fireEvent.contextMenu(rough())
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.files.menu.rename }))
+    const asking = await screen.findByRole('dialog', {
+      name: en.files.menu.renameTitle.replace('{{name}}', 'mix-rough.wav'),
+    })
+    const name = within(asking).getByRole('textbox', { name: en.files.menu.renameLabel })
+    expect(name).toHaveValue('mix-rough.wav')
+    fireEvent.change(name, { target: { value: 'mix-v2.wav' } })
+    fireEvent.click(within(asking).getByRole('button', { name: en.files.menu.renameConfirm }))
+    await waitFor(() =>
+      expect(backend.argsOf('rename_folder_file')).toEqual([
+        { workId: IDS.song, relative: 'audio-release/v1/mix-rough.wav', name: 'mix-v2.wav' },
+      ]),
+    )
+    await settled(client)
+
+    fireEvent.contextMenu(rough())
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.files.menu.toBin }))
+    const question = await screen.findByRole('alertdialog')
+    expect(within(question).getByText(en.files.menu.toBinBody)).toBeVisible()
+    expect(backend.argsOf('trash_folder_file')).toEqual([])
+    fireEvent.click(within(question).getByRole('button', { name: en.files.menu.toBinConfirm }))
+    await waitFor(() =>
+      expect(backend.argsOf('trash_folder_file')).toEqual([
+        { workId: IDS.song, relative: 'audio-release/v1/mix-rough.wav' },
       ]),
     )
   })

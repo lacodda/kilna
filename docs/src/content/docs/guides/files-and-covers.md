@@ -36,6 +36,46 @@ folder on disk together - and is remembered on this machine:
 A file says what it is to the work with a tag: **Cover**, **Candidate**, or
 **Finished file**.
 
+## Looking at a file
+
+Click a file and it opens inside kilna (since v0.122; a click used to hand it
+to another program):
+
+- **a picture** - fitted to the window, with its size in pixels; **+** and
+  **−**, or `Ctrl` and the wheel, enlarge it up to four times its own size,
+  **Fit** and **100%** go back;
+- **a clip** - played with its sound and its own controls, the whole screen
+  among them, at the speed you pick;
+- **a text** - a lyric, subtitles, notes, a table (`txt`, `md`, `srt`, `vtt`,
+  `lrc`, `json`, `csv`, `log`, `yaml`) - to read, with **Copy the text**. The
+  first 512 kB of a longer one, and the viewer says so;
+- **a PDF** - in the window's own reader;
+- **anything else** - what is known of it: its name, kind, size, when it
+  changed and where it lies.
+
+A sound is not looked at: it plays in the [player on the card](#the-player),
+and the file that is playing is marked among the rest.
+
+The arrows at the foot - and `←` `→` on the keyboard - go to the file before
+and after, in the order the tab shows them. **Show where it lies** opens the
+file manager on it, and **Open in its program** hands it to the program your
+system opens it with - offered for a picture, a clip, a sound and a plain
+document, never for a program.
+
+## What can be done with a file
+
+A right click on a file opens its menu. For any file: **Look at it**, **Open
+in its program**, **Show where it lies**, **Save a copy…** and **Copy the
+path**; a picture can be made the cover. An attached file is removed from
+here - it goes to kilna's trash.
+
+A file of the folder on disk has four more: **Rename…** - a name, in the
+folder it lies in, never onto a file that is already there; when it is the
+file the work is finished as, the choice follows the new name - **Make it
+the finished file**, **Copy into the workspace**, and **Move to the recycle
+bin**, which asks first. The file goes to your system's recycle bin and is
+brought back from there: kilna's own undo does not reach a file on disk.
+
 **Set a cover** attaches a file and marks it as the work's cover in one
 step. Setting a second one changes the cover: the newest is the one that
 shows, and the one it replaced stays attached rather than disappearing
@@ -210,17 +250,15 @@ than guessed around. A title is made safe for a folder's name - the
 characters no folder may hold are left out - so `AC/DC: Live?` looks in
 `ACDC Live`.
 
-**Looked at, never owned.** kilna does not move, rename or delete a file in
-the folder. It lists what is there, arranged as
-[the bar](#looking-through-the-files) says, and offers four things per file:
-
-- **open** it in the program your system opens it with (a picture, a clip, a
-  sound or a document - never a program);
-- **show where it lies** in the file manager;
-- **play** it on the card, when it is a sound;
-- **copy it into the workspace**, which is how a file of the folder becomes
-  the work's own - a cover, a reference - with everything
-  [above](#where-the-file-goes) that a copy brings.
+**Looked at, never owned.** kilna does nothing to a file in the folder by
+itself. It lists what is there, arranged as
+[the bar](#looking-through-the-files) says, and a file is
+[looked at](#looking-at-a-file) where it lies. **Copy into the workspace** is
+how a file of the folder becomes the work's own - a cover, a reference - with
+everything [above](#where-the-file-goes) that a copy brings. Two things
+change the folder, and each only when you ask for it by name: a file is
+renamed, and a file is moved to the recycle bin
+([above](#what-can-be-done-with-a-file)).
 
 The one thing kilna makes there is the folder itself, and only when it is
 needed. A work is made without one - a year of planned works does not leave a
