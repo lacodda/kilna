@@ -124,7 +124,8 @@ export function AxesEditor({
             aria-label={`${axis.key} label`}
           />
           <NumberField
-            className="w-36"
+            className="w-24"
+            hideStepper
             min={0}
             step={0.5}
             value={axis.weight}
@@ -134,7 +135,7 @@ export function AxesEditor({
             unit={t('editor.axisWeight')}
           />
           <NumberField
-            className="w-28"
+            className="w-24"
             hideStepper
             min={1}
             step={1}
@@ -147,7 +148,7 @@ export function AxesEditor({
             unit={t('editor.axisScale')}
           />
           <Select
-            className="w-36"
+            className="w-32"
             aria-label={t('editor.axisKindOf', { key: axis.key })}
             value={axis.kind}
             onChange={(kind) =>
