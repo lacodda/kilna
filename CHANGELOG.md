@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.123.0] - 2026-11-17
+
+Scoring by itself. With "Score texts by themselves" on in Settings, a song's
+text is scored when it has been left alone for a while, so the catalogue's
+numbers describe the texts as they stand. Off by default: a score is a run,
+and a run costs money. Only a written text of a work far enough along is
+scored, a typo mended in a scored text is not a reason, and every edit
+starts the silence over. It waits behind everything you ask for yourself and
+never takes the last free slot. What it says waits as a proposal, or - if
+you ask - is kept as the assistant's opinion. Your own score of a text now
+always speaks over anyone else's, however much later theirs came. Turning it
+on scores nothing that is already there; a button scores the unscored and
+the stale.
+
+### Features
+- Score a text by itself once it has been left alone
+
 ## [0.122.0] - 2026-11-17
 
 A viewer, and a menu on every file. A click on a file opens it inside kilna:
