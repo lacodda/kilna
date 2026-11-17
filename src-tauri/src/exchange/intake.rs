@@ -481,7 +481,7 @@ pub fn bring(
     conn: &Connection,
     profile_id: &str,
     request: &IntakeRequest,
-    mut land: impl FnMut(&Parcel, &mut dyn parcel::Files) -> Result<parcel::LandedWork>,
+    mut land: impl FnMut(&Parcel, &mut dyn parcel::Files, bool) -> Result<parcel::LandedWork>,
 ) -> Result<IntakeBrought> {
     let config = crate::profile::config_for(conn, profile_id)?;
     let mut brought = IntakeBrought {
@@ -506,7 +506,8 @@ pub fn bring(
             match parcel::standing(conn, profile_id, &parcel, by_title)? {
                 ParcelStanding::Here => Ok(Err(ParcelStanding::Here)),
                 ParcelStanding::Deleted => Ok(Err(ParcelStanding::Deleted)),
-                ParcelStanding::New => land(&parcel, files.as_mut()).map(Ok),
+                // A text from outside begins here; the rest is carried.
+                ParcelStanding::New => land(&parcel, files.as_mut(), by_title).map(Ok),
             }
         });
         match outcome {
@@ -534,8 +535,8 @@ mod tests {
     /// Bring a request into a workspace the way the window's command does.
     fn bring_in(conn: &Connection, profile_id: &str, request: &IntakeRequest) -> IntakeBrought {
         let media = crate::state::media_dir_of(conn).ok();
-        bring(conn, profile_id, request, |parcel, files| {
-            actions::work::bring(conn, media.as_deref(), parcel, files)
+        bring(conn, profile_id, request, |parcel, files, fresh| {
+            actions::work::bring(conn, media.as_deref(), parcel, files, fresh)
         })
         .unwrap()
     }
@@ -815,6 +816,11 @@ mod tests {
             .unwrap();
         assert_eq!((text.role.as_str(), text.revision), ("lyrics", 1));
         assert_eq!(text.body, "the tide is out\nthe boats lean");
+        // It begins here, so it starts as a work made here does: with the
+        // fields its kind starts at.
+        let made_here = fixtures::song(&conn, &profile_id, "Made by hand");
+        let keys = |one: &work::Work| one.meta.keys().cloned().collect::<Vec<_>>();
+        assert_eq!(keys(harbour), keys(&made_here));
         let named = works.iter().find(|one| one.title == "Named above").unwrap();
         assert_eq!(named.tags, ["sea", "night"]);
 

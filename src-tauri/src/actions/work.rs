@@ -22,27 +22,11 @@ pub fn create(conn: &Connection, mut new: NewWork) -> Result<Work> {
         // the original unless someone says otherwise - filled in before the
         // work is logged, so a replay makes the work the log names rather
         // than asking a profile that may have changed since.
-        let config = crate::profile::config_for(act, act.profile_id())?;
-        let defaults = config.defaults_of(&new.kind);
-        if !defaults.is_empty() {
-            let meta = new.meta.get_or_insert_with(serde_json::Map::new);
-            for (key, value) in defaults {
-                meta.entry(key).or_insert(value);
-            }
-        }
-        // The code a work of this kind is numbered by, given at the same
-        // moment for the same reason: the log keeps the code, so a replay
-        // does not count again over a workspace that has moved on (ADR 0059).
-        // A code the work arrives with - carried by an import, named by an
-        // agent - is its own.
-        for field in config.numbered_of(&new.kind) {
-            let meta = new.meta.get_or_insert_with(serde_json::Map::new);
-            if numbering::lacks(meta, &field.key)
-                && let Some(mut codes) = Numbering::of(act, act.profile_id(), field)?
-            {
-                meta.insert(field.key.clone(), serde_json::Value::String(codes.take()));
-            }
-        }
+        start_meta(
+            act,
+            &new.kind,
+            new.meta.get_or_insert_with(serde_json::Map::new),
+        )?;
         act.json("work", &new)?;
         let minted = act.mint();
         let created = work::create_minted(act, act.profile_id(), new, minted)?;
@@ -53,6 +37,32 @@ pub fn create(conn: &Connection, mut new: NewWork) -> Result<Work> {
         );
         Ok(created)
     })
+}
+
+/// What a new work of `kind` starts with, put into its fields where they say
+/// nothing yet: the kind's defaults, and the code it is numbered by.
+///
+/// The code is given at the moment the work is made, and kept in the log, so
+/// a replay does not count again over a workspace that has moved on (ADR
+/// 0059). A code the work arrives with - carried by an import, named by an
+/// agent - is its own.
+fn start_meta(
+    act: &super::Act<'_>,
+    kind: &str,
+    meta: &mut serde_json::Map<String, serde_json::Value>,
+) -> Result<()> {
+    let config = crate::profile::config_for(act, act.profile_id())?;
+    for (key, value) in config.defaults_of(kind) {
+        meta.entry(key).or_insert(value);
+    }
+    for field in config.numbered_of(kind) {
+        if numbering::lacks(meta, &field.key)
+            && let Some(mut codes) = Numbering::of(act, act.profile_id(), field)?
+        {
+            meta.insert(field.key.clone(), serde_json::Value::String(codes.take()));
+        }
+    }
+    Ok(())
 }
 
 /// Edit a work.
@@ -412,16 +422,30 @@ pub fn clone(conn: &Connection, work_id: &str, title: &str) -> Result<crate::clo
 /// versions, its scores and its files or does not arrive, and undoing it
 /// takes the whole work back - into the trash, like every other creation.
 /// The id is the parcel's own, carried in the operation as a made work's is.
+///
+/// `fresh` is a text from outside: a work that begins here, and so starts
+/// with what every new work of its kind starts with - the kind's defaults
+/// and its code. A work carried from another space keeps the fields it has.
 pub fn bring(
     conn: &Connection,
     media: Option<&std::path::Path>,
     parcel: &crate::exchange::parcel::Parcel,
     files: &mut dyn crate::exchange::parcel::Files,
+    fresh: bool,
 ) -> Result<crate::exchange::parcel::LandedWork> {
     gesture(conn, "work.bring", |act| {
         act.param("id", parcel.work.id.clone());
         act.stamped();
         act.param("title", parcel.work.title.clone());
+        let started;
+        let parcel = if fresh {
+            let mut begun = parcel.clone();
+            start_meta(act, &begun.work.kind, &mut begun.work.meta)?;
+            started = begun;
+            &started
+        } else {
+            parcel
+        };
         let landed = crate::exchange::parcel::land(act, act.profile_id(), media, parcel, files)?;
         act.journal(
             Record::new("work.brought")

@@ -125,8 +125,8 @@ pub fn bring_intake(
     let media = state.media_dir().ok();
     let conn = state.conn();
     let profile_id = super::active(&conn)?;
-    intake::bring(&conn, &profile_id, &request, |parcel, files| {
-        crate::actions::work::bring(&conn, media.as_deref(), parcel, files)
+    intake::bring(&conn, &profile_id, &request, |parcel, files, fresh| {
+        crate::actions::work::bring(&conn, media.as_deref(), parcel, files, fresh)
     })
 }
 
