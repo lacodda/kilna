@@ -30,7 +30,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             _ => println!(
                 "  {} — unusable: {}",
                 entry.executable,
-                entry.reason.as_deref().unwrap_or("no reason given")
+                entry
+                    .reason
+                    .as_ref()
+                    .map_or_else(|| "no reason given".to_owned(), |reason| reason.english())
             ),
         }
     }

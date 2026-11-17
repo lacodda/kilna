@@ -113,7 +113,7 @@ describe('the plugin bar', () => {
   })
 
   it('says that a plugin cannot run and where to read why, not the why', async () => {
-    const reason = 'its manifest could not be read'
+    const reason = { key: 'plugins.why.badManifest', params: { cause: 'expected value' } }
     mount('work', [
       { ...JUDGE, executable: 'kilna-plugin-a', usable: false, manifest: null, reason },
       { ...JUDGE, executable: 'kilna-plugin-b', usable: false, manifest: null, reason },
@@ -122,12 +122,19 @@ describe('the plugin bar', () => {
     const link = await screen.findByRole('link', { name: '2 plugins cannot run' })
 
     expect(link).toHaveAttribute('href', '/settings/plugins')
-    expect(screen.queryByText(new RegExp(reason))).toBeNull()
+    expect(screen.queryByText(/its manifest could not be read/)).toBeNull()
     expect(en.plugins.cannotRun_other).toContain('{{count}}')
   })
 
   it('says so once on a card: in the head of the work, not on each of its bars', async () => {
-    mount('release', [{ ...JUDGE, usable: false, manifest: null, reason: 'x' }])
+    mount('release', [
+      {
+        ...JUDGE,
+        usable: false,
+        manifest: null,
+        reason: { key: 'plugins.why.refused', params: {} },
+      },
+    ])
 
     await waitFor(() => expect(backend.argsOf('list_plugins')).toHaveLength(1))
     await waitFor(() => expect(screen.queryByRole('group')).toBeNull())
@@ -135,7 +142,15 @@ describe('the plugin bar', () => {
   })
 
   it('leaves alone a plugin that cannot run and was turned off', async () => {
-    mount('work', [{ ...JUDGE, usable: false, manifest: null, reason: 'x', enabled: false }])
+    mount('work', [
+      {
+        ...JUDGE,
+        usable: false,
+        manifest: null,
+        reason: { key: 'plugins.why.refused', params: {} },
+        enabled: false,
+      },
+    ])
 
     await waitFor(() => expect(backend.argsOf('list_plugins')).toHaveLength(1))
     await waitFor(() => expect(screen.queryByRole('group')).toBeNull())
