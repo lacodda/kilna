@@ -448,6 +448,11 @@ export type { ExportReport } from './generated/ExportReport'
 export type { ChatPage } from './generated/ChatPage'
 export type { ImportReport } from './generated/ImportReport'
 export type { PackageReport } from './generated/PackageReport'
+export type { WorkPage } from './generated/WorkPage'
+export type { PackedParcel } from './generated/PackedParcel'
+export type { IntakeRequest } from './generated/IntakeRequest'
+export type { IntakeFound } from './generated/IntakeFound'
+export type { IntakeBrought } from './generated/IntakeBrought'
 
 // Plugins.
 export type { Command as PluginCommand } from './generated/Command'

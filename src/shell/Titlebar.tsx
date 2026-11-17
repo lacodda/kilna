@@ -14,6 +14,7 @@ import { ProductMark } from '@/components/ui/product-mark'
 import { useCommand } from '@/components/ui/commands'
 import { TitleBar } from '@/components/ui/window-frame'
 import { NewWorkDialog } from '@/components/NewWorkDialog'
+import { IntakeDialog } from '@/features/intake/IntakeDialog'
 import { AssistantButton } from '@/features/assistant/AssistantDrawer'
 import { Bell } from '@/shell/Bell'
 import { CommandPalette } from '@/shell/CommandPalette'
@@ -160,6 +161,10 @@ export function Titlebar({ works, compact, onToggleRail }: Props) {
   // "New work" opens the same one.
   const [kind, setKind] = useState<string | null>(null)
   const newWork = () => setKind(config.work_kinds[0]?.key ?? null)
+  // And the dialog for works that exist already, opened from the New dialog
+  // and from the palette (v0.113).
+  const [bringing, setBringing] = useState(false)
+  const bringIn = useCallback(() => setBringing(true), [])
 
   // Ctrl+K anywhere, including from inside a text field: the palette is a way
   // out of wherever you are, not a control that belongs to one screen. Bound
@@ -178,7 +183,7 @@ export function Titlebar({ works, compact, onToggleRail }: Props) {
   })
   // What the palette offers and the keyboard answers, from the bar that holds
   // the New dialog and the rail's handle.
-  useShellCommands({ newWork, toggleRail: onToggleRail, compact })
+  useShellCommands({ newWork, bringIn, toggleRail: onToggleRail, compact })
 
   return (
     <>
@@ -238,6 +243,12 @@ export function Titlebar({ works, compact, onToggleRail }: Props) {
         kind={kind}
         onClose={() => setKind(null)}
         onCreated={(workId) => navigate(`/works/${workId}`)}
+        onBringIn={bringIn}
+      />
+      <IntakeDialog
+        open={bringing}
+        onOpenChange={setBringing}
+        onBrought={(workId) => navigate(`/works/${workId}`)}
       />
       <CommandPalette open={searching} onOpenChange={setSearching} />
     </>

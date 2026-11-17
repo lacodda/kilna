@@ -405,6 +405,33 @@ pub fn clone(conn: &Connection, work_id: &str, title: &str) -> Result<crate::clo
     })
 }
 
+/// Bring a work in from a parcel: a page kilna wrote, a `.kilna.zip`, or a
+/// text from outside made into one (v0.113).
+///
+/// One gesture, whatever the parcel holds: the work arrives with its
+/// versions, its scores and its files or does not arrive, and undoing it
+/// takes the whole work back - into the trash, like every other creation.
+/// The id is the parcel's own, carried in the operation as a made work's is.
+pub fn bring(
+    conn: &Connection,
+    media: Option<&std::path::Path>,
+    parcel: &crate::exchange::parcel::Parcel,
+    files: &mut dyn crate::exchange::parcel::Files,
+) -> Result<crate::exchange::parcel::LandedWork> {
+    gesture(conn, "work.bring", |act| {
+        act.param("id", parcel.work.id.clone());
+        act.stamped();
+        act.param("title", parcel.work.title.clone());
+        let landed = crate::exchange::parcel::land(act, act.profile_id(), media, parcel, files)?;
+        act.journal(
+            Record::new("work.brought")
+                .param("title", landed.title.clone())
+                .about("work", landed.id.clone()),
+        );
+        Ok(landed)
+    })
+}
+
 /// What making a work from another made: the work, and the release it was
 /// given to go out through when its kind has a door - planned for no day yet.
 #[derive(Debug, Clone, serde::Serialize, ts_rs::TS)]

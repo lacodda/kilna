@@ -36,7 +36,7 @@ import {
   previewCommentTask,
 } from '@/lib/api/comments'
 import { cutParts, cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
-import { canExportPackage, logPath, workspacePath } from '@/lib/api/data'
+import { canExportPackage, logPath, surveyIntake, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { listJournal, sinceVisit, unreadJournal } from '@/lib/api/journal'
 import { listLinks, listPublications, resolveLinks } from '@/lib/api/links'
@@ -79,7 +79,14 @@ import { coverBoard } from '@/lib/api/ideas'
 import { trialBoard } from '@/lib/api/trials'
 import { workBoards } from '@/lib/api/boards'
 import { listDeletions } from '@/lib/api/trash'
-import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
+import type {
+  CardFilter,
+  CommentFilter,
+  IntakeRequest,
+  Lens,
+  NoteFilter,
+  TaskAbout,
+} from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
 import {
   cardCounts,
@@ -421,6 +428,14 @@ export const queries = {
   plugins: () => queryOptions({ queryKey: keys.plugins, queryFn: listPlugins }),
   pluginsFolder: () => queryOptions({ queryKey: keys.pluginsFolder, queryFn: pluginsFolder }),
   workspacePath: () => queryOptions({ queryKey: keys.workspacePath, queryFn: workspacePath }),
+  // Read from the disk each time it is asked: a file chosen a moment ago may
+  // have been saved again since.
+  surveyIntake: (request: IntakeRequest) =>
+    queryOptions({
+      queryKey: keys.intake(request),
+      queryFn: () => surveyIntake(request),
+      staleTime: 0,
+    }),
   logPath: () => queryOptions({ queryKey: keys.logPath, queryFn: logPath }),
   mcpRegistration: () => queryOptions({ queryKey: keys.mcpRegistration, queryFn: mcpRegistration }),
 }

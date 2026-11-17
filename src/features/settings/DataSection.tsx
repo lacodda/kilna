@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MediaFolderField } from '@/features/settings/MediaFolderField'
+import { IntakeDialog } from '@/features/intake/IntakeDialog'
 
 /** What a finished gesture says, and where it can be seen when it left something on disk. */
 interface Said {
@@ -31,6 +32,7 @@ export function DataSection() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const [busy, setBusy] = useState(false)
+  const [bringing, setBringing] = useState(false)
 
   // The path never changes while the app runs, so it is asked for once.
   const path = useQuery({ ...queries.workspacePath(), staleTime: Infinity })
@@ -130,6 +132,15 @@ export function DataSection() {
 
       <section className="flex flex-col gap-4">
         <h3 className="caption">{t('data.groupIn')}</h3>
+        {/* Works from files, a folder or a pasted text (v0.113): pages
+            kilna wrote and parcels come back whole, any other text becomes
+            a work. The same dialog the New button leads to. */}
+        <FieldGroup label={t('data.bringIn')} help={t('data.bringInHint')}>
+          <Button className="self-start" disabled={busy} onClick={() => setBringing(true)}>
+            {t('data.bringInAction')}
+          </Button>
+        </FieldGroup>
+
         <RestoreSteps path={path.data ?? null} />
 
         <FieldGroup label={t('data.import')} help={t('data.importHint')}>
@@ -176,6 +187,7 @@ export function DataSection() {
       </section>
 
       {busy && <p className="text-sm text-dim">{t('data.working')}</p>}
+      <IntakeDialog open={bringing} onOpenChange={setBringing} />
     </div>
   )
 }

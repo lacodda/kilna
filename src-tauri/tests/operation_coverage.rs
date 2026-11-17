@@ -132,7 +132,7 @@ fn the_scan_finds_every_registered_command() {
 /// the same name does not count. Listed rather than inferred because "writes"
 /// is not visible in a name: `score::catalogue` reads, `work::pin_tier_at`
 /// writes.
-const WRITERS: [&str; 72] = [
+const WRITERS: [&str; 73] = [
     "::create(",
     "::create_minted(",
     "::update(",
@@ -205,6 +205,7 @@ const WRITERS: [&str; 72] = [
     "::renumber(",
     "::clone_work_minted(",
     "::from_legacy(",
+    "::land(",
     // A chat's own rows: written, but by design not into the log.
     "::rename(",
     "::clear_waiting(",

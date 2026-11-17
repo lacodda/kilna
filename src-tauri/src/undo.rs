@@ -89,6 +89,7 @@ pub fn reversible(kind: &str) -> bool {
         kind,
         "work.create"
             | "work.clone"
+            | "work.bring"
             | "work.update"
             | "work.number"
             | "work.pinTier"
@@ -692,10 +693,10 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // Undoing a creation throws the thing away — into the trash, never
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
-        "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
-        | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create"
-        | "fact.create" | "term.create" | "idea.create" | "shelf.create" | "trial.create"
-        | "card.create" => {
+        "work.create" | "work.clone" | "work.bring" | "note.create" | "collection.create"
+        | "release.create" | "version.create" | "scene.create" | "cut.create"
+        | "comment.create" | "style.create" | "fact.create" | "term.create" | "idea.create"
+        | "shelf.create" | "trial.create" | "card.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -884,7 +885,7 @@ fn apply(conn: &Connection, change: impl FnOnce(&Connection) -> Result<()>) -> R
 /// rebuilt from the log.
 fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
     let entity = match entry.kind.as_str() {
-        "work.create" | "work.clone" => crate::trash::Entity::Work,
+        "work.create" | "work.clone" | "work.bring" => crate::trash::Entity::Work,
         "note.create" => crate::trash::Entity::Note,
         "collection.create" => crate::trash::Entity::Collection,
         "release.create" => crate::trash::Entity::Release,

@@ -31,7 +31,8 @@
     "kind": "Kind",
     "newTitle": "New work",
     "newOfKind": "New: {{kind}}",
-    "title": "Title"
+    "title": "Title",
+    "bringIn": "From files or a text…"
   },
   "work": {
     "title": "Title",
@@ -64,7 +65,16 @@
     "copyFailed": "Could not copy that.",
     "choice": "{{field}}: {{value}}",
     "standsOn": "{{status}} · as {{kind}} {{day}}",
-    "madeFrom": "from “{{title}}”"
+    "madeFrom": "from “{{title}}”",
+    "saveMarkdown": "Save as Markdown…",
+    "copyMarkdown": "Copy as Markdown",
+    "markdownSaved": "Saved to {{path}}",
+    "markdownCopied": "The page is on the clipboard.",
+    "markdownFailed": "Could not save the page.",
+    "pack": "Pack to carry…",
+    "packed": "Packed with {{files}} files: {{path}}",
+    "packedMissing": "Files no longer on disk, left out: {{count}}.",
+    "packFailed": "Could not pack the work."
   },
   "versions": {
     "title": "Versions",
@@ -276,7 +286,10 @@
       "copy": "Copy the backup’s file here and name it {{file}}. If a folder ending in .media lies beside the backup, copy it here too and name it media.",
       "open": "Open kilna. A backup from an older version is brought up to date as it opens; one from a newer version asks you to update kilna first."
     },
-    "restoreLeft": "Your media folder of renders and takes is not in a backup, and stays where it is. Neither are this window’s theme and language, or the plugins."
+    "restoreLeft": "Your media folder of renders and takes is not in a backup, and stays where it is. Neither are this window’s theme and language, or the plugins.",
+    "bringIn": "Works from files",
+    "bringInHint": "Bring works in from files, a folder or a pasted text. A page kilna wrote and a .kilna.zip packed from a card come back as the works they were - versions, scores, release and, in a parcel, files. Any other .md or .txt becomes a new work. What is already here is passed over, never rewritten.",
+    "bringInAction": "Bring works in…"
   },
   "dashboard": {
     "decisions": "Needs a decision",
@@ -2009,7 +2022,8 @@
       "released": "Releases out",
       "besides": "Notes written: {{notes}}. Trials made: {{trials}}.",
       "nothing": "nothing"
-    }
+    },
+    "work.brought": "“{{title}}” brought in from a file."
   },
   "card": {
     "tab": {
@@ -2063,7 +2077,8 @@
         "system": "Follow the system language",
         "en": "Switch to English",
         "ru": "Switch to Russian (Русский)"
-      }
+      },
+      "bringIn": "Bring works in from files"
     }
   },
   "keys": {
@@ -2162,7 +2177,8 @@
     "note.retag": "a tag renamed on every note",
     "card.create": "putting a card on the board",
     "card.update": "an edit to a card",
-    "card.arrange": "moving cards on the board"
+    "card.arrange": "moving cards on the board",
+    "work.bring": "bringing a work in"
   },
   "stage": {
     "label": "Stage",
@@ -3196,6 +3212,24 @@
       "noDatabase": "The folder {{path}} holds a space's file but no database.",
       "none": "There is no space to open yet: start kilna once.",
       "unreachable": "The space at {{path}} cannot be reached: is its drive connected?"
+    },
+    "intake": {
+      "brokenPage": "This page ends where its parcel should begin: it was cut short.",
+      "brokenParcel": "The parcel at the foot of this page cannot be read: {{cause}}",
+      "notAWorkPage": "This is a page of kilna’s export that is not a work, or a work’s page written before v0.113. Export again to get a page that reads back.",
+      "empty": "There is nothing in it: no title and no text.",
+      "needsKind": "Say what kind of work a text becomes.",
+      "kindHasNoText": "A work of the kind “{{kind}}” has no text of its own to put this in.",
+      "notRead": "The file could not be read: {{cause}}",
+      "notText": "This is not a text: it is not UTF-8."
+    },
+    "parcel": {
+      "newerFormat": "This parcel is of format {{format}}, written by a newer kilna than this one.",
+      "needsTitle": "A work needs a title, and this one says none.",
+      "unknownKind": "This space makes no works of the kind “{{kind}}”.",
+      "alreadyHere": "“{{title}}” is already here.",
+      "unreadable": "“{{path}}” cannot be read as a parcel: {{cause}}",
+      "notAParcel": "“{{path}}” is a zip, but not a work packed by kilna: it has no work.json."
     }
   },
   "proposalBody": {
@@ -4596,5 +4630,32 @@
     "trashed": "In the trash",
     "forgetDescription": "A space in the trash keeps its folder. Forgetting one takes it off this list and leaves the folder where it is: double-click its space.kilna to open it again.",
     "actions": "What to do with {{name}}"
+  },
+  "intake": {
+    "title": "Bring works in",
+    "hint": "A page kilna wrote and a .kilna.zip come back as the works they were. A .md or .txt, or a text pasted here, becomes a new work with the text as its first version. What is already here is passed over.",
+    "files": "Files…",
+    "folder": "Folder…",
+    "clear": "Clear",
+    "filesTitle": "Pages, texts and parcels to bring in",
+    "folderTitle": "A folder of pages and texts",
+    "paste": "Or paste a text",
+    "pastePlaceholder": "Lyrics, an article, a page saved as Markdown",
+    "pastedTitle": "Call it",
+    "pasted": "Pasted text",
+    "kind": "A text becomes",
+    "noneFound": "No pages, texts or parcels in what was chosen. A folder is read by its own files, not by the folders inside it.",
+    "counts": "versions {{versions}} · scores {{scores}} · files {{files}}",
+    "standing": {
+      "new": "New",
+      "here": "Already here",
+      "deleted": "Deleted here"
+    },
+    "bring": "Bring in: {{count}}",
+    "brought": "Brought in: {{count}}.",
+    "passedOver": "Already here: {{here}}, deleted here: {{deleted}}.",
+    "missingFiles": "Files that did not arrive: {{count}}.",
+    "refused": "Could not be brought in: {{count}}. The list says why.",
+    "failed": "Could not bring the works in."
   }
 }

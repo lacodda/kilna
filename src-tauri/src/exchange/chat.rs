@@ -223,7 +223,13 @@ mod tests {
 
         let page = markdown(&conn, &chat.id).unwrap();
 
-        assert!(page.starts_with("---\nformat: 7\n"), "{page}");
+        assert!(
+            page.starts_with(&format!(
+                "---\nformat: {}\n",
+                crate::exchange::export::FORMAT
+            )),
+            "{page}"
+        );
         assert!(
             page.contains("chat: \"Shorten the second verse\""),
             "{page}"

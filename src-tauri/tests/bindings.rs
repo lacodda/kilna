@@ -256,6 +256,11 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::exchange::export::ExportReport,
         kilna_lib::commands::data::ChatPage,
         kilna_lib::exchange::package::PackageReport,
+        kilna_lib::commands::data::WorkPage,
+        kilna_lib::exchange::parcel::PackedParcel,
+        kilna_lib::exchange::intake::IntakeRequest,
+        kilna_lib::exchange::intake::IntakeFound,
+        kilna_lib::exchange::intake::IntakeBrought,
         kilna_lib::exchange::import::ImportReport,
         // plugins.rs
         kilna_lib::plugin::manifest::Plugin,

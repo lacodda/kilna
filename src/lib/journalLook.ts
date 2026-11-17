@@ -8,6 +8,7 @@ import {
   Clapperboard,
   Copy,
   Dot,
+  FolderInput,
   FolderMinus,
   FolderPlus,
   Hash,
@@ -149,6 +150,7 @@ const KIND_OF_PREFIX: Readonly<Record<string, Kind>> = {
 const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'work.created': ['accent', Plus],
   'work.cloned': ['accent', Copy],
+  'work.brought': ['accent', FolderInput],
   'work.renamed': ['dim', Type],
   'work.status': ['warn', RefreshCw],
   'work.restated': ['warn', RefreshCw],

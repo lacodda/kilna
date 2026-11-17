@@ -27,6 +27,9 @@ interface Props {
   onClose: () => void
   /** Called with the new work's id, after the toast. */
   onCreated: (workId: string) => void
+  /** Opens the way in for works that exist already - files, a folder, a
+   *  pasted text - where the caller has one to open. */
+  onBringIn?: () => void
 }
 
 /**
@@ -39,7 +42,7 @@ interface Props {
  * before the dialog opens - the menu under the button names them - and can be
  * changed here, because "Video" pressed by mistake should not mean cancelling.
  */
-export function NewWorkDialog({ kind, onClose, onCreated }: Props) {
+export function NewWorkDialog({ kind, onClose, onCreated, onBringIn }: Props) {
   // A title typed is a title a stray click beside the dialog would lose, as
   // in every other dialog of the app.
   const { typed, onInput } = useTypedSinceOpen(kind)
@@ -56,7 +59,15 @@ export function NewWorkDialog({ kind, onClose, onCreated }: Props) {
         {/* Keyed by the kind it opened on, so each opening starts from a blank
             title and the kind that was picked: the last title typed here
             belongs to the work it made, not to the next one. */}
-        {kind !== null && <Form key={kind} kind={kind} onClose={onClose} onCreated={onCreated} />}
+        {kind !== null && (
+          <Form
+            key={kind}
+            kind={kind}
+            onClose={onClose}
+            onCreated={onCreated}
+            onBringIn={onBringIn}
+          />
+        )}
       </DialogPopup>
     </Dialog>
   )
@@ -66,10 +77,12 @@ function Form({
   kind,
   onClose,
   onCreated,
+  onBringIn,
 }: {
   kind: string
   onClose: () => void
   onCreated: (workId: string) => void
+  onBringIn: (() => void) | undefined
 }) {
   const { t } = useTranslation()
   const profile = useProfile()
@@ -141,7 +154,23 @@ function Form({
           </FieldGroup>
         )}
       </DialogBody>
-      <DialogActions>
+      <DialogActions
+        // The other way a work arrives: it exists already, as a file or a
+        // text. Away from the answer, where the row's aside goes.
+        start={
+          onBringIn === undefined ? undefined : (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                onClose()
+                onBringIn()
+              }}
+            >
+              {t('works.bringIn')}
+            </Button>
+          )
+        }
+      >
         <DialogClose render={<Button />}>{t('dialog.cancel')}</DialogClose>
         <Button variant="primary" type="submit" disabled={title.trim() === '' || add.isPending}>
           {t('works.add')}

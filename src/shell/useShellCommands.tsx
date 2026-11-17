@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   CalendarPlus,
   FilePlus,
+  FolderInput,
   Layers,
   Languages,
   MessageSquare,
@@ -29,6 +30,8 @@ import { useOpenSpace } from '@/features/spaces/useOpenSpace'
 export interface ShellCommands {
   /** Open the New work dialog. */
   newWork: () => void
+  /** Open the dialog that brings works in from files or a pasted text. */
+  bringIn: () => void
   /** Fold the rail to icons, or unfold it. */
   toggleRail: () => void
   /** Whether the rail is folded now, which is what the toggle is called by. */
@@ -102,6 +105,13 @@ export function useShellCommands(shell: ShellCommands): void {
       group: actions,
       icon: <FilePlus aria-hidden />,
       run: shell.newWork,
+    },
+    {
+      id: 'bringIn',
+      label: t('search.action.bringIn'),
+      group: actions,
+      icon: <FolderInput aria-hidden />,
+      run: shell.bringIn,
     },
     ...onWork,
     {

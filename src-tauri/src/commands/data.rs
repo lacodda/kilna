@@ -11,7 +11,9 @@ use crate::error::{Error, Result};
 use crate::exchange::backup;
 use crate::exchange::export::{self, ExportReport};
 use crate::exchange::import::{self, ImportReport};
+use crate::exchange::intake;
 use crate::exchange::package;
+use crate::exchange::parcel;
 use crate::state::AppState;
 
 /// Write a text the window composed to a place the person picked.
@@ -60,6 +62,72 @@ pub fn chat_markdown(state: State<'_, AppState>, chat_id: String) -> Result<Chat
 pub struct ChatPage {
     pub file_name: String,
     pub markdown: String,
+}
+
+/// One work as Markdown, with the file name it would go out under in the
+/// workspace's export - for the window to save, or to put on the clipboard
+/// (v0.113). The page is the export's own, so it reads back.
+#[tauri::command]
+pub fn work_markdown(state: State<'_, AppState>, work_id: String) -> Result<WorkPage> {
+    let conn = state.conn();
+    Ok(WorkPage {
+        file_name: export::page_name(&conn, &work_id)?,
+        markdown: export::page_of(&conn, &work_id)?,
+    })
+}
+
+/// A work's page and the name of its file.
+#[derive(serde::Serialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkPage {
+    pub file_name: String,
+    pub markdown: String,
+}
+
+/// The name a work's parcel is offered under in the save dialog.
+#[tauri::command]
+pub fn parcel_file_name(state: State<'_, AppState>, work_id: String) -> Result<String> {
+    parcel::file_name(&state.conn(), &work_id)
+}
+
+/// Pack a work into a `.kilna.zip`: everything that is its own - versions,
+/// scores, release, notes, board - with its files, to carry to another
+/// space. Reads only.
+#[tauri::command(async)]
+pub fn export_parcel(
+    state: State<'_, AppState>,
+    work_id: String,
+    path: String,
+) -> Result<parcel::PackedParcel> {
+    parcel::write_zip(&state.conn(), &work_id, std::path::Path::new(&path))
+}
+
+/// Look at files, folders or a pasted text and say what bringing them in
+/// would do: what each is, and whether it is here already. Writes nothing.
+#[tauri::command(async)]
+pub fn survey_intake(
+    state: State<'_, AppState>,
+    request: intake::IntakeRequest,
+) -> Result<Vec<intake::IntakeFound>> {
+    let conn = state.conn();
+    let profile_id = super::active(&conn)?;
+    intake::survey(&conn, &profile_id, &request)
+}
+
+/// Bring works in from files, folders or a pasted text: pages kilna wrote,
+/// `.kilna.zip` parcels, and texts from outside as works of the kind named.
+/// What is already here is passed over.
+#[tauri::command(async)]
+pub fn bring_intake(
+    state: State<'_, AppState>,
+    request: intake::IntakeRequest,
+) -> Result<intake::IntakeBrought> {
+    let media = state.media_dir().ok();
+    let conn = state.conn();
+    let profile_id = super::active(&conn)?;
+    intake::bring(&conn, &profile_id, &request, |parcel, files| {
+        crate::actions::work::bring(&conn, media.as_deref(), parcel, files)
+    })
 }
 
 /// Pack a work into a folder: its board with every prompt, the pictures under

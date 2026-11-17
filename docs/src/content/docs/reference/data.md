@@ -1,6 +1,6 @@
 ---
 title: Data
-description: Export, backup and import, where the workspace file and the application log live, the steps of a restore and why they are taken by hand, and what the workspace records about itself.
+description: Export, backup and import, one work as a page or a parcel, bringing works in from files, where the workspace file and the application log live, the steps of a restore and why they are taken by hand, and what the workspace records about itself.
 ---
 
 kilna is local-first: each [space](/kilna/guides/spaces/) is a folder, with one
@@ -128,9 +128,13 @@ Each work's page includes:
 
 The `format` line is for a reader written against these pages: it says which
 shape the page takes, and moves when a field changes meaning or a section
-changes shape — not when a field is added. Pages written by v0.106 and later
-say `format: 7`: the conversations go out too, in a `chats` folder, a page
-each (see below). v0.100 to v0.105 wrote `format: 6`: a card of a board is
+changes shape — not when a field is added. Pages written by v0.113 and later
+say `format: 8`: a work's page can be [read back](#bringing-works-in). Each
+version's body stands between two comment lines, `<!-- kilna:body ... -->`
+and `<!-- kilna:end -->`, and the page ends with the work's parcel in a
+comment - a renderer shows neither. v0.106 to v0.112 wrote `format: 7`: the
+conversations go out too, in a `chats` folder, a page each (see below).
+v0.100 to v0.105 wrote `format: 6`: a card of a board is
 called by the entry of the library it links to, and an entry in `notes.md`
 says its medium and year. v0.99 wrote `format: 5`: a work's page carries the boards of its
 [conception](/kilna/guides/the-conception/), board by board and topic by
@@ -169,6 +173,72 @@ characters replaced and a short id suffix appended, so two works sharing a
 title never overwrite one another — and non-ASCII titles are kept as-is,
 since a title in Cyrillic or any other script should stay readable in the
 exported file name.
+
+## One work, out
+
+A work's menu on its card - the three dots beside its title - takes it out by
+itself, three ways:
+
+- **Save as Markdown…** writes its page to a file you choose: the page the
+  export writes for it, under the name it has there.
+- **Copy as Markdown** puts the same page on the clipboard.
+- **Pack to carry…** writes a `.kilna.zip`: the work's *parcel* as
+  `work.json`, the same page as `work.md`, and its files under `media/`.
+
+A parcel holds what is the work's own: its fields, tags and marks, every
+version with its number and the version it was written from, its scores, its
+release and what that goes out under, its notes with the pictures in them,
+its storyboard with the stills and clips drawn for each scene, and its files.
+It keeps the ids and the dates everything was made under, so the work that
+arrives elsewhere is the same work, scored on the same days.
+
+What a parcel leaves behind is what points at the space it came from: the
+collection it stands in, the works it was made from, the cards and bricks its
+cover is built of, an experiment's trials, the boards of its conception,
+comments and chats. The page says them in words; the parcel does not carry
+them. Your [media folder](/kilna/guides/files-and-covers/#the-works-folder-on-disk)
+of renders and takes is not carried either - it only ever had its path
+recorded.
+
+## Bringing works in
+
+**New → From files or a text…**, **Settings → Data → Bring works in…** and
+*Bring works in from files* in the palette open one dialog. Hand it files, a
+folder, or a text pasted into its box; it lists what it found, what each is
+called and where it stands, and writes nothing until you press the button.
+
+- **A page kilna wrote** - from an export or **Save as Markdown…** - comes
+  back as the work it was: its kind, its versions with their numbers, its
+  scores, its release, its notes and its board. The bodies are read from the
+  page itself, so a text you changed in the file is what arrives; everything
+  else is read from the parcel at the page's foot, and editing a table of the
+  page changes nothing. A page carries no files.
+- **A `.kilna.zip`** comes back the same way, with its files.
+- **Any other `.md` or `.txt`, or a pasted text,** becomes a new work of the
+  kind you name, with the text as its first version. Its title is the
+  `title` of its front matter, else a `# heading` that opens it, else the
+  file's name; a pasted text is called by its first line unless you say
+  otherwise. `tags` in the front matter become the work's tags; the rest of
+  a front matter is dropped.
+
+A folder is read by its own files - `.md`, `.markdown`, `.txt`, `.zip` - and
+not by the folders inside it: point it at an export's `works` folder, not at
+the export, which holds pages that are no works beside it.
+
+Bringing in only adds. A work already here is passed over - the same work by
+its id, or for a text from outside one of the same title - and so is one you
+deleted here, even after the trash was emptied. Nothing is merged and nothing
+is rewritten, so the same folder can be brought in again after more files
+were added to it. Each work arrives whole or not at all, and one that cannot
+- a kind, a role or a place this space's profile does not have - says why in
+the list while the rest arrive. A carried score is weighed by the profile of
+the space it lands in, and a status this space does not name becomes the one
+a new work starts in.
+
+A page written before v0.113 has no parcel and is refused: export again to
+get one that reads back. Bringing a work in is one step for **Undo**, which
+puts it in the [trash](/kilna/guides/the-trash/). The reasoning is in
+[ADR 0081](https://github.com/lacodda/kilna/blob/main/docs/adr/0081-a-work-leaves-and-arrives-as-a-parcel.md).
 
 ## Import from a predecessor
 

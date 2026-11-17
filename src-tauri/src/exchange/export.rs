@@ -37,7 +37,13 @@ use crate::work::{self, WorkFilter, version};
 ///     chat's name, its work and what it cost in the front matter, then each
 ///     question and answer under its heading, a starred answer marked, and
 ///     what an answer proposed with what became of it.
-pub const FORMAT: u32 = 7;
+/// 8 — v0.113: a page can be read back. A version's body stands between two
+///     marks, `<!-- kilna:body <id> lines=<n> -->` and `<!-- kilna:end -->`,
+///     and the page ends with the work's parcel in a comment - its fields,
+///     versions, scores, release, notes and board, exactly, without the
+///     bodies. The tables above are for a person; the parcel and the bodies
+///     are what comes back.
+pub const FORMAT: u32 = 8;
 
 /// What an export produced, so the user can be told rather than guess.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -81,263 +87,7 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
     }
 
     for work in &works {
-        let mut page = String::new();
-
-        page.push_str("---\n");
-        // The shape of the page, so a reader written against it can say
-        // which one it understands. Bumped when a field changes meaning or
-        // a section changes shape; adding a field is not a new format.
-        page.push_str(&format!("format: {FORMAT}\n"));
-        push_field(&mut page, "title", &work.title);
-        push_field(&mut page, "kind", &work.kind);
-        push_field(&mut page, "status", &work.status);
-        push_field(&mut page, "created", &work.created_at);
-        push_field(&mut page, "updated", &work.updated_at);
-        if let Some(tier) = &work.tier_pinned {
-            push_field(&mut page, "tier_pinned", tier);
-            if let Some(reason) = &work.tier_pin_reason {
-                push_field(&mut page, "tier_pin_reason", reason);
-            }
-        }
-        if let Some(bookmarked) = &work.bookmarked_at {
-            push_field(&mut page, "bookmarked", bookmarked);
-        }
-        if let Some(stage) = work.stage {
-            push_field(&mut page, "stage", &stage.to_string());
-        }
-        // Its number in its family and the file it is finished as (ADR 0070):
-        // facts of the work a folder of its own is named and found by.
-        if let Some(ordinal) = work.ordinal {
-            push_field(&mut page, "number", &ordinal.to_string());
-        }
-        if let Some(file) = &work.file {
-            push_field(&mut page, "finished_file", file);
-        }
-        for (key, value) in &work.meta {
-            // A JSON string carries its own quotes; taking them along would
-            // export `"ru"` as `"\"ru\""`.
-            let rendered = match value {
-                serde_json::Value::String(text) => text.clone(),
-                other => other.to_string(),
-            };
-            push_field(&mut page, key, &rendered);
-        }
-        page.push_str("---\n\n");
-
-        page.push_str(&format!("# {}\n", work.title));
-
-        // Versions, newest first within each role, bodies in full.
-        let versions = version::list(conn, &work.id)?;
-        let mut current_role = String::new();
-        for summary in &versions {
-            if summary.role != current_role {
-                current_role = summary.role.clone();
-                page.push_str(&format!("\n## {current_role}\n"));
-            }
-
-            let Some(full) = version::get(conn, &summary.id)? else {
-                continue;
-            };
-            // Named by revision number, not by id: the page is for a person,
-            // and "from revision 3" is what the tree reads as.
-            let parent = full
-                .parent_version_id
-                .as_deref()
-                .and_then(|parent| versions.iter().find(|v| v.id == parent))
-                .map(|parent| format!(" (from revision {})", parent.revision))
-                .unwrap_or_default();
-            // Taken from a trial of an experiment (ADR 0061): named by the
-            // experiment, as the reader finds it among the pages.
-            let parent = match full.trial_id.as_deref() {
-                Some(trial) => match crate::lab::trial::get(conn, trial)? {
-                    Some(found) => match work::get(conn, &found.work_id)? {
-                        Some(experiment) => {
-                            format!("{parent} (from a trial of “{}”)", experiment.title)
-                        }
-                        None => parent,
-                    },
-                    None => parent,
-                },
-                None => parent,
-            };
-            page.push_str(&format!(
-                "\n### Revision {}{}{}\n\n{}\n",
-                full.revision,
-                if summary.is_current { " (current)" } else { "" },
-                parent,
-                full.body
-            ));
-        }
-
-        let scores = score::history(conn, &work.id)?;
-        if !scores.is_empty() {
-            page.push_str("\n## Scores\n\n");
-            page.push_str("| Date | Total | Tier | Rater | Axes |\n|---|---|---|---|---|\n");
-            for score in &scores {
-                let axes = score
-                    .axes
-                    .iter()
-                    .map(|(key, value)| format!("{key} {value}"))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                page.push_str(&format!(
-                    "| {} | {:.1} | {} | {} | {} |\n",
-                    &score.scored_at[..10.min(score.scored_at.len())],
-                    score.total,
-                    score.tier.as_deref().unwrap_or("—"),
-                    score.rater.as_deref().unwrap_or("—"),
-                    axes
-                ));
-            }
-        }
-
-        // The storyboard: the board as a table, then each scene's blocks in
-        // full — a block is a prompt, and a prompt cut to a cell is no use.
-        let scenes = crate::scene::for_work(conn, &work.id)?;
-        if !scenes.is_empty() {
-            page.push_str("\n## Scenes\n\n");
-            // A Layer column only for a kind that names layers.
-            let has_layers = !profile.config.vocabulary(&work.kind).layers.is_empty();
-            page.push_str(if has_layers {
-                "| # | Section | From | To | Shot | Layer | Description |\n|---|---|---|---|---|---|---|\n"
-            } else {
-                "| # | Section | From | To | Shot | Description |\n|---|---|---|---|---|---|\n"
-            });
-            for scene in &scenes {
-                let layer = if has_layers {
-                    format!("{} | ", scene.layer.as_deref().unwrap_or("—"))
-                } else {
-                    String::new()
-                };
-                page.push_str(&format!(
-                    "| {} | {} | {} | {} | {} | {}{} |\n",
-                    scene.position,
-                    scene.section.as_deref().unwrap_or("—"),
-                    scene.starts_at.map(seconds).unwrap_or_else(|| "—".into()),
-                    scene.ends_at.map(seconds).unwrap_or_else(|| "—".into()),
-                    scene.shot_type.as_deref().unwrap_or("—"),
-                    layer,
-                    scene.description.replace('\n', " ").replace('|', "\\|"),
-                ));
-            }
-            for scene in &scenes {
-                if scene.blocks.is_empty() {
-                    continue;
-                }
-                page.push_str(&format!("\n### Scene {}\n", scene.position));
-                for (key, value) in &scene.blocks {
-                    let text = match value {
-                        serde_json::Value::String(text) => text.clone(),
-                        other => other.to_string(),
-                    };
-                    page.push_str(&format!("\n**{key}**\n\n{text}\n"));
-                }
-            }
-        }
-
-        push_cover(conn, &mut page, work)?;
-        push_trials(conn, &mut page, &work.id)?;
-        push_boards(conn, &mut page, work)?;
-
-        let sources = crate::link::sources(conn, &work.id)?;
-        if !sources.is_empty() {
-            page.push_str("\n## Made from\n\n");
-            for link in &sources {
-                page.push_str(&format!(
-                    "- **{}** ({}, {}){}{}\n",
-                    link.source_title,
-                    link.source_kind,
-                    link.role,
-                    link.taken_revision
-                        .map(|r| format!(" — taken at revision {r}"))
-                        .unwrap_or_default(),
-                    if link.drifted {
-                        " — changed since"
-                    } else {
-                        ""
-                    }
-                ));
-            }
-        }
-
-        let releases = release::for_work(conn, &profile.id, &work.id)?;
-        if !releases.is_empty() {
-            page.push_str("\n## Releases\n\n");
-            for entry in &releases {
-                let release = &entry.release;
-                let when = match (&release.scheduled_time, &release.time_zone) {
-                    (Some(time), Some(zone)) => format!(" {time} {zone}"),
-                    (Some(time), None) => format!(" {time}"),
-                    (None, Some(zone)) => format!(" ({zone})"),
-                    (None, None) => String::new(),
-                };
-                page.push_str(&format!(
-                    "- **{}** — {}{}{}\n",
-                    release.kind,
-                    release
-                        .released_at
-                        .as_deref()
-                        .or(release.scheduled_at.as_deref())
-                        .unwrap_or("not scheduled"),
-                    when,
-                    release
-                        .url
-                        .as_deref()
-                        .map(|url| format!(" — {url}"))
-                        .unwrap_or_default()
-                ));
-            }
-        }
-
-        let notes = note::list(
-            conn,
-            &profile.id,
-            &NoteFilter {
-                work_id: Some(work.id.clone()),
-                // A hero of the work is a card of the canon, with a page of
-                // its own under `canon/`.
-                canon: Some(false),
-                ..Default::default()
-            },
-        )?;
-        if !notes.is_empty() {
-            page.push_str("\n## Notes\n\n");
-            for note in &notes {
-                pictures.extend(asset::linked_from(&note.body));
-                page.push_str(&format!(
-                    "- {}",
-                    one_folder_down(&note.body).replace('\n', "\n  ")
-                ));
-                if let Some(whose) = &note.attribution {
-                    page.push_str(&format!(" — {whose}"));
-                }
-                if !note.tags.is_empty() {
-                    page.push_str(&format!(" _({})_", note.tags.join(", ")));
-                }
-                // A phrase says it was spent here (ADR 0045), and where it
-                // stands (ADR 0064).
-                if is_material(&profile.config, &note.kind) {
-                    page.push_str(&format!(" · {} {}", note.kind, note.state.as_str()));
-                }
-                push_shelves(conn, &mut page, &note.id, " · on ")?;
-                page.push('\n');
-            }
-        }
-
-        // What the audience said, archived included: an export is the whole
-        // record, and "needs no reply" is a fact about a comment, not a reason
-        // to lose it.
-        let said: Vec<_> = comments
-            .iter()
-            .filter(|comment| comment.work_id.as_deref() == Some(work.id.as_str()))
-            .collect();
-        if !said.is_empty() {
-            page.push_str("\n## Comments\n\n");
-            for comment in said {
-                push_comment(&mut page, comment);
-            }
-        }
-
+        let page = work_page(conn, &profile, work, &comments, &mut pictures)?;
         let path = works_dir.join(format!("{}.md", slug(&work.title, &work.id)));
         std::fs::write(&path, page)?;
         files += 1;
@@ -447,6 +197,345 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         works: works.len(),
         files,
     })
+}
+
+/// One work as a page: the front matter, every version in full, and what
+/// has been said and done about it - with the work's parcel at its foot, so
+/// the page kilna wrote is a page kilna reads back (format 8).
+pub(super) fn work_page(
+    conn: &Connection,
+    profile: &profile::Profile,
+    work: &work::Work,
+    comments: &[comment::Comment],
+    pictures: &mut BTreeSet<String>,
+) -> Result<String> {
+    let mut page = String::new();
+
+    page.push_str("---\n");
+    // The shape of the page, so a reader written against it can say
+    // which one it understands. Bumped when a field changes meaning or
+    // a section changes shape; adding a field is not a new format.
+    page.push_str(&format!("format: {FORMAT}\n"));
+    push_field(&mut page, "title", &work.title);
+    push_field(&mut page, "kind", &work.kind);
+    push_field(&mut page, "status", &work.status);
+    push_field(&mut page, "created", &work.created_at);
+    push_field(&mut page, "updated", &work.updated_at);
+    if let Some(tier) = &work.tier_pinned {
+        push_field(&mut page, "tier_pinned", tier);
+        if let Some(reason) = &work.tier_pin_reason {
+            push_field(&mut page, "tier_pin_reason", reason);
+        }
+    }
+    if let Some(bookmarked) = &work.bookmarked_at {
+        push_field(&mut page, "bookmarked", bookmarked);
+    }
+    if let Some(stage) = work.stage {
+        push_field(&mut page, "stage", &stage.to_string());
+    }
+    // Its number in its family and the file it is finished as (ADR 0070):
+    // facts of the work a folder of its own is named and found by.
+    if let Some(ordinal) = work.ordinal {
+        push_field(&mut page, "number", &ordinal.to_string());
+    }
+    if let Some(file) = &work.file {
+        push_field(&mut page, "finished_file", file);
+    }
+    for (key, value) in &work.meta {
+        // A JSON string carries its own quotes; taking them along would
+        // export `"ru"` as `"\"ru\""`.
+        let rendered = match value {
+            serde_json::Value::String(text) => text.clone(),
+            other => other.to_string(),
+        };
+        push_field(&mut page, key, &rendered);
+    }
+    page.push_str("---\n\n");
+
+    page.push_str(&format!("# {}\n", work.title));
+
+    // Versions, newest first within each role, bodies in full.
+    let versions = version::list(conn, &work.id)?;
+    let mut current_role = String::new();
+    for summary in &versions {
+        if summary.role != current_role {
+            current_role = summary.role.clone();
+            page.push_str(&format!("\n## {current_role}\n"));
+        }
+
+        let Some(full) = version::get(conn, &summary.id)? else {
+            continue;
+        };
+        // Named by revision number, not by id: the page is for a person,
+        // and "from revision 3" is what the tree reads as.
+        let parent = full
+            .parent_version_id
+            .as_deref()
+            .and_then(|parent| versions.iter().find(|v| v.id == parent))
+            .map(|parent| format!(" (from revision {})", parent.revision))
+            .unwrap_or_default();
+        // Taken from a trial of an experiment (ADR 0061): named by the
+        // experiment, as the reader finds it among the pages.
+        let parent = match full.trial_id.as_deref() {
+            Some(trial) => match crate::lab::trial::get(conn, trial)? {
+                Some(found) => match work::get(conn, &found.work_id)? {
+                    Some(experiment) => {
+                        format!("{parent} (from a trial of “{}”)", experiment.title)
+                    }
+                    None => parent,
+                },
+                None => parent,
+            },
+            None => parent,
+        };
+        // The body between two marks (format 8): a text may hold any
+        // heading this page uses, and the marks are what tells the body
+        // from the page when it is read back.
+        page.push_str(&format!(
+            "\n### Revision {}{}{}\n\n{}\n{}\n{BODY_END}\n",
+            full.revision,
+            if summary.is_current { " (current)" } else { "" },
+            parent,
+            body_mark(&full.id, &full.body),
+            full.body
+        ));
+    }
+
+    let scores = score::history(conn, &work.id)?;
+    if !scores.is_empty() {
+        page.push_str("\n## Scores\n\n");
+        page.push_str("| Date | Total | Tier | Rater | Axes |\n|---|---|---|---|---|\n");
+        for score in &scores {
+            let axes = score
+                .axes
+                .iter()
+                .map(|(key, value)| format!("{key} {value}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            page.push_str(&format!(
+                "| {} | {:.1} | {} | {} | {} |\n",
+                &score.scored_at[..10.min(score.scored_at.len())],
+                score.total,
+                score.tier.as_deref().unwrap_or("—"),
+                score.rater.as_deref().unwrap_or("—"),
+                axes
+            ));
+        }
+    }
+
+    // The storyboard: the board as a table, then each scene's blocks in
+    // full — a block is a prompt, and a prompt cut to a cell is no use.
+    let scenes = crate::scene::for_work(conn, &work.id)?;
+    if !scenes.is_empty() {
+        page.push_str("\n## Scenes\n\n");
+        // A Layer column only for a kind that names layers.
+        let has_layers = !profile.config.vocabulary(&work.kind).layers.is_empty();
+        page.push_str(if has_layers {
+            "| # | Section | From | To | Shot | Layer | Description |\n|---|---|---|---|---|---|---|\n"
+        } else {
+            "| # | Section | From | To | Shot | Description |\n|---|---|---|---|---|---|\n"
+        });
+        for scene in &scenes {
+            let layer = if has_layers {
+                format!("{} | ", scene.layer.as_deref().unwrap_or("—"))
+            } else {
+                String::new()
+            };
+            page.push_str(&format!(
+                "| {} | {} | {} | {} | {} | {}{} |\n",
+                scene.position,
+                scene.section.as_deref().unwrap_or("—"),
+                scene.starts_at.map(seconds).unwrap_or_else(|| "—".into()),
+                scene.ends_at.map(seconds).unwrap_or_else(|| "—".into()),
+                scene.shot_type.as_deref().unwrap_or("—"),
+                layer,
+                scene.description.replace('\n', " ").replace('|', "\\|"),
+            ));
+        }
+        for scene in &scenes {
+            if scene.blocks.is_empty() {
+                continue;
+            }
+            page.push_str(&format!("\n### Scene {}\n", scene.position));
+            for (key, value) in &scene.blocks {
+                let text = match value {
+                    serde_json::Value::String(text) => text.clone(),
+                    other => other.to_string(),
+                };
+                page.push_str(&format!("\n**{key}**\n\n{text}\n"));
+            }
+        }
+    }
+
+    push_cover(conn, &mut page, work)?;
+    push_trials(conn, &mut page, &work.id)?;
+    push_boards(conn, &mut page, work)?;
+
+    let sources = crate::link::sources(conn, &work.id)?;
+    if !sources.is_empty() {
+        page.push_str("\n## Made from\n\n");
+        for link in &sources {
+            page.push_str(&format!(
+                "- **{}** ({}, {}){}{}\n",
+                link.source_title,
+                link.source_kind,
+                link.role,
+                link.taken_revision
+                    .map(|r| format!(" — taken at revision {r}"))
+                    .unwrap_or_default(),
+                if link.drifted {
+                    " — changed since"
+                } else {
+                    ""
+                }
+            ));
+        }
+    }
+
+    let releases = release::for_work(conn, &profile.id, &work.id)?;
+    if !releases.is_empty() {
+        page.push_str("\n## Releases\n\n");
+        for entry in &releases {
+            let release = &entry.release;
+            let when = match (&release.scheduled_time, &release.time_zone) {
+                (Some(time), Some(zone)) => format!(" {time} {zone}"),
+                (Some(time), None) => format!(" {time}"),
+                (None, Some(zone)) => format!(" ({zone})"),
+                (None, None) => String::new(),
+            };
+            page.push_str(&format!(
+                "- **{}** — {}{}{}\n",
+                release.kind,
+                release
+                    .released_at
+                    .as_deref()
+                    .or(release.scheduled_at.as_deref())
+                    .unwrap_or("not scheduled"),
+                when,
+                release
+                    .url
+                    .as_deref()
+                    .map(|url| format!(" — {url}"))
+                    .unwrap_or_default()
+            ));
+        }
+    }
+
+    let notes = note::list(
+        conn,
+        &profile.id,
+        &NoteFilter {
+            work_id: Some(work.id.clone()),
+            // A hero of the work is a card of the canon, with a page of
+            // its own under `canon/`.
+            canon: Some(false),
+            ..Default::default()
+        },
+    )?;
+    if !notes.is_empty() {
+        page.push_str("\n## Notes\n\n");
+        for note in &notes {
+            pictures.extend(asset::linked_from(&note.body));
+            page.push_str(&format!(
+                "- {}",
+                one_folder_down(&note.body).replace('\n', "\n  ")
+            ));
+            if let Some(whose) = &note.attribution {
+                page.push_str(&format!(" — {whose}"));
+            }
+            if !note.tags.is_empty() {
+                page.push_str(&format!(" _({})_", note.tags.join(", ")));
+            }
+            // A phrase says it was spent here (ADR 0045), and where it
+            // stands (ADR 0064).
+            if is_material(&profile.config, &note.kind) {
+                page.push_str(&format!(" · {} {}", note.kind, note.state.as_str()));
+            }
+            push_shelves(conn, &mut page, &note.id, " · on ")?;
+            page.push('\n');
+        }
+    }
+
+    // What the audience said, archived included: an export is the whole
+    // record, and "needs no reply" is a fact about a comment, not a reason
+    // to lose it.
+    let said: Vec<_> = comments
+        .iter()
+        .filter(|comment| comment.work_id.as_deref() == Some(work.id.as_str()))
+        .collect();
+    if !said.is_empty() {
+        page.push_str("\n## Comments\n\n");
+        for comment in said {
+            push_comment(&mut page, comment);
+        }
+    }
+
+    page.push_str(&parcel_foot(
+        &super::parcel::of_work(conn, &work.id)?.without_bodies(),
+    )?);
+
+    Ok(page)
+}
+
+/// How the line before a version's body starts.
+pub(super) const BODY_OPEN: &str = "<!-- kilna:body";
+
+/// The line after a version's body.
+pub(super) const BODY_END: &str = "<!-- kilna:end -->";
+
+/// The line before a page's parcel.
+pub(super) const PARCEL_OPEN: &str = "<!-- kilna:parcel";
+
+/// The line before a version's body: whose body it is, and how many lines
+/// of the page it takes. The count is what lets a body hold a line that
+/// reads as the closing mark; a body somebody changed outside no longer
+/// matches it and is read up to the closing mark instead.
+fn body_mark(version_id: &str, body: &str) -> String {
+    format!(
+        "{BODY_OPEN} {version_id} lines={} -->",
+        body.split('\n').count()
+    )
+}
+
+/// The work's parcel as the last lines of its page, in a comment a reader of
+/// the rendered page never sees: what the tables above say for a person,
+/// said once more exactly. `>` is written as its escape, so nothing a person
+/// typed can close the comment early.
+fn parcel_foot(parcel: &super::parcel::Parcel) -> Result<String> {
+    let json = serde_json::to_string(parcel)?.replace('>', "\\u003e");
+    Ok(format!("\n{PARCEL_OPEN}\n{json}\n-->\n"))
+}
+
+/// One work's page by itself, as "Save as Markdown" and "Copy as Markdown"
+/// hand it out: the page the workspace's export writes for it.
+pub fn page_of(conn: &Connection, work_id: &str) -> Result<String> {
+    let found =
+        work::get(conn, work_id)?.ok_or_else(|| crate::Error::not_found("work", work_id))?;
+    let profile = profile::list(conn)?
+        .into_iter()
+        .find(|one| one.id == found.profile_id)
+        .ok_or_else(|| crate::Error::not_found("profile", found.profile_id.as_str()))?;
+    let mut comments = Vec::new();
+    for state in comment::STATES {
+        comments.extend(comment::list(
+            conn,
+            &profile.id,
+            &CommentFilter {
+                state: Some(state.to_owned()),
+                ..CommentFilter::default()
+            },
+        )?);
+    }
+    // The pictures its notes show stay behind: a page by itself has no
+    // `media/` beside it, and the links say what was there.
+    work_page(conn, &profile, &found, &comments, &mut BTreeSet::new())
+}
+
+/// The name one work's page is offered under.
+pub fn page_name(conn: &Connection, work_id: &str) -> Result<String> {
+    let found =
+        work::get(conn, work_id)?.ok_or_else(|| crate::Error::not_found("work", work_id))?;
+    Ok(format!("{}.md", slug(&found.title, &found.id)))
 }
 
 /// The shelves a phrase stands on, after `lead`, when it stands on any: an

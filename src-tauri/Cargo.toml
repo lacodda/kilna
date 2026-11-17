@@ -61,6 +61,10 @@ process-wrap = { version = "10", default-features = false, features = ["std", "j
 # `kilna://<space>/work/<id>` opens a work from anywhere a link is followed;
 # the installer registers the scheme (#15, v0.109).
 tauri-plugin-deep-link = "2.6"
+# A work packed to be carried to another space: its parcel, its page and its
+# files in one `.kilna.zip` (v0.113). Deflate only - the one method every
+# unpacker reads.
+zip = { version = "9.6.1", default-features = false, features = ["deflate"] }
 
 [target.'cfg(windows)'.dependencies]
 # The flags a plugin is started with, kept beside its job object.

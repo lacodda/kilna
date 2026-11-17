@@ -275,6 +275,9 @@ export const keys = {
   workspacePath: ['workspacePath'] as const,
   logPath: ['logPath'] as const,
   mcpRegistration: ['mcpRegistration'] as const,
+  /** What bringing works in would do, by what was handed over. Never
+   *  refreshed by a write of its own: the dialog asks again when it opens. */
+  intake: (request: unknown) => ['intake', request] as const,
   /** What a task would send, composed against what the person has picked. */
   taskPreview: (parts: readonly unknown[]) => ['task-preview', ...parts] as const,
 } as const

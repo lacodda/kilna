@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { save } from '@tauri-apps/plugin-dialog'
 import { ArrowLeft, Pencil, Star } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MetaField, ProfileConfig, Work } from '@/lib/api/types'
+import { exportParcel, parcelFileName, workMarkdown, writeTextFile } from '@/lib/api/data'
 import { updateWork } from '@/lib/api/works'
 import { useBlindJudging } from '@/lib/blindJudging'
 import { useCardView } from '@/features/work/cardView'
@@ -366,6 +368,49 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
     )
   }
 
+  // The work going out by itself (v0.113): its page - the one the export
+  // writes, which kilna reads back - to a file or the clipboard, and the
+  // whole of it with its files in one `.kilna.zip` for another space.
+  const saveMarkdown = async () => {
+    try {
+      const page = await workMarkdown(work.id)
+      const path = await save({
+        defaultPath: page.fileName,
+        filters: [{ name: 'Markdown', extensions: ['md'] }],
+      })
+      if (path === null) return
+      await writeTextFile(path, page.markdown)
+      say.ok(t('work.markdownSaved', { path }))
+    } catch (cause) {
+      say.failedTo(t('work.markdownFailed'), cause)
+    }
+  }
+  const copyMarkdown = async () => {
+    try {
+      const page = await workMarkdown(work.id)
+      await navigator.clipboard.writeText(page.markdown)
+      say.ok(t('work.markdownCopied'))
+    } catch (cause) {
+      say.failedTo(t('work.copyFailed'), cause)
+    }
+  }
+  const pack = async () => {
+    try {
+      const path = await save({
+        defaultPath: await parcelFileName(work.id),
+        filters: [{ name: 'kilna', extensions: ['zip'] }],
+      })
+      if (path === null) return
+      const packed = await exportParcel(work.id, path)
+      say.ok(t('work.packed', { files: packed.files, path: packed.path }))
+      // Said apart, and only when it happened: a parcel short of a file is
+      // how someone finds out the file is gone.
+      if (packed.missing > 0) say.warn(t('work.packedMissing', { count: packed.missing }))
+    } catch (cause) {
+      say.failedTo(t('work.packFailed'), cause)
+    }
+  }
+
   return (
     <RowMenu
       label={work.title}
@@ -378,6 +423,9 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
           // it lives.
           onSelect: () => copy(`kilna://works/${work.id}`),
         },
+        { key: 'markdown', label: t('work.saveMarkdown'), onSelect: () => void saveMarkdown() },
+        { key: 'markdownCopy', label: t('work.copyMarkdown'), onSelect: () => void copyMarkdown() },
+        { key: 'pack', label: t('work.pack'), onSelect: () => void pack() },
         ...make.kinds.map((kind) => ({
           key: `derive:${kind.key}`,
           label: kind.label,
