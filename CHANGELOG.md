@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.114.0] - 2026-11-17
+
+A safety net. kilna keeps a copy of a space's database by itself: once a day,
+before a newer version changes its shape, and before a backup is put back.
+A backup goes back from Settings, without a restart and without the four
+steps by hand: it is checked, what stands is kept first, and SQLite restores
+it into the open database (ADR 0083). One gesture is one undo: a package
+kept, a clip made from a song, a section of the canon settled are taken back
+whole by one press, and a rebuild from the log now replays an undo as it was
+taken (ADR 0082). A file taken off a work, a style or a card goes to the
+trash with its bytes instead of being removed for good. Settings, Data says
+what a space takes on disk and compacts the database, examines the space -
+damage, lost and stray files, plugins, the CLI - without changing anything,
+and sets how long read history is kept; what leaves the feed goes to a page
+of its month in the space's history folder first.
+
+### Bug Fixes
+- Name the area of a file taken off its owner
+
+### Features
+- Take a gesture back whole, and replay an undo
+- Send a file taken off its owner to the trash with its bytes
+- Keep copies of a space, restore one in place, measure and examine it
+
 ## [0.113.0] - 2026-11-17
 
 Out and in. A work leaves by itself: its card's menu saves or copies its
