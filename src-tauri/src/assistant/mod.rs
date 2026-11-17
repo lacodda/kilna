@@ -116,6 +116,13 @@ pub struct ChatSummary {
     #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    /// The action that opened the chat, by its key. A task's chat is named
+    /// "action · what it is about" in the profile's first language, once,
+    /// when it is made; the window reads the action here and says that part
+    /// of the name in its own language.
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
     /// The first thing asked, cut to a caption — the name of a chat nobody
     /// named.
     #[ts(optional)]
@@ -176,7 +183,7 @@ pub fn summaries(
     work_id: Option<&str>,
 ) -> Result<Vec<ChatSummary>> {
     let mut sql = String::from(
-        "SELECT c.id, c.work_id, w.title, c.title,
+        "SELECT c.id, c.work_id, w.title, c.title, c.action,
                 (SELECT m.body FROM chat_message m
                  WHERE m.chat_id = c.id AND m.role = 'user'
                  ORDER BY m.created_at, m.rowid LIMIT 1),
@@ -198,10 +205,11 @@ pub fn summaries(
             work_id: row.get(1)?,
             work_title: row.get(2)?,
             title: row.get(3)?,
-            first_prompt: row.get::<_, Option<String>>(4)?.map(|body| caption(&body)),
-            cost_usd: row.get(5)?,
-            waiting_since: row.get(6)?,
-            updated_at: row.get(7)?,
+            action: row.get(4)?,
+            first_prompt: row.get::<_, Option<String>>(5)?.map(|body| caption(&body)),
+            cost_usd: row.get(6)?,
+            waiting_since: row.get(7)?,
+            updated_at: row.get(8)?,
         })
     };
 
@@ -898,7 +906,8 @@ mod tests {
             &profile_id,
             NewChat {
                 work_id: Some(work.id.clone()),
-                title: None,
+                title: Some("Critique the lyrics · Subject".into()),
+                action: Some("critique".into()),
                 ..Default::default()
             },
         )
@@ -917,6 +926,16 @@ mod tests {
         let narrowed = summaries(&conn, &profile_id, Some(&work.id)).unwrap();
         assert_eq!(narrowed.len(), 1);
         assert_eq!(narrowed[0].work_title.as_deref(), Some("Subject"));
+        // The action that opened it goes with the name: the window says the
+        // name's first word in its own language by it.
+        assert_eq!(narrowed[0].action.as_deref(), Some("critique"));
+        assert!(
+            summaries(&conn, &profile_id, None)
+                .unwrap()
+                .iter()
+                .any(|chat| chat.action.is_none()),
+            "a chat someone opened themselves has none"
+        );
 
         assert_eq!(summaries(&conn, &profile_id, None).unwrap().len(), 2);
     }

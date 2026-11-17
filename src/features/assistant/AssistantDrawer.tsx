@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageSquare, X } from 'lucide-react'
 import { checkSpend } from '@/lib/api/assistant'
 import type { Activity, ChatSummary } from '@/lib/api/types'
-import { chatLabel } from '@/lib/chat'
+import { useChatLabel } from '@/lib/useChatLabel'
 import { endingOf, HOLD_MS, isIdle, sayEndings, type Ending } from '@/lib/endings'
 import { inFront, notify, tell } from '@/lib/outward'
 import { keys } from '@/lib/query/keys'
@@ -30,6 +30,7 @@ import { ChatSurface } from '@/features/assistant/ChatSurface'
  */
 export function AssistantLauncher({ children }: { children?: React.ReactNode }) {
   const { t } = useTranslation()
+  const chatName = useChatLabel()
   const client = useQueryClient()
 
   // Null when closed. A string opens the drawer straight onto that chat —
@@ -99,7 +100,7 @@ export function AssistantLauncher({ children }: { children?: React.ReactNode }) 
       .getQueriesData<ChatSummary[]>({ queryKey: keys.allChats })
       .flatMap(([, chats]) => chats ?? [])
       .find((chat) => chat.id === payload.chat_id)
-    const what = named === undefined ? null : chatLabel(named, t('assistant.untitled'))
+    const what = named === undefined ? null : chatName(named)
 
     const over = endingOf(payload, what)
     if (over !== null) checkBudget()
@@ -188,7 +189,13 @@ function Drawer({
       {/* Wide enough for the list and a conversation beside it: at the width
           of a side panel the chat was a column of three words a line, and the
           list had to be left for it. */}
-      <DrawerPopup size="xl" className="bg-bg p-4">
+      {/* Nothing in the panel is dragged to close it (FR-19 19.3). Base UI's
+          drawer takes a pointer pressed anywhere in its popup as the start
+          of a swipe and captures it: the bar of a scrolling list could not
+          be dragged, and a selection begun in an answer moved the panel
+          instead. A panel of text to read, select and scroll is closed by
+          its cross, by Escape and by a click beside it. */}
+      <DrawerPopup size="xl" className="bg-bg p-4" data-base-ui-swipe-ignore="">
         <ChatSurface
           list="side"
           initialChat={initialChat}

@@ -84,7 +84,7 @@ export function AddPhraseDialog({ open, onOpenChange, composition, phrase, trial
         </Button>
       }
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <Field label={t('styles.phrase')} help={t('styles.phraseHint')}>
           <Input
             value={words}

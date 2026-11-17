@@ -1,4 +1,14 @@
-import type { Applied, ChatSummary, Message, Proposal, Run } from '@/lib/api/types'
+import type {
+  Applied,
+  ChatSummary,
+  Label,
+  Message,
+  ProfileConfig,
+  Proposal,
+  Run,
+} from '@/lib/api/types'
+import { resolveLabel } from '@/lib/label'
+import { say as sayLabel } from '@/lib/useProfile'
 import { inOrder, view, type RunView } from '@/lib/runs'
 
 /**
@@ -301,7 +311,54 @@ export function shownChat(
   return list[0]?.id ?? null
 }
 
-/** What the list calls a chat: its name, its first question, or the fallback. */
-export function chatLabel(summary: ChatSummary, fallback: string): string {
-  return summary.title ?? summary.first_prompt ?? fallback
+/**
+ * What the list calls a chat: its name, its first question, or the fallback.
+ *
+ * A task's chat is named when it is made, "action · what it is about", with
+ * the action's word in the profile's first language - so a Russian window
+ * listed "Draft a reply · ..." among its own words (FR-19 19.4). The name is
+ * kept as it was written; given the profile, the action's word in it is said
+ * in the window's language instead. A name someone typed has no action's
+ * word at its head and is said as it stands.
+ */
+export function chatLabel(summary: ChatSummary, fallback: string, config?: ProfileConfig): string {
+  const title = summary.title
+  if (title === undefined || title === null) return summary.first_prompt ?? fallback
+  return config === undefined ? title : titleInLanguage(title, summary.action, config)
+}
+
+/** How a task's name joins its parts. */
+const BETWEEN = ' · '
+
+/**
+ * A task's chat name with the words that are the profile's said in the
+ * window's language: the action at its head, and the door at its end when
+ * the task is about a release.
+ *
+ * The profile is the map back from the English a name was written in: the
+ * action is found by the chat's own key when the chat carries one, and by
+ * the word itself in a chat older than that. Only a word that is exactly a
+ * label's English is replaced - a work titled like an action is in the
+ * middle of the name, never at its head.
+ */
+function titleInLanguage(title: string, action: string | undefined, config: ProfileConfig) {
+  const parts = title.split(BETWEEN)
+  if (parts.length < 2) return title
+  const written = (label: Label, word: string) => resolveLabel(label, 'en') === word
+
+  const head = parts[0]!
+  const named =
+    config.prompts.find((one) => one.key === action && written(one.label, head)) ??
+    config.prompts.find((one) => written(one.label, head))
+  if (named === undefined) return title
+  parts[0] = sayLabel(named.label)
+
+  if (parts.length > 2) {
+    const last = parts[parts.length - 1]!
+    const door = config.work_kinds
+      .flatMap((kind) => kind.release_kinds ?? [])
+      .find((one) => written(one.label, last))
+    if (door !== undefined) parts[parts.length - 1] = sayLabel(door.label)
+  }
+  return parts.join(BETWEEN)
 }

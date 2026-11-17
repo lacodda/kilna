@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import i18n from '@/i18n'
 import type { JsonValue } from '@/lib/api/generated/serde_json/JsonValue'
 import type { Message, Run } from '@/lib/api/types'
 import { chatLabel, conversation, offers, pending, shownChat } from '@/lib/chat'
+import { studio } from '@/test/workspace'
 
 let counter = 0
 const message = (
@@ -307,6 +309,58 @@ describe('chatLabel', () => {
     expect(chatLabel({ ...base, title: 'Named', first_prompt: 'asked' }, 'New chat')).toBe('Named')
     expect(chatLabel({ ...base, first_prompt: 'asked' }, 'New chat')).toBe('asked')
     expect(chatLabel(base, 'New chat')).toBe('New chat')
+  })
+
+  describe('of a task', () => {
+    const base = { id: 'c', work_id: null, cost_usd: 0, updated_at: 't' }
+    const config = studio().profile.config
+
+    afterEach(async () => {
+      await i18n.changeLanguage('en')
+    })
+
+    it("says the action's word in the window's language, and the rest as written", async () => {
+      // Named when it was made, in English - the name is kept as it is.
+      const reply = { ...base, title: 'Draft a reply · Mara', action: 'reply-to-comment' }
+      expect(chatLabel(reply, 'New chat', config)).toBe('Draft a reply · Mara')
+
+      await i18n.changeLanguage('ru')
+      const said = chatLabel(reply, 'New chat', config)
+      expect(said.endsWith(' · Mara')).toBe(true)
+      expect(said.startsWith('Draft a reply')).toBe(false)
+
+      // A chat older than the key it carries is read by the word itself.
+      expect(chatLabel({ ...base, title: 'Draft a reply · Mara' }, 'New chat', config)).toBe(said)
+      // Without the profile there is nothing to read it by.
+      expect(chatLabel(reply, 'New chat')).toBe('Draft a reply · Mara')
+    })
+
+    it('says the door a release task is about, at the end of its name', async () => {
+      await i18n.changeLanguage('ru')
+      const meta = { ...base, title: 'Release meta · Harbour · Streaming', action: 'release-meta' }
+
+      const parts = chatLabel(meta, 'New chat', config).split(' · ')
+
+      expect(parts).toHaveLength(3)
+      expect(parts[0]).not.toBe('Release meta')
+      expect(parts[1]).toBe('Harbour')
+      expect(parts[2]).not.toBe('Streaming')
+    })
+
+    it('leaves a name alone that only looks like one', async () => {
+      await i18n.changeLanguage('ru')
+      // Typed by a person: no action's word at its head.
+      expect(chatLabel({ ...base, title: 'Ideas · Draft a reply' }, 'New chat', config)).toBe(
+        'Ideas · Draft a reply',
+      )
+      // A work titled like a door, in the middle of the name, is a title.
+      const named = chatLabel(
+        { ...base, title: 'Cover ideas · Streaming', action: 'cover-ideas' },
+        'New chat',
+        config,
+      )
+      expect(named.endsWith(' · Streaming')).toBe(true)
+    })
   })
 })
 

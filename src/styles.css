@@ -108,6 +108,19 @@ textarea,
 }
 
 /*
+ * A field's focus ring is drawn inside its box (FR-19 19.1). dowel draws it
+ * around the border, and kilna puts fields where the outside is cut off: at
+ * the edge of a region that scrolls, of a dialog's body, of a widget. Inside
+ * the box nothing clips it, wherever the field stands. Unlayered, so it
+ * outranks the utility that sets the offset; `:where` keeps it from
+ * outranking anything else. Checkboxes and the like are not fields and keep
+ * their own.
+ */
+:where(input:not([type='checkbox'], [type='radio'], [type='range']), textarea):focus-visible {
+  outline-offset: -2px;
+}
+
+/*
  * The focus ring for whatever does not draw its own - in the base layer, so a
  * primitive's own focus style (a field's border, an input that draws none
  * inside a palette) wins over it. Unlayered, this rule outranked every

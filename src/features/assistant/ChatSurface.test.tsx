@@ -308,6 +308,12 @@ describe('the drawer', () => {
     const drawer = await screen.findByRole('dialog')
     await settled(client)
 
+    // The panel does not take a pointer pressed in it as a swipe to close
+    // (FR-19 19.3): Base UI ignores what is under this attribute, and under
+    // it is everything the panel holds - the bars of its lists included.
+    // The drag itself is a thing of layout, checked in the running window.
+    expect(drawer).toHaveAttribute('data-base-ui-swipe-ignore')
+
     // The latest chat is open beside the list, not behind a back arrow.
     const row = await within(drawer).findByRole('button', { name: /Tighten the chorus/ })
     expect(row).toHaveAttribute('aria-current', 'true')

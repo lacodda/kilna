@@ -54,6 +54,11 @@ import { firstFocus, useTypedSinceOpen } from '@/lib/dialogGuard'
  *   `dirty`.
  */
 
+/** The column a dialog's content stands in: one step between its parts, room
+ * above and below for a focus ring, and parts that shrink to the dialog's
+ * width rather than pushing it wider. */
+const DIALOG_STACK = 'flex flex-col gap-3 py-1.5 *:min-w-0'
+
 /** The widths a dialog comes in: `md` for a question and a field or two, `lg`
  * for a form, `xl` for an editor whose choices should fit on one line. */
 export type DialogSize = 'sm' | 'md' | 'lg' | 'xl' | 'full'
@@ -117,11 +122,16 @@ export function Dialog({
           {description !== undefined && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        {/* The ref sits on a box that draws nothing: the body is dowel's part
-            and takes no ref, and what is looked for is only inside it. */}
+        {/* The body is dowel's part and takes no ref, so the ref sits on a
+            box inside it - and the box is where the dialog's own step lives
+            (FR-19 19.2): what a dialog holds stands a `gap-3` apart, whoever
+            wrote it, where each dialog used to bring its own wrapper or none.
+            The vertical padding is room for a focus ring: the body clips
+            what is outside it, and a first or last field's ring was cut by
+            the header and the actions (FR-19 19.1). */}
         {children !== undefined && (
           <DialogBody>
-            <div ref={body} className="contents">
+            <div ref={body} className={DIALOG_STACK}>
               {children}
             </div>
           </DialogBody>

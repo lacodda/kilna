@@ -52,6 +52,17 @@ interface ScrollProps {
  */
 export const BOUND = 'max-h-[calc(100cqh-var(--bound-inset,0px))]'
 
+/**
+ * Room for a focus ring (FR-19 19.1). The region clips what is outside it,
+ * and a ring is drawn outside its control: a field, a row or a button lying
+ * against the region's edge lost the side of its ring that fell beyond it.
+ * Two pixels on every side, which a caller's own padding replaces wherever
+ * it gives more. A `bound` region holds widgets, not controls, and its
+ * height is counted to the pixel (`BOUND`), so it is left as it is - each
+ * widget's own region has the room.
+ */
+const SAFE = 'p-0.5'
+
 /** The part of a frame that scrolls. Takes the rest of the column it is in. */
 export function Scroll({
   label,
@@ -76,7 +87,7 @@ export function Scroll({
       {/* The content's own box, inside the one Base UI measures: the
           viewport's single child is Base UI's, so a gap or a column set on
           the viewport would reach nothing. */}
-      <div className={contentClassName}>{children}</div>
+      <div className={cn(!bound && SAFE, contentClassName)}>{children}</div>
     </ScrollArea>
   )
 }

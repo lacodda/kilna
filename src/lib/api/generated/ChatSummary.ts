@@ -9,6 +9,13 @@ export type ChatSummary = { id: string, work_id: string | null,
  */
 work_title?: string, title?: string, 
 /**
+ * The action that opened the chat, by its key. A task's chat is named
+ * "action · what it is about" in the profile's first language, once,
+ * when it is made; the window reads the action here and says that part
+ * of the name in its own language.
+ */
+action?: string, 
+/**
  * The first thing asked, cut to a caption — the name of a chat nobody
  * named.
  */

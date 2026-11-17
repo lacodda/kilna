@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import type { ChatSummary } from '@/lib/api/types'
-import { chatLabel } from '@/lib/chat'
+import { useChatLabel } from '@/lib/useChatLabel'
 import { formatCost } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
@@ -47,6 +47,7 @@ export function ChatChips({
   aside,
 }: ChatListProps) {
   const { t } = useTranslation()
+  const chatName = useChatLabel()
   const current = chats.find((chat) => chat.id === open)
 
   return (
@@ -64,7 +65,7 @@ export function ChatChips({
           {chats.map((chat) => (
             <Chip key={chat.id} value={chat.id} className="max-w-48">
               <ChatMarks chat={chat} running={running.has(chat.id)} />
-              <span className="truncate">{chatLabel(chat, t('assistant.untitled'))}</span>
+              <span className="truncate">{chatName(chat)}</span>
             </Chip>
           ))}
         </ChipGroup>
@@ -102,6 +103,7 @@ export function ChatRows({
   actionsOf,
 }: ChatListProps) {
   const { t } = useTranslation()
+  const chatName = useChatLabel()
 
   return (
     <Pane
@@ -167,7 +169,7 @@ export function ChatRows({
                   }
                   description={about === '' ? undefined : about}
                 >
-                  {chatLabel(chat, t('assistant.untitled'))}
+                  {chatName(chat)}
                 </RowButton>
                 <RowMenu label={t('assistant.chatMenu')} actions={actions} />
               </RowContextMenu>

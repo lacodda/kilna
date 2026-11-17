@@ -11,8 +11,10 @@ it, and your answers, in one place: **Comments** in the menu, or the
 
 - **A channel** — where it was written, in your own word for it: a channel's
   name, a site, a platform. There is no list to fill in first. The channels
-  you have used are offered as chips, so the next comment from the same place
-  is filed under the same word.
+  you have used are offered in a list under the field as you enter it,
+  narrowed by what you type, so the next comment from the same place is
+  filed under the same word; a word that is not in the list is simply kept
+  (a row of buttons under the field until v0.118).
 - **The words**, exactly as written, and **who** wrote them.
 - **The day** it was written.
 - **The work** it is under, when it is under one - what the audience saw: a

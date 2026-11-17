@@ -40,6 +40,7 @@ import { RowButton } from '@/components/ui/list-row'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Dialog } from '@/components/AppDialog'
+import { Select } from '@/components/AppSelect'
 import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
@@ -555,14 +556,16 @@ function MakeWorkDialog({
         <Field label={t('trials.workTitle')}>
           <Input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} />
         </Field>
+        {/* A Select, as a new work and a new collection pick their kind
+            (FR-19 19.2) - chips here were the one dialog that did not. */}
         {kinds.length > 1 && (
-          <ChipGroup value={[kind]} onValueChange={([next]) => next !== undefined && setKind(next)}>
-            {kinds.map((one) => (
-              <Chip key={one} value={one}>
-                {labelOf(one)}
-              </Chip>
-            ))}
-          </ChipGroup>
+          <Field label={t('works.kind')}>
+            <Select
+              value={kind}
+              onChange={setKind}
+              options={kinds.map((one) => ({ value: one, label: labelOf(one) }))}
+            />
+          </Field>
         )}
       </div>
     </Dialog>

@@ -109,7 +109,9 @@ function Form({
   }
 
   const kinds = profile.config.work_kinds
-  const kindLabel = kinds.find((entry) => entry.key === chosen)?.label ?? ''
+  // Said, not passed: a label is a word per language, and handed to the
+  // sentence as it is it read "[object Object]" (FR-19 19.4).
+  const kindLabel = sayLabel(kinds.find((entry) => entry.key === chosen)?.label)
 
   return (
     <form

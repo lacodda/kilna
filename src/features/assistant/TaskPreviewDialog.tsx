@@ -23,6 +23,7 @@ import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
+import { say as sayLabel } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
 import { Field, FieldGroup } from '@/components/ui/field'
@@ -222,7 +223,7 @@ export function TaskPreviewDialog({
     <Dialog
       open={isOpen}
       onOpenChange={onOpenChange}
-      title={t('assistant.previewTitle', { label: action.label })}
+      title={t('assistant.previewTitle', { label: sayLabel(action.label) })}
       description={t('assistant.previewHint')}
       size="xl"
       footer={

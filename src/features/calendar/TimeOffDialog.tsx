@@ -261,9 +261,9 @@ export function TimeOffDialog({ open, onOpenChange, start, spans, slots, onShift
       </form>
 
       {spans.length === 0 ? (
-        <p className="mt-3 text-sm text-faint">{t('timeOff.none')}</p>
+        <p className="text-sm text-faint">{t('timeOff.none')}</p>
       ) : (
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {ahead.length > 0 && <ul className="flex flex-col gap-0.5">{ahead.map(row)}</ul>}
           {past.length > 0 && (
             <>

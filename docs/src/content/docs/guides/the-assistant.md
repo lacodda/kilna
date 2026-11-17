@@ -60,7 +60,9 @@ it discusses and is shown beside it. The line over the buttons names the
 revision, so there is no guessing which text a critique read.
 
 Each one gets a **chat of its own**, named after the action and the work —
-*Critique the lyrics · Harbour lights*. It never lands in a conversation you
+*Critique the lyrics · Harbour lights*. The action's word in the name is said
+in the window's language, like the button that started it, in chats made
+before v0.118 too; the rest of the name is what it was about, as written. It never lands in a conversation you
 already have going, for two reasons: it would bury the answer under someone
 else's subject, and it would hand the action that conversation's session as
 context, so the reply would be shaped by whatever was being discussed.
@@ -312,6 +314,12 @@ works and the ones about nothing in particular. **New chat** there starts a
 conversation that belongs to no work; a chat about a work links back to its
 card. Ask something, close the drawer, keep working: the badge says when the
 answer has landed.
+
+The drawer is closed by its cross, by `Escape` and by a click beside it -
+not by dragging it. A pointer pressed inside it is yours: the bar of a long
+conversation is dragged like any other, and text in an answer is selected
+(until v0.118 a press anywhere in the panel was taken as the start of a swipe
+to close it, and the bar could not be moved).
 
 It is also what tells you an action from a card has finished, and the **Open**
 on that message takes you straight into the chat holding the answer.

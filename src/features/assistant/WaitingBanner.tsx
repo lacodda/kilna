@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { MessageCircleQuestion, X } from 'lucide-react'
 import { clearWaiting } from '@/lib/api/assistant'
 import type { ChatSummary } from '@/lib/api/types'
-import { chatLabel } from '@/lib/chat'
+import { useChatLabel } from '@/lib/useChatLabel'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
  */
 export function WaitingBanner() {
   const { t } = useTranslation()
+  const chatName = useChatLabel()
   const assistant = useAssistant()
 
   // A task can start waiting while this banner is on screen; the run events'
@@ -58,7 +59,7 @@ export function WaitingBanner() {
             assistant.open(first.id)
           }}
         >
-          <span className="truncate">{chatLabel(first, t('assistant.untitled'))}</span>
+          <span className="truncate">{chatName(first)}</span>
         </Button>
         {rest.length > 0 && (
           <span className="text-dim"> {t('assistant.waitingMore', { count: rest.length })}</span>

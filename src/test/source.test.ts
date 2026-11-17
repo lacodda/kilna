@@ -154,4 +154,87 @@ describe('every component', () => {
     )
     expect(offenders).toEqual([])
   })
+
+  it("leaves the step between a dialog's parts to the dialog", () => {
+    // `Dialog` stands what it is given in one column, a `gap-3` apart
+    // (FR-19 19.2). Before that each dialog brought its own wrapper - at
+    // `gap-3`, at `gap-4` - or none, and two fields put straight into one
+    // touched. A part that brings a margin of its own, or a wrapper with a
+    // step of its own, is how the dialogs drift apart again.
+    expect(read('src/components/AppDialog.tsx')).toMatch(
+      /DIALOG_STACK = '[^']*\bflex flex-col gap-3\b[^']*'/,
+    )
+    const offenders = components().flatMap(({ path, text }) => {
+      if (path === 'src/components/AppDialog.tsx') return []
+      if (!text.includes("from '@/components/AppDialog'")) return []
+      return dialogParts(text).flatMap((parts) =>
+        parts
+          .filter(
+            ({ line }) =>
+              /className="[^"]*(?<![\w-])m[tby]-\d/.test(line) ||
+              // A dialog's only part is its wrapper; one of several is a
+              // group with a step of its own - a caption over its control.
+              (parts.length === 1 &&
+                /className="[^"]*\bflex flex-col gap-(?!3")[\d.]+"/.test(line)),
+          )
+          .map(({ index }) => `${path}:${index + 1}`),
+      )
+    })
+    expect(offenders).toEqual([])
+  })
+
+  it('gives a focus ring room wherever the outside is cut off', () => {
+    // A ring is drawn outside its control, and a region that scrolls clips
+    // what is outside it: a field against the edge of a widget, a tab or a
+    // dialog's body lost a side of its ring (FR-19 19.1). Two defences, each
+    // enough for its own case and both kept: a field's ring is drawn inside
+    // its box, and a region that scrolls pads its content by the ring's
+    // width, so a button or a row against its edge keeps its ring too.
+    const fields = rules(entryStylesheet()).filter(({ selectors }) =>
+      selectors.some((one) =>
+        /input.*textarea.*:focus-visible|textarea\)?:focus-visible/.test(one),
+      ),
+    )
+    expect(
+      fields.some(({ body }) => /outline-offset:\s*-2px/.test(body)),
+      "a field's ring inside its box",
+    ).toBe(true)
+
+    const scroll = read('src/components/Scroll.tsx')
+    expect(scroll).toMatch(/const SAFE = 'p-0\.5'/)
+    expect(scroll).toMatch(/className=\{cn\(!bound && SAFE, contentClassName\)\}/)
+    expect(read('src/components/AppDialog.tsx')).toMatch(/DIALOG_STACK = '[^']*\bpy-1\.5\b[^']*'/)
+  })
 })
+
+/**
+ * The lines that open a direct child of a `<Dialog>` in a component's source:
+ * what the dialog itself spaces apart. Read by indentation, which the
+ * formatter guarantees - a child is one step in from its dialog's tag.
+ */
+function dialogParts(text: string): { line: string; index: number }[][] {
+  const lines = text.split('\n')
+  const dialogs: { line: string; index: number }[][] = []
+  lines.forEach((line, at) => {
+    const opening = /^(\s*)<Dialog\b/.exec(line)
+    if (opening === null) return
+    const indent = opening[1]!
+    const closing = lines.findIndex((one, index) => index > at && one === `${indent}</Dialog>`)
+    if (closing === -1) return
+    // The opening tag ends at the first line that is its `>` alone, or on
+    // its own line when it fits there.
+    const body = line.trimEnd().endsWith('>')
+      ? at + 1
+      : lines.findIndex((one, index) => index > at && one === `${indent}>`) + 1
+    if (body === 0) return
+    const parts: { line: string; index: number }[] = []
+    for (let index = body; index < closing; index++) {
+      const one = lines[index]!
+      if (one.startsWith(`${indent}  <`) && !one.startsWith(`${indent}  </`)) {
+        parts.push({ line: one, index })
+      }
+    }
+    dialogs.push(parts)
+  })
+  return dialogs
+}

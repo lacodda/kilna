@@ -34,6 +34,18 @@ function mount(action: PromptTemplate, sight: string[]) {
 }
 
 describe('the preview of a task', () => {
+  it('is named for the action in words, whichever way its label is written', async () => {
+    // A shipped action's label is a word per language; handed to the
+    // sentence as it was, the dialog read "[object Object] — what will be
+    // sent" (FR-19 19.4).
+    const paired = { ...ACTION, label: { en: 'Critique the lyrics', ru: 'Критика текста' } }
+    mount(paired as PromptTemplate, [])
+
+    expect(
+      await screen.findByRole('heading', { name: 'Critique the lyrics — what will be sent' }),
+    ).toBeVisible()
+  })
+
   it('names what the run may also read, when the setting opens anything', async () => {
     mount(ACTION, ['C:/media/songs/tide', 'C:/workspace/media/a.png'])
 
