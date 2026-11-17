@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.116.0] - 2026-11-17
+
+An agent that mends, not only adds. Through `kilna --mcp` a note that is
+there can be changed: `propose_note` names it by id or exact title, and the
+person reads was against becomes before agreeing; several notes come as one
+proposal, kept whole or note by note, with tags and a layer. A word the
+record already keeps is changed by `propose_words` instead of being added
+to in silence - strictness, forms, kind, topic, note - with each change
+said, and a field the register would not take said too; a word entered
+wrongly is taken out into the trash, and two entered as one are split into
+their parts, each with what the one held. A new word written with a comma
+or a slash is warned about. The long readings - notes, the register, an
+experiment's trials, the catalogue - come by the page, with a total and
+whether more follow, in a short form without the texts, and one entry whole
+by its id (ADR 0085).
+
+### Bug Fixes
+- Let a proposed note's words be selected
+
+### Features
+- Read notes, the register, trials and the catalogue a page at a time, short or one whole
+- Change a note and a word that are there, take a word out, split one
+
+### Testing
+- Hand a stored proposal to the chat as the JSON it is
+
 ## [0.115.0] - 2026-11-17
 
 A prompt without ghosts. A cover's frame places a subject, not a hero: the
