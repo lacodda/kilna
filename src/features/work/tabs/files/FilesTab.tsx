@@ -1,27 +1,40 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import { Image as ImageIcon, Paperclip, X } from 'lucide-react'
+import { Image as ImageIcon, Paperclip, Upload, X } from 'lucide-react'
 import { attachAsset, detachAsset } from '@/lib/api/assets'
+import { openMedia } from '@/lib/api/folders'
 import type { Asset, Work } from '@/lib/api/types'
+import {
+  arrange,
+  ATTACHED_PLACES,
+  CATEGORIES,
+  categoryOf,
+  entryOfAsset,
+  loadLook,
+  saveLook,
+  type FileCategory,
+  type FileEntry,
+  type FilesLook,
+} from '@/lib/fileList'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { groupMaterials } from '@/lib/materials'
 import { PICTURES } from '@/lib/media'
 import { cn } from '@/lib/utils'
 import { hasDoors, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { ConfirmAction } from '@/components/ConfirmAction'
-import { MediaPreview } from '@/components/MediaPreview'
-import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Frame } from '@/components/ui/frame'
 import { Scroll } from '@/components/Scroll'
 import { Loaded } from '@/components/Loaded'
+import { usePlayer } from '@/features/work/player'
+import { FileEntries } from '@/features/work/tabs/files/FileEntries'
+import { FilesToolbar } from '@/features/work/tabs/files/FilesToolbar'
 import { FolderSection } from '@/features/work/tabs/files/FolderSection'
 
 interface Props {
@@ -53,37 +66,68 @@ export function FilesTab({ work }: Props) {
   const [busy, setBusy] = useState(false)
   // The file whose removal is being asked about.
   const [leaving, setLeaving] = useState<Asset | null>(null)
+  // How the tab is arranged: the person's, kept on this machine, and one
+  // for the attached files and the folder on disk alike.
+  const [look, setLook] = useState<FilesLook>(() => loadLook())
+  const arrangeAs = (next: FilesLook) => {
+    setLook(next)
+    saveLook(next)
+  }
+  const player = usePlayer()
 
   const files = useQuery(queries.assets(work.id))
+  // Read here as well as in the section that draws it, from one cache: the
+  // bar counts every file of the work, wherever it lies.
+  const folder = useQuery(queries.folder(work.id))
 
+  // Any file, and as many as were picked or dropped (FR-14): a text, a
+  // subtitle track, an archive is a file of the work as much as a picture
+  // is. One toast for the lot - forty files dropped are not forty toasts.
   const attach = useAppMutation({
-    mutationFn: ({ source, kind }: { source: string; kind?: string }) =>
-      attachAsset(source, { work_id: work.id, kind }),
+    mutationFn: async ({ sources, kind }: { sources: string[]; kind?: string }) => {
+      const attached: Asset[] = []
+      for (const source of sources) {
+        attached.push(await attachAsset(source, { work_id: work.id, kind }))
+      }
+      return attached
+    },
     failure: 'files.attachFailed',
-    refresh: [keys.assetsFor(work.id), keys.covers],
-    onSuccess: (asset) => say.ok(t('files.attached', { name: asset.original_name ?? '' })),
+    refresh: [keys.assetsFor(work.id), keys.covers, keys.cardCounts(work.id)],
+    onSuccess: (attached) => {
+      const [only] = attached
+      if (only === undefined) return
+      say.ok(
+        attached.length === 1
+          ? t('files.attached', { name: only.original_name ?? '' })
+          : t('files.attachedMany', { count: attached.length }),
+      )
+    },
   })
 
   const detach = useAppMutation({
     mutationFn: (asset: Asset) => detachAsset(asset.id),
     failure: 'files.detachFailed',
-    refresh: [keys.assetsFor(work.id), keys.covers],
+    refresh: [keys.assetsFor(work.id), keys.covers, keys.cardCounts(work.id)],
     onSuccess: () => {
       setLeaving(null)
       say.ok(t('files.detached'))
     },
   })
 
-  /** Ask for a file and attach it — the other way in is dropping one on the
-      tab. */
+  /** Ask for files and attach them - the other way in is dropping them on
+      the tab. A cover is one picture; anything else is any files at all. */
   const pick = async (kind?: string) => {
     setBusy(true)
     try {
-      const chosen = await open({
-        multiple: false,
-        filters: [{ name: t('files.pictures'), extensions: PICTURES }],
-      })
-      if (typeof chosen === 'string') attach.mutate({ source: chosen, kind })
+      const chosen =
+        kind === COVER
+          ? await open({
+              multiple: false,
+              filters: [{ name: t('files.pictures'), extensions: PICTURES }],
+            })
+          : await open({ multiple: true })
+      const sources = chosen === null ? [] : Array.isArray(chosen) ? chosen : [chosen]
+      if (sources.length > 0) attach.mutate({ sources, kind })
     } catch (cause) {
       say.failedTo(t('files.attachFailed'), cause)
     } finally {
@@ -91,8 +135,8 @@ export function FilesTab({ work }: Props) {
     }
   }
 
-  // Files dropped on the window. The event has no target — it belongs to the
-  // whole window — so this listens only while the tab is open, and a drop
+  // Files dropped on the window. The event has no target - it belongs to the
+  // whole window - so this listens only while the tab is open, and a drop
   // anywhere in it lands here. A person on another tab drops onto nothing,
   // which is better than a picture arriving on a work they were not looking
   // at.
@@ -104,8 +148,8 @@ export function FilesTab({ work }: Props) {
         return
       }
       setOver(false)
-      if (payload.type !== 'drop') return
-      for (const source of payload.paths) attach.mutate({ source })
+      if (payload.type !== 'drop' || payload.paths.length === 0) return
+      attach.mutate({ sources: payload.paths })
     })
     return () => {
       void subscription.then((unlisten) => {
@@ -117,11 +161,40 @@ export function FilesTab({ work }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [work.id])
 
-  const all = files.data ?? []
+  const all = useMemo(() => files.data ?? [], [files.data])
   // The newest cover is the cover (the backend answers the same way); the
   // ones it replaced stay attached rather than being deleted behind the
   // person's back.
   const cover = all.filter((asset) => asset.kind === COVER).at(-1)
+  const entries = useMemo(
+    () => all.map((asset) => entryOfAsset(asset, cover?.id)),
+    [all, cover?.id],
+  )
+  const groups = arrange(entries, look, ATTACHED_PLACES)
+
+  const counts = useMemo(() => {
+    const counted = Object.fromEntries(CATEGORIES.map((one) => [one, 0])) as Record<
+      FileCategory,
+      number
+    >
+    for (const entry of entries) counted[entry.category] += 1
+    for (const file of folder.data?.files ?? []) counted[categoryOf(file.path)] += 1
+    return counted
+  }, [entries, folder.data?.files])
+
+  // A sound is played here, in the card; everything else opens where the
+  // system opens it.
+  const openEntry = (entry: FileEntry) => {
+    if (entry.category === 'audio' && player !== null) {
+      player.play(entry.path)
+      return
+    }
+    openMedia(entry.path).catch((cause: unknown) => say.failed(cause))
+  }
+  const openLabel = (entry: FileEntry) =>
+    entry.category === 'audio'
+      ? t('player.play', { name: entry.name })
+      : t('folder.open', { name: entry.name })
 
   return (
     <Frame
@@ -131,21 +204,29 @@ export function FilesTab({ work }: Props) {
       )}
       head={
         // The cover's prompt has a tab of its own since v0.86 (`tabs/cover`);
-        // what stands here is what adds a file, over the gallery.
-        <div className="flex w-full flex-wrap items-center gap-2">
-          {covered && (
-            <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
-              <ImageIcon aria-hidden />
-              {cover === undefined ? t('files.setCover') : t('files.changeCover')}
+        // what stands here is what adds a file, and how the files are
+        // arranged.
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2">
+            {covered && (
+              <Button
+                size="sm"
+                disabled={busy || attach.isPending}
+                onClick={() => void pick(COVER)}
+              >
+                <ImageIcon aria-hidden />
+                {cover === undefined ? t('files.setCover') : t('files.changeCover')}
+              </Button>
+            )}
+            <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick()}>
+              <Paperclip aria-hidden />
+              {t('files.attach')}
             </Button>
-          )}
-          <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick()}>
-            <Paperclip aria-hidden />
-            {t('files.attach')}
-          </Button>
-          <span className="ml-auto text-xs text-faint">
-            {over ? t('files.dropHere') : t('files.copiedIn')}
-          </span>
+            <span className="ml-auto text-xs text-faint">
+              {over ? t('files.dropHere') : t('files.copiedIn')}
+            </span>
+          </div>
+          <FilesToolbar look={look} onChange={arrangeAs} counts={counts} />
         </div>
       }
     >
@@ -154,39 +235,53 @@ export function FilesTab({ work }: Props) {
           query={files}
           skeleton={<Skeleton className="h-32 w-full" />}
           isEmpty={(data) => data.length === 0}
-          // Plain: the way out - attaching one - is right above it.
+          // Nothing attached: the place to drop the first files, said as
+          // one - until v0.121 an empty tab only said it was empty, and
+          // that files could be dropped on it was something to find out.
           emptyState={
-            <EmptyState plain title={covered ? t('files.empty') : t('files.emptyNoCover')} />
+            <DropZone
+              over={over}
+              hint={covered ? t('files.empty') : t('files.emptyNoCover')}
+              disabled={busy || attach.isPending}
+              onPick={() => void pick()}
+            />
           }
           plain
         >
-          {(data) => (
-            <div className="flex flex-col gap-3">
-              {/* Grouped by what a file is for, not one flat list. A board of
-                  fifty scenes with four candidates each puts two hundred
-                  pictures in here, and the cover used to be somewhere among
-                  them. */}
-              {groupMaterials(data).map((group) => (
-                <section key={group.kind} className="flex flex-col gap-2">
-                  <h2 className="caption">
-                    {t(`files.group.${group.kind}`)} · {group.assets.length}
-                  </h2>
-                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2.5">
-                    {group.assets.map((asset) => (
-                      <FileTile
-                        key={asset.id}
-                        asset={asset}
-                        isCover={asset.id === cover?.id}
-                        onDetach={() => setLeaving(asset)}
-                      />
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          )}
+          {() =>
+            groups.length === 0 ? (
+              <p className="text-sm text-dim">{t('files.noneOfThese')}</p>
+            ) : (
+              <FileEntries
+                groups={groups}
+                view={look.view}
+                headingOf={(group) =>
+                  group.by === 'type'
+                    ? t(`files.category.${group.key}`)
+                    : t(`files.group.${group.key}`)
+                }
+                onOpen={openEntry}
+                openLabel={openLabel}
+                actions={(entry) => (
+                  <Button
+                    variant="icon"
+                    size="icon-xs"
+                    title={t('files.detach')}
+                    aria-label={t('files.detach')}
+                    // On the picture, so it carries a ground of its own: the
+                    // theme's raised surface, which reads over a dark still
+                    // and a light one.
+                    className="rounded-sm bg-raise/85 shadow-lift not-data-disabled:hover:bg-raise"
+                    onClick={() => setLeaving(all.find((asset) => asset.id === entry.key) ?? null)}
+                  >
+                    <X aria-hidden />
+                  </Button>
+                )}
+              />
+            )
+          }
         </Loaded>
-        <FolderSection work={work} />
+        <FolderSection work={work} look={look} />
       </Scroll>
 
       {/* Asked, because nothing brings it back: the file leaves the workspace
@@ -215,64 +310,36 @@ function nameOf(asset: Asset | null): string {
 }
 
 /**
- * One file: what it looks like, what it is called, and the way out.
- *
- * The mockup's tile: a picture well of a fixed height with the name under it,
- * the cover marked by a tag in its corner, and the way out in the other
- * corner - shown when the pointer is over the tile, or when the keyboard
- * reaches it, rather than a red cross standing on every picture of a board.
- *
- * The picture is shown whole rather than cropped to fill — a cover may be
- * square, a reference may be a tall screenshot, and a gallery that crops
- * both to the same rectangle shows neither.
+ * Where the first files are dropped (FR-14): a place drawn as one, with the
+ * other way in beside it. It takes any files, several at once; while files
+ * are held over the window it says so.
  */
-function FileTile({
-  asset,
-  isCover,
-  onDetach,
+function DropZone({
+  over,
+  hint,
+  disabled,
+  onPick,
 }: {
-  asset: Asset
-  isCover: boolean
-  onDetach: () => void
+  over: boolean
+  hint: string
+  disabled: boolean
+  onPick: () => void
 }) {
   const { t } = useTranslation()
-  const name = nameOf(asset)
-
   return (
-    <li className="group relative overflow-hidden rounded-md border border-line bg-raise">
-      <div className="flex h-26 items-center justify-center bg-bg">
-        {/* A scene's clips are files of the work too, and drew as broken
-            pictures here until each file was shown as what it is. */}
-        <MediaPreview
-          path={asset.path}
-          alt={asset.original_name ?? asset.label ?? ''}
-          className="max-h-full max-w-full object-contain"
-        />
-      </div>
-      <p className="truncate px-2 py-1.5 text-xs" title={name}>
-        {name}
-      </p>
-      {isCover && (
-        <span className="absolute top-1.5 left-1.5 rounded-xs bg-accent px-1.5 text-2xs font-semibold tracking-wide text-on-accent">
-          {t('files.cover')}
-        </span>
+    <div
+      className={cn(
+        'flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors',
+        over ? 'border-accent bg-soft' : 'border-line-2',
       )}
-      <Button
-        variant="icon"
-        size="icon-xs"
-        title={t('files.detach')}
-        aria-label={t('files.detach')}
-        onClick={onDetach}
-        className={cn(
-          // On the picture, so it carries a ground of its own: the theme's
-          // raised surface, which reads over a dark still and a light one.
-          'absolute top-1.5 right-1.5 rounded-sm bg-raise/85 shadow-lift',
-          'not-data-disabled:hover:bg-raise',
-          'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
-        )}
-      >
-        <X aria-hidden />
+    >
+      <Upload aria-hidden className="size-6 text-faint" />
+      <p className="text-sm font-semibold">{over ? t('files.dropHere') : t('files.dropZone')}</p>
+      <p className="max-w-prose text-xs text-dim">{hint}</p>
+      <Button size="sm" disabled={disabled} onClick={onPick}>
+        <Paperclip aria-hidden />
+        {t('files.attach')}
       </Button>
-    </li>
+    </div>
   )
 }

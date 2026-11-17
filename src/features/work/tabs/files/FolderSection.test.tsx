@@ -5,7 +5,6 @@ import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
-import { byFolder } from './FolderSection'
 
 /*
  * A work's folder on disk (v0.93, ADR 0057): found by the name its kind gives
@@ -46,6 +45,9 @@ let backend: Backend
 let folder: WorkFolder
 
 beforeEach(() => {
+  // The look is the person's, kept on this machine: each test starts from
+  // the default one.
+  localStorage.clear()
   folder = FOUND
   backend = mockBackend({
     ...answersFor(studio()),
@@ -60,16 +62,44 @@ beforeEach(() => {
 })
 
 describe("a work's folder on disk", () => {
-  it('gives a song a Files tab, and lists its folder grouped by where each file lies', async () => {
+  it('gives a song a Files tab, and lists its folder by type or by where each file lies', async () => {
     renderApp(`/works/${IDS.song}/files`)
     const section = await screen.findByRole('region', { name: en.folder.heading })
     expect(await within(section).findByText(FOLDER)).toBeVisible()
-    // The folder's own files first, then each folder by its name.
-    const headings = within(section)
-      .getAllByRole('heading', { level: 3 })
-      .map((heading) => heading.textContent)
-    expect(headings).toEqual([`${en.folder.top} · 2`, 'audio-release/v1 · 2', 'clip/v1 · 1'])
+    const headings = () =>
+      within(section)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent)
+    // By what they are (FR-14): pictures, sound, clips, the rest - every
+    // folder below read, a file's own name under each.
+    expect(headings()).toEqual([
+      `${en.files.category.image} · 1`,
+      `${en.files.category.audio} · 2`,
+      `${en.files.category.video} · 1`,
+      `${en.files.category.other} · 1`,
+    ])
     expect(within(section).getByText('mix-final.wav')).toBeVisible()
+
+    // Or by where they lie: the folder's own files first, then each folder
+    // by its name.
+    const bar = screen.getByRole('toolbar', { name: en.files.arrange })
+    fireEvent.click(within(bar).getByRole('radio', { name: en.files.groupBy.place }))
+    expect(headings()).toEqual([`${en.folder.top} · 2`, 'audio-release/v1 · 2', 'clip/v1 · 1'])
+
+    // Narrowed to one category, the others leave no heading behind.
+    fireEvent.click(within(bar).getByRole('button', { name: new RegExp(en.files.category.audio) }))
+    expect(headings()).toEqual(['audio-release/v1 · 2'])
+    fireEvent.click(within(bar).getByRole('button', { name: new RegExp(en.files.category.audio) }))
+
+    // As a table: the size and the type beside each name.
+    fireEvent.click(within(bar).getByRole('radio', { name: en.files.view.table }))
+    const row = within(section).getByText('still.png').closest('tr')!
+    expect(within(row).getByText(en.files.category.image)).toBeVisible()
+    expect(within(row).getByText(/1\s?kB/)).toBeVisible()
+    expect(
+      within(section).getAllByRole('columnheader', { name: en.files.column.size }).length,
+    ).toBeGreaterThan(0)
+
     // A song sets no cover: it goes out as what is made from it.
     expect(screen.queryByRole('button', { name: en.files.setCover })).toBeNull()
   })
@@ -205,7 +235,7 @@ describe("a work's finished file", () => {
     await settled(client)
 
     const marked = within(section).getByText('take-2.mp4').closest('li')!
-    expect(within(marked).getByLabelText(en.folder.finished.mark)).toBeVisible()
+    expect(within(marked).getByLabelText(en.files.role.finished)).toBeVisible()
     expect(
       within(marked).queryByRole('button', { name: en.folder.finished.makeIt }),
       'the finished file is not offered to itself',
@@ -248,13 +278,5 @@ describe("a work's finished file", () => {
     await waitFor(() =>
       expect(backend.argsOf('update_work')).toEqual([{ id: IDS.song, patch: { file: null } }]),
     )
-  })
-})
-
-describe('the folder grouping', () => {
-  it('puts the folder itself first and keeps the order within a group', () => {
-    const groups = byFolder([file('b/2.png'), file('a/1.png'), file('top.png'), file('b/1.png')])
-    expect(groups.map((group) => group.folder)).toEqual(['', 'a', 'b'])
-    expect(groups[2]!.files.map((one) => one.relative)).toEqual(['b/2.png', 'b/1.png'])
   })
 })

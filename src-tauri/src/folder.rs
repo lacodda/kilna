@@ -885,11 +885,7 @@ fn list(folder: &Path) -> (Vec<FolderFile>, bool) {
                 size: metadata.as_ref().map_or(0, std::fs::Metadata::len),
                 modified: metadata
                     .and_then(|metadata| metadata.modified().ok())
-                    .and_then(|moment| {
-                        time::OffsetDateTime::from(moment)
-                            .format(&time::format_description::well_known::Rfc3339)
-                            .ok()
-                    }),
+                    .and_then(stamp),
             });
         }
     }
@@ -926,6 +922,14 @@ pub fn may_open(path: &Path, places: &[PathBuf]) -> bool {
     !climbs
         && OPENABLE.contains(&ending.as_str())
         && places.iter().any(|place| path.starts_with(place))
+}
+
+/// When a file last changed, as RFC 3339 - what a listing says of a file in
+/// a work's folder and of one kept in the workspace alike.
+pub fn stamp(moment: std::time::SystemTime) -> Option<String> {
+    time::OffsetDateTime::from(moment)
+        .format(&time::format_description::well_known::Rfc3339)
+        .ok()
 }
 
 /// Whether a name is one the system keeps for itself in a folder.

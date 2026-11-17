@@ -75,6 +75,7 @@ beforeEach(() => {
               style_brick_id: null,
               note_id: null,
               canon_fact_id: null,
+              size_bytes: 0,
               created_at: NOW,
             },
           ] satisfies Asset[])

@@ -1,18 +1,40 @@
 ---
 title: Files and covers
-description: Attaching pictures to a work — a cover that shows everywhere, references kept beside it, why a file is copied into the workspace rather than pointed at, the work's folder on disk, and the player on the card.
+description: Attaching files to a work — a cover that shows everywhere, references kept beside it, why a file is copied into the workspace rather than pointed at, the work's folder on disk, and the player on the card.
 ---
 
-A work can carry files: a cover, a reference, a picture of the thing. They
-live on the card's **Files** tab - beside the files kilna finds in the work's
-[folder on disk](#the-works-folder-on-disk), which it looks at and never
-takes over.
+A work can carry files: a cover, a reference, a mix, a subtitle track, the
+lyrics as a text. They live on the card's **Files** tab - beside the files
+kilna finds in the work's [folder on disk](#the-works-folder-on-disk), which
+it looks at and never takes over.
 
 ## Attaching a file
 
 Two ways in. **Attach a file** opens the picker; **drop files onto the tab**
-does the same for as many as you drag at once. Either way kilna takes
-pictures — PNG, JPEG, WebP, GIF, AVIF.
+does the same. Either way it is any files, and as many as you pick or drag at
+once: a picture, a sound, a clip, a text, subtitles, a PDF, an archive (only
+pictures until v0.121). A tab with nothing attached draws the place to drop
+the first ones. The one thing that has to be a picture is a cover.
+
+## Looking through the files
+
+The bar under the buttons arranges the tab - the attached files and the
+folder on disk together - and is remembered on this machine:
+
+- **Images / Audio / Video / Other** - press one or several to show only
+  those; each says how many there are. A file is filed by its ending:
+  everything that is not a picture, a sound or a clip is *Other*.
+- **By type / By folder** - gathered by what the files are, or by where they
+  lie: what an attached file is for (the cover, its candidates, a scene's
+  stills and clips), and for the folder on disk the folder each file is in,
+  the work's own first. Every folder below is read, however deep.
+- **Sort by** name, date changed, size or type, and the arrow beside it
+  turns the order round.
+- **Large icons, tiles, list, table** - the table has the type, the role, the
+  size and when the file last changed beside each name.
+
+A file says what it is to the work with a tag: **Cover**, **Candidate**, or
+**Finished file**.
 
 **Set a cover** attaches a file and marks it as the work's cover in one
 step. Setting a second one changes the cover: the newest is the one that
@@ -189,8 +211,8 @@ characters no folder may hold are left out - so `AC/DC: Live?` looks in
 `ACDC Live`.
 
 **Looked at, never owned.** kilna does not move, rename or delete a file in
-the folder. It lists what is there - sorted, grouped by the folder each file
-lies in - and offers four things per file:
+the folder. It lists what is there, arranged as
+[the bar](#looking-through-the-files) says, and offers four things per file:
 
 - **open** it in the program your system opens it with (a picture, a clip, a
   sound or a document - never a program);

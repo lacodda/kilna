@@ -16,6 +16,7 @@ const ASSET: Asset = {
   style_brick_id: null,
   note_id: null,
   canon_fact_id: null,
+  size_bytes: 0,
   created_at: '2026-09-15T10:00:00Z',
 }
 

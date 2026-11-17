@@ -27,6 +27,7 @@ const PASTED: Asset = {
   style_brick_id: null,
   note_id: IDS.note,
   canon_fact_id: null,
+  size_bytes: 0,
   created_at: NOW,
 }
 

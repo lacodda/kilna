@@ -39,4 +39,15 @@ canon_fact_id: string | null,
  * The trial of an experiment it is a take of: what a generator gave
  * when the trial was run, heard to judge it (ADR 0061).
  */
-trial_id: string | null, created_at: string, };
+trial_id: string | null, created_at: string, 
+/**
+ * How large the stored file is, in bytes - read off the disk when the
+ * row is, never kept: the file is the fact, and a number beside it
+ * would be a second one (FR-14). Nought when the file is not there.
+ */
+size_bytes: number, 
+/**
+ * When the stored file last changed, as RFC 3339; absent when the
+ * system does not say or the file is not there.
+ */
+modified_at?: string, };

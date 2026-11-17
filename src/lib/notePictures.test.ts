@@ -21,6 +21,7 @@ function asset(fields: Partial<Asset>): Asset {
     style_brick_id: null,
     note_id: 'n1',
     canon_fact_id: null,
+    size_bytes: 0,
     created_at: '2026-10-08T10:00:00Z',
     ...fields,
   }

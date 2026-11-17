@@ -75,6 +75,16 @@ pub struct Asset {
     /// when the trial was run, heard to judge it (ADR 0061).
     pub trial_id: Option<String>,
     pub created_at: String,
+    /// How large the stored file is, in bytes - read off the disk when the
+    /// row is, never kept: the file is the fact, and a number beside it
+    /// would be a second one (FR-14). Nought when the file is not there.
+    #[serde(default)]
+    pub size_bytes: u64,
+    /// When the stored file last changed, as RFC 3339; absent when the
+    /// system does not say or the file is not there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub modified_at: Option<String>,
 }
 
 /// What to attach, and to what.
@@ -652,7 +662,7 @@ pub fn rebase(conn: &Connection, media_dir: &Path) -> Result<usize> {
 }
 
 fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Asset> {
-    Ok(Asset {
+    Ok(measured(Asset {
         id: row.get(0)?,
         profile_id: row.get(1)?,
         work_id: row.get(2)?,
@@ -666,7 +676,18 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Asset> {
         canon_fact_id: row.get(10)?,
         created_at: row.get(11)?,
         trial_id: row.get(12)?,
-    })
+        size_bytes: 0,
+        modified_at: None,
+    }))
+}
+
+/// An asset with what the disk says of its file.
+fn measured(mut asset: Asset) -> Asset {
+    if let Ok(found) = std::fs::metadata(&asset.path) {
+        asset.size_bytes = found.len();
+        asset.modified_at = found.modified().ok().and_then(crate::folder::stamp);
+    }
+    asset
 }
 
 #[cfg(test)]
@@ -801,8 +822,21 @@ mod tests {
         );
         assert!(source.is_file(), "the original is copied, not moved");
 
-        // And the workspace can find it again.
-        assert_eq!(for_work(&conn, &work_id).unwrap().len(), 1);
+        // And the workspace can find it again, with what the disk says of
+        // the file: how large it is and when it last changed (FR-14).
+        let listed = for_work(&conn, &work_id).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(
+            listed[0].size_bytes,
+            std::fs::metadata(&source).unwrap().len()
+        );
+        assert!(listed[0].size_bytes > 0);
+        assert!(listed[0].modified_at.is_some());
+        // A file that is gone is a row with nothing to measure.
+        std::fs::rename(&stored, stored.with_extension("gone")).unwrap();
+        let gone = &for_work(&conn, &work_id).unwrap()[0];
+        assert_eq!((gone.size_bytes, gone.modified_at.clone()), (0, None));
+        std::fs::rename(stored.with_extension("gone"), &stored).unwrap();
         assert_eq!(
             cover_of(&conn, &work_id).unwrap().map(|a| a.id),
             Some(asset.id)

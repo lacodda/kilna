@@ -1235,8 +1235,8 @@
     "detachConfirm": "Remove the file",
     "pictures": "Pictures",
     "copiedIn": "A file is copied into the workspace, so a backup carries it.",
-    "empty": "No files yet. A cover shows on the card, in the catalogue and in the calendar.",
-    "emptyNoCover": "No files attached.",
+    "empty": "Any files, several at once: a picture, a sound, a clip, a text. A cover shows on the card, in the catalogue and in the calendar.",
+    "emptyNoCover": "Any files, several at once: a picture, a sound, a clip, a text.",
     "dropHere": "Drop the files here.",
     "group": {
       "cover": "Cover",
@@ -1244,6 +1244,52 @@
       "video": "Scene clips",
       "other": "Other files",
       "candidate": "Cover candidates"
+    },
+    "attachedMany_one": "{{count}} file attached.",
+    "attachedMany_other": "{{count}} files attached.",
+    "dropZone": "Drop files here",
+    "noneOfThese": "No files of the kinds shown.",
+    "arrange": "How the files are arranged",
+    "onlyLabel": "Show only",
+    "category": {
+      "image": "Images",
+      "audio": "Audio",
+      "video": "Video",
+      "other": "Other"
+    },
+    "groupLabel": "Gather by",
+    "groupBy": {
+      "type": "By type",
+      "place": "By folder"
+    },
+    "sortLabel": "Sort by",
+    "sort": {
+      "name": "Name",
+      "modified": "Date changed",
+      "size": "Size",
+      "category": "Type",
+      "ascending": "Smallest first: press to turn round",
+      "descending": "Largest first: press to turn round"
+    },
+    "viewLabel": "View",
+    "view": {
+      "large": "Large icons",
+      "tiles": "Tiles",
+      "list": "List",
+      "table": "Table"
+    },
+    "column": {
+      "name": "Name",
+      "type": "Type",
+      "role": "Role",
+      "size": "Size",
+      "modified": "Changed",
+      "actions": "Actions"
+    },
+    "role": {
+      "cover": "Cover",
+      "candidate": "Candidate",
+      "finished": "Finished file"
     }
   },
   "folder": {
@@ -1274,8 +1320,7 @@
       "noRule": "No finished file: works of this kind name no rule for it. Choose one here, on its tile.",
       "backToRule": "Back to the rule",
       "makeIt": "Make this the finished file",
-      "madeIt": "{{name}} is the finished file now",
-      "mark": "The finished file"
+      "madeIt": "{{name}} is the finished file now"
     }
   },
   "player": {
