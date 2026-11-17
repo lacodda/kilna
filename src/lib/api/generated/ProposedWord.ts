@@ -3,11 +3,17 @@ import type { NamedWork } from "./NamedWork";
 import type { Strictness } from "./Strictness";
 import type { Sung } from "./Sung";
 import type { TermKind } from "./TermKind";
+import type { WordAction } from "./WordAction";
+import type { WordChange } from "./WordChange";
 
 /**
  * One word as it is proposed.
  */
 export type ProposedWord = { 
+/**
+ * What is done with it; kept, when nothing says otherwise.
+ */
+action?: WordAction, 
 /**
  * The word as it is written: the record's key, matched whatever its case.
  */
@@ -32,6 +38,33 @@ sung?: Array<Sung>,
  * Spent: in the register, this strictly.
  */
 strictness?: Strictness, 
+/**
+ * Not spent any more: the word stays in the record for how it is sung.
+ * Written by an agent as `"strictness": null`.
+ */
+unspend?: boolean, 
+/**
+ * The forms given take the place of the ones the word has, rather than
+ * joining them.
+ */
+replace_forms?: boolean, 
+/**
+ * What the word is about, as the register groups by.
+ */
+topic?: string, 
+/**
+ * For a split: the words it becomes.
+ */
+into?: Array<string>, 
+/**
+ * The record keeps this word already: the item changes it.
+ */
+known?: boolean, 
+/**
+ * What keeping the item changes in that word, read when it was
+ * proposed: was, becomes. Shown, never read back.
+ */
+changes?: Array<WordChange>, 
 /**
  * The works a meaning is in, by id, as the person reads them.
  */

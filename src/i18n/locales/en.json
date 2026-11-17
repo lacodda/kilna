@@ -1013,7 +1013,25 @@
     "packageCards_other": "{{count}} cards for “{{board}}”",
     "scoreTitleFrom": "Proposed score, from {{client}}",
     "sightTitle": "This run may also read",
-    "sightHint": "You opened a work’s files to its runs in Settings, under Assistant."
+    "sightHint": "You opened a work’s files to its runs in Settings, under Assistant.",
+    "proposedNotes": "Notes",
+    "notesKept": "Notes kept.",
+    "keepNotesAll": "Keep all",
+    "keepNotes": "Keep {{n}}",
+    "notesKeptMark": "Kept: {{count}}",
+    "keepNoteItem": "Keep “{{title}}”",
+    "noteChange": "a change to a note that is there",
+    "noteTitle": "Title",
+    "noteTags": "Tags",
+    "noteText": "Text",
+    "noteWas": "as it is now",
+    "noteBecomes": "as it would be",
+    "noteSame": "Nothing in it differs from the note as it is.",
+    "noteLayer": {
+      "public": "public",
+      "internal": "internal",
+      "inWorks": "only inside the works"
+    }
   },
   "links": {
     "sources": "Made from",
@@ -2073,7 +2091,9 @@
       "besides": "Notes written: {{notes}}. Trials made: {{trials}}.",
       "nothing": "nothing"
     },
-    "work.brought": "“{{title}}” brought in from a file."
+    "work.brought": "“{{title}}” brought in from a file.",
+    "proposal.notes": "{{client}} proposed notes on “{{title}}”.",
+    "proposal.freeNotes": "{{client}} proposed notes."
   },
   "card": {
     "tab": {
@@ -2903,7 +2923,8 @@
       "badSpan": "Scene {{index}}: it ends at {{to}} before it starts at {{from}}.",
       "negativeSeconds": "Scene {{index}}: seconds are counted from 0.",
       "nothingTaken": "Nothing was chosen to take.",
-      "unknownNoteKind": "“{{kind}}” is no kind of note here: a phrase or a note, as the workspace names them."
+      "unknownNoteKind": "“{{kind}}” is no kind of note here: a phrase or a note, as the workspace names them.",
+      "noteGone": "The note “{{title}}” this would change is no longer there."
     },
     "file": {
       "isDirectory": "{{path}} is a folder, not a file.",
@@ -3041,7 +3062,9 @@
       "unknownNote": "No note with id or title “{{note}}”; “notes” lists them.",
       "ambiguousNote": "More than one note is titled “{{note}}”; name one by id.",
       "unknownTerm": "No word “{{term}}” in the record; “register” lists them.",
-      "unknownTrial": "No trial “{{trial}}” on this board; “trials” lists them."
+      "unknownTrial": "No trial “{{trial}}” on this board; “trials” lists them.",
+      "notesNotArray": "“notes” must be a non-empty array of notes.",
+      "unknownLayer": "No layer “{{layer}}”: public, internal or inWorks."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -3186,7 +3209,11 @@
       "noLetters": "“{{word}}” has no letters.",
       "noSuchWork": "“{{work}}”, named for “{{word}}”, is no work here.",
       "workGone": "“{{word}}” names “{{title}}”, which is no longer there.",
-      "noLineKind": "This craft keeps no kind of note as one line, so a word cannot be kept as a phrase."
+      "noLineKind": "This craft keeps no kind of note as one line, so a word cannot be kept as a phrase.",
+      "notInRecord": "“{{word}}” is not in the record.",
+      "splitIntoNothing": "“{{word}}” is to be split, and nothing says into what.",
+      "separator": "“{{word}}” reads as several words: one word of the record is one thing a text can say. Put other ways of saying it in its forms, and split things that differ.",
+      "fieldNotWritten": "“{{word}}”: {{field}} was not written - {{why}}"
     },
     "repeat": {
       "needsWord": "Say which word is kept."
@@ -3907,7 +3934,8 @@
       "sung": "Sung their way"
     },
     "notSpent": "Not spent",
-    "notSpentHint": "A word kept for how it is sung, not marked in the texts as spent"
+    "notSpentHint": "A word kept for how it is sung, not marked in the texts as spent",
+    "wordSeparator": "This reads as several words. One word of the record is one thing a text can say: write other ways of saying it into its forms, and things that differ as words of their own."
   },
   "publications": {
     "caption": "Publications",
@@ -4061,7 +4089,21 @@
     "toPhrase": "a phrase to keep",
     "toShelf": "a phrase, on the shelf “{{shelf}}”",
     "toNewShelf": "a phrase, on a new shelf “{{shelf}}”",
-    "openPhrases": "Open the phrases"
+    "openPhrases": "Open the phrases",
+    "takeOut": "take out of the record",
+    "splitInto": "split into {{parts}}",
+    "changes": "the record keeps it - this changes",
+    "nothingChanges": "Nothing to change: the record already says this.",
+    "field": {
+      "strictness": "strictness",
+      "forms": "forms",
+      "kind": "kind",
+      "topic": "topic",
+      "note": "note",
+      "sung": "sung",
+      "works": "works",
+      "other": "something else"
+    }
   },
   "repeats": {
     "caption": "Repeats",

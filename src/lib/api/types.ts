@@ -430,6 +430,8 @@ export type { Skipped } from './generated/Skipped'
 export type ScoreProposal = Extract<Proposal, { kind: 'score' }>
 export type VersionProposal = Extract<Proposal, { kind: 'version' }>
 export type NoteProposal = Extract<Proposal, { kind: 'note' }>
+export type NotesProposal = Extract<Proposal, { kind: 'notes' }>
+export type { ProposedNote } from './generated/ProposedNote'
 export type WorkProposal = Extract<Proposal, { kind: 'work' }>
 export type ScenesProposal = Extract<Proposal, { kind: 'scenes' }>
 export type CommentProposal = Extract<Proposal, { kind: 'comment' }>

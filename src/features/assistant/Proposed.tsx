@@ -11,6 +11,7 @@ import { ProposedScenes } from '@/features/assistant/ProposedScenes'
 import { ProposedScore } from '@/features/assistant/ProposedScore'
 import { ProposedVersion } from '@/features/assistant/ProposedVersion'
 import { ProposedWork } from '@/features/assistant/ProposedWork'
+import { ProposedNotes } from '@/features/assistant/ProposedNotes'
 import { ProposedWords } from '@/features/assistant/ProposedWords'
 import { ProposedBricks } from '@/features/assistant/ProposedBricks'
 
@@ -138,6 +139,15 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
     case 'trials':
       return (
         <ProposedTrials
+          messageId={messageId}
+          proposal={proposal}
+          applied={applied}
+          dismissed={dismissed}
+        />
+      )
+    case 'notes':
+      return (
+        <ProposedNotes
           messageId={messageId}
           proposal={proposal}
           applied={applied}

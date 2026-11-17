@@ -155,9 +155,9 @@ pub fn keep_words(
 ) -> Result<Vec<String>> {
     let conn = state.conn();
     crate::db::unit::atomically(&conn, |conn| {
-        let (mut written, phrases) =
-            crate::register::proposal::keep(conn, package, items.as_deref())?;
-        written.extend(phrases);
+        let kept = crate::register::proposal::keep(conn, package, items.as_deref())?;
+        let mut written = kept.terms;
+        written.extend(kept.phrases);
         Ok(written)
     })
 }

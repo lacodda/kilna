@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { applyProposal } from '@/lib/api/assistant'
 import type { Applied, ProposalOverrides } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
+import { sayReason } from '@/lib/errors'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
@@ -64,6 +65,10 @@ export function useApplyProposal({ messageId, message, refresh, onApplied }: Opt
       // is worse than no offer. Ctrl+Z still walks them back one at a time.
       if (writesOf(applied) === 1) announceEdited({ client, message, refresh: disturbed })
       else say.ok(message)
+      // Kept in part: a field the register would not take. Said beside the
+      // "kept", which never covers a field that was not written (v0.116).
+      const unapplied = applied.unapplied ?? []
+      if (unapplied.length > 0) say.warn(unapplied.map(sayReason).join(' '))
       onApplied?.(applied)
     },
     onError: (cause) => {

@@ -637,14 +637,21 @@ fn tools() -> Vec<Value> {
              changed letter; for a homograph, the reading the song means), a term for the \
              register (`strictness`: ban, limit or rare), and the works a meaning is in \
              (`works`: ids or exact titles, for an image or a scene the texts say in other \
-             words). A plain string is a phrase to keep. A word the record already keeps gains \
-             what is proposed and loses nothing; a phrase already kept in the same words is not \
-             kept twice. It waits in the chat on `work` when one is named, or in the chat named \
-             after you.",
+             words). A plain string is a phrase to keep. A word the record already keeps is \
+             CHANGED by what is proposed: a `strictness` takes the place of the one it has \
+             (`null` unspends it), `forms` join the ones it has (or take their place with \
+             `replace_forms`: true), `kind`, `topic` and `note` are written over, `works` are \
+             named for it - and the proposal says each change, was and becomes, for the person \
+             to read. `action`: delete takes a word out of the record (into the trash); \
+             `action`: split with `into`: [..] makes a word that is several into them, each \
+             with what the one held. One `word` is one thing a text can say: synonyms go in \
+             `forms`, and two things written as one with a comma or a slash are warned about. \
+             A phrase already kept in the same words is not kept twice. It waits in the chat \
+             on `work` when one is named, or in the chat named after you.",
             json!({
                 "words": {
                     "type": "array",
-                    "description": "The words: a string for a phrase to keep, or {word, forms?, kind?, phrase?, shelf?, sung?, strictness?, works?, note?}",
+                    "description": "The words: a string for a phrase to keep, or {word, action?, into?, forms?, replace_forms?, kind?, topic?, phrase?, shelf?, sung?, strictness?, works?, note?}",
                     "items": {}
                 },
                 "work": text_arg("The work the words come from, by id or exact title; optional"),
@@ -999,7 +1006,12 @@ fn tools() -> Vec<Value> {
              *add as note* button; the person decides. `kind` is the profile's kind of note (see \
              `workspace`: `note_kinds`): a phrase - one line, a quote with `attribution` - or a \
              note, the plain note when left out. A phrase may name the `shelf` it goes on, \
-             made when there is none.",
+             made when there is none. A note can carry `tags` and a `layer` (who may read it). \
+             `note` - the id or the exact title of a note that is there - proposes a CHANGE to \
+             it rather than a second note: give only what changes (a new `body`, `title`, \
+             `tags`), and the person reads was against becomes before agreeing. `notes` \
+             proposes several at once, each an object of these same fields: they wait as one \
+             proposal, kept whole or note by note.",
             json!({
                 "work": work_arg(),
                 "kind": text_arg("The kind of note, as `workspace` lists it; optional"),
@@ -1007,8 +1019,16 @@ fn tools() -> Vec<Value> {
                 "body": text_arg("The note itself"),
                 "attribution": text_arg("Whose words a phrase is - the author, the film; optional"),
                 "shelf": text_arg("The shelf a phrase goes on, by name; optional"),
+                "tags": { "type": "array", "items": { "type": "string" }, "description": "The note's tags; for a change, the tags it will have" },
+                "layer": text_arg("Who may read it: public, internal or inWorks; optional"),
+                "note": text_arg("A note that is there, by id or exact title: propose a change to it"),
+                "notes": {
+                    "type": "array",
+                    "description": "Several notes in one proposal: [{body, title?, kind?, attribution?, shelf?, tags?, layer?, note?}]",
+                    "items": {}
+                },
             }),
-            &["body"],
+            &[],
         ),
         tool(
             "canon",
@@ -1792,6 +1812,8 @@ pub fn run_tool(
             let body = crate::register::proposal::render(&package);
             let count = package.words.len();
             let dropped = package.dropped.len();
+            let changes = package.words.iter().filter(|word| word.known).count();
+            let warned = package.warnings.len();
             deliver(
                 conn,
                 &profile.id,
@@ -1810,6 +1832,17 @@ pub fn run_tool(
                     "named after you"
                 }
             );
+            if changes > 0 {
+                answer.push_str(&format!(
+                    " {changes} of them the record already keeps: the chat says what changes."
+                ));
+            }
+            if warned > 0 {
+                answer.push_str(&format!(
+                    " {warned} word(s) read as several, written with a comma or a slash: one \
+                     `word` is one thing - put synonyms in `forms`, or split them."
+                ));
+            }
             if dropped > 0 {
                 answer.push_str(&format!(" {dropped} item(s) were left out: read the chat."));
             }
@@ -2720,6 +2753,47 @@ pub fn run_tool(
                 Some(named) => Some(find_work(conn, &profile.id, named)?),
                 None => None,
             };
+            // Several at once, or one that says more than its words - tags,
+            // a layer, a note it changes: read as notes, kept whole or one by
+            // one, each change shown against what it changes (v0.116).
+            let several = args.get("notes").is_some();
+            if several
+                || args.get("tags").is_some()
+                || arg(args, "layer").is_some()
+                || arg(args, "note").is_some()
+            {
+                let raw: Vec<Value> = match args.get("notes") {
+                    Some(Value::Array(list)) if !list.is_empty() => list.clone(),
+                    Some(_) => return Err(Error::refused("mcp.notesNotArray")),
+                    None => vec![Value::Object(args.clone())],
+                };
+                let mut notes = Vec::with_capacity(raw.len());
+                for one in raw {
+                    notes.push(read_proposed_note(conn, &profile.id, &config, &one)?);
+                }
+                let count = notes.len();
+                let changes = notes.iter().filter(|one| one.note.is_some()).count();
+                let body = render_notes(&notes);
+                deliver(
+                    conn,
+                    &profile.id,
+                    session,
+                    found.as_ref(),
+                    Proposal::Notes { notes },
+                    &body,
+                    None,
+                )?;
+                return Ok(format!(
+                    "Proposed {count} note{} ({changes} of them a change to a note that is there). \
+                     It waits in the chat {}; the person keeps it whole or note by note.",
+                    if count == 1 { "" } else { "s" },
+                    if found.is_some() {
+                        "on the work"
+                    } else {
+                        "named after you"
+                    }
+                ));
+            }
             let body = required(args, "body")?;
             let kind = arg(args, "kind").map(str::to_owned);
             if let Some(kind) = kind.as_deref()
@@ -2809,6 +2883,140 @@ fn read_notes(
         out.push(shown);
     }
     Ok(out)
+}
+
+/// One note of a proposal, read from what an agent wrote: its kind checked
+/// against the craft, the note it changes found, and what that note holds
+/// now kept beside it for the person to read against.
+fn read_proposed_note(
+    conn: &Connection,
+    profile_id: &str,
+    config: &profile::config::ProfileConfig,
+    raw: &Value,
+) -> Result<crate::assistant::proposal::ProposedNote> {
+    use crate::assistant::proposal::{NoteBefore, ProposedNote};
+
+    let object = raw
+        .as_object()
+        .ok_or_else(|| Error::refused("mcp.notesNotArray"))?;
+    let text = |key: &str| arg(object, key).map(str::to_owned);
+    let kind = text("kind");
+    if let Some(kind) = kind.as_deref()
+        && !config.note_kind(kind).is_some_and(|found| !found.is_card())
+    {
+        return Err(Error::refused("proposal.unknownNoteKind").param("kind", kind));
+    }
+    let layer = match arg(object, "layer") {
+        Some(word) => Some(
+            serde_json::from_value::<crate::canon::Layer>(json!(word))
+                .map_err(|_| Error::refused("mcp.unknownLayer").param("layer", word))?,
+        ),
+        None => None,
+    };
+    let tags: Vec<String> = match object.get("tags") {
+        Some(Value::Array(list)) => list
+            .iter()
+            .filter_map(Value::as_str)
+            .map(|tag| tag.trim().trim_start_matches('#').to_owned())
+            .filter(|tag| !tag.is_empty())
+            .collect(),
+        _ => Vec::new(),
+    };
+    let body = text("body").unwrap_or_default();
+    let target = match arg(object, "note") {
+        Some(named) => Some(find_note(conn, profile_id, named)?),
+        None => None,
+    };
+    // A new note is its words; a change may leave them as they are.
+    if target.is_none() && body.trim().is_empty() {
+        return Err(Error::refused("mcp.missingArg").param("key", "body"));
+    }
+    Ok(ProposedNote {
+        title: text("title"),
+        body,
+        kind,
+        attribution: text("attribution"),
+        shelf: text("shelf"),
+        tags,
+        layer,
+        before: target.as_ref().map(|found| NoteBefore {
+            title: found.title.clone(),
+            body: found.body.clone(),
+            tags: found.tags.clone(),
+        }),
+        note: target.map(|found| found.id),
+    })
+}
+
+/// Proposed notes as a person reads them before keeping them: each new one
+/// with its words, each change with what it changes.
+fn render_notes(notes: &[crate::assistant::proposal::ProposedNote]) -> String {
+    let mut out = String::new();
+    for one in notes {
+        let name = one
+            .title
+            .clone()
+            .or_else(|| one.before.as_ref().and_then(|before| before.title.clone()))
+            .unwrap_or_else(|| {
+                let source = if one.body.trim().is_empty() {
+                    one.before
+                        .as_ref()
+                        .map_or("", |before| before.body.as_str())
+                } else {
+                    one.body.as_str()
+                };
+                source
+                    .lines()
+                    .find(|line| !line.trim().is_empty())
+                    .unwrap_or("")
+                    .trim()
+                    .chars()
+                    .take(80)
+                    .collect()
+            });
+        match &one.before {
+            None => {
+                out.push_str(&format!("- **{name}**"));
+                if !one.tags.is_empty() {
+                    out.push_str(&format!(" _({})_", one.tags.join(", ")));
+                }
+                out.push('\n');
+                if one.title.is_some() {
+                    out.push_str(&format!("  {}\n", one.body.trim().replace('\n', "\n  ")));
+                }
+            }
+            Some(before) => {
+                out.push_str(&format!("- **{name}** — a change\n"));
+                if let Some(title) = one.title.as_deref().filter(|title| {
+                    before.title.as_deref() != Some(*title) && !title.trim().is_empty()
+                }) {
+                    out.push_str(&format!(
+                        "  title: {} → {title}\n",
+                        before.title.as_deref().unwrap_or("-")
+                    ));
+                }
+                if !one.tags.is_empty() && one.tags != before.tags {
+                    out.push_str(&format!(
+                        "  tags: {} → {}\n",
+                        if before.tags.is_empty() {
+                            "-".to_owned()
+                        } else {
+                            before.tags.join(", ")
+                        },
+                        one.tags.join(", ")
+                    ));
+                }
+                if !one.body.trim().is_empty() && one.body.trim() != before.body.trim() {
+                    out.push_str(&format!(
+                        "  the text is rewritten ({} → {} characters)\n",
+                        length_of(&before.body),
+                        length_of(&one.body)
+                    ));
+                }
+            }
+        }
+    }
+    out.trim_end().to_owned()
 }
 
 /// A note as a summary gives it: what it is and how much there is of it,
@@ -3029,6 +3237,8 @@ fn deliver(
         (Proposal::Score { .. }, _) => Record::new("proposal.score"),
         (Proposal::Note { .. }, Some(_)) => Record::new("proposal.note"),
         (Proposal::Note { .. }, None) => Record::new("proposal.freeNote"),
+        (Proposal::Notes { .. }, Some(_)) => Record::new("proposal.notes"),
+        (Proposal::Notes { .. }, None) => Record::new("proposal.freeNotes"),
         (Proposal::Work { .. }, Some(_)) => Record::new("proposal.package"),
         (Proposal::Scenes { .. }, _) => Record::new("proposal.scenes"),
         (Proposal::Release { .. }, _) => Record::new("proposal.release"),
@@ -4054,6 +4264,116 @@ mod tests {
 
     fn args(value: Value) -> Map<String, Value> {
         value.as_object().cloned().unwrap()
+    }
+
+    /// `propose_note` changes a note that is there and proposes several at
+    /// once (FR-08 8.2): a change names its note by id or exact title and is
+    /// shown against what the note holds; the notes are kept one by one, and
+    /// the change writes only what it says.
+    #[test]
+    fn notes_are_proposed_several_at_once_and_a_note_is_changed() {
+        let (conn, work_id) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let kept = note::create(
+            &conn,
+            &profile_id,
+            note::NewNote {
+                body: "the road as a witness".into(),
+                title: Some("Concept".into()),
+                tags: vec!["idea".into()],
+                work_id: Some(work_id.clone()),
+                ..note::NewNote::default()
+            },
+        )
+        .unwrap();
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_note",
+            &args(json!({
+                "work": work_id,
+                "notes": [
+                    { "note": "Concept", "body": "the road as a witness, and a judge", "tags": ["idea", "#road"] },
+                    { "title": "Bridge", "body": "try a key change", "tags": ["music"], "layer": "internal" },
+                    { "title": "Left out", "body": "not this one" }
+                ],
+            })),
+        )
+        .unwrap();
+        assert!(
+            answer.contains("Proposed 3 notes (1 of them a change"),
+            "{answer}"
+        );
+
+        let message = first_message(&conn, &work_id);
+        let proposal = &message.meta["proposal"];
+        assert_eq!(proposal["kind"], "notes");
+        // The change carries what the note held, for was against becomes.
+        assert_eq!(proposal["notes"][0]["note"], json!(kept.id));
+        assert_eq!(
+            proposal["notes"][0]["before"]["body"],
+            "the road as a witness"
+        );
+        assert_eq!(proposal["notes"][0]["tags"], json!(["idea", "road"]));
+        assert!(
+            message.body.contains("tags: idea → idea, road"),
+            "{}",
+            message.body
+        );
+        assert!(
+            message.body.contains("the text is rewritten"),
+            "{}",
+            message.body
+        );
+        // Nothing is written until it is kept.
+        assert_eq!(
+            note::get(&conn, &kept.id).unwrap().unwrap().body,
+            "the road as a witness"
+        );
+
+        let outcome = crate::actions::proposal::apply(
+            &conn,
+            &message.id,
+            crate::actions::proposal::Overrides {
+                items: Some(vec!["note:0".into(), "note:1".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(outcome.notes.len(), 2);
+
+        let changed = note::get(&conn, &kept.id).unwrap().unwrap();
+        assert_eq!(changed.body, "the road as a witness, and a judge");
+        assert_eq!(changed.tags, ["idea", "road"]);
+        assert_eq!(
+            changed.title.as_deref(),
+            Some("Concept"),
+            "the title was not said"
+        );
+        let all = note::list(&conn, &profile_id, &NoteFilter::default()).unwrap();
+        let bridge = all
+            .iter()
+            .find(|one| one.title.as_deref() == Some("Bridge"))
+            .unwrap();
+        assert_eq!(bridge.tags, ["music"]);
+        assert_eq!(bridge.layer, crate::canon::Layer::Internal);
+        assert_eq!(bridge.work_id.as_deref(), Some(work_id.as_str()));
+        assert!(
+            !all.iter()
+                .any(|one| one.title.as_deref() == Some("Left out")),
+            "a note that was not taken was written"
+        );
+        assert_eq!(all.len(), 2, "the change made a second note");
+
+        // A note nobody can find is said, not made.
+        let unknown = run_tool(
+            &conn,
+            &claude(),
+            "propose_note",
+            &args(json!({ "note": "No such note", "body": "x" })),
+        );
+        assert_eq!(unknown.unwrap_err().reason().key, "refusal.mcp.unknownNote");
     }
 
     /// A tool's answer, read back as the JSON it is.

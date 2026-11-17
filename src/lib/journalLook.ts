@@ -226,6 +226,8 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'proposal.score': ['accent', Sparkles],
   'proposal.note': ['accent', Sparkles],
   'proposal.freeNote': ['accent', Sparkles],
+  'proposal.notes': ['accent', Sparkles],
+  'proposal.freeNotes': ['accent', Sparkles],
   'proposal.package': ['accent', Sparkles],
   'proposal.scenes': ['accent', Sparkles],
   'proposal.canon': ['accent', Sparkles],

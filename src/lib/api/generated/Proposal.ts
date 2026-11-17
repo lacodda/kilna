@@ -13,6 +13,7 @@ import type { PackagedRelease } from "./PackagedRelease";
 import type { PackagedScene } from "./PackagedScene";
 import type { PackagedTrial } from "./PackagedTrial";
 import type { PackagedVersion } from "./PackagedVersion";
+import type { ProposedNote } from "./ProposedNote";
 import type { TrialDropped } from "./TrialDropped";
 import type { WordsPackage } from "./WordsPackage";
 import type { JsonValue } from "./serde_json/JsonValue";
@@ -44,7 +45,7 @@ from?: string | null, } | { "kind": "note", title?: string | null,
 /**
  * Named apart from the proposal's own `kind`, its tag.
  */
-note_kind?: string | null, attribution?: string | null, shelf?: string | null, } | { "kind": "work", title?: string | null, 
+note_kind?: string | null, attribution?: string | null, shelf?: string | null, } | { "kind": "notes", notes: Array<ProposedNote>, } | { "kind": "work", title?: string | null, 
 /**
  * The kind of the new work. Not `kind`: that name is the tag that
  * says which variant this is.

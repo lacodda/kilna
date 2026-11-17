@@ -69,6 +69,11 @@ const proposalOf = (message: Message): Proposal | null => {
         : null
     case 'note':
       return proposal as Proposal
+    // Several notes, or one that changes a note that is there (v0.116).
+    case 'notes':
+      return Array.isArray((proposal as Partial<{ notes: unknown }>).notes)
+        ? (proposal as Proposal)
+        : null
     case 'work':
       return proposal as Proposal
     case 'scenes':

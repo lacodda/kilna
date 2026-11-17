@@ -53,6 +53,16 @@ export function WordsPackageView({ pack, chosen, onChosen, answered = false }: P
         })}
       </ul>
 
+      {/* A word that reads as several, written with a comma or a slash:
+          kept as proposed if the person says so, but said first. */}
+      {(pack.warnings ?? []).length > 0 && !answered && (
+        <section className="flex flex-col gap-0.5 text-warn">
+          {(pack.warnings ?? []).map((reason, index) => (
+            <span key={String(index)}>{sayReason(reason)}</span>
+          ))}
+        </section>
+      )}
+
       {/* What the proposer named and the workspace could not take - a word
           with no letters, a work nobody can find - said rather than dropped.
           Once answered it has had its say. */}
@@ -78,6 +88,46 @@ function Word({ word }: { word: ProposedWord }) {
     (shelves.data ?? []).some(
       (shelf) => shelf.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase(),
     )
+
+  // A word the record already keeps: the item changes it, and what it
+  // changes is read against what the record says - was, becomes (v0.116).
+  const action = word.action ?? 'upsert'
+  if (action !== 'upsert' || word.known === true) {
+    const changes = word.changes ?? []
+    return (
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex flex-wrap items-baseline gap-x-2">
+          <b className="text-sm font-semibold text-text">{word.word}</b>
+          <span className="text-warn">
+            {action === 'delete'
+              ? t('words.takeOut')
+              : action === 'split'
+                ? t('words.splitInto', { parts: (word.into ?? []).join(', ') })
+                : t('words.changes')}
+          </span>
+        </span>
+        {action === 'upsert' &&
+          changes.map((change) => (
+            <span key={change.field} className="flex flex-wrap items-baseline gap-x-1.5">
+              <span className="text-faint">
+                {t(FIELD_KEYS[change.field] ?? 'words.field.other')}
+              </span>
+              <span className="text-faint line-through">{change.was}</span>
+              <span aria-hidden className="text-faint">
+                →
+              </span>
+              <span className="text-text">{change.becomes}</span>
+            </span>
+          ))}
+        {action === 'upsert' && changes.length === 0 && (
+          <span className="text-faint">{t('words.nothingChanges')}</span>
+        )}
+        {word.note !== undefined && word.note !== '' && action !== 'upsert' && (
+          <span className="text-faint">{word.note}</span>
+        )}
+      </span>
+    )
+  }
 
   const writes = [
     word.phrase === true && word.shelf !== undefined
@@ -141,6 +191,18 @@ function Word({ word }: { word: ProposedWord }) {
       )}
     </span>
   )
+}
+
+/** A word per field a change names; one the window does not know reads as
+ * "something else". */
+const FIELD_KEYS: Record<string, string> = {
+  strictness: 'words.field.strictness',
+  forms: 'words.field.forms',
+  kind: 'words.field.kind',
+  topic: 'words.field.topic',
+  note: 'words.field.note',
+  sung: 'words.field.sung',
+  works: 'words.field.works',
 }
 
 /** How a form is sung, after its arrow - in the mono the editor of sung forms

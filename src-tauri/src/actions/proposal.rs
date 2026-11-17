@@ -133,6 +133,11 @@ pub struct Outcome {
     /// Bricks of the dictionary made (v0.94).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub style_bricks: Vec<String>,
+    /// What was kept in part: a field of a word the register would not take,
+    /// with the word, the field and why (v0.116). The rest was written;
+    /// "kept" never covers a field that was not.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unapplied: Vec<crate::error::Reason>,
 }
 
 /// Keep the proposal a message carries, and mark the message - as one unit.
@@ -304,6 +309,28 @@ pub fn check(
         Proposal::Note { note_kind, .. } => {
             if let Some(kind) = note_kind {
                 note(plain_note_kind(config, kind));
+            }
+        }
+        Proposal::Notes { notes } => {
+            for (index, one) in notes.iter().enumerate() {
+                if !taken_note(overrides, index) {
+                    continue;
+                }
+                if let Some(kind) = &one.kind {
+                    note(plain_note_kind(config, kind));
+                }
+                // A note to change that has gone since it was proposed.
+                if let Some(id) = &one.note
+                    && crate::note::get(conn, id)?.is_none()
+                {
+                    note(Err(Error::refused("proposal.noteGone").param(
+                        "title",
+                        one.before
+                            .as_ref()
+                            .and_then(|before| before.title.clone())
+                            .unwrap_or_else(|| id.clone()),
+                    )));
+                }
             }
         }
         Proposal::Work {
@@ -522,6 +549,15 @@ pub fn check(
 
 /// Whether the person kept the card at `index` of a proposal: every one when
 /// they named none, else the ones named `card:<index>`.
+/// Whether the person kept the note at `index` of a proposal of several:
+/// every one when they named none, else the ones named `note:<index>`.
+fn taken_note(overrides: &Overrides, index: usize) -> bool {
+    overrides
+        .items
+        .as_ref()
+        .is_none_or(|items| items.iter().any(|item| *item == format!("note:{index}")))
+}
+
 fn taken_card(overrides: &Overrides, index: usize) -> bool {
     overrides
         .items
@@ -810,10 +846,10 @@ fn keep(
         }
 
         Proposal::Words { package } => {
-            let (terms, phrases) =
-                crate::register::proposal::keep(conn, package, overrides.items.as_deref())?;
-            outcome.terms = terms;
-            outcome.notes.extend(phrases);
+            let kept = crate::register::proposal::keep(conn, package, overrides.items.as_deref())?;
+            outcome.terms = kept.terms;
+            outcome.notes.extend(kept.phrases);
+            outcome.unapplied = kept.unapplied;
         }
 
         Proposal::Bricks { package } => {
@@ -867,6 +903,55 @@ fn keep(
                 outcome.ideas.push(made.id);
             }
             outcome.work_id = Some(work_id);
+        }
+
+        Proposal::Notes { notes } => {
+            let profile_id = super::active_profile_id(conn)?;
+            for (index, one) in notes.into_iter().enumerate() {
+                if !taken_note(&overrides, index) {
+                    continue;
+                }
+                let said = |text: Option<String>| text.filter(|text| !text.trim().is_empty());
+                let id = match one.note {
+                    // A change: only what the proposal says, the rest of the
+                    // note as it is.
+                    Some(id) => {
+                        let patch = crate::note::NotePatch {
+                            title: said(one.title).map(Some),
+                            body: Some(one.body).filter(|body| !body.trim().is_empty()),
+                            attribution: said(one.attribution).map(Some),
+                            tags: Some(one.tags).filter(|tags| !tags.is_empty()),
+                            layer: one.layer,
+                            ..crate::note::NotePatch::default()
+                        };
+                        super::note::update(conn, &id, patch)?.id
+                    }
+                    None => {
+                        super::note::create(
+                            conn,
+                            NewNote {
+                                body: one.body,
+                                kind: one.kind,
+                                attribution: said(one.attribution),
+                                title: said(one.title),
+                                work_id: chat.work_id.clone(),
+                                tags: one.tags,
+                                layer: one.layer,
+                                ..Default::default()
+                            },
+                        )?
+                        .id
+                    }
+                };
+                if let Some(name) = one.shelf.as_deref().filter(|name| !name.trim().is_empty()) {
+                    let found = match crate::shelf::find(conn, &profile_id, name)? {
+                        Some(found) => found,
+                        None => super::shelf::create(conn, name)?,
+                    };
+                    super::shelf::add(conn, &found.id, &id)?;
+                }
+                outcome.notes.push(id);
+            }
         }
 
         Proposal::Trials {

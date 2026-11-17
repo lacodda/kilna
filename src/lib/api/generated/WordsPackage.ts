@@ -10,4 +10,9 @@ export type WordsPackage = { words: Array<ProposedWord>,
  * Why an item was not taken into the package: a word with no letters, a
  * work nobody can find.
  */
-dropped?: Array<Reason>, };
+dropped?: Array<Reason>, 
+/**
+ * What a person should know before keeping it: a word that reads as
+ * several.
+ */
+warnings?: Array<Reason>, };

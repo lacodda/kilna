@@ -36,6 +36,55 @@ pub fn read_stored(mut value: Value) -> serde_json::Result<Proposal> {
     serde_json::from_value(value)
 }
 
+/// One note of a [`Proposal::Notes`].
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct ProposedNote {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub title: Option<String>,
+    /// The note itself. May be empty for a change that leaves the body as
+    /// it is.
+    #[serde(default)]
+    pub body: String,
+    /// The profile's kind of note; the plain note when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub attribution: Option<String>,
+    /// The shelf a phrase goes on, by name; made when there is none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub shelf: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    /// Who may read it: public, internal, or only inside the works.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub layer: Option<crate::canon::Layer>,
+    /// The note this changes, by id. Absent, a new note.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub note: Option<String>,
+    /// What that note held when the change was proposed, for a person to
+    /// read was against becomes. Shown, never read back.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub before: Option<NoteBefore>,
+}
+
+/// A note as it stood when a change to it was proposed.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct NoteBefore {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub title: Option<String>,
+    pub body: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+}
+
 /// What an answer proposed, if anything.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -84,6 +133,11 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         shelf: Option<String>,
     },
+    /// Notes, several at once or one that says more than its words: tags,
+    /// a layer, or a note it changes rather than a new one (v0.116, FR-08
+    /// 8.2). Kept whole or note by note (`note:N`). Made by an agent outside
+    /// the window; the message body is a rendering of them a person reads.
+    Notes { notes: Vec<ProposedNote> },
     /// A whole work, or a package of changes to one: the fields of the
     /// overview, versions by role, a score, notes — applied together with one
     /// click. Made by an agent outside the window.
