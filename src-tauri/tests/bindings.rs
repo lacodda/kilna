@@ -262,6 +262,12 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::exchange::intake::IntakeFound,
         kilna_lib::exchange::intake::IntakeBrought,
         kilna_lib::exchange::import::ImportReport,
+        // upkeep.rs
+        kilna_lib::exchange::backup::KeptBackup,
+        kilna_lib::upkeep::Storage,
+        kilna_lib::upkeep::Compacted,
+        kilna_lib::upkeep::Examination,
+        kilna_lib::commands::upkeep::HistoryKeeping,
         // plugins.rs
         kilna_lib::plugin::manifest::Plugin,
         kilna_lib::plugin::manifest::Target,

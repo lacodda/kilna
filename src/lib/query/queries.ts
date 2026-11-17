@@ -38,6 +38,7 @@ import {
 import { cutParts, cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
 import { canExportPackage, logPath, surveyIntake, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
+import { historyKeeping, keptBackups, storageReport } from '@/lib/api/upkeep'
 import { listJournal, sinceVisit, unreadJournal } from '@/lib/api/journal'
 import { listLinks, listPublications, resolveLinks } from '@/lib/api/links'
 import { listLines, listNotes, listShelves, listTags } from '@/lib/api/notes'
@@ -437,5 +438,11 @@ export const queries = {
       staleTime: 0,
     }),
   logPath: () => queryOptions({ queryKey: keys.logPath, queryFn: logPath }),
+  // Read from the disk each time the screen opens: a copy is taken at start,
+  // and a size moves with everything that is written.
+  keptBackups: () =>
+    queryOptions({ queryKey: keys.keptBackups, queryFn: keptBackups, staleTime: 0 }),
+  storage: () => queryOptions({ queryKey: keys.storage, queryFn: storageReport, staleTime: 0 }),
+  historyKeeping: () => queryOptions({ queryKey: keys.historyKeeping, queryFn: historyKeeping }),
   mcpRegistration: () => queryOptions({ queryKey: keys.mcpRegistration, queryFn: mcpRegistration }),
 }

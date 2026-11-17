@@ -178,6 +178,43 @@ impl AppState {
         Ok(())
     }
 
+    /// Put a backup back over the open space, without a restart (v0.114):
+    /// what stood before is kept first, the backup's rows take the place of
+    /// the open database's, and the result is brought up to date as a space
+    /// is when it opens - a backup from an older kilna is of an older shape.
+    ///
+    /// The caller makes sure nothing is going, as for [`AppState::switch`].
+    /// Returns where what stood before was kept.
+    pub fn restore(&self, backup: &Path) -> Result<PathBuf> {
+        let folder = self.folder();
+        if self.held_by().is_some() {
+            return Err(Error::refused("space.readOnly"));
+        }
+        let media = media_dir_beside(&folder.database())?;
+        let kind = Manifest::read(folder.path()).map_or_else(
+            |_| profile::DEFAULT_KIND.to_owned(),
+            |manifest| manifest.kind,
+        );
+        let mut connection = self.conn();
+        let aside = crate::exchange::backup::restore(
+            &mut connection,
+            folder.path(),
+            &media,
+            backup,
+            &crate::time::now(),
+        )?;
+        db::migrations::apply(&mut connection)?;
+        crate::device::ensure(&connection)?;
+        prepare(&mut connection, &kind, &folder, Role::Window)?;
+        drop(connection);
+        // What was read of the space that is gone is not a reading of this one.
+        *self
+            .guard
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+        Ok(aside)
+    }
+
     /// Borrow the open space's connection.
     ///
     /// A poisoned mutex means another command panicked mid-query. The connection
@@ -425,6 +462,28 @@ pub fn open_space(folder: &Folder, role: Role) -> Result<(Connection, Option<Hol
             Ok((db::open_read_only(&folder.database())?, Some(holder)))
         }
         Hold::Ours => {
+            // A copy of what is there before anything changes it: before a
+            // newer kilna's migrations, and once a day (v0.114). The window's
+            // alone - a companion opens a space the window already opened.
+            // A copy that could not be taken is said and does not keep the
+            // space shut: a full disk would stop the migration as well.
+            if role == Role::Window {
+                match crate::exchange::backup::before_open(
+                    folder.path(),
+                    &folder.database(),
+                    &crate::time::now(),
+                ) {
+                    Ok(Some(written)) => crate::log::info(
+                        "backup",
+                        &format!("kept a copy before opening: {}", written.display()),
+                    ),
+                    Ok(None) => {}
+                    Err(cause) => crate::log::error(
+                        "backup",
+                        &format!("could not keep a copy before opening: {cause}"),
+                    ),
+                }
+            }
             let mut conn = db::open(&folder.database())?;
             prepare(&mut conn, &manifest.kind, folder, role)?;
             Ok((conn, None))
@@ -468,8 +527,19 @@ fn prepare(conn: &mut Connection, kind: &str, folder: &Folder, role: Role) -> Re
     // timer: there is no scheduler in this app, and an app that is left open
     // for a fortnight can carry a fortnight of history without complaint.
     // Failing to sweep is not a reason to fail to start.
+    // For as long as the space says, and into its archive (v0.114): what
+    // leaves the window is still the space's own history.
+    let keeps = Manifest::read(folder.path())
+        .ok()
+        .and_then(|manifest| manifest.history_days)
+        .unwrap_or(journal::RETENTION_DAYS);
     if let Ok(Some(profile)) = profile::active(conn)
-        && let Err(cause) = journal::sweep(conn, &profile.id)
+        && let Err(cause) = journal::sweep_into(
+            conn,
+            &profile.id,
+            keeps,
+            Some(&folder.path().join(crate::space::HISTORY_DIR)),
+        )
     {
         crate::log::warn("journal", &format!("could not sweep old entries: {cause}"));
     }
@@ -730,5 +800,65 @@ mod tests {
         let state = AppState::open(&dir.path().join("workspace.db")).unwrap();
 
         assert_eq!(state.assistant_dir(), state.assistant_dir());
+    }
+}
+
+#[cfg(test)]
+mod restore_tests {
+    use super::*;
+    use crate::exchange::backup;
+    use crate::work::{self, NewWork, WorkFilter};
+
+    fn titles(state: &AppState) -> Vec<String> {
+        let conn = state.conn();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        work::list(&conn, &profile_id, &WorkFilter::default())
+            .unwrap()
+            .into_iter()
+            .map(|one| one.title)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect()
+    }
+
+    fn add(state: &AppState, title: &str) {
+        crate::actions::work::create(
+            &state.conn(),
+            NewWork {
+                kind: "song".into(),
+                title: title.into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+    }
+
+    /// A backup put back from inside, without a restart: the window's own
+    /// connection reads the restored space, writes to it, and what stood
+    /// before is kept as a copy that can be put back the same way.
+    #[test]
+    fn the_open_space_is_restored_in_place_and_goes_on_working() {
+        let dir = tempfile::tempdir().unwrap();
+        let database = dir.path().join("kilna.db");
+        let state = AppState::open(&database).unwrap();
+        add(&state, "First");
+        let copy = backup::before_open(dir.path(), &database, "2026-11-01T08:00:00.000Z")
+            .unwrap()
+            .expect("a copy is taken");
+        add(&state, "Second");
+
+        let aside = state.restore(&copy).unwrap();
+
+        assert_eq!(titles(&state), ["First"]);
+        add(&state, "Third");
+        assert_eq!(titles(&state), ["First", "Third"]);
+        // And back again, from what the restore kept.
+        state.restore(&aside).unwrap();
+        assert_eq!(titles(&state), ["First", "Second"]);
+        // The schema is this build's, whatever the backup's was.
+        assert_eq!(
+            db::migrations::current_version(&state.conn()).unwrap(),
+            db::migrations::latest_version()
+        );
     }
 }

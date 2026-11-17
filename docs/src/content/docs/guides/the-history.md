@@ -134,8 +134,15 @@ should not depend on what you happened to read.
 
 History is the one place in kilna where something is removed for you:
 
-- **Entries you have seen** are dropped seven days after they were written.
+- **Entries you have seen** leave the feed seven days after they were
+  written - or after as long as **Settings → Data → History** says: a week, a
+  month, three months, a year, or never.
 - **Entries you have not** are never dropped, however old.
+
+What leaves the feed is not lost: each line is written first to a page of its
+month in the space's `history` folder - `2026-11.md` - with its minute and
+the sentence the feed said, in English, as every exported page is. A line
+that could not be written to its page stays in the feed.
 
 That is the opposite of the [trash](/kilna/guides/the-trash/), which never
 discards anything on its own — and deliberately so. The trash holds things you
@@ -143,8 +150,7 @@ might still want; history holds notices, and a notice you have already read and
 acted on has done its job. A notice you have *not* read has not, so it stays
 until you look at it.
 
-The sweep runs when kilna starts. There is no scheduler and nothing to
-configure.
+The sweep runs when kilna starts; there is no scheduler.
 
 ## History belongs to a space
 

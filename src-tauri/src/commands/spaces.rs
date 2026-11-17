@@ -77,7 +77,7 @@ pub fn grant(app: &AppHandle, state: &AppState) {
 /// Refuse to leave a space while something is going in it: a run, a task in
 /// line for a slot, a plugin. Each would finish into the space it began in
 /// while the window showed another.
-fn nothing_going(state: &AppState) -> Result<()> {
+pub(super) fn nothing_going(state: &AppState) -> Result<()> {
     let going = state.runs().active() + state.queue().len() + super::plugins::running_count();
     if going > 0 {
         return Err(Error::refused("space.busy").param("count", going));

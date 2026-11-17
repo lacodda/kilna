@@ -80,10 +80,11 @@ recognise it by, and often what a generator wrote in it. Inside the
 workspace the file is named by its id, so two files called `cover.png`
 cannot collide.
 
-Removing a file takes the copy with it. The original, wherever it came from,
-is never touched. This is not the trash: what the trash promises is that a
-deletion can be taken back, and a row restored beside bytes that are gone
-would be that promise broken.
+Removing a file sends it to the [trash](/kilna/guides/the-trash/), copy and
+all: **Undo** brings it back, and so does **Restore** on its row there, until
+the trash is emptied. The same goes for a reference taken off a style and a
+picture taken off a card of the canon. The original, wherever it came from,
+is never touched.
 
 ## Where a cover shows
 

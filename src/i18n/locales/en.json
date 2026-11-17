@@ -256,7 +256,7 @@
     "backupTitle": "Where to save the backup",
     "backedUp": "Saved to {{path}}",
     "workspaceAt": "Workspace file",
-    "restoreHint": "kilna cannot replace a workspace it has open, so a backup goes back in by hand, in the folder of the workspace file below.",
+    "restoreHint": "If kilna does not start, a backup goes back in by hand, in the folder of the workspace file below.",
     "mcp": "Agents outside kilna",
     "mcpHint": "kilna --mcp serves this workspace to an agent such as Claude Code over the Model Context Protocol: it can read your works, versions, scores and calendar, and propose a version, a score or a note — which you apply here, or don't. Register it with the command above.",
     "mcpCopy": "Copy",
@@ -279,7 +279,7 @@
     "show": "Show",
     "showFile": "Show in its folder",
     "workspaceAtHint": "One file holds your works, versions, scores and calendar. Everything attached to them lies in the media folder beside it.",
-    "restore": "Restoring a backup",
+    "restore": "Restoring by hand",
     "restoreSteps": {
       "close": "Close kilna. If it is working behind the tray, choose Quit kilna on its icon: closing the window does not close it while something goes.",
       "aside": "Move {{file}} and the media folder somewhere safe, and delete {{file}}-wal and {{file}}-shm if they are there.",
@@ -289,7 +289,55 @@
     "restoreLeft": "Your media folder of renders and takes is not in a backup, and stays where it is. Neither are this window’s theme and language, or the plugins.",
     "bringIn": "Works from files",
     "bringInHint": "Bring works in from files, a folder or a pasted text. A page kilna wrote and a .kilna.zip packed from a card come back as the works they were - versions, scores, release and, in a parcel, files. Any other .md or .txt becomes a new work. What is already here is passed over, never rewritten.",
-    "bringInAction": "Bring works in…"
+    "bringInAction": "Bring works in…",
+    "groupCare": "Looking after it",
+    "backups": "Copies kilna keeps",
+    "backupsHint": "kilna keeps a copy of this space’s database by itself: the first time it is opened on a day, before a newer kilna changes its shape, and before a backup is put back - the last 7, 3 and 3. They lie in the “backups” folder of the space. The files of the space are not in them and stay where they are.",
+    "backupsNone": "None yet: the first is taken the next time this space is opened.",
+    "backupKind": {
+      "daily": "Daily",
+      "beforeUpgrade": "Before an upgrade",
+      "beforeRestore": "Before a restore"
+    },
+    "restoreThis": "Put back…",
+    "restoreFile": "Put back a backup from a file…",
+    "restoreFileTitle": "A backup to put back",
+    "restoreTitle": "Put this backup back?",
+    "restoreBody": "The space becomes what it was on {{when}}. What is here now is kept first, as a copy of its own, so this can be taken back the same way.",
+    "restoreFileBody": "The space becomes what “{{name}}” holds. What is here now is kept first, as a copy of its own, so this can be taken back the same way.",
+    "restoreConfirm": "Put it back",
+    "restored": "The backup is back. What stood before is kept: {{path}}",
+    "restoreFailed": "Could not put the backup back.",
+    "size": "Size",
+    "sizeHint": "What this space takes on disk. Deleted rows leave their room to be used again; compacting gives it back to the disk and changes nothing else.",
+    "sizeDatabase": "Database",
+    "sizeMedia": "Files: {{count}}",
+    "sizeBackups": "Kept copies: {{count}}",
+    "compact": "Compact the database",
+    "compactHint": "Compacting would give back {{size}}.",
+    "compactNothing": "There is nothing to give back.",
+    "compacted": "Compacted: {{before}} → {{after}}",
+    "compactFailed": "Could not compact the database.",
+    "examine": "Examination",
+    "examineHint": "Checks the database file, rows that name what is not there, files gone from under their rows, files nothing names, the plugins and the assistant’s CLI. It only looks and changes nothing.",
+    "examineAction": "Examine this space",
+    "examineClean": "Nothing wrong was found.",
+    "examineFailed": "Could not examine the space.",
+    "examined": {
+      "damage": "The database file is damaged. Put back a copy from before it was:",
+      "dangling": "Rows that name a row that is not there: {{count}}",
+      "lost": "Files that are not on disk any more: {{count}}",
+      "ownerless": "Files attached to nothing: {{count}}",
+      "stray": "Files in the space’s folder that nothing names: {{count}}, {{size}}",
+      "plugins": "Plugins that cannot run: {{count}}",
+      "cli": "The assistant’s CLI cannot be reached.",
+      "more": "and {{count}} more"
+    },
+    "history": "History",
+    "historyHint": "How long a line of the history you have read is kept. After that it goes to a page of its month in {{path}} - in English, as every exported page is - and leaves the window. A line you have not read stays however old it is.",
+    "historyDays": "{{count}} days",
+    "historyForGood": "For good",
+    "historyFailed": "Could not change how long the history is kept."
   },
   "dashboard": {
     "decisions": "Needs a decision",
@@ -3214,7 +3262,8 @@
       "busy": "Something is still going in this space ({{count}}): wait for it or stop it, then open the other one.",
       "noDatabase": "The folder {{path}} holds a space's file but no database.",
       "none": "There is no space to open yet: start kilna once.",
-      "unreachable": "The space at {{path}} cannot be reached: is its drive connected?"
+      "unreachable": "The space at {{path}} cannot be reached: is its drive connected?",
+      "historyTooLong": "A history is kept for {{most}} days at most - or for good."
     },
     "intake": {
       "brokenPage": "This page ends where its parcel should begin: it was cut short.",
@@ -3233,6 +3282,11 @@
       "alreadyHere": "“{{title}}” is already here.",
       "unreadable": "“{{path}}” cannot be read as a parcel: {{cause}}",
       "notAParcel": "“{{path}}” is a zip, but not a work packed by kilna: it has no work.json."
+    },
+    "backup": {
+      "notFound": "There is no file at “{{path}}”.",
+      "notAWorkspace": "“{{path}}” is not a kilna workspace.",
+      "damaged": "“{{path}}” is damaged and cannot be put back: {{cause}}"
     }
   },
   "proposalBody": {

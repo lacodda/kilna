@@ -274,6 +274,10 @@ export const keys = {
   // Facts about this machine's install, asked once per screen that shows them.
   workspacePath: ['workspacePath'] as const,
   logPath: ['logPath'] as const,
+  // Looking after the open space (v0.114).
+  keptBackups: ['keptBackups'] as const,
+  storage: ['storage'] as const,
+  historyKeeping: ['historyKeeping'] as const,
   mcpRegistration: ['mcpRegistration'] as const,
   /** What bringing works in would do, by what was handed over. Never
    *  refreshed by a write of its own: the dialog asks again when it opens. */

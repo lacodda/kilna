@@ -12,6 +12,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MediaFolderField } from '@/features/settings/MediaFolderField'
 import { IntakeDialog } from '@/features/intake/IntakeDialog'
+import { ExamineField, HistoryField, KeptBackups, StorageField } from '@/features/settings/Upkeep'
 
 /** What a finished gesture says, and where it can be seen when it left something on disk. */
 interface Said {
@@ -141,6 +142,10 @@ export function DataSection() {
           </Button>
         </FieldGroup>
 
+        {/* The copies kilna keeps by itself, and putting one back from
+            inside (v0.114); the steps by hand stay under it, for a space
+            that will not open. */}
+        <KeptBackups />
         <RestoreSteps path={path.data ?? null} />
 
         <FieldGroup label={t('data.import')} help={t('data.importHint')}>
@@ -184,6 +189,15 @@ export function DataSection() {
         {/* Where the work's media lives outside the workspace: a place on this
             machine, beside the place the workspace itself lives. */}
         <MediaFolderField />
+      </section>
+
+      {/* Looking after the space (v0.114): its size, an examination of it,
+          and how long its history is kept. */}
+      <section className="flex flex-col gap-4">
+        <h3 className="caption">{t('data.groupCare')}</h3>
+        <StorageField />
+        <ExamineField />
+        <HistoryField />
       </section>
 
       {busy && <p className="text-sm text-dim">{t('data.working')}</p>}

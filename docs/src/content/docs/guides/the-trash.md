@@ -12,6 +12,16 @@ That is why kilna never asks *are you sure*. A confirmation dialog charges a
 click every time to protect against the rare mistake; an undo charges a click
 only when the mistake actually happened.
 
+## One gesture, one undo
+
+One thing you asked for is one step for **Undo**, however many things it
+made. Keeping an assistant's package - a work, its versions, its board -
+making a clip from a song, which makes the clip, its link to the song and its
+release, or settling a section of the canon: one press of `Ctrl+Z` takes all
+of it back, and the message says how many went with it. A gesture that holds
+something undo cannot take back - a file carried into the workspace - is not
+offered at all, rather than taken back by half.
+
 ## Two ways back
 
 **The message.** Every deletion announces itself in the bottom right with an
@@ -33,7 +43,10 @@ current — so links and references still resolve. A round trip through the
 trash is not an edit: timestamps are what they were, not what they would be
 if the rows had been recreated.
 
-A **style** comes back with its reference pictures.
+A **style** comes back with its reference pictures. A **file** taken off
+what it was attached to - a cover, an attachment, a style's reference, a
+card's picture - waits in the trash by itself, with its bytes, and comes back
+where it was.
 
 Deleting a **collection** does not delete the works in it. They lose their
 membership and stay where they are; restoring the collection puts them back

@@ -60,11 +60,45 @@ application's since spaces (v0.109); your
 renders and takes, which only ever had its path recorded; the plugins themselves;
 or the window's theme and language, which live with the window.
 
+## Copies kilna keeps
+
+kilna keeps a copy of a space's database by itself, in the `backups` folder
+of the space:
+
+- **once a day**, the first time the space is opened on that day - the last
+  seven are kept;
+- **before an upgrade**, when a newer kilna is about to change the
+  database's shape - the last three, each named with the shape it had;
+- **before a restore**, of what stood before a backup was put back - the
+  last three.
+
+They are taken before anything else touches the database, through SQLite's
+backup like the one you take by hand, so what a write-ahead log still holds
+is in the copy. They hold the database alone: the files of the space are not
+changed by an upgrade and stay where they are. A copy that could not be taken
+- a full disk - is written to the log and does not keep the space shut.
+**Settings → Data → Copies kilna keeps** lists them, newest first, with their
+size.
+
 ## Restore
 
-A backup goes back in **by hand, with kilna closed**: a workspace cannot be
-replaced under the process that holds it open, and kilna would rather say the
-steps than pretend to do them from inside. In the folder of the space:
+**Put back…** beside a kept copy, or **Put back a backup from a file…**,
+restores it from inside, without a restart. The file is checked first - that
+it is a kilna workspace, that this build can open it, that SQLite finds it
+whole - and refused untouched otherwise. Then what is here now is kept as a
+copy of its own, the backup's rows take the place of the open database's
+through SQLite's own restore, and the result is brought up to date as a space
+is when it opens: a backup from an older kilna is of an older shape. A backup
+taken by hand carries the space's files beside it; the ones here are moved
+aside whole, to `media.replaced-…` in the space's folder, and the backup's
+take their place. A copy kilna kept has no files, and yours stay as they are.
+
+Nothing may be going while it happens - a run, a queued task, a plugin - as
+when another space is opened. Putting back the wrong backup is taken back the
+same way: the copy kept before the restore is in the list.
+
+If kilna does not start at all, a backup goes back in **by hand, with kilna
+closed**. In the folder of the space:
 
 1. **Close kilna.** If it is working behind the tray, choose **Quit kilna** on its
    icon: closing the window does not close it while something goes.
@@ -81,6 +115,32 @@ What you moved aside in step 2 is whole, so if the backup turns out to be the
 wrong one, the same steps put it back. kilna's own tests follow these steps, so
 the page and the application cannot part. **Settings → Data** says them too, by
 the names they have on your machine.
+
+## Size, and compacting
+
+**Settings → Data → Size** says what the space takes on disk: the database,
+its files and how many, and the copies kilna keeps. A deleted row leaves its
+room to be used again rather than giving it back, so a space that lost a
+board's worth of rows keeps their size; **Compact the database** rewrites the
+file without that room and changes nothing else. The line above the button
+says how much it would give back.
+
+## Examination
+
+**Examine this space** looks the space over and says what it finds, by name:
+
+- what SQLite says is wrong with the database file itself;
+- rows that name a row that is not there;
+- files a row names that are not on disk - the broken pictures;
+- files attached to nothing;
+- files in the space's `media` folder that nothing names - not even the
+  trash, whose files wait with their entries;
+- plugins that cannot run, each with why, and whether the assistant's CLI
+  can be reached.
+
+It only looks. What to do about a lost file or a stray one is yours to
+decide: an examination that deleted what it took for litter would be one more
+way to lose a picture.
 
 ## Export to markdown
 
@@ -288,7 +348,10 @@ meant:
   another status — is recorded as the thing you asked for, together with
   everything carrying it out produced: the identifiers, the moment. One
   gesture is one entry, however many rows it moved, so a change of status
-  across a dozen works reads as the one action it was. Nothing is folded
+  across a dozen works reads as the one action it was. A gesture made of
+  several entries - a package kept, a work made from another - marks them as
+  one, and undo takes them back together; an undo is an entry too, and the
+  log replays it. Nothing is folded
   together and nothing is trimmed by age: the log is complete or it is not
   the log.
 

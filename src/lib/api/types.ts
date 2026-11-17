@@ -454,6 +454,14 @@ export type { IntakeRequest } from './generated/IntakeRequest'
 export type { IntakeFound } from './generated/IntakeFound'
 export type { IntakeBrought } from './generated/IntakeBrought'
 
+// Looking after a space.
+export type { KeptBackup } from './generated/KeptBackup'
+export type { Storage } from './generated/Storage'
+export type { Compacted } from './generated/Compacted'
+export type { Examination } from './generated/Examination'
+export type { Found } from './generated/Found'
+export type { HistoryKeeping } from './generated/HistoryKeeping'
+
 // Plugins.
 export type { Command as PluginCommand } from './generated/Command'
 export type { Manifest as PluginManifest } from './generated/Manifest'

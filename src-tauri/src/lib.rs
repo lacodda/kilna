@@ -64,6 +64,7 @@ pub mod tombstone;
 pub mod trash;
 pub mod tray;
 pub mod undo;
+pub mod upkeep;
 pub mod words;
 pub mod work;
 
@@ -566,6 +567,13 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::data::backup_workspace,
             commands::data::suggested_backup_name,
             commands::data::import_legacy,
+            commands::upkeep::kept_backups,
+            commands::upkeep::restore_backup,
+            commands::upkeep::storage_report,
+            commands::upkeep::compact_workspace,
+            commands::upkeep::examine_workspace,
+            commands::upkeep::history_keeping,
+            commands::upkeep::set_history_days,
             commands::plugins::list_plugins,
             commands::plugins::plugins_folder,
             commands::plugins::set_plugin_enabled,

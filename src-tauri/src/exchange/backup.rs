@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// Copy the whole workspace to `destination` — the database and its files.
 ///
@@ -80,6 +80,271 @@ pub fn suggested_name(timestamp: &str) -> String {
         .take(19)
         .collect();
     format!("kilna-{safe}.db")
+}
+
+/// The folder of a space its own backups are kept in, beside the database.
+pub const KEPT_DIR: &str = "backups";
+
+/// How many of each kind are kept; the oldest beyond that go.
+const KEEP_DAILY: usize = 7;
+const KEEP_BEFORE_UPGRADE: usize = 3;
+const KEEP_BEFORE_RESTORE: usize = 3;
+
+/// Why kilna took a backup by itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub enum BackupKind {
+    /// The first time the space is opened on a day.
+    Daily,
+    /// Before a newer kilna changed the database's shape.
+    BeforeUpgrade,
+    /// Before a backup was put back over it.
+    BeforeRestore,
+}
+
+impl BackupKind {
+    fn prefix(self) -> &'static str {
+        match self {
+            Self::Daily => "daily-",
+            Self::BeforeUpgrade => "before-upgrade-",
+            Self::BeforeRestore => "before-restore-",
+        }
+    }
+
+    fn keeps(self) -> usize {
+        match self {
+            Self::Daily => KEEP_DAILY,
+            Self::BeforeUpgrade => KEEP_BEFORE_UPGRADE,
+            Self::BeforeRestore => KEEP_BEFORE_RESTORE,
+        }
+    }
+
+    const ALL: [Self; 3] = [Self::Daily, Self::BeforeUpgrade, Self::BeforeRestore];
+}
+
+/// One backup kilna keeps of a space.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub struct KeptBackup {
+    pub path: String,
+    pub name: String,
+    pub kind: BackupKind,
+    /// When it was taken, as every stored moment is written.
+    pub made_at: String,
+    pub bytes: u64,
+}
+
+/// A moment as a file name holds it: to the second, without the colons a
+/// Windows file name cannot have.
+fn stamp(moment: &str) -> String {
+    moment
+        .chars()
+        .map(|c| if c == ':' { '-' } else { c })
+        .take(19)
+        .collect()
+}
+
+/// The moment a stamp was made from.
+fn moment(stamp: &str) -> String {
+    let (day, time) = stamp.split_at(stamp.len().min(10));
+    format!("{day}{}Z", time.replace('-', ":"))
+}
+
+/// The backups kilna keeps of the space in `folder`, newest first.
+pub fn kept(folder: &Path) -> Result<Vec<KeptBackup>> {
+    let dir = folder.join(KEPT_DIR);
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir(&dir)? {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let Some(stem) = name.strip_suffix(".db") else {
+            continue;
+        };
+        let Some((kind, taken)) = BackupKind::ALL
+            .into_iter()
+            .find_map(|kind| stem.strip_prefix(kind.prefix()).map(|rest| (kind, rest)))
+        else {
+            continue;
+        };
+        // A second copy of one second carries a count after its stamp, and
+        // an upgrade's name says the schema it was taken at before it.
+        let taken = taken.split('~').next().unwrap_or(taken);
+        let taken = &taken[taken.len().saturating_sub(19)..];
+        found.push(KeptBackup {
+            path: entry.path().display().to_string(),
+            made_at: moment(taken),
+            name: name.clone(),
+            kind,
+            bytes: entry.metadata().map_or(0, |meta| meta.len()),
+        });
+    }
+    found.sort_by(|a, b| (&b.made_at, &b.name).cmp(&(&a.made_at, &a.name)));
+    Ok(found)
+}
+
+/// A name in the kept folder that no file has yet: `stem` itself, or `stem`
+/// with a count after it.
+///
+/// A kept copy is never written over. Two taken within one second would
+/// share a name - and a restore from the copy an earlier restore kept, a
+/// second later, would have written the present state over the very file it
+/// was about to read.
+fn free_path(folder: &Path, stem: &str) -> PathBuf {
+    let dir = folder.join(KEPT_DIR);
+    let mut path = dir.join(format!("{stem}.db"));
+    let mut count = 1;
+    while path.exists() {
+        count += 1;
+        path = dir.join(format!("{stem}~{count}.db"));
+    }
+    path
+}
+
+/// Let go of the oldest backups of each kind beyond what is kept.
+fn rotate(folder: &Path) -> Result<()> {
+    let all = kept(folder)?;
+    for kind in BackupKind::ALL {
+        for old in all.iter().filter(|one| one.kind == kind).skip(kind.keeps()) {
+            if let Err(cause) = std::fs::remove_file(&old.path) {
+                crate::log::warn("backup", &format!("could not remove {}: {cause}", old.name));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Take a backup of a space before it is opened, when one is due: before a
+/// newer kilna changes the database's shape, and the first time it is opened
+/// on a day (v0.114).
+///
+/// Before the migrations on purpose - that is what it is for. A migration
+/// rewrites tables in place, and until now the only copy of what was there
+/// was one a person had thought to take. The database alone: the files a
+/// space keeps are not changed by an upgrade, and copying a folder of clips
+/// on every start would be the reason to switch this off.
+///
+/// Read through a connection that changes nothing, by SQLite's own backup, so
+/// what a write-ahead log still holds is in the copy.
+pub fn before_open(folder: &Path, database: &Path, now: &str) -> Result<Option<PathBuf>> {
+    if !database.is_file() {
+        return Ok(None);
+    }
+    let source = Connection::open_with_flags(
+        database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_URI,
+    )?;
+    let schema = crate::db::migrations::current_version(&source)?;
+    // Nothing in it yet: a space being made, not one to keep a copy of.
+    if schema == 0 {
+        return Ok(None);
+    }
+    let stem = if schema < crate::db::migrations::latest_version() {
+        format!(
+            "{}v{schema}-{}",
+            BackupKind::BeforeUpgrade.prefix(),
+            stamp(now)
+        )
+    } else {
+        let today = &now[..now.len().min(10)];
+        let taken_today = kept(folder)?
+            .iter()
+            .any(|one| one.kind == BackupKind::Daily && one.made_at.starts_with(today));
+        if taken_today {
+            return Ok(None);
+        }
+        format!("{}{}", BackupKind::Daily.prefix(), stamp(now))
+    };
+    let written = write_database(&source, &free_path(folder, &stem))?;
+    rotate(folder)?;
+    Ok(Some(written))
+}
+
+/// What a file has to be for kilna to put it back over a space.
+///
+/// Checked before anything is touched: that it is a database, that it is a
+/// kilna workspace, that this build can open it, and that SQLite finds it
+/// whole.
+pub fn check(backup: &Path) -> Result<()> {
+    let said = || backup.display().to_string();
+    if !backup.is_file() {
+        return Err(Error::refused("backup.notFound").param("path", said()));
+    }
+    let not_a_workspace = || Error::refused("backup.notAWorkspace").param("path", said());
+    let source = Connection::open_with_flags(
+        backup,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_URI,
+    )
+    .map_err(|_| not_a_workspace())?;
+    let has_profiles: bool = source
+        .query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN ('profile', 'work')",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(|_| not_a_workspace())?
+        == 2;
+    if !has_profiles {
+        return Err(not_a_workspace());
+    }
+    let found = crate::db::migrations::current_version(&source)?;
+    let supported = crate::db::migrations::latest_version();
+    if found > supported {
+        return Err(Error::SchemaTooNew { found, supported });
+    }
+    let whole: String = source.query_row("PRAGMA quick_check", [], |row| row.get(0))?;
+    if whole != "ok" {
+        return Err(Error::refused("backup.damaged")
+            .param("path", said())
+            .param("cause", whole));
+    }
+    Ok(())
+}
+
+/// Put a backup back over the open space: the database through SQLite's own
+/// restore, page by page into the open file, and the files beside a backup
+/// that has them.
+///
+/// No file of the database is moved or deleted, so there is no write-ahead
+/// log to leave beside the wrong database - the trap of the steps taken by
+/// hand - and a second program holding the space open, an agent's
+/// `kilna --mcp`, sees the restored rows rather than a file pulled from under
+/// it. What stood before is kept first, as a backup of its own.
+///
+/// The caller brings the restored database up to date afterwards, as opening
+/// a space does: a backup from an older kilna is of an older shape.
+pub fn restore(
+    conn: &mut Connection,
+    folder: &Path,
+    media: &Path,
+    backup: &Path,
+    now: &str,
+) -> Result<PathBuf> {
+    check(backup)?;
+    let aside = write_database(
+        conn,
+        &free_path(
+            folder,
+            &format!("{}{}", BackupKind::BeforeRestore.prefix(), stamp(now)),
+        ),
+    )?;
+    conn.restore("main", backup, None::<fn(rusqlite::backup::Progress)>)?;
+
+    // A backup taken by hand carries the space's files beside it; the ones
+    // here go aside whole and the backup's take their place. One kilna took
+    // by itself has none, and the files stay as they are.
+    let files = media_beside(backup);
+    if files.is_dir() {
+        if media.is_dir() {
+            let replaced = folder.join(format!("media.replaced-{}", stamp(now)));
+            std::fs::rename(media, replaced)?;
+        }
+        copy_dir(&files, media)?;
+    }
+    rotate(folder)?;
+    Ok(aside)
 }
 
 #[cfg(test)]
@@ -307,5 +572,149 @@ mod tests {
         assert!(!name.contains(':'), "got {name}");
         assert!(name.starts_with("kilna-2026-08-11T03-24-15"));
         assert!(name.ends_with(".db"));
+    }
+}
+
+#[cfg(test)]
+mod kept_tests {
+    use super::*;
+    use crate::fixtures;
+
+    fn titles(conn: &Connection) -> Vec<String> {
+        let mut statement = conn
+            .prepare("SELECT title FROM work ORDER BY position")
+            .unwrap();
+        statement
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<String>>>()
+            .unwrap()
+    }
+
+    fn day(n: u32) -> String {
+        format!("2026-11-{n:02}T08:00:00.000Z")
+    }
+
+    /// A copy is kept the first time a space is opened on a day, and before
+    /// a newer build changes its shape - and the oldest go.
+    #[test]
+    fn a_copy_is_kept_once_a_day_and_before_an_upgrade() {
+        let (conn, profile_id, dir) = fixtures::workspace_on_disk();
+        fixtures::song(&conn, &profile_id, "Harbour lights");
+        let database = dir.path().join("kilna.db");
+
+        let first = before_open(dir.path(), &database, &day(1)).unwrap();
+        assert!(first.is_some(), "no copy on the first opening of a day");
+        assert_eq!(
+            before_open(dir.path(), &database, "2026-11-01T19:30:00.000Z").unwrap(),
+            None,
+            "a second copy on the same day"
+        );
+
+        // The copy is the workspace: it opens, and holds the work.
+        let copy = Connection::open(first.unwrap()).unwrap();
+        assert_eq!(titles(&copy), ["Harbour lights"]);
+        drop(copy);
+
+        // Nine more days: seven are kept, the newest ones.
+        for n in 2..=10 {
+            before_open(dir.path(), &database, &day(n)).unwrap();
+        }
+        let dailies = kept(dir.path()).unwrap();
+        assert_eq!(dailies.len(), KEEP_DAILY);
+        assert_eq!(dailies[0].made_at, "2026-11-10T08:00:00Z");
+        assert_eq!(dailies[KEEP_DAILY - 1].made_at, "2026-11-04T08:00:00Z");
+
+        // A database of an older shape is copied whatever the day, under a
+        // name that says the shape it had.
+        let latest = crate::db::migrations::latest_version();
+        conn.pragma_update(None, "user_version", latest - 1)
+            .unwrap();
+        let before = before_open(dir.path(), &database, "2026-11-10T09:00:00.000Z")
+            .unwrap()
+            .expect("no copy before an upgrade");
+        conn.pragma_update(None, "user_version", latest).unwrap();
+        let name = before.file_name().unwrap().to_string_lossy().into_owned();
+        assert_eq!(
+            name,
+            format!("before-upgrade-v{}-2026-11-10T09-00-00.db", latest - 1)
+        );
+        let all = kept(dir.path()).unwrap();
+        assert_eq!(all[0].kind, BackupKind::BeforeUpgrade);
+        assert_eq!(all[0].made_at, "2026-11-10T09:00:00Z");
+    }
+
+    /// A backup put back over the open space: what it held is what is here,
+    /// and what stood before is kept beside it.
+    #[test]
+    fn a_backup_is_put_back_over_the_open_space() {
+        let (mut conn, profile_id, dir) = fixtures::workspace_on_disk();
+        let media = dir.path().join("media");
+        fixtures::song(&conn, &profile_id, "First");
+        let database = dir.path().join("kilna.db");
+        let backup = before_open(dir.path(), &database, &day(1))
+            .unwrap()
+            .unwrap();
+        fixtures::song(&conn, &profile_id, "Second");
+        assert_eq!(titles(&conn), ["First", "Second"]);
+
+        let aside = restore(&mut conn, dir.path(), &media, &backup, &day(2)).unwrap();
+
+        assert_eq!(titles(&conn), ["First"]);
+        // And the space goes on working: a write lands.
+        fixtures::song(&conn, &profile_id, "Third");
+        assert_eq!(titles(&conn), ["First", "Third"]);
+        // And a restore within the same second keeps a copy of its own
+        // rather than writing over the one before it.
+        let again = restore(&mut conn, dir.path(), &media, &aside, &day(2)).unwrap();
+        assert_ne!(again, aside);
+        assert_eq!(titles(&conn), ["First", "Second"]);
+        restore(&mut conn, dir.path(), &media, &again, &day(3)).unwrap();
+        assert_eq!(titles(&conn), ["First", "Third"]);
+        // What was there before the restore can be had back the same way.
+        let before = Connection::open(&aside).unwrap();
+        assert_eq!(titles(&before), ["First", "Second"]);
+        assert!(
+            kept(dir.path())
+                .unwrap()
+                .iter()
+                .any(|one| one.kind == BackupKind::BeforeRestore)
+        );
+    }
+
+    /// A file that is no workspace is refused before anything is touched.
+    #[test]
+    fn what_is_no_workspace_is_refused_untouched() {
+        let (mut conn, profile_id, dir) = fixtures::workspace_on_disk();
+        let media = dir.path().join("media");
+        fixtures::song(&conn, &profile_id, "First");
+
+        let code = |cause: Error| cause.reason().key;
+        let missing = dir.path().join("nowhere.db");
+        assert_eq!(
+            code(restore(&mut conn, dir.path(), &media, &missing, &day(1)).unwrap_err()),
+            "refusal.backup.notFound"
+        );
+        let text = fixtures::file(dir.path(), "notes.db");
+        assert_eq!(
+            code(restore(&mut conn, dir.path(), &media, &text, &day(1)).unwrap_err()),
+            "refusal.backup.notAWorkspace"
+        );
+        // Another database that is not kilna's.
+        let other = dir.path().join("other.db");
+        Connection::open(&other)
+            .unwrap()
+            .execute_batch("CREATE TABLE thing (id TEXT)")
+            .unwrap();
+        assert_eq!(
+            code(restore(&mut conn, dir.path(), &media, &other, &day(1)).unwrap_err()),
+            "refusal.backup.notAWorkspace"
+        );
+
+        assert_eq!(titles(&conn), ["First"]);
+        assert!(
+            kept(dir.path()).unwrap().is_empty(),
+            "something was kept aside for a refusal"
+        );
     }
 }

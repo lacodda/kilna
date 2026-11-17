@@ -72,6 +72,11 @@ pub struct Manifest {
     /// The name of a glyph from the window's set; the kind's own when none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mark: Option<String>,
+    /// How many days a read line of the history is kept before it goes to
+    /// the archive; `0` keeps it for good, and none is a week (v0.114). The
+    /// space's own, so it travels with the folder like its name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_days: Option<u32>,
 }
 
 impl Manifest {
@@ -84,6 +89,7 @@ impl Manifest {
             kind: checked_kind(kind)?,
             colour: None,
             mark: None,
+            history_days: None,
         })
     }
 
@@ -307,6 +313,24 @@ pub fn restyle(folder: &Folder, look: &SpaceLook) -> Result<Manifest> {
     let mut manifest = Manifest::read(folder.path())?;
     manifest.colour = checked_colour(look.colour.as_deref())?;
     manifest.mark = checked_mark(look.mark.as_deref())?;
+    manifest.write(folder.path())?;
+    Ok(manifest)
+}
+
+/// The folder of a space the lines its history let go of are kept in.
+pub const HISTORY_DIR: &str = "history";
+
+/// The longest a space may be told to keep its history by the day; past
+/// that it is kept for good, which is `0`.
+const HISTORY_DAYS_MOST: u32 = 3650;
+
+/// Say how long a space keeps the read lines of its history, in its own file.
+pub fn keep_history(folder: &Folder, days: u32) -> Result<Manifest> {
+    if days > HISTORY_DAYS_MOST {
+        return Err(Error::refused("space.historyTooLong").param("most", HISTORY_DAYS_MOST));
+    }
+    let mut manifest = Manifest::read(folder.path())?;
+    manifest.history_days = Some(days);
     manifest.write(folder.path())?;
     Ok(manifest)
 }

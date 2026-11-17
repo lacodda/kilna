@@ -104,6 +104,27 @@ function dayOf(value: string): Date {
 }
 
 /**
+ * A size on disk: "640 kB", "12.4 MB", "1.2 ГБ" - in the unit a person
+ * would say it in, to one decimal past the kilobyte.
+ */
+export function formatBytes(bytes: number, language = current()): string {
+  const [unit, size]: [string, number] =
+    bytes < 1024
+      ? ['byte', bytes]
+      : bytes < 1024 ** 2
+        ? ['kilobyte', bytes / 1024]
+        : bytes < 1024 ** 3
+          ? ['megabyte', bytes / 1024 ** 2]
+          : ['gigabyte', bytes / 1024 ** 3]
+  return numbers(language, {
+    style: 'unit',
+    unit,
+    unitDisplay: 'short',
+    maximumFractionDigits: unit === 'byte' || unit === 'kilobyte' ? 0 : 1,
+  }).format(size)
+}
+
+/**
  * A day: "Sep 15", "15 сент." - with the year only when it is not this one,
  * where it would be the one thing worth saying.
  */

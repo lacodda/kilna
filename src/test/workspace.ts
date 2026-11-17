@@ -1344,6 +1344,25 @@ export function answersFor(studio: Studio): Record<string, Handler> {
 
     workspace_path: () => 'C:\\Users\\someone\\AppData\\Roaming\\kilna\\workspace.db',
     suggested_backup_name: () => 'kilna-2026-09-15.db',
+    // Looking after the space (v0.114): one kept copy, a size, a week of history.
+    kept_backups: () => [
+      {
+        path: 'C:/workspace/backups/daily-2026-09-15T08-00-00.db',
+        name: 'daily-2026-09-15T08-00-00.db',
+        kind: 'daily',
+        madeAt: '2026-09-15T08:00:00Z',
+        bytes: 2_400_000,
+      },
+    ],
+    storage_report: () => ({
+      databaseBytes: 2_400_000,
+      reclaimableBytes: 0,
+      mediaBytes: 12_000_000,
+      mediaFiles: 14,
+      backupsBytes: 2_400_000,
+      backups: 1,
+    }),
+    history_keeping: () => ({ days: 7, archive: 'C:/workspace/history' }),
     mcp_registration: () => 'claude mcp add kilna -- kilna --mcp',
   }
 }

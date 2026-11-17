@@ -294,32 +294,115 @@ pub fn mark_read(conn: &Connection, profile_id: &str) -> Result<usize> {
     )?)
 }
 
-/// Days a read entry is kept before it is swept.
-pub const RETENTION_DAYS: i64 = 7;
+/// Days a read entry is kept before it is swept, unless the space says
+/// otherwise.
+pub const RETENTION_DAYS: u32 = 7;
 
-/// Drop read entries older than [`RETENTION_DAYS`]. Returns how many went.
+/// Drop read entries older than [`RETENTION_DAYS`], keeping no archive.
+/// Returns how many went.
+pub fn sweep(conn: &Connection, profile_id: &str) -> Result<usize> {
+    sweep_into(conn, profile_id, RETENTION_DAYS, None)
+}
+
+/// Drop read entries older than `days`, writing each into `archive` first
+/// when there is one. Returns how many went. `0` days keeps everything.
 ///
 /// Unread entries are never swept, however old: the journal exists so that
 /// nothing happens unnoticed, and quietly deleting the notice would be exactly
 /// that. Run at startup rather than on a timer — a desktop app that is open for
 /// a week can wait a week.
-pub fn sweep(conn: &Connection, profile_id: &str) -> Result<usize> {
+///
+/// The archive is a folder of pages, a month each, in the export's English
+/// (v0.114): what leaves the window is still the space's own history, and a
+/// line that could not be written to its page stays in the journal rather
+/// than going nowhere.
+pub fn sweep_into(
+    conn: &Connection,
+    profile_id: &str,
+    days: u32,
+    archive: Option<&std::path::Path>,
+) -> Result<usize> {
+    if days == 0 {
+        return Ok(0);
+    }
     // Both sides are put through `strftime` before they are compared. Stored
     // timestamps are RFC 3339 (`2026-08-17T09:00:00Z`) while `datetime()`
     // returns `2026-08-17 09:00:00`, and comparing those as plain strings is
     // wrong in the direction that hides itself: `T` sorts above a space, so
     // every entry would look newer than the cutoff and nothing would ever be
     // swept.
+    let old = format!(
+        "profile_id = ?1
+           AND read_at IS NOT NULL
+           AND strftime('%Y-%m-%dT%H:%M:%SZ', created_at)
+             < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-{days} days')"
+    );
+    if let Some(archive) = archive {
+        let leaving = query(
+            conn,
+            &format!(
+                "SELECT id, action, params, level, entity, entity_id, occurrences, created_at,
+                        read_at
+                   FROM journal WHERE {old} ORDER BY created_at, rowid"
+            ),
+            params![profile_id],
+        )?;
+        write_archive(archive, &leaving)?;
+    }
     Ok(conn.execute(
-        &format!(
-            "DELETE FROM journal
-              WHERE profile_id = ?1
-                AND read_at IS NOT NULL
-                AND strftime('%Y-%m-%dT%H:%M:%SZ', created_at)
-                  < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-{RETENTION_DAYS} days')"
-        ),
+        &format!("DELETE FROM journal WHERE {old}"),
         params![profile_id],
     )?)
+}
+
+/// Append entries to the pages of an archive, a month each: the minute, and
+/// the sentence the window said, in English.
+fn write_archive(archive: &std::path::Path, entries: &[Entry]) -> Result<()> {
+    use std::io::Write;
+
+    if entries.is_empty() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(archive)?;
+    let mut pages: std::collections::BTreeMap<&str, String> = std::collections::BTreeMap::new();
+    for entry in entries {
+        let month = entry.created_at.get(..7).unwrap_or("undated");
+        let minute = entry
+            .created_at
+            .get(..16)
+            .unwrap_or(&entry.created_at)
+            .replace('T', " ");
+        // An action the locale has no sentence for is said by its key and
+        // its values: a line of history is kept even when it cannot be worded.
+        let sentence = crate::error::said_in(
+            crate::error::SOURCE_LOCALE,
+            &format!("journal.{}", entry.action),
+            &entry.params,
+        )
+        .unwrap_or_else(|| format!("{} {}", entry.action, Value::Object(entry.params.clone())));
+        let times = if entry.occurrences > 1 {
+            format!(" (×{})", entry.occurrences)
+        } else {
+            String::new()
+        };
+        pages
+            .entry(month)
+            .or_default()
+            .push_str(&format!("- {minute} · {sentence}{times}\n"));
+    }
+    for (month, lines) in pages {
+        let path = archive.join(format!("{month}.md"));
+        let new = !path.exists();
+        let mut page = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)?;
+        if new {
+            page.write_all(format!("# History, {month}\n\n").as_bytes())?;
+        }
+        page.write_all(lines.as_bytes())?;
+    }
+    Ok(())
 }
 
 fn query(conn: &Connection, sql: &str, args: impl rusqlite::Params) -> Result<Vec<Entry>> {
@@ -657,5 +740,91 @@ mod tests {
             None,
             "and missing is not an error"
         );
+    }
+}
+
+#[cfg(test)]
+mod keeping_tests {
+    use super::*;
+    use crate::fixtures;
+
+    fn old_read(conn: &Connection, profile_id: &str, id: &str, action: &str, params: &str) {
+        conn.execute(
+            "INSERT INTO journal (id, profile_id, action, params, level, occurrences, created_at, read_at)
+             VALUES (?1, ?2, ?3, ?4, 'info', 2, '2026-03-04T09:15:00Z', '2026-03-05T10:00:00Z')",
+            params![id, profile_id, action, params],
+        )
+        .unwrap();
+    }
+
+    /// What the history lets go of is written to its page first: the minute
+    /// and the sentence, and a line the locale cannot word by its key.
+    #[test]
+    fn a_swept_line_goes_to_the_archive_first() {
+        let (conn, profile_id) = fixtures::workspace();
+        let dir = tempfile::tempdir().unwrap();
+        let archive = dir.path().join("history");
+        old_read(
+            &conn,
+            &profile_id,
+            "a",
+            "work.created",
+            r#"{"title":"Harbour lights"}"#,
+        );
+        old_read(&conn, &profile_id, "b", "nothing.wordsThis", r#"{"n":1}"#);
+
+        assert_eq!(
+            sweep_into(&conn, &profile_id, 30, Some(&archive)).unwrap(),
+            2
+        );
+
+        assert!(list(&conn, &profile_id).unwrap().is_empty());
+        let page = std::fs::read_to_string(archive.join("2026-03.md")).unwrap();
+        assert!(page.starts_with("# History, 2026-03\n\n"), "{page}");
+        assert!(
+            page.contains("- 2026-03-04 09:15 · “Harbour lights” added. (×2)\n"),
+            "{page}"
+        );
+        assert!(page.contains("nothing.wordsThis {\"n\":1}"), "{page}");
+
+        // A second sweep adds to the page rather than starting it again.
+        old_read(
+            &conn,
+            &profile_id,
+            "c",
+            "work.created",
+            r#"{"title":"Winter road"}"#,
+        );
+        sweep_into(&conn, &profile_id, 30, Some(&archive)).unwrap();
+        let page = std::fs::read_to_string(archive.join("2026-03.md")).unwrap();
+        assert_eq!(page.matches("# History").count(), 1);
+        assert!(page.contains("Harbour lights") && page.contains("Winter road"));
+    }
+
+    /// A space told to keep its history for good loses none of it, and one
+    /// whose archive cannot be written keeps the line in the journal.
+    #[test]
+    fn a_line_is_never_dropped_without_a_place_to_go() {
+        let (conn, profile_id) = fixtures::workspace();
+        let dir = tempfile::tempdir().unwrap();
+        old_read(
+            &conn,
+            &profile_id,
+            "a",
+            "work.created",
+            r#"{"title":"Harbour lights"}"#,
+        );
+
+        assert_eq!(
+            sweep_into(&conn, &profile_id, 0, Some(&dir.path().join("history"))).unwrap(),
+            0
+        );
+        assert_eq!(list(&conn, &profile_id).unwrap().len(), 1);
+
+        // A file stands where the archive's folder should be.
+        let blocked = dir.path().join("blocked");
+        std::fs::write(&blocked, b"not a folder").unwrap();
+        assert!(sweep_into(&conn, &profile_id, 30, Some(&blocked)).is_err());
+        assert_eq!(list(&conn, &profile_id).unwrap().len(), 1);
     }
 }
