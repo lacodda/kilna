@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.124.0] - 2026-11-17
+
+A work's vibe. What a work feels like is said along three lines - its mood,
+its character, how complex it is - and drawn as one mark: the mood's colour,
+the character's shape, as many strokes as it is complex. Say one, two or all
+three, in the card's header beside the stage or in a new catalogue column;
+a clip or a short with none of its own shows its song's. The catalogue
+filters by it and the search box reads `mood:`, `character:` and
+`complexity:`; a calendar's slot carries the mark. The words are the
+profile's, and every space gets them. The assistant reads a vibe when it
+scores a text and an agent may propose one - either is kept only where you
+have said nothing. A free word in an older Mood field is left as it is.
+
+### Features
+- A vibe - mood, character and complexity - kept with a work
+- A mark built of three lines, set on the card and in the catalogue
+- An agent and a score may propose a vibe, never over the author's
+
 ## [0.123.0] - 2026-11-17
 
 Scoring by itself. With "Score texts by themselves" on in Settings, a song's
