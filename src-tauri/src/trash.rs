@@ -48,12 +48,16 @@ pub enum Entity {
     Trial,
     /// A card on a board of a work's conception (ADR 0065).
     Card,
+    /// A file taken off what it was attached to - a reference of a style, a
+    /// picture of a card, a cover, an attachment (v0.114). Its bytes stay on
+    /// disk while the entry is in the trash, as a brick's pictures do.
+    File,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 16] = [
+    pub const ALL: [Entity; 17] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -70,6 +74,7 @@ impl Entity {
         Entity::Shelf,
         Entity::Trial,
         Entity::Card,
+        Entity::File,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -90,6 +95,7 @@ impl Entity {
             Self::Shelf => "shelf",
             Self::Trial => "trial",
             Self::Card => "card",
+            Self::File => "file",
         }
     }
 
@@ -113,6 +119,7 @@ impl Entity {
             "shelf" => Ok(Self::Shelf),
             "trial" => Ok(Self::Trial),
             "card" => Ok(Self::Card),
+            "file" => Ok(Self::File),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -136,6 +143,7 @@ impl Entity {
             Self::Shelf => "shelf",
             Self::Trial => "trial",
             Self::Card => "board_card",
+            Self::File => "asset",
         }
     }
 }
@@ -409,6 +417,12 @@ fn cascade(entity: Entity) -> &'static [Capture] {
         // And a card on a board of a conception.
         Entity::Card => &[Capture {
             table: "board_card",
+            key: "id",
+        }],
+        // A file by itself: the row that names it. The bytes stay where
+        // they are until the entry is purged (`forget_files`).
+        Entity::File => &[Capture {
+            table: "asset",
             key: "id",
         }],
         // A trial and the takes it was judged by: they are what it is
@@ -1233,6 +1247,13 @@ fn missing_parent(
         Entity::Cut => &[("work_id", "work"), ("source_id", "work")],
         // A fact is a fact of its card.
         Entity::Fact => &[("note_id", "note")],
+        // A file hangs on one of these, and goes back to it.
+        Entity::File => &[
+            ("work_id", "work"),
+            ("style_brick_id", "style_brick"),
+            ("note_id", "note"),
+            ("trial_id", "trial"),
+        ],
     };
 
     let rows = match snapshot.get(entity.table()) {
@@ -1251,6 +1272,9 @@ fn missing_parent(
         if !alive(conn, table, Some(parent))? {
             return Ok(Some(if *table == "note" {
                 "the card this belonged to is gone — restore it first, or this has nowhere to go"
+                    .to_owned()
+            } else if *table != "work" {
+                "what this was attached to is gone — restore it first, or this has nowhere to go"
                     .to_owned()
             } else {
                 "the work this belonged to is gone — restore it first, or this has nowhere to go"
@@ -1271,6 +1295,21 @@ fn describe(
     // Each entity is named by whatever it has that reads like a name, and placed
     // by its work's title when it hangs off one.
     let found = match entity {
+        // Named by what a person called it, or the name it arrived under,
+        // and placed by what it was attached to.
+        Entity::File => conn
+            .query_row(
+                "SELECT coalesce(nullif(a.label, ''), a.original_name, 'file'),
+                        coalesce(w.title, s.name, n.title), a.profile_id
+                   FROM asset a
+                   LEFT JOIN work w ON w.id = a.work_id
+                   LEFT JOIN style_brick s ON s.id = a.style_brick_id
+                   LEFT JOIN note n ON n.id = a.note_id
+                  WHERE a.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
         Entity::Work => conn
             .query_row(
                 "SELECT title, NULL, profile_id FROM work WHERE id = ?1",
@@ -1460,6 +1499,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Shelf => "shelf",
         Entity::Trial => "trial",
         Entity::Card => "card",
+        Entity::File => "file",
     }
 }
 

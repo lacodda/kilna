@@ -94,14 +94,71 @@ pub fn choose_cover(conn: &Connection, id: &str) -> Result<Asset> {
     })
 }
 
-/// Forget a file and remove the copy the workspace made.
+/// Take a file off what it was attached to: into the trash, where it waits
+/// with its bytes and comes back with them (v0.114).
 ///
-/// Not the trash: what the trash promises is that a deletion can be taken
-/// back, and a row restored beside bytes that are gone is a promise broken.
+/// Until then this forgot the row and removed the copy at once - "not the
+/// trash, because a row restored beside bytes that are gone is a promise
+/// broken". The trash has kept the bytes of what it holds since it learned
+/// to hold a style's pictures (v0.76.1), so the promise can be kept, and a
+/// reference taken off a style by a slip of the pointer is one undo away.
 /// The original, wherever it came from, was never touched.
 pub fn detach(conn: &Connection, id: &str) -> Result<()> {
-    gesture(conn, "asset.detach", |act| {
-        act.param("id", id);
-        asset::delete(act, id)
-    })
+    // Already gone is what was asked for.
+    if asset::get(conn, id)?.is_none() {
+        return Ok(());
+    }
+    super::trash::discard(conn, crate::trash::Entity::File, id).map(|_| ())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fixtures;
+
+    /// A file taken off a work waits in the trash with its bytes, comes back
+    /// with them, and loses them only when the entry is deleted for good.
+    #[test]
+    fn a_file_taken_off_waits_in_the_trash_with_its_bytes() {
+        let (conn, profile_id, dir) = fixtures::workspace_on_disk();
+        let media = crate::state::media_dir_of(&conn).unwrap();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let source = fixtures::file(dir.path(), "take.png");
+        let kept = attach(
+            &conn,
+            &media,
+            &source.display().to_string(),
+            NewAsset {
+                work_id: Some(song.id.clone()),
+                ..NewAsset::default()
+            },
+        )
+        .unwrap();
+        let bytes = Path::new(&kept.path);
+
+        detach(&conn, &kept.id).unwrap();
+        assert!(asset::get(&conn, &kept.id).unwrap().is_none());
+        assert!(bytes.is_file(), "the bytes went with the row");
+
+        // One undo away, bytes and all.
+        let offer = crate::undo::last(&conn).unwrap().expect("offered");
+        assert_eq!(offer.action, "undo.entity.discard");
+        crate::undo::undo(&conn, &offer.operation_id).unwrap();
+        assert!(asset::get(&conn, &kept.id).unwrap().is_some());
+        assert!(bytes.is_file());
+
+        // Deleted for good, the copy goes: nothing names it any more.
+        detach(&conn, &kept.id).unwrap();
+        let entry = crate::trash::list(&conn, &profile_id)
+            .unwrap()
+            .into_iter()
+            .find(|entry| entry.entity_id == kept.id)
+            .expect("the file waits in the trash");
+        assert_eq!(entry.entity, crate::trash::Entity::File);
+        crate::actions::trash::purge(&conn, &entry.id).unwrap();
+        assert!(!bytes.is_file(), "a purged file left its bytes behind");
+
+        // And taking off what is already gone is no failure.
+        detach(&conn, &kept.id).unwrap();
+    }
 }

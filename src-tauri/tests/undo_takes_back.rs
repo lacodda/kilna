@@ -529,7 +529,7 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 24] = [
+    const NOT_UNDOABLE: [(&str, &str); 23] = [
         (
             "style.attachReference",
             "it carries a file into the workspace, as `asset.attach` does, and \
@@ -603,11 +603,6 @@ fn every_operation_is_undoable_or_says_why_not() {
             "the copy it made would have to be unmade, and the row is the only \
              thing the log holds — taking it back is `detach_asset`, which \
              removes the bytes as well",
-        ),
-        (
-            "asset.detach",
-            "the bytes are gone with the row; a row put back beside a file that \
-             no longer exists is the broken picture the deletion avoided",
         ),
         (
             "scene.attachFrame",

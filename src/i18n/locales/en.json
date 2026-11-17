@@ -1165,7 +1165,7 @@
     "attachFailed": "Could not attach the file.",
     "detachFailed": "Could not remove the file.",
     "detachTitle": "Remove “{{name}}”?",
-    "detachBody": "The file is deleted from the workspace. It does not go to the trash, and undo cannot bring it back.",
+    "detachBody": "The file goes to the trash, and can be brought back from there.",
     "detachConfirm": "Remove the file",
     "pictures": "Pictures",
     "copiedIn": "A file is copied into the workspace, so a backup carries it.",
@@ -1856,7 +1856,8 @@
       "idea": "Idea",
       "trial": "Trial",
       "shelf": "Shelf of phrases",
-      "card": "Board card"
+      "card": "Board card",
+      "file": "File"
     }
   },
   "outside": {
@@ -2013,6 +2014,7 @@
     "shelf.deleted": "Shelf “{{label}}” put in the trash.",
     "proposal.cards": "{{client}} proposed cards for the board of “{{title}}”.",
     "card.deleted": "Card “{{label}}” taken off the board.",
+    "file.deleted": "File “{{label}}” removed.",
     "week": {
       "save": "Save the week as Markdown…",
       "title": "The week of {{from}} – {{to}}",

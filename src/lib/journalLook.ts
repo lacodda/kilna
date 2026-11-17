@@ -218,6 +218,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'idea.deleted': ['dim', Trash2],
   'trial.deleted': ['dim', Trash2],
   'card.deleted': ['dim', Trash2],
+  'file.deleted': ['dim', Trash2],
 
   'proposal.work': ['accent', Sparkles],
   'proposal.version': ['accent', Sparkles],
