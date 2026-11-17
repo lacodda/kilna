@@ -84,6 +84,28 @@ pub fn read(spaces: &[&Connection], app: &Connection, since: Since<'_>) -> Resul
     })
 }
 
+/// Whether the last seven days of the open space's runs have cost more than
+/// the week may: what a run nobody asked for checks before it starts
+/// (FR-01). Seven days back from now rather than from the person's Monday -
+/// nobody is at the window to say when their week began, and the question is
+/// only whether to stay quiet.
+pub fn over_lately(space: &Connection, app: &Connection) -> Result<bool> {
+    let Some(budget) = budget(app)? else {
+        return Ok(false);
+    };
+    let since = time::OffsetDateTime::now_utc() - time::Duration::days(7);
+    let since = since
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_default();
+    let spent: f64 = space.query_row(
+        "SELECT coalesce(sum(cost_usd), 0) FROM chat_run \
+          WHERE cost_usd IS NOT NULL AND ended_at >= ?1",
+        params![since],
+        |row| row.get(0),
+    )?;
+    Ok(spent > budget)
+}
+
 /// What one chat's runs have cost, all of them.
 pub fn of_chat(conn: &Connection, chat_id: &str) -> Result<f64> {
     Ok(conn.query_row(

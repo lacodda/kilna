@@ -75,6 +75,36 @@ pub struct AssistantSettings {
     /// The model a run starts with; none is what Claude Code itself is set to.
     pub model: Option<String>,
     pub run_sees: RunSees,
+    /// Whether a text is scored by itself once it has been left alone
+    /// (FR-01). Off unless the person said so: a score costs money.
+    pub auto_score: bool,
+    /// The minutes a text has to be left alone before it is scored.
+    #[ts(type = "number")]
+    pub auto_score_debounce_min: u32,
+    /// The stage a work has to stand at to be scored by itself: one of the
+    /// five stops.
+    #[ts(type = "number")]
+    pub auto_score_min_stage: i64,
+    /// Whether what the assistant says is kept as a score at once - as its
+    /// own opinion, never over the author's - or waits as a proposal.
+    pub auto_score_apply: bool,
+}
+
+/// How long a text is left alone before it is scored, unless said otherwise.
+pub const DEFAULT_DEBOUNCE_MIN: u32 = 10;
+/// The stage scoring starts from, unless said otherwise: half way.
+pub const DEFAULT_MIN_STAGE: i64 = 50;
+
+/// The scoring-by-itself part of the settings, as the window sets it: all
+/// four at once, since they are one group on one screen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ts_rs::TS)]
+pub struct AutoScore {
+    pub enabled: bool,
+    #[ts(type = "number")]
+    pub debounce_min: u32,
+    #[ts(type = "number")]
+    pub min_stage: i64,
+    pub apply: bool,
 }
 
 impl Default for AssistantSettings {
@@ -83,6 +113,10 @@ impl Default for AssistantSettings {
             parallel_runs: DEFAULT_PARALLEL_RUNS,
             model: None,
             run_sees: RunSees::Nothing,
+            auto_score: false,
+            auto_score_debounce_min: DEFAULT_DEBOUNCE_MIN,
+            auto_score_min_stage: DEFAULT_MIN_STAGE,
+            auto_score_apply: false,
         }
     }
 }
@@ -91,7 +125,9 @@ impl Default for AssistantSettings {
 pub fn read(conn: &Connection) -> Result<AssistantSettings> {
     Ok(conn
         .query_row(
-            "SELECT parallel_runs, model, run_sees FROM assistant_settings WHERE id = 1",
+            "SELECT parallel_runs, model, run_sees, auto_score, auto_score_debounce_min,
+                    auto_score_min_stage, auto_score_apply
+               FROM assistant_settings WHERE id = 1",
             [],
             |row| {
                 Ok(AssistantSettings {
@@ -99,6 +135,11 @@ pub fn read(conn: &Connection) -> Result<AssistantSettings> {
                         .unwrap_or(DEFAULT_PARALLEL_RUNS),
                     model: row.get(1)?,
                     run_sees: RunSees::from_str(&row.get::<_, String>(2)?),
+                    auto_score: row.get::<_, i64>(3)? == 1,
+                    auto_score_debounce_min: u32::try_from(row.get::<_, i64>(4)?)
+                        .unwrap_or(DEFAULT_DEBOUNCE_MIN),
+                    auto_score_min_stage: row.get(5)?,
+                    auto_score_apply: row.get::<_, i64>(6)? == 1,
                 })
             },
         )
@@ -122,6 +163,29 @@ pub fn set_parallel_runs(conn: &Connection, runs: usize) -> Result<AssistantSett
         "parallel_runs",
         i64::try_from(runs).unwrap_or(i64::MAX),
     )?;
+    read(conn)
+}
+
+/// Set how a text is scored by itself: whether, after how long a silence,
+/// from which stage, and whether what is said is kept at once.
+///
+/// Refused rather than held to the bounds, like the number of runs: a
+/// silence is one minute to a day, and a stage is one of the five stops.
+pub fn set_auto_score(conn: &Connection, wanted: AutoScore) -> Result<AssistantSettings> {
+    if !(1..=1440).contains(&wanted.debounce_min) {
+        return Err(Error::refused("assistant.badDebounce").param("value", wanted.debounce_min));
+    }
+    if !crate::profile::config::STOPS.contains(&wanted.min_stage) {
+        return Err(Error::refused("assistant.badMinStage").param("value", wanted.min_stage));
+    }
+    write(conn, "auto_score", i64::from(wanted.enabled))?;
+    write(
+        conn,
+        "auto_score_debounce_min",
+        i64::from(wanted.debounce_min),
+    )?;
+    write(conn, "auto_score_min_stage", wanted.min_stage)?;
+    write(conn, "auto_score_apply", i64::from(wanted.apply))?;
     read(conn)
 }
 
@@ -283,6 +347,68 @@ mod tests {
 
     /// Each setting is its own column: setting one keeps the others, the week's
     /// budget among them.
+    #[test]
+    fn scoring_by_itself_is_off_until_said_and_holds_to_its_bounds() {
+        let conn = crate::db::open_app_in_memory().unwrap();
+        let fresh = read(&conn).unwrap();
+        assert_eq!(
+            (
+                fresh.auto_score,
+                fresh.auto_score_debounce_min,
+                fresh.auto_score_min_stage,
+                fresh.auto_score_apply
+            ),
+            (false, 10, 50, false),
+            "a score costs money: nothing is scored until the person says so"
+        );
+
+        let wanted = AutoScore {
+            enabled: true,
+            debounce_min: 3,
+            min_stage: 75,
+            apply: true,
+        };
+        let set = set_auto_score(&conn, wanted).unwrap();
+        assert_eq!(
+            (
+                set.auto_score,
+                set.auto_score_debounce_min,
+                set.auto_score_min_stage,
+                set.auto_score_apply
+            ),
+            (true, 3, 75, true)
+        );
+        assert_eq!(read(&conn).unwrap(), set, "kept, not only answered");
+
+        for (bad, code) in [
+            (
+                AutoScore {
+                    debounce_min: 0,
+                    ..wanted
+                },
+                "assistant.badDebounce",
+            ),
+            (
+                AutoScore {
+                    debounce_min: 1441,
+                    ..wanted
+                },
+                "assistant.badDebounce",
+            ),
+            (
+                AutoScore {
+                    min_stage: 60,
+                    ..wanted
+                },
+                "assistant.badMinStage",
+            ),
+        ] {
+            let refused = set_auto_score(&conn, bad).unwrap_err();
+            assert_eq!(refused.refusal().map(|r| r.code), Some(code));
+        }
+        assert_eq!(read(&conn).unwrap(), set, "a refusal changes nothing");
+    }
+
     #[test]
     fn a_setting_keeps_the_others_where_they_were() {
         let conn = crate::db::open_app_in_memory().unwrap();

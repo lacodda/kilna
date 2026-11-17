@@ -386,6 +386,8 @@ export type { Hit } from './generated/Hit'
 // The assistant: chats, runs, proposals.
 export type { Availability } from './generated/Availability'
 export type { AssistantSettings } from './generated/AssistantSettings'
+export type { AutoScore } from './generated/AutoScore'
+export type { CaughtUp } from './generated/CaughtUp'
 export type { RunSees } from './generated/RunSees'
 export type { WaitingScore } from './generated/WaitingScore'
 export type { Setting as PluginSetting } from './generated/Setting'

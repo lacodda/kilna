@@ -1339,7 +1339,15 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     set_weekly_budget: ({ budget }) => budget ?? null,
     list_plugins: () => [],
     plugins_folder: () => 'C:/workspace/plugins',
-    assistant_settings: () => ({ parallel_runs: 3, model: null, run_sees: 'nothing' }),
+    assistant_settings: () => ({
+      parallel_runs: 3,
+      model: null,
+      run_sees: 'nothing',
+      auto_score: false,
+      auto_score_debounce_min: 10,
+      auto_score_min_stage: 50,
+      auto_score_apply: false,
+    }),
     run_sight: () => [],
     waiting_scores: () => [],
 

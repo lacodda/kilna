@@ -58,6 +58,10 @@ pub struct AppState {
     /// Tasks asked for while every slot was taken. Memory only — see
     /// [`crate::assistant::queue`].
     queue: Arc<Queue>,
+    /// The texts waiting to be scored by themselves, and what this sitting
+    /// knows of them (FR-01): [`crate::assistant::auto_score`]. With the
+    /// window, not a screen of it - leaving a card cancels nothing.
+    auto_score: Arc<crate::assistant::auto_score::Waiting>,
     /// The guard's reading of the open space, good while nothing is written
     /// ([`AppState::guard_reading`]).
     guard: Mutex<Option<(Written, Arc<Reading>)>>,
@@ -112,6 +116,7 @@ impl AppState {
             }),
             runs,
             queue: Arc::new(Queue::new()),
+            auto_score: Arc::new(crate::assistant::auto_score::Waiting::new()),
             guard: Mutex::new(None),
         })
     }
@@ -142,6 +147,7 @@ impl AppState {
             }),
             runs,
             queue: Arc::new(Queue::new()),
+            auto_score: Arc::new(crate::assistant::auto_score::Waiting::new()),
             guard: Mutex::new(None),
         })
     }
@@ -358,6 +364,11 @@ impl AppState {
 
     pub fn queue(&self) -> &Arc<Queue> {
         &self.queue
+    }
+
+    /// The texts waiting to be scored by themselves.
+    pub fn auto_score(&self) -> &Arc<crate::assistant::auto_score::Waiting> {
+        &self.auto_score
     }
 
     /// What opens connections of their own to the open space, for work that

@@ -1,6 +1,6 @@
 //! A work's versions: every body it was written in.
 
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::actions;
 use crate::error::Result;
@@ -21,29 +21,41 @@ pub fn get_version(state: State<'_, AppState>, id: String) -> Result<Option<Vers
 
 #[tauri::command]
 pub fn create_version(
+    app: AppHandle,
     state: State<'_, AppState>,
     work_id: String,
     version: NewVersion,
 ) -> Result<Version> {
-    actions::version::create(&state.conn(), &work_id, version)
+    let made = actions::version::create(&state.conn(), &work_id, version)?;
+    // A text that is the work's current one from the start is one to score.
+    super::assistant::text_touched(&app, &work_id, super::assistant::Asked::Now);
+    Ok(made)
 }
 
 #[tauri::command]
 pub fn update_version_body(
+    app: AppHandle,
     state: State<'_, AppState>,
     id: String,
     body: String,
 ) -> Result<Version> {
-    actions::version::edit(&state.conn(), &id, &body)
+    let edited = actions::version::edit(&state.conn(), &id, &body)?;
+    // Scored once it has been left alone: every saved edit starts the
+    // silence over, so a person still writing is not scored line by line.
+    super::assistant::text_touched(&app, &edited.work_id, super::assistant::Asked::AfterSilence);
+    Ok(edited)
 }
 
 #[tauri::command]
 pub fn set_current_version(
+    app: AppHandle,
     state: State<'_, AppState>,
     work_id: String,
     version_id: String,
 ) -> Result<Work> {
-    actions::work::set_current_version(&state.conn(), &work_id, &version_id)
+    let work = actions::work::set_current_version(&state.conn(), &work_id, &version_id)?;
+    super::assistant::text_touched(&app, &work_id, super::assistant::Asked::Now);
+    Ok(work)
 }
 
 /// Mark a version the main one of its role: the style prompt the song is

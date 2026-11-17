@@ -12,4 +12,23 @@ parallel_runs: number,
 /**
  * The model a run starts with; none is what Claude Code itself is set to.
  */
-model: string | null, run_sees: RunSees, };
+model: string | null, run_sees: RunSees, 
+/**
+ * Whether a text is scored by itself once it has been left alone
+ * (FR-01). Off unless the person said so: a score costs money.
+ */
+auto_score: boolean, 
+/**
+ * The minutes a text has to be left alone before it is scored.
+ */
+auto_score_debounce_min: number, 
+/**
+ * The stage a work has to stand at to be scored by itself: one of the
+ * five stops.
+ */
+auto_score_min_stage: number, 
+/**
+ * Whether what the assistant says is kept as a score at once - as its
+ * own opinion, never over the author's - or waits as a proposal.
+ */
+auto_score_apply: boolean, };

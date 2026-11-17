@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { setParallelRuns, setRunModel, setRunSees } from '@/lib/api/assistant'
-import type { AssistantSettings, RunSees } from '@/lib/api/types'
+import {
+  scoreUnscored,
+  setAutoScore,
+  setParallelRuns,
+  setRunModel,
+  setRunSees,
+} from '@/lib/api/assistant'
+import type { AssistantSettings, AutoScore, RunSees } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -10,9 +16,11 @@ import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusDot } from '@/components/ui/status-dot'
+import { Switch } from '@/components/ui/switch'
 import { BudgetForm } from '@/features/assistant/BudgetForm'
 
 /** One number for each of the runs a person can ask for; the backend and the
@@ -45,6 +53,7 @@ export function AssistantSection() {
           <ModelField key={settings.data.model ?? ''} model={settings.data.model} />
           <RunsField settings={settings.data} />
           <SightField settings={settings.data} />
+          <AutoScoreField settings={settings.data} />
         </>
       )}
       <WeekField />
@@ -199,6 +208,108 @@ function SightField({ settings }: { settings: AssistantSettings }) {
           </Segment>
         ))}
       </SegmentedControl>
+    </FieldGroup>
+  )
+}
+
+/** The stages a text may be scored from: the five stops. */
+const STAGES = [0, 25, 50, 75, 100] as const
+
+/**
+ * Scoring a text by itself (FR-01): whether, from which stage, after how long
+ * a silence, and whether what the assistant says is kept at once.
+ *
+ * Off until the person says so - a score costs money - and turning it on
+ * scores nothing that is already there: the button under it is for that.
+ */
+function AutoScoreField({ settings }: { settings: AssistantSettings }) {
+  const { t } = useTranslation()
+  const now: AutoScore = {
+    enabled: settings.auto_score,
+    debounce_min: settings.auto_score_debounce_min,
+    min_stage: settings.auto_score_min_stage,
+    apply: settings.auto_score_apply,
+  }
+
+  const save = useAppMutation({
+    mutationFn: setAutoScore,
+    failure: 'settings.assistant.saveFailed',
+    refresh: [keys.assistantSettings],
+  })
+  const set = (change: Partial<AutoScore>) => save.mutate({ ...now, ...change })
+  const [minutes, setMinutes] = useState<number | null>(now.debounce_min)
+
+  const catchUp = useAppMutation({
+    mutationFn: scoreUnscored,
+    failure: 'settings.assistant.autoScore.catchUpFailed',
+    refresh: [keys.taskQueue, keys.activeTasks, keys.activeRuns],
+    onSuccess: ({ queued, skipped }) =>
+      say.ok(t('settings.assistant.autoScore.caughtUp', { queued, skipped })),
+  })
+
+  return (
+    <FieldGroup
+      label={t('settings.assistant.autoScore.title')}
+      help={t('settings.assistant.autoScore.hint')}
+    >
+      <Switch checked={now.enabled} onCheckedChange={(enabled) => set({ enabled })}>
+        {t('settings.assistant.autoScore.enabled')}
+      </Switch>
+
+      {/* A caption, not a field's label: a label names one control, and
+          this is five - each of them would be called by it. */}
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-dim">{t('settings.assistant.autoScore.minStage')}</span>
+        <SegmentedControl
+          aria-label={t('settings.assistant.autoScore.minStage')}
+          value={String(now.min_stage)}
+          disabled={!now.enabled}
+          onValueChange={(next) => set({ min_stage: Number(next) })}
+        >
+          {STAGES.map((stage) => (
+            <Segment key={stage} value={String(stage)}>
+              {stage}%
+            </Segment>
+          ))}
+        </SegmentedControl>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-dim">{t('settings.assistant.autoScore.debounce')}</span>
+        {/* Kept when the box is left, not at each key: a number half typed
+            is not a setting. */}
+        <span
+          className="w-28"
+          onBlur={() => {
+            const whole = Math.min(1440, Math.max(1, Math.round(minutes ?? now.debounce_min)))
+            setMinutes(whole)
+            if (whole !== now.debounce_min) set({ debounce_min: whole })
+          }}
+        >
+          <NumberField
+            min={1}
+            max={1440}
+            step={1}
+            disabled={!now.enabled}
+            value={minutes}
+            onValueChange={setMinutes}
+            aria-label={t('settings.assistant.autoScore.debounce')}
+          />
+        </span>
+      </div>
+
+      <Switch
+        checked={now.apply}
+        disabled={!now.enabled}
+        onCheckedChange={(apply) => set({ apply })}
+      >
+        {t('settings.assistant.autoScore.apply')}
+      </Switch>
+      <p className="text-xs text-dim">{t('settings.assistant.autoScore.applyHint')}</p>
+
+      <Button className="self-start" disabled={catchUp.isPending} onClick={() => catchUp.mutate()}>
+        {t('settings.assistant.autoScore.catchUp')}
+      </Button>
     </FieldGroup>
   )
 }

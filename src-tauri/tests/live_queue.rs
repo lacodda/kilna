@@ -90,6 +90,7 @@ fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
                 work_id: work_id.clone(),
                 action: action.clone(),
                 today: None,
+                background: false,
             });
         }
     }

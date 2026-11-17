@@ -1,4 +1,5 @@
 pub mod apply;
+pub mod auto_score;
 pub mod cli;
 pub mod prompt;
 pub mod proposal;

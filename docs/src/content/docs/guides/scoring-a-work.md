@@ -126,6 +126,15 @@ rather than replacing it.
 The name stays put after recording, because judging a batch as one person
 means typing it once rather than once per work.
 
+**Your own score is the one that speaks.** The catalogue, the calendar and the
+tier read the score of the text that stands - and among the scores of that
+text, the one with no name on it, yours, however much later anybody else's
+came. A score kept from a chat, a plugin's, a friend's, a text
+[scored by itself](/kilna/guides/the-assistant/#scoring-a-text-by-itself) are
+opinions beside it, in the history. Where you have not scored the text
+yourself, the newest opinion speaks. (Until v0.123 the newest score spoke,
+whoever it was by.)
+
 ## The score is pinned to this draft
 
 The score you just took is tied to the version of the lyrics that existed at

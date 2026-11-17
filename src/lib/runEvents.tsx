@@ -65,10 +65,18 @@ export function RunEventsBridge({ children }: { children: ReactNode }) {
     const busy = listen<Activity>('app:activity', ({ payload }) => {
       client.setQueryData(keys.activity, payload)
     })
+    // A text scored by itself had its score kept (FR-01): nobody pressed
+    // anything, so nothing else tells the screens to read the scores again.
+    const scored = listen<string>('assistant:scored-alone', () => {
+      for (const key of [keys.scores, keys.catalogue, keys.works]) {
+        void client.invalidateQueries({ queryKey: key })
+      }
+    })
     return () => {
       void runs.then((unlisten) => unlisten())
       void queue.then((unlisten) => unlisten())
       void busy.then((unlisten) => unlisten())
+      void scored.then((unlisten) => unlisten())
     }
   }, [client])
 

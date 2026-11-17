@@ -713,7 +713,8 @@
     "blindOnHint": "Hide the past verdict and the assistant's until you have given yours",
     "blindHidden": "The past verdict is hidden while you judge.",
     "blindReveal": "Show it",
-    "written": "What was written"
+    "written": "What was written",
+    "byItself": "the assistant’s opinion"
   },
   "catalogue": {
     "work": "Work",
@@ -2773,7 +2774,19 @@
         "nothing": "A run starts in an empty folder and knows what its prompt carries: the work’s text, its versions, its title. Files reach it when you name them.",
         "work": "A run on a work may also read the work’s folder and what is attached to it, and is told where they are. A run that reads the web never can. This is what it is told it may read, not a sandbox: it is your own Claude Code."
       },
-      "saveFailed": "Could not save that."
+      "saveFailed": "Could not save that.",
+      "autoScore": {
+        "title": "Scoring by itself",
+        "hint": "A text is scored once it has been left alone for a while - only where the kind is scored and sung, the work has not gone out, and the text is more than its skeleton. Turning this on scores nothing that is already there.",
+        "enabled": "Score texts by themselves",
+        "minStage": "From the stage",
+        "debounce": "Minutes of silence after an edit",
+        "apply": "Keep the score at once (otherwise it waits as a proposal)",
+        "applyHint": "Kept as the assistant’s opinion. Your own score of a text always stands over it and is never written over.",
+        "catchUp": "Score the unscored and the stale now",
+        "caughtUp": "{{queued}} in line, {{skipped}} left alone.",
+        "catchUpFailed": "Could not line the texts up."
+      }
     }
   },
   "overview": {
@@ -3020,7 +3033,9 @@
       "unknownAction": "The profile has no action “{{action}}”.",
       "starOnlyAnswer": "Only an answer takes a star: the list is of what the assistant said.",
       "badParallelRuns": "Between 1 and {{most}} runs can go at once, not {{value}}.",
-      "badModel": "“{{name}}” is not a model name: letters, digits and . _ - : [ ] only."
+      "badModel": "“{{name}}” is not a model name: letters, digits and . _ - : [ ] only.",
+      "badDebounce": "A silence is from 1 minute to 1440 (a day); {{value}} is neither.",
+      "badMinStage": "A stage is 0, 25, 50, 75 or 100; {{value}} is none of them."
     },
     "folder": {
       "notOpenable": "kilna opens pictures, clips, sounds and documents under the media folder, and “{{path}}” is not one of them.",

@@ -155,6 +155,8 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::folder::WorkFolder,
         kilna_lib::folder::FolderFile,
         kilna_lib::folder::TextFile,
+        kilna_lib::assistant::settings::AutoScore,
+        kilna_lib::commands::assistant::CaughtUp,
         kilna_lib::folder::FolderState,
         // focus.rs
         kilna_lib::focus::Dismissal,

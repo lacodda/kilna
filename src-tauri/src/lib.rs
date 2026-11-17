@@ -515,6 +515,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::assistant::assistant_status,
             commands::assistant::assistant_settings,
             commands::assistant::set_parallel_runs,
+            commands::assistant::set_auto_score,
+            commands::assistant::score_unscored,
             commands::assistant::set_run_model,
             commands::assistant::set_run_sees,
             commands::assistant::run_sight,

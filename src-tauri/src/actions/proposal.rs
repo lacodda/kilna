@@ -44,6 +44,12 @@ use crate::work::{self, NewWork, WorkPatch};
 #[derive(Debug, Clone, Default, Deserialize, ts_rs::TS)]
 #[ts(optional_fields)]
 pub struct Overrides {
+    /// Who a kept score is by, when it is kept by nobody: a text scored by
+    /// itself is the assistant's opinion (`auto`), whoever the chat says
+    /// proposed it. Never the window's to say.
+    #[serde(skip)]
+    #[ts(skip)]
+    pub rater: Option<String>,
     #[serde(default)]
     pub role: Option<String>,
     #[serde(default)]
@@ -225,11 +231,25 @@ pub fn apply(conn: &Connection, message_id: &str, overrides: Overrides) -> Resul
 /// that fails and says which it was, with the ones before it kept and marked:
 /// the person sees where it stopped rather than a chat where nothing happened.
 pub fn apply_pending(conn: &Connection, chat_id: &str) -> Result<Vec<Outcome>> {
+    apply_pending_as(conn, chat_id, None)
+}
+
+/// [`apply_pending`], with every score kept as `rater`'s when one is named:
+/// how a text scored by itself is kept without a person (FR-01).
+pub fn apply_pending_as(
+    conn: &Connection,
+    chat_id: &str,
+    rater: Option<&str>,
+) -> Result<Vec<Outcome>> {
     let transcript =
         assistant::transcript(conn, chat_id)?.ok_or_else(|| Error::not_found("chat", chat_id))?;
     let mut outcomes = Vec::new();
     for message in transcript.messages.iter().filter(|m| is_pending(m)) {
-        match apply(conn, &message.id, Overrides::default()) {
+        let overrides = Overrides {
+            rater: rater.map(str::to_owned),
+            ..Overrides::default()
+        };
+        match apply(conn, &message.id, overrides) {
             Ok(outcome) => outcomes.push(outcome),
             Err(cause) => {
                 return Err(Error::refused("proposal.stoppedAfter")
@@ -648,7 +668,7 @@ fn keep(
                     unknown: Vec::new(),
                     missing: Vec::new(),
                 },
-                client,
+                overrides.rater.clone().or(client),
             )?);
         }
 
@@ -1985,6 +2005,45 @@ mod tests {
         assert_eq!(history[0].id, outcome.score.unwrap());
         assert_eq!(history[0].rater.as_deref(), Some("Claude Code"));
         assert_eq!(history[0].note.as_deref(), Some("strong chorus"));
+    }
+
+    #[test]
+    fn a_text_scored_by_itself_is_kept_as_the_assistants_opinion() {
+        let (conn, profile_id, work_id) = workspace();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let mut axes = Map::new();
+        axes.insert("hook".into(), json!(6.0));
+        let message = propose(
+            &conn,
+            &chat,
+            "steady",
+            Proposal::Score {
+                axes,
+                note: None,
+                unknown: Vec::new(),
+                missing: Vec::new(),
+            },
+        );
+
+        let kept = apply_pending_as(&conn, &chat, Some("auto")).unwrap();
+
+        assert_eq!(kept.len(), 1);
+        let history = score::history(&conn, &work_id).unwrap();
+        assert_eq!(history.len(), 1);
+        assert_eq!(
+            history[0].rater.as_deref(),
+            Some("auto"),
+            "nobody kept it: it is an opinion, not the author's verdict"
+        );
+        assert!(!is_pending(
+            &assistant::message(&conn, &message).unwrap().unwrap()
+        ));
+        // Asked again, there is nothing left to keep.
+        assert!(
+            apply_pending_as(&conn, &chat, Some("auto"))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

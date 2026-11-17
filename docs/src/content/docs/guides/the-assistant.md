@@ -408,6 +408,58 @@ workspace. Each saves as you answer it.
   no work has none to get. This is what a run is told it may read, not a sandbox:
   it is your own Claude Code, with whatever it is allowed elsewhere.
 - **Weekly budget** is the same form as the figures in the assistant's head.
+- **Scoring by itself** - see [below](#scoring-a-text-by-itself).
+
+## Scoring a text by itself
+
+A score describes a text as it stood when it was scored. With **Score texts
+by themselves** on, a text is scored again when it has been left alone - so
+the catalogue's numbers describe the texts as they are, not as they were the
+last time you remembered to ask. It is off until you turn it on: a score is
+a run, and a run costs money.
+
+**Which texts.** A work is scored by itself only when all of this holds:
+
+- its kind is scored along axes, has a text that is sung, and the profile has
+  a `score` action for it - a song, in Studio;
+- it has not gone out and is not on the shelf;
+- it stands at the stage you name in **From the stage** or further (half way
+  by default, so a first draft is not worth a run);
+- its current text is written - not empty, and not the bare skeleton its
+  role opens with;
+- no score describes the text as it stands, and when one described an
+  earlier state of it, the text has changed by more than a typo: fifteen
+  characters, or a line come or gone.
+
+**When.** An edit starts a silence - ten minutes by default, set in
+**Minutes of silence after an edit** - and every further saved edit starts
+it over, so a text you are still writing is not scored line by line. Some
+things are a reason at once, with no silence: a new text that is the work's
+current one from the start, another version made the current one, a stage
+raised to where texts are scored from. The silences are kept by the window,
+not by a screen of it: leaving the card cancels nothing. Closing kilna does -
+a text edited before that is scored when it is next edited.
+
+**How.** It is the same task the **Score** button starts, in a chat of its
+own, so one that is already going or waiting is one request. It waits behind
+everything you asked for yourself and never takes the last free slot: you do
+not find the machine busy with something you did not ask for. When Claude
+Code is not there, or the last seven days have cost more than the weekly
+budget, it stays quiet - no error, no line in the history. A text that
+changes again while it is being scored is scored once more when the run
+ends.
+
+**What comes of it.** By default, a
+[proposed score](/kilna/guides/scoring-a-work/#a-proposed-score) that waits
+on the Score tab until you keep it or turn it down - the assistant proposes,
+you decide. With **Keep the score at once** on, it is kept without you, as
+*the assistant's opinion*: a row in the history that says so, which never
+stands over a score of your own
+([Who judged](/kilna/guides/scoring-a-work/#who-judged)).
+
+Turning it on scores nothing that is already there. **Score the unscored and
+the stale now** lines up every text the conditions above let through, and
+says how many joined the line and how many were left alone.
 
 ## An agent outside the window
 

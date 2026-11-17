@@ -29,8 +29,20 @@ pub fn create_work(state: State<'_, AppState>, work: NewWork) -> Result<Work> {
 }
 
 #[tauri::command]
-pub fn update_work(state: State<'_, AppState>, id: String, patch: WorkPatch) -> Result<Work> {
-    actions::work::update(&state.conn(), &id, patch)
+pub fn update_work(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    patch: WorkPatch,
+) -> Result<Work> {
+    let staged = patch.stage.is_some();
+    let work = actions::work::update(&state.conn(), &id, patch)?;
+    // A stage raised to where texts are scored from is a reason to score
+    // this one; lowered, it is not one to score, and the check says so.
+    if staged {
+        super::assistant::text_touched(&app, &id, super::assistant::Asked::Now);
+    }
+    Ok(work)
 }
 
 /// The Cover tab of a work (v0.88): the prompt written from its cover for

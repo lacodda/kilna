@@ -13,12 +13,28 @@ import en from '@/i18n/locales/en.json'
  */
 
 let backend: Backend
-let stored: { parallel_runs: number; model: string | null; run_sees: string }
+let stored: {
+  parallel_runs: number
+  model: string | null
+  run_sees: string
+  auto_score: boolean
+  auto_score_debounce_min: number
+  auto_score_min_stage: number
+  auto_score_apply: boolean
+}
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(NOW))
-  stored = { parallel_runs: 3, model: null, run_sees: 'nothing' }
+  stored = {
+    parallel_runs: 3,
+    model: null,
+    run_sees: 'nothing',
+    auto_score: false,
+    auto_score_debounce_min: 10,
+    auto_score_min_stage: 50,
+    auto_score_apply: false,
+  }
   backend = mockBackend({
     ...answersFor(studio()),
     assistant_status: () => ({ available: true, version: '2.1.318 (Claude Code)', reason: null }),
@@ -36,6 +52,23 @@ beforeEach(() => {
       stored = { ...stored, run_sees: sees as string }
       return stored
     },
+    set_auto_score: ({ wanted }) => {
+      const asked = wanted as {
+        enabled: boolean
+        debounce_min: number
+        min_stage: number
+        apply: boolean
+      }
+      stored = {
+        ...stored,
+        auto_score: asked.enabled,
+        auto_score_debounce_min: asked.debounce_min,
+        auto_score_min_stage: asked.min_stage,
+        auto_score_apply: asked.apply,
+      }
+      return stored
+    },
+    score_unscored: () => ({ queued: 4, skipped: 9 }),
   })
 })
 
@@ -153,5 +186,44 @@ describe('the assistant in Settings', () => {
     await settled(client)
 
     expect(backend.argsOf('set_weekly_budget')).toEqual([{ budget: 15 }])
+  })
+
+  it('scores nothing by itself until said, and says each choice to the backend whole', async () => {
+    const { client, main } = await open()
+    const words = en.settings.assistant.autoScore
+
+    // Off, and what hangs on it cannot be set: a score costs money.
+    const on = within(main).getByRole('switch', { name: words.enabled })
+    const keep = within(main).getByRole('switch', { name: words.apply })
+    expect(on).not.toBeChecked()
+    expect(keep).not.toBeChecked()
+    expect(keep).toHaveAttribute('aria-disabled', 'true')
+    expect(within(main).getByRole('radio', { name: '50%' })).toBeChecked()
+
+    fireEvent.click(on)
+    await settled(client)
+    expect(backend.argsOf('set_auto_score')).toEqual([
+      { wanted: { enabled: true, debounce_min: 10, min_stage: 50, apply: false } },
+    ])
+    // Turning it on asked for no score: that is the button's.
+    expect(backend.argsOf('score_unscored')).toEqual([])
+
+    fireEvent.click(within(main).getByRole('radio', { name: '75%' }))
+    await settled(client)
+    fireEvent.click(within(main).getByRole('switch', { name: words.apply }))
+    await settled(client)
+    expect(backend.argsOf('set_auto_score').at(-1)).toEqual({
+      wanted: { enabled: true, debounce_min: 10, min_stage: 75, apply: true },
+    })
+    expect(within(main).getByText(words.applyHint)).toBeVisible()
+
+    fireEvent.click(within(main).getByRole('button', { name: words.catchUp }))
+    await settled(client)
+    expect(backend.argsOf('score_unscored')).toHaveLength(1)
+    expect(
+      await screen.findByText(
+        words.caughtUp.replace('{{queued}}', '4').replace('{{skipped}}', '9'),
+      ),
+    ).toBeVisible()
   })
 })

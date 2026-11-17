@@ -32,6 +32,11 @@ pub struct Pending {
     /// The person's day when the batch was asked for, for `{week}`: a task
     /// that waits past midnight still reads the week it was asked in.
     pub today: Option<String>,
+    /// Asked for by nobody: a text scored by itself (FR-01). It waits behind
+    /// everything a person asked for, and starts only while a slot would
+    /// still be free after it - a person pressing a button never finds the
+    /// machine busy with something they did not ask for.
+    pub background: bool,
 }
 
 impl Pending {
@@ -83,7 +88,16 @@ impl Queue {
             if waiting.iter().any(|held| held.key() == key) {
                 return false;
             }
-            waiting.push_back(task);
+            if task.background {
+                waiting.push_back(task);
+            } else {
+                // Ahead of whatever nobody asked for.
+                let at = waiting
+                    .iter()
+                    .position(|held| held.background)
+                    .unwrap_or(waiting.len());
+                waiting.insert(at, task);
+            }
         }
         self.watcher.changed();
         true
@@ -91,7 +105,19 @@ impl Queue {
 
     /// Take the oldest waiting task, if there is one.
     pub fn pop(&self) -> Option<Pending> {
-        let next = self.waiting().pop_front();
+        self.pop_within(true)
+    }
+
+    /// Take the next task that may start: the oldest a person asked for, or -
+    /// when `background` says there is room for one - the oldest nobody did.
+    pub fn pop_within(&self, background: bool) -> Option<Pending> {
+        let next = {
+            let mut waiting = self.waiting();
+            match waiting.front() {
+                Some(front) if front.background && !background => None,
+                _ => waiting.pop_front(),
+            }
+        };
         if next.is_some() {
             self.watcher.changed();
         }
@@ -145,7 +171,43 @@ mod tests {
             work_id: work.into(),
             action: action.into(),
             today: None,
+            background: false,
         }
+    }
+
+    #[test]
+    fn what_nobody_asked_for_waits_behind_what_a_person_did_and_for_room() {
+        let queue = Queue::new();
+        let auto = |work: &str| Pending {
+            background: true,
+            ..task("score", work)
+        };
+        assert!(queue.push(auto("a")));
+        assert!(queue.push(task("critique", "b")));
+        assert!(queue.push(auto("c")));
+        assert!(queue.push(task("critique", "d")));
+        // The same score, asked for by hand while it waits, is one request.
+        assert!(!queue.push(task("score", "a")));
+
+        assert_eq!(
+            queue.keys(),
+            ["critique:b", "critique:d", "score:a", "score:c"]
+        );
+        // With no room to spare, only what a person asked for starts.
+        assert_eq!(
+            queue.pop_within(false).map(|t| t.work_id).as_deref(),
+            Some("b")
+        );
+        assert_eq!(
+            queue.pop_within(false).map(|t| t.work_id).as_deref(),
+            Some("d")
+        );
+        assert_eq!(queue.pop_within(false), None);
+        assert_eq!(queue.len(), 2, "the rest wait, they are not dropped");
+        assert_eq!(
+            queue.pop_within(true).map(|t| t.work_id).as_deref(),
+            Some("a")
+        );
     }
 
     #[test]

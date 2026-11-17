@@ -146,7 +146,9 @@ export function ScoreList({
                               the author since v0.50, so your own rows stay
                               unlabelled and a second opinion shows by
                               contrast. */}
-                          {score.rater !== null && score.rater !== '' && ` · ${score.rater}`}
+                          {score.rater !== null &&
+                            score.rater !== '' &&
+                            ` · ${score.rater === 'auto' ? t('score.byItself') : score.rater}`}
                         </span>
                       }
                       end={

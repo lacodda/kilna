@@ -409,6 +409,7 @@ pub fn start_task(
         &work_id,
         &action,
         about.as_about(&attachments, &styles),
+        false,
     )
 }
 
@@ -463,7 +464,7 @@ pub fn start_style_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_style(&state.conn(), &id, &action)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// What explaining phrases would send, without sending it.
@@ -495,7 +496,7 @@ pub fn start_phrases_task(
     }
     let prepared =
         assistant::task::prepare_for_phrases(&state.conn(), &composition, &phrases, &action)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// What an action on a card of the canon would send, without sending it.
@@ -525,7 +526,7 @@ pub fn start_card_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_card(&state.conn(), &id, &action)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// What writing a release's metadata would send, without sending it.
@@ -556,7 +557,7 @@ pub fn start_release_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_release(&state.conn(), &id, &action)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// What asking a cover's board for ideas would send, without sending it.
@@ -589,7 +590,7 @@ pub fn start_cover_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_cover(&state.conn(), &id, &action, &request)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// What asking an experiment's board for trials would send, without sending
@@ -623,7 +624,7 @@ pub fn start_lab_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_lab(&state.conn(), &id, &action, &request)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// What asking a board of a work's conception for cards would send, without
@@ -656,7 +657,7 @@ pub fn start_board_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_board(&state.conn(), &id, &action, &request)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// Stop a task by what it is rather than by which run carries it: the board
@@ -705,7 +706,7 @@ pub fn start_comment_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_comment(&state.conn(), &id, &action)?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// How long a pasted screenshot is kept in the temporary folder. Long
@@ -761,7 +762,7 @@ pub fn start_screenshot_task(
             today: &today,
         },
     )?;
-    launch(&app, state, prepared)
+    launch(&app, state, prepared, None)
 }
 
 /// Remove screenshots older than their lifetime. Best effort: a file that
@@ -791,6 +792,9 @@ fn launch(
     app: &AppHandle,
     state: &AppState,
     prepared: assistant::task::Prepared,
+    // The work whose text is being scored by itself, when that is what
+    // this is: what it says is dealt with when the run ends.
+    scored_alone: Option<String>,
 ) -> Result<StartedTask> {
     let runs = Arc::clone(state.runs());
     let workdir = state.assistant_dir();
@@ -810,11 +814,15 @@ fn launch(
     let started = run.clone();
     let handle = app.clone();
     let alongside = state.alongside();
+    let chat_id = prepared.chat_id.clone();
 
     std::thread::spawn(move || {
         {
             let open = move || alongside.open();
             assistant_run::pump(&runs, &sink, &started, &stream, open);
+        }
+        if let Some(work_id) = scored_alone {
+            scored_alone_done(&handle, &work_id, &chat_id);
         }
         drain_queue(&handle);
     });
@@ -839,6 +847,7 @@ fn spawn_task(
     work_id: &str,
     action: &str,
     about: assistant::task::About<'_>,
+    background: bool,
 ) -> Result<StartedTask> {
     // Checked before the chat is opened: a refused duplicate must not leave an
     // empty chat behind for every impatient second click.
@@ -851,7 +860,19 @@ fn spawn_task(
     }
 
     let prepared = assistant::task::prepare(&state.conn(), work_id, action, about)?;
-    launch(app, state, prepared)
+    launch(app, state, prepared, background.then(|| work_id.to_owned()))
+}
+
+/// Whether a task nobody asked for may start now: only while a slot would
+/// still be free after it. With one slot in all there is nothing to leave
+/// free, and it starts when nothing else is going.
+fn room_for_background(state: &AppState) -> bool {
+    let (active, limit) = (state.runs().active(), state.runs().limit());
+    if limit <= 1 {
+        active == 0
+    } else {
+        active + 1 < limit
+    }
 }
 
 /// Start waiting tasks until the slots are full or nothing is left.
@@ -870,7 +891,7 @@ fn drain_queue(app: &AppHandle) {
             return;
         }
 
-        let Some(next) = state.queue().pop() else {
+        let Some(next) = state.queue().pop_within(room_for_background(state)) else {
             return;
         };
 
@@ -885,6 +906,7 @@ fn drain_queue(app: &AppHandle) {
                 today: next.today.as_deref(),
                 ..assistant::task::About::default()
             },
+            next.background,
         );
         let _ = app.emit(TASK_QUEUE_EVENT, queue_state(state));
 
@@ -896,6 +918,266 @@ fn drain_queue(app: &AppHandle) {
             ),
         }
     }
+}
+
+/// When a change to a work asks for its text to be scored.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Asked {
+    /// At once: a version made or chosen, a stage raised.
+    Now,
+    /// Once the text has been left alone: an edit.
+    AfterSilence,
+}
+
+/// How often the works waiting for their silence are looked at.
+const TICK: std::time::Duration = std::time::Duration::from_secs(20);
+
+/// Something about a work changed that may be a reason to score its text
+/// (FR-01). Does nothing unless the person turned scoring-by-itself on -
+/// and never fails the edit it follows: what cannot be scored is said in
+/// the log.
+pub fn text_touched(app: &AppHandle, work_id: &str, asked: Asked) {
+    let state = app.state::<AppState>();
+    let state = state.inner();
+    let chosen = match settings::read(&state.app()) {
+        Ok(chosen) if chosen.auto_score => chosen,
+        _ => return,
+    };
+    match asked {
+        Asked::Now => {
+            score_alone(app, state, &chosen, work_id);
+        }
+        Asked::AfterSilence => {
+            state.auto_score().put_off(
+                work_id,
+                std::time::Duration::from_secs(u64::from(chosen.auto_score_debounce_min) * 60),
+            );
+            watch_silences(app);
+        }
+    }
+}
+
+/// The thread that looks at the waiting works: started with the first edit
+/// that waits, and living as long as the window does. With the window, not
+/// a screen: leaving a card cancels nothing.
+fn watch_silences(app: &AppHandle) {
+    static STARTED: std::sync::Once = std::sync::Once::new();
+    let app = app.clone();
+    STARTED.call_once(move || {
+        std::thread::spawn(move || {
+            loop {
+                std::thread::sleep(TICK);
+                let state = app.state::<AppState>();
+                let state = state.inner();
+                let due = state.auto_score().take_due(std::time::Instant::now());
+                if due.is_empty() {
+                    continue;
+                }
+                // Read when they are due, not when they were put off: turned
+                // off meanwhile, nothing is scored.
+                let Ok(chosen) = settings::read(&state.app()) else {
+                    continue;
+                };
+                if !chosen.auto_score {
+                    continue;
+                }
+                for work_id in due {
+                    score_alone(&app, state, &chosen, &work_id);
+                }
+            }
+        });
+    });
+}
+
+/// Ask for a work's text to be scored, if it is one to score now. Answers
+/// whether it joined the line.
+///
+/// Quiet about everything that stops it: the work is not one to score, the
+/// CLI is not there, the week's budget is spent. Nobody asked, so nobody is
+/// told - the catalogue says a score is stale, and the button is there.
+fn score_alone(
+    app: &AppHandle,
+    state: &AppState,
+    chosen: &AssistantSettings,
+    work_id: &str,
+) -> bool {
+    use assistant::auto_score::{self, ACTION};
+    let key = assistant::task::key(ACTION, work_id);
+    let ready = {
+        let conn = state.conn();
+        (|| -> Result<Option<String>> {
+            let Some(work) = crate::work::get(&conn, work_id)? else {
+                return Ok(None);
+            };
+            let config = profile::config_for(&conn, &work.profile_id)?;
+            let seen = state.auto_score().seen(work_id);
+            let Ok(version_id) =
+                auto_score::standing(&conn, &config, chosen, &work, seen.as_deref())?
+            else {
+                return Ok(None);
+            };
+            if assistant::spend::over_lately(&conn, &state.app())? {
+                return Ok(None);
+            }
+            Ok(crate::work::version::get(&conn, &version_id)?.map(|version| version.body))
+        })()
+    };
+    let body = match ready {
+        Ok(Some(body)) => body,
+        Ok(None) => return false,
+        Err(cause) => {
+            crate::log::warn(
+                "assistant",
+                &format!("could not look at {work_id} to score it: {cause}"),
+            );
+            return false;
+        }
+    };
+    // Being scored this minute, and changed again: what the run judges is
+    // no longer what stands, so it is scored once more when the run ends.
+    if state.runs().task_running(&key) {
+        state.auto_score().score_again(work_id);
+        return false;
+    }
+    if state.queue().holds(&key) || !cli::probe().available {
+        return false;
+    }
+    state.auto_score().saw(work_id, &body);
+    let joined = state.queue().push(assistant::queue::Pending {
+        work_id: work_id.to_owned(),
+        action: ACTION.to_owned(),
+        today: None,
+        background: true,
+    });
+    if joined {
+        drain_queue(app);
+        let _ = app.emit(TASK_QUEUE_EVENT, queue_state(state));
+    }
+    joined
+}
+
+/// A text scored by itself has been scored: keep what was said, when the
+/// person asked for that, and score it again if it changed meanwhile.
+///
+/// Kept as the assistant's opinion (`auto`), never as the author's: where
+/// the author has scored this text themselves, theirs still stands. Left as
+/// a proposal otherwise - what the assistant says waits for a person.
+fn scored_alone_done(app: &AppHandle, work_id: &str, chat_id: &str) {
+    let state = app.state::<AppState>();
+    let state = state.inner();
+    let Ok(chosen) = settings::read(&state.app()) else {
+        return;
+    };
+    let again = state.auto_score().take_again(work_id);
+    // What a run judged is kept only when it is still what stands.
+    if chosen.auto_score_apply && !again {
+        let kept = actions::proposal::apply_pending_as(
+            &state.conn(),
+            chat_id,
+            Some(assistant::auto_score::RATER),
+        );
+        match kept {
+            Ok(_) => {
+                let _ = app.emit(SCORED_ALONE_EVENT, work_id);
+            }
+            Err(cause) => crate::log::warn(
+                "assistant",
+                &format!("a score of {work_id} could not be kept by itself: {cause}"),
+            ),
+        }
+    }
+    if again && chosen.auto_score {
+        score_alone(app, state, &chosen, work_id);
+    }
+}
+
+/// Told when a text scored by itself has had its score kept, with the work:
+/// the window reads the work's scores again.
+pub const SCORED_ALONE_EVENT: &str = "assistant:scored-alone";
+
+/// How a text is scored by itself: whether, after how long a silence, from
+/// which stage, and whether what is said is kept at once. Turning it off
+/// forgets every text that was waiting for its silence.
+#[tauri::command]
+pub fn set_auto_score(
+    state: State<'_, AppState>,
+    wanted: settings::AutoScore,
+) -> Result<AssistantSettings> {
+    let chosen = settings::set_auto_score(&state.app(), wanted)?;
+    if !chosen.auto_score {
+        state.auto_score().clear();
+    }
+    Ok(chosen)
+}
+
+/// What a catch-up asked for: how many texts joined the line, and how many
+/// were not ones to score.
+#[derive(serde::Serialize, Clone, Copy, ts_rs::TS)]
+pub struct CaughtUp {
+    #[ts(type = "number")]
+    pub queued: usize,
+    #[ts(type = "number")]
+    pub skipped: usize,
+}
+
+/// Score every text of the open profile that has no score describing it,
+/// now (FR-01): turning scoring-by-itself on scores nothing that was there
+/// before, and this is the button for what was. Asked for by a person, so
+/// the texts wait in line as a batch does, ahead of anything nobody asked
+/// for - and the stage and the other conditions hold as they do for any.
+#[tauri::command]
+pub fn score_unscored(app: AppHandle, state: State<'_, AppState>) -> Result<CaughtUp> {
+    use assistant::auto_score::{self, ACTION};
+    let inner = state.inner();
+    let chosen = settings::read(&inner.app())?;
+    let ready: Vec<(String, String)> = {
+        let conn = inner.conn();
+        let profile_id = active(&conn)?;
+        let config = profile::config_for(&conn, &profile_id)?;
+        let mut ready = Vec::new();
+        for work in crate::work::list(&conn, &profile_id, &crate::work::WorkFilter::default())? {
+            if let Ok(version_id) = auto_score::standing(&conn, &config, &chosen, &work, None)?
+                && let Some(version) = crate::work::version::get(&conn, &version_id)?
+            {
+                ready.push((work.id, version.body));
+            }
+        }
+        ready
+    };
+    let total = {
+        let conn = inner.conn();
+        let profile_id = active(&conn)?;
+        crate::work::list(&conn, &profile_id, &crate::work::WorkFilter::default())?.len()
+    };
+
+    let mut queued = 0usize;
+    for (work_id, body) in &ready {
+        let key = assistant::task::key(ACTION, work_id);
+        if inner.runs().task_running(&key) {
+            continue;
+        }
+        inner.auto_score().saw(work_id, body);
+        if inner.queue().push(assistant::queue::Pending {
+            work_id: work_id.clone(),
+            action: ACTION.to_owned(),
+            today: None,
+            background: false,
+        }) {
+            queued += 1;
+        }
+    }
+    while inner.runs().has_slot() && !inner.queue().is_empty() {
+        let before = inner.queue().len();
+        drain_queue(&app);
+        if inner.queue().len() == before {
+            break;
+        }
+    }
+    let _ = app.emit(TASK_QUEUE_EVENT, queue_state(inner));
+    Ok(CaughtUp {
+        queued,
+        skipped: total - queued,
+    })
 }
 
 /// The event carrying how much of a batch is left.
@@ -1026,6 +1308,7 @@ pub fn start_tasks(
                     today: today.as_deref(),
                     ..assistant::task::About::default()
                 },
+                false,
             ) {
                 Ok(_) => started += 1,
                 // One work failing must not take the batch with it: the others
@@ -1040,6 +1323,7 @@ pub fn start_tasks(
             work_id: work_id.clone(),
             action: action.clone(),
             today: today.clone(),
+            background: false,
         }) {
             queued += 1;
         } else {

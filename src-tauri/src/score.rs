@@ -123,10 +123,16 @@ pub struct ScoredWork {
 /// contest by "latest". One work read 68.1 on one screen and 77.8 on the next,
 /// and the rule that decides which release keeps a date used a third number
 /// nothing displayed. `{work}` is the column holding the work id.
+///
+/// Among the scores of that version the author's own stands first, however
+/// much later anyone else's came (FR-01): a score with no `rater` is the
+/// person's verdict, and one with a rater - an assistant, a plugin, a text
+/// scored by itself - is an opinion beside it. Until v0.123 the newest won,
+/// whoever it was by, and a score kept from a chat stood over the author's.
 pub const SPEAKING_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work} \
      AND version_id IS NOT NULL \
      AND version_id = (SELECT current_version_id FROM work WHERE id = {work}) \
-     ORDER BY scored_at DESC, rowid DESC LIMIT 1";
+     ORDER BY (rater IS NULL) DESC, scored_at DESC, rowid DESC LIMIT 1";
 
 /// The fallback half of [`SPEAKING_SCORE`]: strongest, then most recent.
 pub const STRONGEST_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work} \
@@ -650,6 +656,73 @@ mod tests {
         score_version(&conn, &work_id, &first.id, 9.0);
         let row = catalogue_row(&conn, &profile_id, &work_id);
         assert_eq!(row.total.unwrap().round(), 70.0);
+    }
+
+    /// The author's own score of the text that stands is the one that
+    /// speaks, however much later an assistant's opinion of it came (FR-01).
+    #[test]
+    fn the_authors_score_stands_over_a_later_opinion() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+        let text = version::create(
+            &conn,
+            &work_id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "the one that stands".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+                trial_id: None,
+            },
+        )
+        .unwrap();
+        let opinion = |mark: f64, rater: &str| {
+            create(
+                &conn,
+                &work_id,
+                NewScore {
+                    axes: axes(json!({ "hook": mark, "text": mark, "voice": mark, "reach": mark })),
+                    version_id: Some(text.id.clone()),
+                    note: None,
+                    rater: Some(rater.to_owned()),
+                },
+            )
+            .unwrap();
+        };
+
+        // With nothing of the author's, the newest opinion speaks.
+        opinion(4.0, "auto");
+        assert_eq!(
+            catalogue_row(&conn, &profile_id, &work_id)
+                .total
+                .unwrap()
+                .round(),
+            40.0
+        );
+
+        score_version(&conn, &work_id, &text.id, 8.0);
+        assert_eq!(
+            catalogue_row(&conn, &profile_id, &work_id)
+                .total
+                .unwrap()
+                .round(),
+            80.0
+        );
+
+        // Later, and lower, and by somebody else: the author's still stands,
+        // and the opinions are in the history beside it.
+        opinion(3.0, "auto");
+        opinion(5.0, "Claude Code");
+        assert_eq!(
+            catalogue_row(&conn, &profile_id, &work_id)
+                .total
+                .unwrap()
+                .round(),
+            80.0
+        );
+        assert_eq!(history(&conn, &work_id).unwrap().len(), 4);
     }
 
     /// With nothing named as the work, the best it has ever been shown to be is

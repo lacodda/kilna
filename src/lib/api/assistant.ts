@@ -2,7 +2,9 @@ import { invoke } from '@tauri-apps/api/core'
 import type {
   Applied,
   AssistantSettings,
+  AutoScore,
   Availability,
+  CaughtUp,
   Chat,
   ChatSummary,
   ComposedTask,
@@ -30,6 +32,13 @@ export const assistantStatus = () => invoke<Availability>('assistant_status')
 export const assistantSettings = () => invoke<AssistantSettings>('assistant_settings')
 export const setParallelRuns = (runs: number) =>
   invoke<AssistantSettings>('set_parallel_runs', { runs })
+/** How a text is scored by itself: whether, after how long a silence, from
+    which stage, and whether what is said is kept at once (FR-01). */
+export const setAutoScore = (wanted: AutoScore) =>
+  invoke<AssistantSettings>('set_auto_score', { wanted })
+/** Score every text of the open profile no score describes, now: how many
+    joined the line, and how many were not ones to score. */
+export const scoreUnscored = () => invoke<CaughtUp>('score_unscored')
 /** The model a run starts with; null is what Claude Code itself is set to. */
 export const setRunModel = (model: string | null) =>
   invoke<AssistantSettings>('set_run_model', { model })
