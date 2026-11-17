@@ -31,6 +31,7 @@ function facts(
       frame: false,
       folder: false,
       lab: false,
+      conception: false,
       ...names,
     },
     holds: {
@@ -39,6 +40,8 @@ function facts(
       scenes: false,
       files: false,
       trials: false,
+      conception: false,
+      links: false,
       cover: false,
       splice: false,
       ...holds,
@@ -63,8 +66,9 @@ describe("the card's tabs", () => {
         cover: true,
         frame: true,
         lab: true,
+        conception: true,
       },
-      { splice: true },
+      { splice: true, links: true },
     )
     expect(tabsOf(everything)).toEqual([...TABS])
   })
@@ -78,6 +82,8 @@ describe("the card's tabs", () => {
       ['folder', 'files'],
       ['cover', 'cover'],
       ['frame', 'frame'],
+      ['conception', 'conception'],
+      ['doors', 'comments'],
     ]
     for (const [name, ...tabs] of rules) {
       const drawn = tabsOf(facts({ [name]: true }))
@@ -94,12 +100,43 @@ describe("the card's tabs", () => {
       ['files', 'files'],
       ['cover', 'cover'],
       ['splice', 'cuts'],
+      ['conception', 'conception'],
     ]
     for (const [held, tab] of rules) {
       expect(tabsOf(facts({}, { [held]: true })), `holding ${held}`).toContain(tab)
     }
     // Nothing is held in a frame a kind does not name: the backend refuses one.
     expect(tabsOf(facts({}, { cover: true, files: true }))).not.toContain('frame')
+  })
+
+  it('leave a card without the tabs its kind has nothing for (v0.117)', () => {
+    const config = studio().profile.config
+    const nothing = { ...NOTHING_COUNTED }
+    const tabsFor = (kind: string, counts: CardCounts = nothing) =>
+      tabsOf(factsOf(config, { kind, cover: coverOf() }, counts))
+
+    // A clip, an audio release and a short are not prepared on a conception:
+    // no Conception tab until one holds a note from before.
+    for (const kind of ['video', 'audio', 'short']) {
+      expect(tabsFor(kind), kind).not.toContain('conception')
+      expect(tabsFor(kind, { ...nothing, notes: 1 }), `${kind} with a note`).toContain('conception')
+    }
+    expect(tabsFor('song')).toContain('conception')
+
+    // What does not go out itself has no comments, whatever was counted
+    // under what is made from it.
+    for (const kind of ['song', 'experiment']) {
+      expect(tabsFor(kind, { ...nothing, comments: 3, comments_waiting: 1 }), kind).not.toContain(
+        'comments',
+      )
+    }
+    expect(tabsFor('video')).toContain('comments')
+
+    // An experiment's links appear with its first link; a song always has
+    // the tab, since making something from it starts there.
+    expect(tabsFor('experiment')).not.toContain('links')
+    expect(tabsFor('experiment', { ...nothing, derived: 1 })).toContain('links')
+    expect(tabsFor('song')).toContain('links')
   })
 
   it('open on the tab the kind names, and on the overview when it names none it knows', () => {
@@ -176,7 +213,6 @@ describe("the card's tabs", () => {
         'score',
         'files',
         'links',
-        'comments',
         'assistant',
         'history',
       ])
@@ -187,8 +223,10 @@ describe("the card's tabs", () => {
       for (const tab of ['cover', 'frame', 'files'] as const) {
         expect(audio).toContain(tab)
       }
-      // Its kind names roles - a concept, a context - so its versions stand.
-      expect(audio).toContain('versions')
+      // It is its song, whole: no text of its own, so no Versions, and not
+      // prepared on a conception either (v0.117).
+      expect(audio).not.toContain('versions')
+      expect(audio).not.toContain('conception')
       expect(audio).not.toContain('scenes')
       expect(audio).not.toContain('score')
       // Made from its song whole, under one frame: there is nothing to cut.

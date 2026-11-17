@@ -100,9 +100,13 @@ describe("a song's publications", () => {
     expect(
       within(widget).getByText('Booked as “Paper Lanterns — audio” for Sep 22'),
     ).toBeInTheDocument()
+    // Said, not linked: the song has no Comments tab to lead to (v0.117).
     expect(
-      within(widget).getByRole('link', { name: '1 comment under its publications · 1 waiting' }),
-    ).toHaveAttribute('href', `/works/${IDS.song}/comments`)
+      within(widget).getByText('1 comment under its publications · 1 waiting'),
+    ).toBeInTheDocument()
+    expect(
+      within(widget).queryByRole('link', { name: /comment under its publications/ }),
+    ).toBeNull()
   })
 
   it('says what a publication went out as, and one that is late', async () => {

@@ -18,11 +18,14 @@ import en from '@/i18n/locales/en.json'
  */
 
 let backend: Backend
+/** The workspace's releases, for a test that needs one in another state. */
+let releases: Release[]
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(NOW))
   const workspace = studio()
+  releases = workspace.releases
   // Wider than `Partial<Release>`: a patch's `Option<Option<T>>` fields
   // accept an explicit `null` to clear them, which a plain `Partial` does not.
   const kept = (id: unknown, patch: { [K in keyof Release]?: Release[K] | null }) => {
@@ -54,6 +57,23 @@ async function editing() {
 }
 
 describe("the calendar's release dialog", () => {
+  it('leads to the work from a slot that went out, link or no link (FR-11 11.1)', async () => {
+    // Out, and nobody wrote down where: until v0.117 such a slot had no foot
+    // at all - nothing said it went out, and nothing led to its card.
+    const audio = releases.find((release) => release.id === IDS.audioRelease)!
+    audio.status = 'released'
+    audio.released_at = audio.scheduled_at
+    audio.url = null
+
+    const { dialog } = await editing()
+
+    expect(within(dialog).getByText(en.calendar.released)).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: en.calendar.openWork })).toBeEnabled()
+    // What changes a slot is not offered once it has gone out.
+    expect(within(dialog).queryByRole('button', { name: en.calendar.unschedule })).toBeNull()
+    expect(within(dialog).queryByRole('button', { name: en.calendar.markReleased })).toBeNull()
+  })
+
   it('offers only the kinds its own work goes out as', async () => {
     const { dialog } = await editing()
 

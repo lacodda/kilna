@@ -1,4 +1,5 @@
 import type { CardCounts, ProfileConfig, Work } from '@/lib/api/types'
+import { conceptionOf } from '@/lib/conception'
 import { canBeCut } from '@/lib/cuts'
 import { vocabularyOf } from '@/lib/useProfile'
 import { coverHoldsAnything } from '@/features/work/tabs/cover/useCoverEdit'
@@ -71,6 +72,9 @@ export interface CardFacts {
     folder: boolean
     /** A board of trials: the kind is a lab (v0.95, ADR 0061). */
     lab: boolean
+    /** A conception: a brief, an idea and boards the work is prepared on
+        (v0.99, ADR 0065). */
+    conception: boolean
   }
   /** What the work holds, whatever its kind says now. */
   holds: {
@@ -82,6 +86,11 @@ export interface CardFacts {
     trials: boolean
     /** Any block of a cover prompt with words in it. */
     cover: boolean
+    /** Notes attached to it, or cards on a board of its conception: what
+        the Conception tab lists, whatever the kind says now. */
+    conception: boolean
+    /** A work it was made from, or one made from it. */
+    links: boolean
     /** Stretches, a donor to take them from, or stretches taken from it
         (`canBeCut`). A donor counts only for a work cut from pictures - a
         kind with a storyboard: an audio release is made from its song
@@ -98,9 +107,12 @@ type Rule = ((facts: CardFacts) => boolean) | null
 // `components/ui/frame`.
 const RULES: Readonly<Record<Tab, Rule>> = {
   overview: null,
-  // Every work has notes to attach; a kind that names a conception draws its
-  // brief and boards there too.
-  conception: null,
+  // A kind prepared on a conception has the tab; another has it only while
+  // the work holds what the tab lists - a note attached before v0.117, when
+  // every card had one (FR-13). A clip is not prepared, it is made on its
+  // board, and an empty tab named for something it has not got was the first
+  // tab after the overview on every one of them.
+  conception: ({ names, holds }) => names.conception || holds.conception,
   versions: ({ names, holds }) => names.roles || holds.versions,
   trials: ({ names, holds }) => names.lab || holds.trials,
   scenes: ({ names, holds }) => names.storyboard || holds.scenes,
@@ -114,8 +126,14 @@ const RULES: Readonly<Record<Tab, Rule>> = {
   // lies in its folder on disk - which a song has too (v0.93), though it
   // goes out only as what is made from it.
   files: ({ names, holds }) => names.doors || names.folder || holds.files,
-  links: null,
-  comments: null,
+  // An experiment is made from nothing and nothing is made from it until a
+  // trial is harvested: its Links tab appears with the first link (FR-13).
+  links: ({ names, holds }) => !names.lab || holds.links,
+  // What the audience says is said under what goes out. A song and an
+  // experiment do not go out themselves (ADR 0047), so they have no comments,
+  // no tab and no address for one (FR-19 19.5); a clip's comments are on the
+  // clip, and all of them on the Comments screen.
+  comments: ({ names }) => names.doors,
   assistant: null,
   history: null,
 }
@@ -203,6 +221,8 @@ export function factsOf(
       scenes: !known || counts.scenes > 0,
       files: !known || counts.files > 0,
       trials: !known || counts.trials > 0,
+      conception: !known || counts.notes + counts.cards > 0,
+      links: !known || counts.sources + counts.derived > 0,
       // Read off the work itself, which is already here.
       cover: coverHoldsAnything(work.cover),
       splice:
@@ -230,6 +250,7 @@ function namesOf(config: ProfileConfig, kind: string): CardFacts['names'] {
     frame: vocabulary.frame,
     folder: (config.work_kinds.find((entry) => entry.key === kind)?.folder ?? null) !== null,
     lab: (config.work_kinds.find((entry) => entry.key === kind)?.lab ?? null) !== null,
+    conception: conceptionOf(config, kind) !== undefined,
   }
 }
 
@@ -253,6 +274,8 @@ export function tabsOfKind(config: ProfileConfig, kind: string): Tab[] {
       scenes: false,
       files: false,
       trials: false,
+      conception: false,
+      links: false,
       cover: false,
       splice: false,
     },

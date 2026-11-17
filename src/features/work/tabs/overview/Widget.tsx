@@ -67,6 +67,11 @@ interface Props {
   /** Done without leaving the board - copy, edit, the button of an invitation. */
   actions?: ReactNode
   tone?: WidgetTone
+  /** As tall as what it says, with no scroll of its own (FR-19 19.5): for a
+   *  widget read whole - what a release goes out under, the repeats found -
+   *  where a second scroll inside the board's own was a thing to fight. The
+   *  board scrolls it like the rest of the page. */
+  unbounded?: boolean
   className?: string
   children?: ReactNode
 }
@@ -96,6 +101,7 @@ export function Widget({
   aside,
   actions,
   tone = 'plain',
+  unbounded = false,
   className,
   children,
 }: Props) {
@@ -149,7 +155,7 @@ export function Widget({
         // are padded row by row, so the body's bar runs down the border.
         className={cn(
           'group/widget grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2 py-2.5 transition-colors hover:border-line-2',
-          BOUND,
+          !unbounded && BOUND,
           to !== undefined && 'cursor-pointer',
           tone === 'empty' && 'border-dashed bg-softer',
           tone === 'attention' && 'border-warn/45 hover:border-warn/70',
@@ -173,9 +179,13 @@ export function Widget({
             </Link>
           )}
         </header>
-        <Scroll label={label} contentClassName="flex min-w-0 flex-col gap-2 px-3">
-          {children}
-        </Scroll>
+        {unbounded ? (
+          <div className="flex min-w-0 flex-col gap-2 px-3">{children}</div>
+        ) : (
+          <Scroll label={label} contentClassName="flex min-w-0 flex-col gap-2 px-3">
+            {children}
+          </Scroll>
+        )}
         {actions !== undefined && (
           <div className="flex flex-wrap items-center gap-1.5 px-3">{actions}</div>
         )}
@@ -211,14 +221,18 @@ export function Widget({
         {/* The fact in its column, as tall as the board less the band's own
             padding at most: a long one scrolls there, and the caption and the
             actions stand beside it. */}
-        <Scroll
-          label={label}
-          fit
-          className="max-h-[calc(100cqh-var(--bound-inset,0px)-1.25rem)]"
-          contentClassName="min-w-0"
-        >
-          {children}
-        </Scroll>
+        {unbounded ? (
+          <div className="min-w-0">{children}</div>
+        ) : (
+          <Scroll
+            label={label}
+            fit
+            className="max-h-[calc(100cqh-var(--bound-inset,0px)-1.25rem)]"
+            contentClassName="min-w-0"
+          >
+            {children}
+          </Scroll>
+        )}
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
           {aside}
           {actions}

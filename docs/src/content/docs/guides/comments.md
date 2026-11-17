@@ -76,10 +76,11 @@ does `Ctrl+K`, which opens a comment where it lives.
 A work's **Comments** tab counts its comments; the number turns to the accent
 colour and shows how many still wait when any do.
 
-A song's **Comments** tab is a summary of what was said under everything made
-from it - its clip, its audio release, its shorts - grouped by publication,
-each with a way to it. Replies are written at the publication where the
-comment was left; the song's counter counts them all.
+Only a work that goes out has a **Comments** tab: the audience comments under
+a clip, an audio release, a short - never under the song they were made from.
+A song and an experiment have no tab and no address for one (since v0.117;
+a song's tab summed up its publications' comments until then). What was said
+about a song is on each thing made from it, and all of it on this screen.
 
 ## Actions behind it
 

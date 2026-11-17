@@ -2831,16 +2831,7 @@
     "waitingCount_one": "{{count}} waits for a reply",
     "waitingCount_other": "{{count}} wait for a reply",
     "notAPublication": "“{{title}}” does not go out itself, so nobody commented on it there. Move the comment to the publication it was left under.",
-    "moveToPublication": "Move to a publication",
-    "summary": {
-      "title": "Summary of its publications",
-      "hint": "Replies are written at the publication where the comment was left.",
-      "none": "Nothing has been said under its publications yet.",
-      "count_one": "{{count}} comment",
-      "count_other": "{{count}} comments",
-      "open": "Open its comments",
-      "somewhere": "A publication"
-    }
+    "moveToPublication": "Move to a publication"
   },
   "refusal": {
     "profile": {

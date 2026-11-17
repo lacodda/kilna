@@ -105,8 +105,9 @@ the title says which; click it to open the work, or **×** to let go.
 **Attach to a work** picks one from the catalogue. Attaching does not spend
 the note: a note is never spent by works, and a phrase stays fresh. A work's
 own **Conception** tab lists the notes and phrases kept for it under
-**Attached** - the Notes tab until v0.99 - and each has a button that opens it
-here; the order a writer works from carries them (see
+**Attached** - the Notes tab until v0.99; a work of a kind that is not
+prepared on a conception has the tab only while it holds one - and each has
+a button that opens it here; the order a writer works from carries them (see
 [The conception](/kilna/guides/the-conception/)). A phrase there shows its kind chip, its state when
 it is not fresh, and whose words it is, as *— Old Joy*. **Open in Notes** on
 a phrase opens the phrases screen.

@@ -40,9 +40,6 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.song, 'score', 'Does the chorus stay with you after one listen?'],
   [IDS.song, 'links', 'Paper Lanterns (clip)'],
   [IDS.song, 'conception', 'Paper Lanterns'],
-  // A song's comments are a summary of its publications' (v0.86): the clip's
-  // comment, read under the song.
-  [IDS.song, 'comments', 'The shot on the bridge is beautiful.'],
   [IDS.song, 'assistant', 'Tighten the chorus'],
   // The work's axis (v0.91): a version and the one it was written from.
   [IDS.song, 'history', 'Lyrics v2 · Second pass · from v1'],

@@ -445,6 +445,10 @@ const UPGRADE: &[Step] = &[
         name: "a field's type still as it shipped before: the anchors, a text until they became a list",
         carry: retyped_fields,
     },
+    Step {
+        name: "a field's kinds and a kind's roles still as they shipped before a card lost its leftovers",
+        carry: card_leftovers,
+    },
     // Last: every word the steps above brought in is already there to be
     // read against its shipped self.
     Step {
@@ -1079,6 +1083,72 @@ fn retyped_fields(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
                 .any(|(key, before)| *key == field.key && *before == field.field_type)
         {
             field.field_type = now.field_type;
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// The kinds a field of Studio shipped for before v0.117, by key: none is
+/// every kind. A song's own facts - its tempo, its key, its mood, who sings,
+/// what it says - stood on the overview of its clip, its audio release and
+/// every short, where they are facts of something else.
+const FIELD_KINDS_BEFORE: [(&str, &[&str]); 11] = [
+    ("bpm", &[]),
+    ("key", &[]),
+    ("mood", &[]),
+    ("tempo", &[]),
+    ("vocal", &[]),
+    ("instruments", &[]),
+    ("direction", &[]),
+    ("language", &["song", "video", "audio", "short"]),
+    ("tagline", &["song", "video", "audio", "short"]),
+    ("perspective", &["song", "video", "audio", "short"]),
+    ("premise", &["song", "video", "audio", "short"]),
+];
+
+/// The roles a kind shipped with before v0.117 and ships without now: an
+/// audio release took a clip's plot and context when it was made a kind, and
+/// has no text of its own.
+const ROLES_BEFORE: [(&str, &[&str]); 1] = [("audio", &["plot", "context"])];
+
+/// A field still for the kinds it shipped for before, and a kind still with
+/// the roles it shipped with before, follow what ships now (v0.117); what
+/// the owner changed is theirs. Nothing a work holds is touched: a version
+/// written in a role the kind no longer names is still read, and its tab
+/// stays while the work holds one.
+fn card_leftovers(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for field in &mut config.work_meta_fields {
+        let Some(now) = shipped.work_meta_fields.iter().find(|s| s.key == field.key) else {
+            continue;
+        };
+        if field.kinds != now.kinds
+            && FIELD_KINDS_BEFORE
+                .iter()
+                .any(|(key, before)| *key == field.key && field.kinds == *before)
+        {
+            field.kinds.clone_from(&now.kinds);
+            changed = true;
+        }
+    }
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        let roles: Vec<&str> = kind
+            .version_roles
+            .iter()
+            .map(|role| role.key.as_str())
+            .collect();
+        let now: Vec<&str> = shipped_kind
+            .version_roles
+            .iter()
+            .map(|role| role.key.as_str())
+            .collect();
+        if roles != now
+            && ROLES_BEFORE
+                .iter()
+                .any(|(key, before)| *key == kind.key && roles == *before)
+        {
+            kind.version_roles.clone_from(&shipped_kind.version_roles);
             changed = true;
         }
     }
@@ -3276,8 +3346,11 @@ mod tests {
                         named.len()
                     );
                 }
+                // A kind with a text of its own names the roles it is written
+                // in. One that plays under a single picture - an audio release -
+                // is its song, whole, and has none (v0.117).
                 assert!(
-                    !vocab.version_roles.is_empty(),
+                    !vocab.version_roles.is_empty() || vocab.frame,
                     "{key}/{}: no version roles",
                     vocab.key
                 );
@@ -4986,6 +5059,90 @@ mod tests {
     /// shipped English as plain strings. Each takes the shipped pair; a word
     /// the owner wrote, in any language, stays as written - and so does a
     /// word of an entry kilna does not ship.
+    /// A stored Studio still as it shipped before v0.117 loses the leftovers:
+    /// a song's own fields stand on a song's card alone, and an audio release
+    /// names no roles. What the owner changed is left as they have it.
+    #[test]
+    fn a_stored_profile_loses_the_leftovers_it_did_not_touch() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap()
+            .config;
+        // As v0.116 stored it: every song field for every kind or for the
+        // four, the audio release with a clip's two roles.
+        let mut stored = shipped.clone();
+        for field in &mut stored.work_meta_fields {
+            if let Some((_, before)) = FIELD_KINDS_BEFORE.iter().find(|(key, _)| *key == field.key)
+            {
+                field.kinds = before.iter().map(|kind| (*kind).to_owned()).collect();
+            }
+        }
+        let clip_roles = shipped.vocabulary("video").version_roles.clone();
+        for kind in &mut stored.work_kinds {
+            if kind.key == "audio" {
+                kind.version_roles.clone_from(&clip_roles);
+            }
+        }
+        // And two things the owner made their own.
+        let own = |config: &mut ProfileConfig| {
+            for field in &mut config.work_meta_fields {
+                if field.key == "mood" {
+                    field.kinds = vec!["song".into(), "video".into()];
+                }
+            }
+        };
+        own(&mut stored);
+        assert!(
+            stored
+                .fields_of("audio")
+                .iter()
+                .any(|field| field.key == "bpm")
+        );
+
+        assert!(card_leftovers(&mut stored, &shipped));
+
+        let on_audio: Vec<&str> = stored
+            .fields_of("audio")
+            .iter()
+            .map(|field| field.key.as_str())
+            .collect();
+        for gone in [
+            "bpm", "key", "tempo", "vocal", "language", "tagline", "premise",
+        ] {
+            assert!(
+                !on_audio.contains(&gone),
+                "`{gone}` is still on an audio release"
+            );
+        }
+        assert!(on_audio.contains(&"variant") && on_audio.contains(&"duration"));
+        assert!(
+            stored
+                .fields_of("song")
+                .iter()
+                .any(|field| field.key == "bpm")
+        );
+        assert!(
+            stored
+                .fields_of("experiment")
+                .iter()
+                .any(|field| field.key == "direction")
+        );
+        assert!(stored.vocabulary("audio").version_roles.is_empty());
+        assert!(!stored.vocabulary("video").version_roles.is_empty());
+        // The owner's own choice stands.
+        assert!(
+            stored
+                .fields_of("video")
+                .iter()
+                .any(|field| field.key == "mood")
+        );
+        // And a second pass finds nothing to do.
+        assert!(!card_leftovers(&mut stored, &shipped));
+        assert!(stored.validate().is_empty(), "{:?}", stored.validate());
+    }
+
     #[test]
     fn a_word_still_as_it_shipped_in_english_gains_its_second_language() {
         let shipped = builtin()

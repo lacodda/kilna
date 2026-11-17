@@ -56,6 +56,7 @@ export function RepeatsWidget({ work }: { work: Work }) {
 
   return (
     <Widget
+      unbounded
       caption={
         data.work_id === work.id
           ? t('repeats.caption')

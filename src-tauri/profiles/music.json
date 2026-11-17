@@ -550,24 +550,7 @@
         },
         "folder": "songs/{origin.title}/audio",
         "file": "*.mp4",
-        "version_roles": [
-          {
-            "key": "plot",
-            "label": {
-              "en": "Concept",
-              "ru": "Концепция"
-            },
-            "body": "markdown"
-          },
-          {
-            "key": "context",
-            "label": {
-              "en": "Context",
-              "ru": "Контекст"
-            },
-            "body": "markdown"
-          }
-        ],
+        "version_roles": [],
         "release_kinds": [
           {
             "key": "youtube",
@@ -3123,7 +3106,10 @@
           "en": "BPM",
           "ru": "BPM"
         },
-        "type": "number"
+        "type": "number",
+        "kinds": [
+          "song"
+        ]
       },
       {
         "key": "key",
@@ -3131,7 +3117,10 @@
           "en": "Key",
           "ru": "Тональность"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song"
+        ]
       },
       {
         "key": "duration",
@@ -3156,10 +3145,7 @@
         },
         "type": "text",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ]
       },
       {
@@ -3170,10 +3156,7 @@
         },
         "type": "text",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ]
       },
       {
@@ -3182,7 +3165,11 @@
           "en": "Direction",
           "ru": "Направление"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song",
+          "experiment"
+        ]
       },
       {
         "key": "mood",
@@ -3190,7 +3177,10 @@
           "en": "Mood",
           "ru": "Настроение"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song"
+        ]
       },
       {
         "key": "tempo",
@@ -3198,7 +3188,10 @@
           "en": "Tempo",
           "ru": "Темп"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song"
+        ]
       },
       {
         "key": "vocal",
@@ -3206,7 +3199,10 @@
           "en": "Vocal",
           "ru": "Вокал"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song"
+        ]
       },
       {
         "key": "perspective",
@@ -3216,10 +3212,7 @@
         },
         "type": "text",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ]
       },
       {
@@ -3228,7 +3221,10 @@
           "en": "Instruments",
           "ru": "Инструменты"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song"
+        ]
       },
       {
         "key": "premise",
@@ -3238,10 +3234,7 @@
         },
         "type": "multiline",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ]
       },
       {

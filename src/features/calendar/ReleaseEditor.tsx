@@ -136,45 +136,56 @@ export function ReleaseEditor({
 
           {/* What can be done to the release itself, rather than written into
               it. */}
-          {release.status !== 'released' && (
-            <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-              <Button
-                size="sm"
-                disabled={save.isPending}
-                onClick={() => thenDo((entry) => onMarkReleased(entry.id))}
-              >
-                {t('calendar.markReleased')}
-              </Button>
-              <Button
-                size="sm"
-                disabled={save.isPending}
-                onClick={() => thenDo((entry) => onUnschedule(entry.id))}
-              >
-                {t('calendar.unschedule')}
-              </Button>
-              <Button
-                size="sm"
-                className="ml-auto"
-                disabled={save.isPending}
-                onClick={() => thenDo((entry) => onOpenWork(entry.work_id))}
-              >
-                {t('calendar.openWork')}
-              </Button>
-            </div>
-          )}
-
-          {release.status === 'released' && release.url !== null && (
-            <p className="border-t border-line pt-3 text-sm text-good">
-              {t('calendar.released')}{' '}
-              <Button
-                variant="link"
-                onClick={() => void openExternal(release.url ?? '')}
-                title={release.url}
-              >
-                {t('calendar.link')}
-              </Button>
-            </p>
-          )}
+          {/* One foot for every slot (FR-11 11.1). What changes a slot is
+              offered while it has not gone out; that it went out, and where,
+              once it has; and the way to the work always - until v0.117 a
+              released slot with no link recorded had no foot at all, and no
+              way from the calendar to its card. */}
+          <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+            {release.status !== 'released' && (
+              <>
+                <Button
+                  size="sm"
+                  disabled={save.isPending}
+                  onClick={() => thenDo((entry) => onMarkReleased(entry.id))}
+                >
+                  {t('calendar.markReleased')}
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={save.isPending}
+                  onClick={() => thenDo((entry) => onUnschedule(entry.id))}
+                >
+                  {t('calendar.unschedule')}
+                </Button>
+              </>
+            )}
+            {release.status === 'released' && (
+              <span className="text-sm text-good">
+                {t('calendar.released')}
+                {release.url !== null && (
+                  <>
+                    {' '}
+                    <Button
+                      variant="link"
+                      onClick={() => void openExternal(release.url ?? '')}
+                      title={release.url}
+                    >
+                      {t('calendar.link')}
+                    </Button>
+                  </>
+                )}
+              </span>
+            )}
+            <Button
+              size="sm"
+              className="ml-auto"
+              disabled={save.isPending}
+              onClick={() => thenDo((entry) => onOpenWork(entry.work_id))}
+            >
+              {t('calendar.openWork')}
+            </Button>
+          </div>
         </form>
       )}
     </Dialog>

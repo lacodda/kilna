@@ -5844,10 +5844,17 @@ mod tests {
 
     #[test]
     fn a_release_field_reading_a_role_its_kind_has_is_accepted() {
-        let config = audio_fields(vec![
+        let mut config = audio_fields(vec![
             ReleaseField::new("description", "Description", ReleaseFieldType::Text)
                 .from_template("{title}\n\n{role:plot}"),
         ]);
+        // An audio release names no role of its own since v0.117; the test
+        // gives it the one its field reads.
+        for kind in &mut config.work_kinds {
+            if kind.key == "audio" {
+                kind.version_roles.push(VersionRole::new("plot", "Concept"));
+            }
+        }
 
         assert!(config.validate().is_empty(), "{:?}", config.validate());
     }

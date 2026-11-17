@@ -15,7 +15,7 @@ import { ReleaseBlock } from '@/features/work/tabs/releases/ReleaseBlock'
 export function ReleaseWidget({ work }: { work: Work }) {
   const { t } = useTranslation()
   return (
-    <Widget caption={t('releases.caption')}>
+    <Widget caption={t('releases.caption')} unbounded>
       <ReleaseBlock work={work} />
     </Widget>
   )

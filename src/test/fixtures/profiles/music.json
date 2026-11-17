@@ -3656,24 +3656,6 @@
               "ru": "На полке"
             }
           }
-        ],
-        "version_roles": [
-          {
-            "body": "markdown",
-            "key": "plot",
-            "label": {
-              "en": "Concept",
-              "ru": "Концепция"
-            }
-          },
-          {
-            "body": "markdown",
-            "key": "context",
-            "label": {
-              "en": "Context",
-              "ru": "Контекст"
-            }
-          }
         ]
       },
       {
@@ -4230,6 +4212,9 @@
     "work_meta_fields": [
       {
         "key": "bpm",
+        "kinds": [
+          "song"
+        ],
         "label": {
           "en": "BPM",
           "ru": "BPM"
@@ -4238,6 +4223,9 @@
       },
       {
         "key": "key",
+        "kinds": [
+          "song"
+        ],
         "label": {
           "en": "Key",
           "ru": "Тональность"
@@ -4262,10 +4250,7 @@
       {
         "key": "language",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ],
         "label": {
           "en": "Language",
@@ -4276,10 +4261,7 @@
       {
         "key": "tagline",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ],
         "label": {
           "en": "Tagline",
@@ -4289,6 +4271,10 @@
       },
       {
         "key": "direction",
+        "kinds": [
+          "song",
+          "experiment"
+        ],
         "label": {
           "en": "Direction",
           "ru": "Направление"
@@ -4297,6 +4283,9 @@
       },
       {
         "key": "mood",
+        "kinds": [
+          "song"
+        ],
         "label": {
           "en": "Mood",
           "ru": "Настроение"
@@ -4305,6 +4294,9 @@
       },
       {
         "key": "tempo",
+        "kinds": [
+          "song"
+        ],
         "label": {
           "en": "Tempo",
           "ru": "Темп"
@@ -4313,6 +4305,9 @@
       },
       {
         "key": "vocal",
+        "kinds": [
+          "song"
+        ],
         "label": {
           "en": "Vocal",
           "ru": "Вокал"
@@ -4322,10 +4317,7 @@
       {
         "key": "perspective",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ],
         "label": {
           "en": "Perspective",
@@ -4335,6 +4327,9 @@
       },
       {
         "key": "instruments",
+        "kinds": [
+          "song"
+        ],
         "label": {
           "en": "Instruments",
           "ru": "Инструменты"
@@ -4344,10 +4339,7 @@
       {
         "key": "premise",
         "kinds": [
-          "song",
-          "video",
-          "audio",
-          "short"
+          "song"
         ],
         "label": {
           "en": "Premise",

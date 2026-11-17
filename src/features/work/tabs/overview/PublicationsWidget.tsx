@@ -92,7 +92,7 @@ export function PublicationsWidget({ work }: { work: Work }) {
               )}
               <div className="flex flex-col gap-0.5 border-t border-line pt-2 text-sm">
                 <StandsOn basis={basis} />
-                <CommentsLine workId={work.id} items={items} />
+                <CommentsLine items={items} />
               </div>
             </div>
           )
@@ -242,23 +242,21 @@ function StandsOn({ basis }: { basis: PublicationBasis | null }) {
 }
 
 /**
- * The comments under every publication, summed, and the way to the song's
- * Comments tab, which lists them. A reply is written under the publication
- * the comment was left on; this line only says how many there are, and how
- * many of those wait.
+ * The comments under every publication, summed: how many there are, and how
+ * many of those wait. Said, not linked - a song has no comments of its own
+ * and no tab for them (v0.117); each publication above leads to its own,
+ * where a reply is written.
  */
-function CommentsLine({ workId, items }: { workId: string; items: readonly Publication[] }) {
+function CommentsLine({ items }: { items: readonly Publication[] }) {
   const { t } = useTranslation()
   const comments = items.reduce((sum, item) => sum + item.comments, 0)
   const waiting = items.reduce((sum, item) => sum + item.comments_waiting, 0)
 
   if (comments === 0) return <p className="text-faint">{t('publications.noComments')}</p>
   return (
-    <p>
-      <Link to={`/works/${workId}/comments`} className="text-dim no-underline hover:underline">
-        {t('publications.commentsUnder', { count: comments })}
-        {waiting > 0 && ` · ${t('publications.commentsWaiting', { count: waiting })}`}
-      </Link>
+    <p className="text-dim">
+      {t('publications.commentsUnder', { count: comments })}
+      {waiting > 0 && ` · ${t('publications.commentsWaiting', { count: waiting })}`}
     </p>
   )
 }

@@ -718,3 +718,11 @@ itself scheduled after its date was cleared.
 **Unscheduling** a release clears its date without touching anything else: the
 release stays exactly as planned, just without a slot, and returns to the
 queue.
+
+## From a slot to its work
+
+A slot's dialog always ends with **Open the work**, whether the release is
+planned or out. A slot that went out says so at its foot, with the link when
+one was recorded; marking it released and taking it off its day are offered
+only while it has not (since v0.117 - a released slot with no link recorded
+had no foot at all until then, and no way from the calendar to its card).

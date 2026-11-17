@@ -237,7 +237,7 @@ export function TaskPreviewDialog({
         </Button>
       }
     >
-      <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
+      <div className="flex flex-col gap-3">
         {problem !== null && (
           <p role="alert" className="text-sm text-bad">
             {problem}
@@ -246,14 +246,14 @@ export function TaskPreviewDialog({
         {preview.data !== undefined && (
           <>
             <FieldGroup label={t('assistant.previewMessage')}>
-              <pre className="selectable max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-line bg-soft px-3 py-2 font-mono text-xs">
+              <pre className="selectable whitespace-pre-wrap rounded-xl border border-line bg-soft px-3 py-2 font-mono text-xs">
                 {preview.data.prompt}
               </pre>
             </FieldGroup>
             {preview.data.method !== undefined && (
               <details className="flex flex-col gap-1">
                 <summary className="cursor-pointer caption">{t('assistant.previewMethod')}</summary>
-                <pre className="selectable mt-1 max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-line bg-soft px-3 py-2 font-mono text-xs">
+                <pre className="selectable mt-1 whitespace-pre-wrap rounded-xl border border-line bg-soft px-3 py-2 font-mono text-xs">
                   {preview.data.method}
                 </pre>
               </details>
@@ -264,7 +264,7 @@ export function TaskPreviewDialog({
             same paths its brief will name. */}
         {sight.length > 0 && (
           <FieldGroup label={t('assistant.sightTitle')} help={t('assistant.sightHint')}>
-            <ul className="selectable flex max-h-32 flex-col gap-0.5 overflow-auto font-mono text-xs break-all text-dim">
+            <ul className="selectable flex flex-col gap-0.5 font-mono text-xs break-all text-dim">
               {sight.map((path) => (
                 <li key={path}>{path}</li>
               ))}

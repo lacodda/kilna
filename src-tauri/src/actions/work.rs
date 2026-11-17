@@ -794,9 +794,11 @@ mod tests {
         assert_eq!(again.work.title, "Harbour lights (video 2)");
         assert_eq!(audio.work.title, "Harbour lights (audio)");
         assert_eq!(named.work.title, "The hook", "a title given wins");
+        // Its own fields, and none of the song's: a tempo is a fact of the
+        // song, read off the song (v0.117).
         assert_eq!(
             audio.work.meta,
-            serde_json::json!({ "bpm": 96, "variant": "original" })
+            serde_json::json!({ "variant": "original" })
                 .as_object()
                 .cloned()
                 .unwrap()
