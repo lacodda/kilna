@@ -1909,7 +1909,7 @@ mod tests {
         )
         .unwrap();
         let song = fixtures::song(&conn, &profile_id, "Tide");
-        let folder = root.path().join("songs").join("Tide");
+        let folder = root.path().join("songs").join(&song.id);
         std::fs::create_dir_all(&folder).unwrap();
         let on_the_song = super::super::create(
             &conn,
