@@ -26,8 +26,15 @@ shipped neighbour in every list; the critiques read the version before and
 the last score, and Studio gains "Place in the album", which reads the
 collection.
 
+### Bug Fixes
+- Give an axis's word the width its numbers took
+- Name a glyph for the empty profile's release
+
 ### Features
 - Edit, check, keep and move the whole profile
+
+### Testing
+- Run the upgrade on a real space, read a plugin's reason as a key
 
 ## [0.111.0] - 2026-11-15
 

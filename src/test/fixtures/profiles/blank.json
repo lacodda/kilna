@@ -37,6 +37,7 @@
         },
         "release_kinds": [
           {
+            "icon": "send",
             "key": "release",
             "label": {
               "en": "Release",
