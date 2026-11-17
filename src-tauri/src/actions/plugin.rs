@@ -377,7 +377,7 @@ mod tests {
     #[test]
     fn a_cutter_is_handed_everything_it_needs() {
         let (conn, profile_id, root, song, clip, short) = a_family();
-        let clip_folder = root.path().join("songs").join("Tide").join("video");
+        let clip_folder = root.path().join("videos").join(&clip.id);
         std::fs::create_dir_all(&clip_folder).unwrap();
         std::fs::write(clip_folder.join("v1.mp4"), b"not really an mp4").unwrap();
         crate::cut::create(
@@ -405,15 +405,8 @@ mod tests {
         );
         assert_eq!(
             subject["folder"],
-            json!(
-                root.path()
-                    .join("songs")
-                    .join("Tide")
-                    .join("shorts")
-                    .join("1")
-                    .to_string_lossy()
-            ),
-            "the short's own folder, numbered"
+            json!(root.path().join("shorts").join(&short.id).to_string_lossy()),
+            "the short's own folder, named by its id"
         );
         assert_eq!(subject["donors"][0]["title"], json!("Tide (video)"));
         assert_eq!(
@@ -531,12 +524,7 @@ mod tests {
     #[test]
     fn a_made_file_becomes_the_finished_file_when_the_rule_would_miss_it() {
         let (conn, _profile_id, root, _song, _clip, short) = a_family();
-        let folder = root
-            .path()
-            .join("songs")
-            .join("Tide")
-            .join("shorts")
-            .join("1");
+        let folder = root.path().join("shorts").join(&short.id);
         std::fs::create_dir_all(folder.join("drafts")).unwrap();
         let by_rule = folder.join("v1.mp4");
         std::fs::write(&by_rule, b"not really an mp4").unwrap();
@@ -595,7 +583,7 @@ mod tests {
     #[test]
     fn only_what_was_heard_in_a_donors_finished_file_is_kept() {
         let (conn, _profile_id, root, song, clip, short) = a_family();
-        let clip_folder = root.path().join("songs").join("Tide").join("video");
+        let clip_folder = root.path().join("videos").join(&clip.id);
         std::fs::create_dir_all(&clip_folder).unwrap();
         let render = clip_folder.join("v1.mp4");
         std::fs::write(&render, b"not really an mp4").unwrap();

@@ -132,8 +132,10 @@ fn the_scan_finds_every_registered_command() {
 /// the same name does not count. Listed rather than inferred because "writes"
 /// is not visible in a name: `score::catalogue` reads, `work::pin_tier_at`
 /// writes.
-const WRITERS: [&str; 73] = [
+const WRITERS: [&str; 74] = [
     "::create(",
+    // A work's folder on disk, made when it is first needed (FR-04).
+    "::ensure(",
     "::create_minted(",
     "::update(",
     "::update_at(",
@@ -312,8 +314,8 @@ const WRITES_PAST_THE_ACTIONS: [(&str, &str); 19] = [
         "as above: what that executable is told",
     ),
     (
-        "create_work_folder",
-        "makes a directory under the person's media folder and writes no row: the folder is          found by its name, never recorded (ADR 0057), so there is nothing in the workspace          for an operation to describe or a replay to rebuild",
+        "open_work_folder",
+        "makes a directory under the person's media folder, when it is not there, and          opens it; it writes no row: the folder is found by its name, never recorded          (ADR 0057), so there is nothing in the workspace for an operation to describe or a          replay to rebuild",
     ),
     (
         "import_legacy",

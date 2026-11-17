@@ -1248,7 +1248,8 @@
   },
   "folder": {
     "heading": "On disk",
-    "show": "Show on disk",
+    "openFolder": "Open the folder",
+    "openFolderFailed": "Could not open the folder.",
     "refresh": "Look again",
     "loadFailed": "Could not read the folder.",
     "noRoot": "This workspace has no media folder on this machine yet. Choose one, and each work's files on disk show here.",
@@ -1257,10 +1258,7 @@
     "noTemplate": "Works of this kind keep no folder on disk.",
     "nameIt": "Name one in the profile",
     "unfilled": "The folder is named {{template}}, and this work leaves {{placeholder}} empty. Fill it in on the overview.",
-    "absent": "This work's folder is not there yet.",
-    "create": "Make the folder",
-    "created": "Folder made.",
-    "createFailed": "Could not make the folder.",
+    "absent": "No folder yet. It is made when you open it.",
     "empty": "The folder is empty. Files put there show here.",
     "top": "In the folder itself",
     "truncated": "Showing the first {{count}} files.",
@@ -3319,6 +3317,9 @@
       "notFound": "There is no file at “{{path}}”.",
       "notAWorkspace": "“{{path}}” is not a kilna workspace.",
       "damaged": "“{{path}}” is damaged and cannot be put back: {{cause}}"
+    },
+    "rehome": {
+      "tooMany": "{{path}} holds more files than a move can be planned for. Is it the media folder, and not a whole drive?"
     }
   },
   "proposalBody": {

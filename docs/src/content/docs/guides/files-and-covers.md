@@ -137,16 +137,30 @@ Two things say where it is:
 - **The kind's folder** - how a work of the kind names its folder under the
   media folder, set per kind in the profile editor (**Folder on disk**), or as
   `folder` in the [profile document](/kilna/reference/profile-document/#a-works-folder-on-disk).
-  `{title}` reads the work's title, `{key}` one of its fields, and
-  `{origin.title}` or `{origin.key}` the same of what it is made from - the
-  song, for its clip and its shorts. `{n}` is the work's number among the
-  works of its kind made from the same song - the 2 of *Tide (short 2)* - so
-  each short can keep a folder of its own.
+  `{id}` reads the work's id and `{kind}` its kind; `{title}` reads the
+  work's title, `{key}` one of its fields, and `{origin.title}` or
+  `{origin.key}` the same of what it is made from - the song, for its clip
+  and its shorts. `{n}` is the work's number among the works of its kind made
+  from the same song - the 2 of *Tide (short 2)* - so each short can keep a
+  folder of its own.
 
-Studio ships a folder per song with one inside it for each thing made from
-it: `songs/{origin.title}` for the song, `.../video` for its clip,
-`.../audio` for its audio release and `.../shorts/{n}` for each short. A
-layout of your own is one template away:
+Every profile kilna ships names a folder by the work's id, one per work, flat:
+`{kind}s/{id}` in Studio - `songs/<id>`, `videos/<id>`, `audios/<id>`,
+`shorts/<id>`, `experiments/<id>`. A folder named by the id stays where it is
+when the work is renamed, which a folder named by the title did not (the
+shipped templates until v0.120: `songs/{origin.title}`, `.../video`,
+`.../shorts/{n}`). The id is not a name to read - you get to the folder with
+**Open the folder** on the Files tab or in a catalogue row's menu, not by
+looking for it.
+
+Inside a work's folder, the top is for what is finished - the render, the
+master, the cover - and what it was made out of lies below: `raw/`,
+`scenes/`, `images/`, `drafts/`, `candidates/`. The names are a habit, not a
+rule kilna enforces; what holds is that the [finished file](#the-finished-file)
+is looked for at the top and never in a folder below, so a take in `scenes/`
+is never taken for the finished clip.
+
+A layout of your own is one template away:
 
 | Kind | Folder | A song with the field `code` = `h042` |
 | --- | --- | --- |
@@ -186,10 +200,60 @@ lies in - and offers four things per file:
   the work's own - a cover, a reference - with everything
   [above](#where-the-file-goes) that a copy brings.
 
-The one thing kilna writes there is the folder itself: a work whose folder is
-not there yet offers **Make the folder**. The list is read again whenever you
-come back to the window, so a render finished in another program is there
-when you return.
+The one thing kilna makes there is the folder itself, and only when it is
+needed. A work is made without one - a year of planned works does not leave a
+few hundred empty folders on the disk - and **Open the folder** makes it and
+opens it in the file manager, there to drop the first file in. (Until v0.120
+a work whose folder was not there offered **Make the folder** first.)
+
+And the one thing kilna removes is a folder with nothing in it: when a work
+goes to the trash - deleted, or its making undone - a folder that holds no
+file goes with it, and comes back the next time it is opened if the work is
+restored. A folder with one file anywhere under it is never removed: not by
+deleting the work, not by emptying the trash, not by an undo.
+
+The list is read again whenever you come back to the window, so a render
+finished in another program is there when you return.
+
+### Moving the folders to a new layout
+
+A folder is found by its template, so a template changed in the profile
+points every work at a new place at once - and the files stay where the old
+one put them. A space made before v0.120 keeps its templates for that reason.
+`kilna --rehome-media` moves the files and switches the templates together,
+to the layout the shipped profile names:
+
+```sh
+kilna --rehome-media                      # a plan: nothing is moved
+kilna --rehome-media --also ~/Downloads   # ...looking into another folder too
+kilna --rehome-media --apply              # carry it out
+```
+
+It prints the folder of its report - `migration_plan.md` to read,
+`migration_plan.json` whole - under `rehome/` in kilna's data folder. Read the
+plan before applying it; `--space <name>` plans for a space other than the
+last one open, and kilna's window should be closed when it is applied.
+
+- Every file in a folder the stored template finds for a work moves to the
+  work's new folder and keeps its place inside. Where one work's folder lies
+  inside another's - a clip's inside its song's - a file belongs to the
+  deepest work that holds it.
+- What lies where the old templates wrote (`songs/` of `songs/{title}`) and
+  belongs to no work goes to `_unsorted_migration/` by the path it had.
+  Nothing is deleted.
+- A folder under `--also` is taken in only when it is called exactly what one
+  work is called: what is finished at its top (a clip, a sound, a picture
+  named `cover…`) goes to the top of the work's folder, the rest under
+  `raw/`. Everything else in that folder is left alone.
+- A file that would land on one already there is not written over: it goes
+  to `_unsorted_migration/_conflicts/`.
+- `_shared/`, anything beside the old templates' folders, and a folder two
+  works both resolve to are left exactly as they are, and the report says so.
+
+Applying takes a copy of the database into the report's folder first, moves
+the files, removes the folders the moves emptied, and only when every move
+landed switches the templates. Run again after a failure, it plans from the
+disk as it now is and finishes.
 
 See [ADR 0057](https://github.com/lacodda/kilna/blob/main/docs/adr/0057-a-works-folder-on-disk-is-found-and-looked-at.md).
 

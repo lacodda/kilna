@@ -10,7 +10,7 @@
           "en": "Song",
           "ru": "Песня"
         },
-        "folder": "songs/{origin.title}",
+        "folder": "{kind}s/{id}",
         "conception": {
           "brief": "brief",
           "idea": "premise",
@@ -29,7 +29,7 @@
           "en": "Video",
           "ru": "Видео"
         },
-        "folder": "songs/{origin.title}/video",
+        "folder": "{kind}s/{id}",
         "file": "*.mp4",
         "axes": [
           {
@@ -548,7 +548,7 @@
           "en": "Audio",
           "ru": "Аудио"
         },
-        "folder": "songs/{origin.title}/audio",
+        "folder": "{kind}s/{id}",
         "file": "*.mp4",
         "version_roles": [],
         "release_kinds": [
@@ -753,7 +753,7 @@
           "en": "Short",
           "ru": "Шортс"
         },
-        "folder": "songs/{origin.title}/shorts/{n}",
+        "folder": "{kind}s/{id}",
         "file": "*.mp4",
         "axes": [
           {
@@ -1222,6 +1222,7 @@
           "en": "Experiment",
           "ru": "Эксперимент"
         },
+        "folder": "{kind}s/{id}",
         "version_roles": [
           {
             "key": "brief",

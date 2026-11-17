@@ -1352,7 +1352,7 @@
             "outline"
           ]
         },
-        "folder": "chapters/{title}",
+        "folder": "chapters/{id}",
         "key": "chapter",
         "label": {
           "en": "Chapter",
@@ -1773,7 +1773,7 @@
             "outline"
           ]
         },
-        "folder": "scenes/{title}",
+        "folder": "scenes/{id}",
         "key": "scene",
         "label": {
           "en": "Scene",
@@ -2194,7 +2194,7 @@
             "outline"
           ]
         },
-        "folder": "stories/{title}",
+        "folder": "stories/{id}",
         "key": "story",
         "label": {
           "en": "Short story",

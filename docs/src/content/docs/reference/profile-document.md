@@ -116,6 +116,9 @@ them in.
 its files in - found by that name and looked at, never attached or owned (see
 [Files and covers](/kilna/guides/files-and-covers/#the-works-folder-on-disk)).
 
+- `{id}` reads the work's id and `{kind}` its kind's key: `{kind}s/{id}`,
+  what the shipped profiles name since v0.120 - a folder a rename never
+  moves.
 - `{title}` reads the work's title, `{key}` the field of that key from
   `work_meta_fields` - or any field the work carries.
 - `{origin.title}` and `{origin.key}` read the same off what the work is all

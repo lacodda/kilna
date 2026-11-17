@@ -727,7 +727,7 @@
             "angle"
           ]
         },
-        "folder": "posts/{title}",
+        "folder": "posts/{id}",
         "key": "post",
         "label": {
           "en": "Post",
@@ -1078,7 +1078,7 @@
             "angle"
           ]
         },
-        "folder": "newsletters/{title}",
+        "folder": "newsletters/{id}",
         "key": "newsletter",
         "label": {
           "en": "Newsletter issue",
@@ -1429,7 +1429,7 @@
             "angle"
           ]
         },
-        "folder": "guides/{title}",
+        "folder": "guides/{id}",
         "key": "guide",
         "label": {
           "en": "Guide",

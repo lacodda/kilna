@@ -11,9 +11,10 @@ export const setMediaRoot = (path: string | null) =>
   invoke<string | null>('set_media_root', { path })
 /** A work's folder on disk, and the files in it. */
 export const workFolder = (workId: string) => invoke<WorkFolder>('work_folder', { workId })
-/** Make a work's folder under the media folder, so it is there to be filled. */
-export const createWorkFolder = (workId: string) =>
-  invoke<WorkFolder>('create_work_folder', { workId })
+/** Open a work's folder in the system's file manager, making it first if it
+    is not there: a folder is made when it is first needed (FR-04). Refused
+    when there is no telling where it would be. */
+export const openWorkFolder = (workId: string) => invoke<WorkFolder>('open_work_folder', { workId })
 /** Where the workspace keeps its own files: what `media/<name>` in a note is read against. */
 export const mediaDirectory = () => invoke<string>('media_directory')
 /** Open a picture, a clip, a sound or a document kilna looks at in the

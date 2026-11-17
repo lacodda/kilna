@@ -11,9 +11,9 @@
       { "key": "final", "label": { "en": "final / ready to ship", "ru": "финал, можно выпускать" }, "percent": 100, "colour": "good", "hex": "#5EC486" }
     ],
     "work_kinds": [
-      { "key": "episode", "label": { "en": "Episode", "ru": "Выпуск" }, "folder": "episodes/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } },
-      { "key": "segment", "label": { "en": "Segment", "ru": "Сегмент" }, "folder": "segments/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } },
-      { "key": "trailer", "label": { "en": "Trailer", "ru": "Трейлер" }, "folder": "trailers/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } }
+      { "key": "episode", "label": { "en": "Episode", "ru": "Выпуск" }, "folder": "episodes/{id}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } },
+      { "key": "segment", "label": { "en": "Segment", "ru": "Сегмент" }, "folder": "segments/{id}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } },
+      { "key": "trailer", "label": { "en": "Trailer", "ru": "Трейлер" }, "folder": "trailers/{id}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } }
     ],
     "release_kinds": [
       {

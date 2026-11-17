@@ -27,6 +27,8 @@ import { Panel } from '@/components/ui/panel'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Table, TableBody, TableCell, TableHead, TableHeader } from '@/components/ui/table'
 import { RowMenu, type RowAction } from '@/components/RowMenu'
+import { say } from '@/lib/toast'
+import { openWorkFolder } from '@/lib/api/folders'
 import { CatalogueCell } from './CatalogueCell'
 import { ColumnFunnel } from './ColumnFunnel'
 import { ColumnHeader } from './ColumnHeader'
@@ -226,6 +228,16 @@ export function CatalogueTable({
       key: 'schedule',
       label: t('catalogue.action.schedule'),
       onSelect: () => onSelect(row.work_id, 'overview'),
+    },
+    // The work's folder on disk, from the row as from the card (FR-04):
+    // made if it is not there, and opened. A work whose folder cannot be
+    // named - no media folder on this machine - is told why.
+    {
+      key: 'folder',
+      label: t('folder.openFolder'),
+      onSelect: () => {
+        openWorkFolder(row.work_id).catch((cause: unknown) => say.failed(cause))
+      },
     },
     {
       key: 'delete',

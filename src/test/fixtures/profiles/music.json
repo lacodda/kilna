@@ -2769,7 +2769,7 @@
             "style"
           ]
         },
-        "folder": "songs/{origin.title}",
+        "folder": "{kind}s/{id}",
         "key": "song",
         "label": {
           "en": "Song",
@@ -3107,7 +3107,7 @@
         ],
         "cover": true,
         "file": "*.mp4",
-        "folder": "songs/{origin.title}/video",
+        "folder": "{kind}s/{id}",
         "key": "video",
         "label": {
           "en": "Video",
@@ -3444,7 +3444,7 @@
       {
         "cover": true,
         "file": "*.mp4",
-        "folder": "songs/{origin.title}/audio",
+        "folder": "{kind}s/{id}",
         "frame": true,
         "key": "audio",
         "label": {
@@ -3836,7 +3836,7 @@
         "cover": true,
         "excerpt": true,
         "file": "*.mp4",
-        "folder": "songs/{origin.title}/shorts/{n}",
+        "folder": "{kind}s/{id}",
         "key": "short",
         "label": {
           "en": "Short",
@@ -4123,6 +4123,7 @@
         "conception": {
           "brief": "brief"
         },
+        "folder": "{kind}s/{id}",
         "key": "experiment",
         "lab": {
           "anchors": "anchors",

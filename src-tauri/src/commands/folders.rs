@@ -52,12 +52,25 @@ pub fn work_folder(state: State<'_, AppState>, work_id: String) -> Result<WorkFo
     folder::of_work(&conn, &config, &work)
 }
 
-/// Make a work's folder under the media folder, so it is there to be filled.
+/// Open a work's folder in the system's file manager, making it first if it
+/// is not there (FR-04): a folder is made when it is first needed, and
+/// opening it is needing it. There is no "make the folder" of its own - the
+/// step stood between a person and the place they wanted to drop a file in.
 #[tauri::command(async)]
-pub fn create_work_folder(state: State<'_, AppState>, work_id: String) -> Result<WorkFolder> {
-    let conn = state.conn();
-    let (work, config) = work_and_config(&conn, &work_id)?;
-    folder::create(&conn, &config, &work)
+pub fn open_work_folder(state: State<'_, AppState>, work_id: String) -> Result<WorkFolder> {
+    let folder = {
+        let conn = state.conn();
+        let (work, config) = work_and_config(&conn, &work_id)?;
+        folder::ensure(&conn, &config, &work)?
+    };
+    if let Some(path) = folder.path.as_deref() {
+        tauri_plugin_opener::open_path(Path::new(path), None::<&str>).map_err(|cause| {
+            Error::refused("folder.openFailed")
+                .param("path", path)
+                .param("cause", cause.to_string())
+        })?;
+    }
+    Ok(folder)
 }
 
 /// Where the workspace keeps its own files - what a note's `media/<name>`

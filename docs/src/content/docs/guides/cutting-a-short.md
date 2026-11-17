@@ -42,7 +42,7 @@ folder, where kilna finds it as the short's
    with.
 4. **Folders.** The short needs a folder of its own, and the video it is cut
    from a finished file: a media folder in **Settings → Data**, a folder for
-   each kind - Studio ships `songs/{origin.title}/shorts/{n}` for a short - and
+   each kind - Studio ships `{kind}s/{id}`, a folder per work - and
    a rule for the finished file. The cut list says which of these is missing,
    stretch by stretch.
 

@@ -494,7 +494,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::folders::media_root,
             commands::folders::set_media_root,
             commands::folders::work_folder,
-            commands::folders::create_work_folder,
+            commands::folders::open_work_folder,
             commands::folders::media_directory,
             commands::folders::open_media,
             commands::search::search,

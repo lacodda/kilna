@@ -50,7 +50,7 @@ beforeEach(() => {
   backend = mockBackend({
     ...answersFor(studio()),
     work_folder: () => folder,
-    create_work_folder: () => {
+    open_work_folder: () => {
       folder = { ...FOUND, files: [] }
       return folder
     },
@@ -99,17 +99,18 @@ describe("a work's folder on disk", () => {
     )
   })
 
-  it('says why there is nothing to show, and makes a missing folder when asked', async () => {
+  it('says a folder is not there yet, and makes it by opening it', async () => {
     folder = { ...FOUND, state: 'absent', files: [] }
     const { client } = renderApp(`/works/${IDS.song}/files`)
     const section = await screen.findByRole('region', { name: en.folder.heading })
     expect(await within(section).findByText(en.folder.absent)).toBeVisible()
     await settled(client)
 
-    fireEvent.click(within(section).getByRole('button', { name: en.folder.create }))
-    await waitFor(() =>
-      expect(backend.argsOf('create_work_folder')).toEqual([{ workId: IDS.song }]),
-    )
+    // No "make the folder" to press first (FR-04): the folder is made when
+    // it is first needed, and opening it is needing it.
+    expect(within(section).queryByRole('button', { name: /make the folder/i })).toBeNull()
+    fireEvent.click(within(section).getByRole('button', { name: en.folder.openFolder }))
+    await waitFor(() => expect(backend.argsOf('open_work_folder')).toEqual([{ workId: IDS.song }]))
     expect(await within(section).findByText(en.folder.empty)).toBeVisible()
   })
 

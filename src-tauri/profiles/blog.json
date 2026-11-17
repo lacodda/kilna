@@ -11,9 +11,9 @@
       { "key": "final", "label": { "en": "final / ready to ship", "ru": "финал, можно выпускать" }, "percent": 100, "colour": "good", "hex": "#5EC486" }
     ],
     "work_kinds": [
-      { "key": "post", "label": { "en": "Post", "ru": "Пост" }, "folder": "posts/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "research", "scenarios" ] } },
-      { "key": "newsletter", "label": { "en": "Newsletter issue", "ru": "Выпуск рассылки" }, "folder": "newsletters/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "research", "scenarios" ] } },
-      { "key": "guide", "label": { "en": "Guide", "ru": "Гайд" }, "folder": "guides/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "research", "scenarios" ] } }
+      { "key": "post", "label": { "en": "Post", "ru": "Пост" }, "folder": "posts/{id}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "research", "scenarios" ] } },
+      { "key": "newsletter", "label": { "en": "Newsletter issue", "ru": "Выпуск рассылки" }, "folder": "newsletters/{id}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "research", "scenarios" ] } },
+      { "key": "guide", "label": { "en": "Guide", "ru": "Гайд" }, "folder": "guides/{id}", "conception": { "brief": "brief", "idea": "premise", "with": [ "angle" ], "boards": [ "research", "scenarios" ] } }
     ],
     "release_kinds": [
       {

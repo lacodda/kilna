@@ -539,7 +539,18 @@ pub fn discard_minted(
     id: &str,
     minted: Minted,
 ) -> Result<String> {
-    atomically(conn, |tx| discard_in(tx, entity, id, &minted))
+    // A work's folder, found while the work still is. One that holds
+    // nothing goes with the work (FR-04): it was made by opening it, and an
+    // undo of the work's making should not leave it behind. One that holds a
+    // file is never touched - not here, not by a purge, not by anything.
+    let folder = (entity == Entity::Work)
+        .then(|| crate::folder::standing(conn, id))
+        .flatten();
+    let entry = atomically(conn, |tx| discard_in(tx, entity, id, &minted))?;
+    if let Some(folder) = folder {
+        crate::folder::remove_if_empty(&folder);
+    }
+    Ok(entry)
 }
 
 /// The body of a discard: the snapshot, the entry and the deletion.

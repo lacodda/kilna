@@ -876,7 +876,7 @@
             "outline"
           ]
         },
-        "folder": "episodes/{title}",
+        "folder": "episodes/{id}",
         "key": "episode",
         "label": {
           "en": "Episode",
@@ -1278,7 +1278,7 @@
             "outline"
           ]
         },
-        "folder": "segments/{title}",
+        "folder": "segments/{id}",
         "key": "segment",
         "label": {
           "en": "Segment",
@@ -1680,7 +1680,7 @@
             "outline"
           ]
         },
-        "folder": "trailers/{title}",
+        "folder": "trailers/{id}",
         "key": "trailer",
         "label": {
           "en": "Trailer",

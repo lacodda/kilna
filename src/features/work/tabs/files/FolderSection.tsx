@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
-import { CircleCheck, Copy, FolderOpen, FolderPlus, Play, RefreshCw, Undo2 } from 'lucide-react'
+import { CircleCheck, Copy, FolderOpen, Play, RefreshCw, Undo2 } from 'lucide-react'
 import { attachAsset } from '@/lib/api/assets'
-import { createWorkFolder, openMedia } from '@/lib/api/folders'
+import { openMedia, openWorkFolder } from '@/lib/api/folders'
 import type { FinishedFile, FolderFile, Work, WorkFolder } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
 import { extensionOf, mediaKindOf } from '@/lib/media'
@@ -37,15 +37,19 @@ export function FolderSection({ work }: { work: Work }) {
   const navigate = useNavigate()
   const folder = useQuery(queries.folder(work.id))
 
-  const make = useAppMutation({
-    mutationFn: () => createWorkFolder(work.id),
-    failure: 'folder.createFailed',
+  // Opening the folder is what makes it (FR-04): there is no folder until
+  // one is needed, and no "make the folder" to press first. The listing is
+  // read again, since a folder that was not there now is.
+  const open = useAppMutation({
+    mutationFn: () => openWorkFolder(work.id),
+    failure: 'folder.openFolderFailed',
     refresh: [keys.folderFor(work.id)],
-    onSuccess: () => say.ok(t('folder.created')),
   })
 
   const found = folder.data?.state === 'found'
   const path = folder.data?.path
+  // Somewhere to open: the folder is there, or would be.
+  const openable = found || folder.data?.state === 'absent'
 
   return (
     <section
@@ -64,16 +68,15 @@ export function FolderSection({ work }: { work: Work }) {
         )}
         {work.ordinal !== null && <Ordinal work={work} />}
         <span className="ml-auto flex items-center gap-1">
-          {found && path !== undefined && (
+          {openable && (
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => {
-                revealItemInDir(path).catch((cause: unknown) => say.failed(cause))
-              }}
+              disabled={open.isPending}
+              onClick={() => open.mutate()}
             >
               <FolderOpen aria-hidden />
-              {t('folder.show')}
+              {t('folder.openFolder')}
             </Button>
           )}
           <Button
@@ -99,8 +102,6 @@ export function FolderSection({ work }: { work: Work }) {
         <FolderBody
           folder={folder.data}
           work={work}
-          creating={make.isPending}
-          onCreate={() => make.mutate()}
           onSettings={(section) => void navigate(`/settings/${section}`)}
         />
       )}
@@ -112,14 +113,10 @@ export function FolderSection({ work }: { work: Work }) {
 function FolderBody({
   folder,
   work,
-  creating,
-  onCreate,
   onSettings,
 }: {
   folder: WorkFolder
   work: Work
-  creating: boolean
-  onCreate: () => void
   onSettings: (section: string) => void
 }) {
   const { t } = useTranslation()
@@ -155,15 +152,7 @@ function FolderBody({
         </Said>
       )
     case 'absent':
-      return (
-        <Said>
-          {t('folder.absent')}{' '}
-          <Button size="xs" variant="soft" disabled={creating} onClick={onCreate}>
-            <FolderPlus aria-hidden />
-            {t('folder.create')}
-          </Button>
-        </Said>
-      )
+      return <Said>{t('folder.absent')}</Said>
     case 'found':
       return folder.files.length === 0 ? (
         <Said>{t('folder.empty')}</Said>

@@ -846,11 +846,7 @@ mod tests {
         );
 
         // The shipped Studio rule: the newest `.mp4` in the video's folder.
-        let folder = root
-            .path()
-            .join("songs")
-            .join("Harbour lights")
-            .join("video");
+        let folder = root.path().join("videos").join(&donor);
         std::fs::create_dir_all(&folder).unwrap();
         std::fs::write(folder.join("harbour.mp4"), b"not really an mp4").unwrap();
 

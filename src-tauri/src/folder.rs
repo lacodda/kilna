@@ -6,8 +6,11 @@
 //! carries it, and the original can be tidied away. A folder is *looked at*:
 //! it belongs to the person and to whatever tools write into it, it can hold
 //! fifty gigabytes of video no workspace should swallow, and kilna never
-//! writes, moves or deletes a byte in it. The one thing kilna does there is
-//! create the folder when a person asks it to, so that it exists to be filled.
+//! writes, moves or deletes a byte in it. Two things kilna does there, and
+//! both to the folder itself, never to a file (FR-04, v0.120): it makes the
+//! folder when it is first needed - a person opens it - and it takes away a
+//! folder that holds nothing when its work goes to the trash. A folder with
+//! one file anywhere under it is never removed by anything.
 //!
 //! Where a work's folder is comes from two facts kept apart:
 //!
@@ -15,10 +18,19 @@
 //!   in `media_root` and never carried anywhere else (it is `D:\` here and
 //!   `/Volumes/media` on the next device);
 //! * **the template** - the kind's `folder` in the profile: how a work's
-//!   folder is named under the root. `{title}` reads the work's title,
-//!   `{key}` one of its fields, and `{origin.title}` / `{origin.key}` the
-//!   same of what it is all made from - the song, for its clip and its
-//!   shorts - so the clip of a song can look into the song's folder.
+//!   folder is named under the root. `{id}` reads the work's id and `{kind}`
+//!   its kind - `{kind}s/{id}`, what the shipped profiles name, is a folder
+//!   a rename never moves; `{title}` reads the work's title, `{key}` one of
+//!   its fields, and `{origin.title}` / `{origin.key}` the same of what it
+//!   is all made from - the song, for its clip and its shorts - so the clip
+//!   of a song can look into the song's folder.
+//!
+//! Inside a work's folder the top is for what is finished - the render, the
+//! master, the cover - and what it was made out of lies below, in `raw/`,
+//! `scenes/`, `images/`, `drafts/`, `candidates/`. Nothing enforces the
+//! names; what holds is that a kind's rule for its finished file, `*.mp4`,
+//! reads the top of the folder and never a folder below, so a take in
+//! `scenes/` is never taken for the finished clip.
 //!
 //! Found, not attached: nothing records which folder a work has, so a
 //! template changed today points every work at its new place at once, and a
@@ -36,6 +48,14 @@ use crate::work::Work;
 
 /// What a placeholder reads off the work it is about: its title, or a field.
 const TITLE: &str = "title";
+
+/// The placeholder for the work's id: the one name a work has that nothing
+/// ever changes (FR-04). A folder named by it stays where it is when the
+/// work is renamed.
+const ID: &str = "id";
+
+/// The placeholder for the work's kind, as its key: `{kind}s/{id}`.
+const KIND: &str = "kind";
 
 /// The placeholder for a work's number among the works of its kind made from
 /// the same origin - the 2 of "Song (short 2)" (ADR 0070): `shorts/v{n}`.
@@ -277,6 +297,10 @@ fn as_name(value: &str) -> String {
 fn value_of(work: &Work, name: &str) -> Option<String> {
     let raw = if name == TITLE {
         work.title.clone()
+    } else if name == ID {
+        work.id.clone()
+    } else if name == KIND {
+        work.kind.clone()
     } else if name == NUMBER {
         work.ordinal?.to_string()
     } else {
@@ -722,10 +746,12 @@ fn place(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkF
     Ok(found)
 }
 
-/// Make a work's folder, so that it is there to be filled - the one thing
-/// kilna writes under the media folder. Answers with the folder as it now
-/// stands.
-pub fn create(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkFolder> {
+/// Make a work's folder if it is not there, so that it is there to be
+/// filled - called when the folder is first needed, never when the work is
+/// made (FR-04): a work with no files has no folder, and a year of planned
+/// works does not leave a graveyard of empty ones on the disk. Answers with
+/// the folder as it now stands.
+pub fn ensure(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkFolder> {
     let folder = of_work(conn, config, work)?;
     match (folder.state, folder.path.as_deref()) {
         (FolderState::Found, _) => Ok(folder),
@@ -747,6 +773,65 @@ pub fn create(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<
                 .param("placeholder", folder.unfilled.unwrap_or_default()))
         }
     }
+}
+
+/// Where a work's folder is, when it is there - read while the work still
+/// is, for [`remove_if_empty`] once it has gone to the trash. Nothing when
+/// there is no folder, or no telling where it would be.
+pub fn standing(conn: &Connection, work_id: &str) -> Option<PathBuf> {
+    let work = crate::work::get(conn, work_id).ok()??;
+    let config = crate::profile::config_for(conn, &work.profile_id).ok()?;
+    let found = place(conn, &config, &work).ok()?;
+    match (found.state, found.path) {
+        (FolderState::Found, Some(path)) => Some(PathBuf::from(path)),
+        _ => None,
+    }
+}
+
+/// Take a folder away if nothing is in it - what happens to a work's folder
+/// when the work goes to the trash, deleted or its making undone. Answers
+/// whether it was removed.
+///
+/// Only ever a folder, never a file: a tree with one file anywhere in it,
+/// whatever the file is, is left exactly as it stands. The folders are
+/// removed with the call that refuses a folder holding anything, so a file
+/// that arrives while this runs keeps its folder. A work that comes back
+/// from the trash gets its folder again when it is next opened.
+pub fn remove_if_empty(folder: &Path) -> bool {
+    fn holds_a_file(folder: &Path, depth: usize) -> bool {
+        // Deeper than a work's folder goes, or unreadable: not known to be
+        // empty, so it is not.
+        if depth > DEEPEST {
+            return true;
+        }
+        let Ok(entries) = std::fs::read_dir(folder) else {
+            return true;
+        };
+        for entry in entries {
+            let Ok(entry) = entry else {
+                return true;
+            };
+            match entry.file_type() {
+                Ok(kind) if kind.is_dir() => {
+                    if holds_a_file(&entry.path(), depth + 1) {
+                        return true;
+                    }
+                }
+                // A file, a link, or something that cannot be told.
+                _ => return true,
+            }
+        }
+        false
+    }
+    fn remove(folder: &Path) -> bool {
+        if let Ok(entries) = std::fs::read_dir(folder) {
+            for entry in entries.flatten() {
+                remove(&entry.path());
+            }
+        }
+        std::fs::remove_dir(folder).is_ok()
+    }
+    !holds_a_file(folder, 0) && remove(folder)
 }
 
 /// The files under `folder`, sorted by where they are, and whether the
@@ -1095,7 +1180,7 @@ mod tests {
         let expected = dir.path().join("songs").join("Harbour lights");
         assert_eq!(folder.path.as_deref(), Some(expected.to_str().unwrap()));
 
-        let made = create(&conn, &config, &song).unwrap();
+        let made = ensure(&conn, &config, &song).unwrap();
         assert_eq!(made.state, FolderState::Found);
         assert!(expected.is_dir(), "the folder is on disk");
         std::fs::write(expected.join("mix.wav"), b"RIFF").unwrap();
@@ -1110,8 +1195,136 @@ mod tests {
             of_work(&conn, &config, &song).unwrap().state,
             FolderState::NoTemplate
         );
-        let refused = create(&conn, &config, &song).unwrap_err();
+        let refused = ensure(&conn, &config, &song).unwrap_err();
         assert_eq!(refused.refusal().map(|r| r.code), Some("folder.noTemplate"));
+    }
+
+    /// `{id}` and `{kind}` name a folder a rename never moves (FR-04): the
+    /// shipped template, `{kind}s/{id}`.
+    #[test]
+    fn a_folder_named_by_id_stays_where_it_is_when_the_work_is_renamed() {
+        let root = Path::new("media-root");
+        let mut song = work("Harbour lights", json!({}));
+        let id = song.id.clone();
+
+        let before = resolve(root, "{kind}s/{id}", &song, &song).unwrap();
+        assert_eq!(before, at(root, &["songs", &id]));
+
+        song.title = "Harbour lights (the long one)".into();
+        assert_eq!(resolve(root, "{kind}s/{id}", &song, &song).unwrap(), before);
+
+        // What a clip is made from has an id and a kind too.
+        let mut clip = work("Clip", json!({}));
+        clip.kind = "video".into();
+        assert_eq!(
+            resolve(root, "{origin.kind}s/{origin.id}/{kind}", &clip, &song).unwrap(),
+            at(root, &["songs", &id, "video"])
+        );
+        assert_eq!(problem("{kind}s/{id}"), None);
+    }
+
+    /// A work is made without a folder and gets one when it is first needed;
+    /// in the trash it takes an empty folder with it and leaves one that
+    /// holds a file exactly as it stands (FR-04).
+    #[test]
+    fn a_folder_is_made_when_needed_and_only_an_empty_one_goes_with_its_work() {
+        let (conn, profile_id) = crate::fixtures::workspace();
+        let dir = tempfile::tempdir().unwrap();
+        set_root(
+            &conn,
+            &profile_id,
+            Some(&dir.path().to_string_lossy()),
+            "2030-01-01T00:00:00.000Z",
+        )
+        .unwrap();
+        let mut config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        for kind in &mut config.work_kinds {
+            kind.folder = Some("{kind}s/{id}".into());
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![profile_id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        // Made, and nothing on disk: no graveyard of empty folders.
+        let empty = crate::fixtures::song(&conn, &profile_id, "Never opened");
+        let opened = crate::fixtures::song(&conn, &profile_id, "Opened and left");
+        let filled = crate::fixtures::song(&conn, &profile_id, "Holds a take");
+        let songs = dir.path().join("songs");
+        assert!(!songs.exists(), "making a work makes no folder");
+        assert_eq!(standing(&conn, &empty.id), None);
+
+        // Needed: opened.
+        for work in [&opened, &filled] {
+            assert_eq!(
+                ensure(&conn, &config, work).unwrap().state,
+                FolderState::Found
+            );
+        }
+        let opened_at = songs.join(&opened.id);
+        let filled_at = songs.join(&filled.id);
+        assert_eq!(standing(&conn, &opened.id), Some(opened_at.clone()));
+        // Empty folders below do not make a folder hold anything; a file
+        // three folders down does.
+        std::fs::create_dir_all(opened_at.join("raw").join("old")).unwrap();
+        std::fs::create_dir_all(filled_at.join("scenes").join("take 1")).unwrap();
+        std::fs::write(
+            filled_at.join("scenes").join("take 1").join("v1.mp4"),
+            b"take",
+        )
+        .unwrap();
+
+        for work in [&empty, &opened, &filled] {
+            crate::trash::discard(&conn, crate::trash::Entity::Work, &work.id).unwrap();
+        }
+        assert!(!opened_at.exists(), "an empty folder goes with its work");
+        assert!(
+            filled_at
+                .join("scenes")
+                .join("take 1")
+                .join("v1.mp4")
+                .is_file(),
+            "a folder with a file in it is never removed"
+        );
+        assert!(songs.is_dir(), "and nothing above the work's folder is");
+
+        // Emptying the trash does not reach the disk either.
+        crate::trash::empty(&conn, &profile_id).unwrap();
+        assert!(
+            filled_at
+                .join("scenes")
+                .join("take 1")
+                .join("v1.mp4")
+                .is_file()
+        );
+    }
+
+    /// The top of a work's folder is for what is finished: `*.mp4` reads it
+    /// and never a folder below, so a newer take in `scenes/` or `raw/` is
+    /// not taken for the finished clip (FR-04).
+    #[test]
+    fn a_take_in_a_subfolder_is_never_the_finished_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path();
+        std::fs::write(folder.join("final.mp4"), b"final").unwrap();
+        for below in ["raw", "scenes", "images", "drafts", "candidates"] {
+            std::fs::create_dir_all(folder.join(below)).unwrap();
+            std::fs::write(folder.join(below).join("newer.mp4"), b"take").unwrap();
+        }
+        // Written after the finished one, so "newest" alone would pick one.
+        let later = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+        for below in ["raw", "scenes"] {
+            let take = std::fs::File::options()
+                .write(true)
+                .open(folder.join(below).join("newer.mp4"))
+                .unwrap();
+            take.set_modified(later).unwrap();
+        }
+
+        let steps = steps_of("*.mp4").unwrap();
+        let (_, relative) = newest(folder, &steps).unwrap();
+        assert_eq!(relative, "final.mp4");
     }
 
     /// `{n}` reads the work's number among its kind made from the same
