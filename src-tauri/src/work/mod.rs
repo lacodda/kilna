@@ -42,10 +42,12 @@ pub struct Work {
     pub tier_pin_reason: Option<String>,
     /// Set when the person marked this one to come back to.
     pub bookmarked_at: Option<String>,
-    /// How finished the work is, 0..=100, as the author judges it. `None` means
-    /// nobody has said yet, which is not the same as "a bare idea" — the stops
-    /// along the way are the profile's `stages`.
-    pub stage: Option<i64>,
+    /// How finished the work is, as the author judges it: one of the five
+    /// stops, 0, 25, 50, 75 or 100 (FR-03). A work starts at 0 - until
+    /// v0.119 it started at nothing, "nobody has said", which drew like a
+    /// bare idea and meant the same to anyone looking for what to pick up.
+    /// The words at each stop are the profile's `stages`.
+    pub stage: i64,
     /// What the work's cover is built from: the idea, the scene, the hero,
     /// the built frame, the bricks, the mark, the details, and the person's
     /// own words for each part of the prompt (v0.88, ADR 0049). A body
@@ -240,8 +242,8 @@ pub fn create_minted(
     };
 
     conn.execute(
-        "INSERT INTO work (id, profile_id, collection_id, kind, title, status, meta, tags, marks, position, created_at, updated_at, ordinal)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12)",
+        "INSERT INTO work (id, profile_id, collection_id, kind, title, status, meta, tags, marks, position, created_at, updated_at, ordinal, stage)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12, 0)",
         params![
             id,
             profile_id,
@@ -479,14 +481,16 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
         );
     }
     if let Some(stage) = patch.stage {
-        // Clamped rather than refused: the number comes from a dial, and a
-        // caller that manages to send 140 means "finished", not "fail this
-        // edit". The profile's stops live inside the same range.
+        // Put on the scale rather than refused: a caller that sends 140
+        // means "finished", not "fail this edit" - and this is the door an
+        // old line of the operation log comes back through on replay, with
+        // a number from the seven-stop scale or with nothing at all, which
+        // was how "nobody has said" was written until v0.119.
         set(
             &mut assignments,
             &mut values,
             "stage",
-            Box::new(stage.map(|value| value.clamp(0, 100))),
+            Box::new(crate::profile::config::normalize_stage(stage)),
         );
     }
     if let Some(cover) = &patch.cover {
@@ -735,7 +739,7 @@ struct RawWork {
     tier_pinned_at: Option<String>,
     tier_pin_reason: Option<String>,
     bookmarked_at: Option<String>,
-    stage: Option<i64>,
+    stage: i64,
     cover: String,
     frame: String,
     ordinal: Option<i64>,
@@ -762,7 +766,10 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         tier_pinned_at: row.get(15)?,
         tier_pin_reason: row.get(16)?,
         bookmarked_at: row.get(17)?,
-        stage: row.get(18)?,
+        // A row written before v0.119 by a path the migration did not see -
+        // a space restored from an older copy is migrated first, so this is
+        // a belt - still reads as a stop.
+        stage: crate::profile::config::normalize_stage(row.get(18)?),
         cover: row.get(19)?,
         frame: row.get(20)?,
         ordinal: row.get(21)?,
@@ -1365,5 +1372,50 @@ mod tests {
         )
         .unwrap();
         assert_eq!(cleared.bookmarked_at, None);
+    }
+
+    #[test]
+    fn a_work_starts_at_the_first_stop_and_a_stage_is_kept_on_the_five() {
+        let (conn, profile_id) = fixtures::workspace();
+        let made = create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Tide".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+        // Not "nobody has said": a work begins as an idea (FR-03).
+        assert_eq!(made.stage, 0);
+        let stored: Option<i64> = conn
+            .query_row(
+                "SELECT stage FROM work WHERE id = ?1",
+                params![made.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored, Some(0), "written, not left empty");
+
+        let set = |stage: Option<i64>| {
+            update(
+                &conn,
+                &made.id,
+                WorkPatch {
+                    stage: Some(stage),
+                    ..WorkPatch::default()
+                },
+            )
+            .unwrap()
+            .stage
+        };
+        assert_eq!(set(Some(75)), 75);
+        // What an old line of the log holds: a stop of the seven, a number
+        // off the dial, and nothing - which was how a stage was taken back.
+        assert_eq!(set(Some(67)), 75);
+        assert_eq!(set(Some(17)), 25);
+        assert_eq!(set(Some(140)), 100);
+        assert_eq!(set(None), 0);
     }
 }

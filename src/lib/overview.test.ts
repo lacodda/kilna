@@ -18,7 +18,6 @@ import {
   doorsOf,
   fieldsOf,
   leadOf,
-  nextStage,
   previewOf,
   previousOf,
   publicationFact,
@@ -314,23 +313,6 @@ describe('trailOf', () => {
     const history = [score('c', 91), score('b', 86), score('a', 78), score('z', 60)]
     expect(trailOf(history, 3).map((s) => s.total)).toEqual([78, 86, 91])
     expect(trailOf([], 3)).toEqual([])
-  })
-})
-
-describe('nextStage', () => {
-  const config = {
-    stages: [
-      { key: 'idea', label: 'Idea', percent: 0 },
-      { key: 'polish', label: 'Polishing', percent: 67 },
-      { key: 'done', label: 'Finished', percent: 100 },
-    ],
-  } as ProfileConfig
-
-  it('names the stop after the one reached, and none at the last or while unset', () => {
-    expect(nextStage(config, 70)?.key).toBe('done')
-    expect(nextStage(config, 0)?.key).toBe('polish')
-    expect(nextStage(config, 100)).toBeUndefined()
-    expect(nextStage(config, null)).toBeUndefined()
   })
 })
 

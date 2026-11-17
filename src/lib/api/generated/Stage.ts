@@ -24,4 +24,11 @@ percent: number,
  * One of the palette's own roles, so a stage reads correctly in both
  * themes.
  */
-colour: MarkColour, };
+colour: MarkColour, 
+/**
+ * The stop's exact colour, `#RRGGBB` (v0.119). The five stops are told
+ * apart by colour alone - no word stands beside a dial - and the
+ * palette has fewer roles than the scale has stops. Where it is set the
+ * dial draws it; `colour` stays for a stop that names none.
+ */
+hex?: string, };

@@ -39,7 +39,7 @@ pub struct Publication {
     pub title: String,
     pub kind: String,
     pub status: String,
-    pub stage: Option<i64>,
+    pub stage: i64,
     /// How far down it stands: 1 for a clip made from the song, 2 for a short
     /// cut from that clip.
     pub depth: i64,

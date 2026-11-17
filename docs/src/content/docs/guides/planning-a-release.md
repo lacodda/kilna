@@ -79,9 +79,10 @@ song at before the one its score gives. A work made from nothing carries its
 own.
 
 **Finding one of a few hundred.** The pane's head has a search by title, the
-kind of work, and the funnel of the catalogue's **Stage** column: tick the
-stops to see what stands at any of them - the last two together are "what is
-closest to going out" - or **Stage not set** for what nobody has placed yet.
+kind of work, and the funnel of the catalogue's **Stage** column - the five
+dials in a row: press the stops to see what stands at any of them - the last
+two together are "what is closest to going out", the first is what nobody has
+touched yet.
 The funnel fills while it narrows the list.
 
 ## The rhythm and the auto-layout

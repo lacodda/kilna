@@ -23,17 +23,14 @@ export function useStage(workId: string) {
   const client = useQueryClient()
 
   return useAppMutation({
-    // `null` is not "leave it": it takes the work back to unjudged, which is a
-    // state of its own and the only way out of having answered.
-    mutationFn: (percent: number | null) => updateWork(workId, { stage: percent }),
+    // One of the five stops. There is no taking a stage back to nothing
+    // (FR-03): a work always stands somewhere, and the first stop is the way
+    // back to the start.
+    mutationFn: (percent: number) => updateWork(workId, { stage: percent }),
     failure: 'toast.workSaveFailed',
-    onSuccess: (updated, percent) => {
+    onSuccess: (updated) => {
       client.setQueryData(keys.work(workId), updated)
-      announceEdited({
-        client,
-        message: percent === null ? t('toast.stageCleared') : t('toast.stageSet'),
-        refresh: refresh.work,
-      })
+      announceEdited({ client, message: t('toast.stageSet'), refresh: refresh.work })
     },
   })
 }

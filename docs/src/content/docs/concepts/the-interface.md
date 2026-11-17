@@ -176,9 +176,9 @@ the starred.
 **The dial** opens a row of stops — *Idea*, *Rough take*, … *Finished* — and
 clicking one sets it. The same dial appears in the catalogue's own column, on
 a calendar chip and on the dashboard, so how far along something is reads the
-same everywhere. An empty ring means nobody has judged it yet, which is not
-the same as judging it a bare idea; clicking the stop it already stands on, or
-`Backspace`, takes it back to unjudged. The stops are your profile's
+same everywhere. There are five stops, a quarter apart, and a work always
+stands at one: an empty ring is the first, where every work starts. The
+words at the stops are your profile's
 ([`stages`](/kilna/reference/profile-document/#stages)); a work that shipped
 was set to finished when the workspace gained the dial.
 

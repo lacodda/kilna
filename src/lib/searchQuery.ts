@@ -23,6 +23,7 @@
  * whose label collides with another entry's key still behaves predictably.
  */
 import type { CatalogueFilter } from '@/lib/catalogue'
+import { stopOf } from '@/lib/stages'
 
 /** One entry of profile vocabulary: what it is called and what it is keyed by. */
 export interface Term {
@@ -54,6 +55,24 @@ export interface Vocabulary {
  * narrowing by a thing nobody could see or make would have promised it twice.
  */
 export const FIELDS = ['status', 'kind', 'tier', 'tag', 'stage', 'collection'] as const
+
+/**
+ * The five stops by the words the line itself gives them (FR-03), in both
+ * languages: `stage:final` and `stage:финал` find the last stop in a profile
+ * that calls it something else, as `stage:100` does.
+ */
+const STAGE_WORDS: Readonly<Record<string, number>> = {
+  idea: 0,
+  start: 25,
+  half: 50,
+  almost: 75,
+  final: 100,
+  идея: 0,
+  старт: 25,
+  половина: 50,
+  почти: 75,
+  финал: 100,
+}
 export type Field = (typeof FIELDS)[number]
 
 const IS_FIELD = new Set<string>(FIELDS)
@@ -154,15 +173,25 @@ export function parseQuery(query: string, vocabulary: Vocabulary): ParsedQuery {
       // A bare number first, because that is what `formatQuery` writes and the
       // round trip has to hold on a machine whose profile names the stops
       // differently from the one the line was written on.
-      const asNumber = /^\d{1,3}$/.test(value) ? Number(value) : undefined
+      // A number is put on the scale (FR-03): `stage:83`, written when the
+      // scale had seven stops, finds what stands at 75 now.
+      const asNumber = /^\d{1,3}$/.test(value) ? stopOf(Number(value)) : undefined
+      const word = value.toLowerCase()
       const stop =
         asNumber !== undefined
           ? vocabulary.stages.find((entry) => entry.percent === asNumber)
-          : vocabulary.stages.find(
+          : (vocabulary.stages.find(
               (entry) =>
-                entry.key.toLowerCase() === value.toLowerCase() ||
-                entry.label.toLowerCase() === value.toLowerCase(),
-            )
+                entry.key.toLowerCase() === word ||
+                entry.label.toLowerCase() === word ||
+                // A stop is worded "started / first drafts": either half
+                // names it, and so does its first word - `stage:started`,
+                // `stage:идея`.
+                entry.label
+                  .toLowerCase()
+                  .split(/\s*[/,]\s*/)
+                  .some((part) => part === word || part.split(' ')[0] === word),
+            ) ?? vocabulary.stages.find((entry) => STAGE_WORDS[word] === entry.percent))
       if (stop === undefined) {
         unknown.push({ field: 'stage', value })
       } else {

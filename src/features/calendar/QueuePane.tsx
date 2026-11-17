@@ -104,14 +104,13 @@ export function QueuePane({
   const [query, setQuery] = useState('')
   const [workKind, setWorkKind] = useState<string | null>(null)
   // The stops ticked, as the catalogue's stage funnel ticks them - the same
-  // boxes, read by the same rule (`standsAt`), "no stage" among them. "What
-  // is closest to going out" is the last stops ticked together. Until v0.111
-  // this was a dropdown of the pane's own that meant "has reached", and so
-  // could not find the works nobody had given a stage.
+  // five dials, read by the same rule (`standsAt`). "What is closest to
+  // going out" is the last stops ticked together. Until v0.111 this was a
+  // dropdown of the pane's own that meant "has reached".
   const [stages, setStages] = useState<number[]>([])
 
   const ticked = stages.length === 0 ? null : new Set(stages)
-  const matches = (kind: string, stage: number | null, title: string) =>
+  const matches = (kind: string, stage: number, title: string) =>
     (workKind === null || kind === workKind) &&
     (ticked === null || standsAt(stage, ticked)) &&
     title.toLowerCase().includes(query.trim().toLowerCase())

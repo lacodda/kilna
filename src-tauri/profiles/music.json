@@ -3342,65 +3342,52 @@
       {
         "key": "idea",
         "label": {
-          "en": "Idea",
-          "ru": "Идея"
+          "en": "idea / untouched",
+          "ru": "идея / ещё не трогали"
         },
         "percent": 0,
-        "colour": "plain"
+        "colour": "plain",
+        "hex": "#6E737D"
       },
       {
-        "key": "sketch",
+        "key": "start",
         "label": {
-          "en": "Rough take",
-          "ru": "Черновой набросок"
+          "en": "started / first drafts",
+          "ru": "старт / первые наброски"
         },
-        "percent": 17,
-        "colour": "plain"
+        "percent": 25,
+        "colour": "info",
+        "hex": "#5CA3FA"
       },
       {
         "key": "half",
         "label": {
-          "en": "Half there",
-          "ru": "Наполовину"
-        },
-        "percent": 33,
-        "colour": "warn"
-      },
-      {
-        "key": "nearly",
-        "label": {
-          "en": "Full draft",
-          "ru": "Полный черновик"
+          "en": "halfway / working draft",
+          "ru": "половина / рабочий черновик"
         },
         "percent": 50,
-        "colour": "warn"
+        "colour": "warn",
+        "hex": "#E8B341"
       },
       {
-        "key": "polish",
+        "key": "almost",
         "label": {
-          "en": "Polishing",
-          "ru": "Шлифовка"
+          "en": "almost ready / polishing",
+          "ru": "почти готово / доводка и полировка"
         },
-        "percent": 67,
-        "colour": "warn"
-      },
-      {
-        "key": "done",
-        "label": {
-          "en": "Finished",
-          "ru": "Готово"
-        },
-        "percent": 83,
-        "colour": "accent"
+        "percent": 75,
+        "colour": "accent",
+        "hex": "#B084F7"
       },
       {
         "key": "final",
         "label": {
-          "en": "Final",
-          "ru": "Финал"
+          "en": "final / ready to ship",
+          "ru": "финал, можно выпускать"
         },
         "percent": 100,
-        "colour": "good"
+        "colour": "good",
+        "hex": "#5EC486"
       }
     ],
     "rhythm": {

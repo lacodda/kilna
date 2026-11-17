@@ -4,7 +4,7 @@ import type { Going } from "./Going";
 /**
  * One work made from another, as the work it was made from lists it.
  */
-export type Publication = { work_id: string, title: string, kind: string, status: string, stage: number | null, 
+export type Publication = { work_id: string, title: string, kind: string, status: string, stage: number, 
 /**
  * How far down it stands: 1 for a clip made from the song, 2 for a short
  * cut from that clip.

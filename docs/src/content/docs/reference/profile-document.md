@@ -819,59 +819,65 @@ the built-in ones arrive in an existing workspace on the next launch.
 
 ## `stages`
 
-The stops on the way from an idea to a finished work — what the dial beside the
-star snaps to:
+The five stops on the way from an idea to a finished work - what the dial
+beside the star stands at:
 
 ```jsonc
-{ "key": "polish", "label": "Polishing", "percent": 80, "colour": "accent" }
+{ "key": "almost", "label": { "en": "almost ready / polishing", "ru": "почти готово / доводка и полировка" },
+  "percent": 75, "colour": "accent", "hex": "#B084F7" }
 ```
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `key` | string | Names the stop. The work stores the percentage, not this, so renaming a stop never touches a work. |
-| `label` | string | What the tooltip says, and what `stage:` accepts in the catalogue's box. |
-| `percent` | integer 0–100 | Where the stop sits, and how much of the dial it fills. |
-| `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` \| `"info"` | A palette role rather than a colour. Defaults to `plain`. |
+| `label` | string or a word per language | What a dial says when it is pointed at - *75% — almost ready / polishing* - and what `stage:` accepts in the catalogue's box. |
+| `percent` | `0`, `25`, `50`, `75` or `100` | Which of the five stops this is. No two stages stand at one. |
+| `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` \| `"info"` | A palette role, for a stop that names no `hex`. Defaults to `plain`. |
+| `hex` | `#RRGGBB` | The stop's exact colour. Five stops are told apart by colour alone - no word stands beside a dial - and the palette has fewer roles than the scale has stops. |
+
+**One scale for every craft.** A work stands at 0, 25, 50, 75 or 100, in
+every profile, and the stops are these:
+
+| At | Key | Colour | Says | Drawn as |
+| --- | --- | --- | --- | --- |
+| 0 | `idea` | `#6E737D` | idea / untouched | an empty grey ring, nothing in it |
+| 25 | `start` | `#5CA3FA` | started / first drafts | a quarter arc over a dim track |
+| 50 | `half` | `#E8B341` | halfway / working draft | a half arc |
+| 75 | `almost` | `#B084F7` | almost ready / polishing | a three-quarter arc |
+| 100 | `final` | `#5EC486` | final / ready to ship | the whole ring, closed |
+
+A profile words the stops - a stop renamed in **Settings → Profile** keeps its
+place and its colour - and that is all it does to them: a stop is neither
+added, nor removed, nor moved. A profile that names none, or only some, gets
+the line's words for the rest.
+
+Until v0.119 the scale was the profile's own, seven stops by default (0, 17,
+33, 50, 67, 83, 100), and nobody could say what told two neighbours apart.
+Every work was moved to the nearest of the five when the workspace was opened
+by v0.119: 17 and 33 to 25, 67 and 83 to 75. A stored profile on the older
+scale took the five whole, its old stops' words with them - they named places
+that are gone.
 
 A stage is not a status. A status says where the work stands in the *process*
-and is derived from facts — it was scored, a release was booked, it shipped. A
+and is derived from facts - it was scored, a release was booked, it shipped. A
 stage says how finished the *work itself* is, which no fact can answer: a song
 can have a complete lyric and still be three verses of placeholder, and only
 its author knows that. The two are independent, and a work is routinely
-`Scored` and `Polishing` at once.
+`Scored` and at 75 at once.
 
 It is not a mark either: a mark is raised or not, and the question here is one
 of degree.
 
-**The work stores a percentage, not a key.** A dial is a fraction by nature, and
-a second table mapping key to fraction would be a second truth about the same
-thing. A percentage between two stops belongs to the lower one — 79 is still
-*Polishing*, because rounding up would tell you a song is finished when you
-said it was nearly.
+**A work always stands somewhere.** A new work starts at 0. Until v0.119 it
+started at nothing - "nobody has said", an empty ring, where a judgement of
+zero drew a dot - and the two meant the same to anyone looking for what to
+pick up next. There is no taking a stage back to nothing: the way back to the
+start is the first stop.
 
-**Unset is a third state.** A work nobody has judged draws an empty ring, and it
-is not the same as a work judged to be a bare idea at 0 — that one draws a dot.
-`Backspace` on the dial, or clicking the stop it already stands on, takes a work
-back to unset.
-
-Stages are optional: a profile that names none uses the line's seven — *Idea*,
-*Rough draft*, *Half there*, *Nearly there*, *Polishing*, *Finished*, *Final*,
-at 0, 17, 33, 50, 67, 83 and 100. A dial with nothing to snap to is not a dial,
-so this is one of the few places the app answers for a craft that said nothing.
-
-*Final* is the last stop rather than *Finished* because those are two different
-claims: a work can be finished for a month before it goes out, and until v0.74.2
-nothing on a row told them apart. It is set by hand like every other stop — the
-stage stays a judgement, and whether a release actually shipped is what the
-status already derives.
-
-**Upgrading a profile renumbers its stops.** A stop that keeps a key the shipped
-profile still has takes that profile's `percent`, while its *label* stays
-whatever you renamed it to. This is the one field of a vocabulary entry that
-cannot be left alone: a stage is not a word but a word at a position, and a
-stored profile that gained *Final* at 100 while keeping *Finished* at 100 would
-hold two stops on one number. A stop you added yourself is not in the shipped
-list and is never touched.
+*final* is the last stop, not *released*: a work can be finished for a month
+before it goes out. It is set by hand like every other stop - the stage stays
+a judgement, and whether a release actually shipped is what the status
+already derives.
 
 ## `cover_ideas`
 

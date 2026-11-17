@@ -27,12 +27,13 @@ tier: string | null,
  */
 readiness: Readiness, 
 /**
- * How finished the work itself is, as its author judges it, 0..=100.
+ * How finished the work itself is, as its author judges it: one of
+ * the five stops.
  * Different from `readiness`, which asks whether the release could go out:
  * a work can have every role filled and still be three verses of
  * placeholder, and only the author knows that.
  */
-work_stage: number | null, id: string, work_id: string, kind: string, status: string, 
+work_stage: number, id: string, work_id: string, kind: string, status: string, 
 /**
  * Calendar slot. `None` means queued but unscheduled.
  */

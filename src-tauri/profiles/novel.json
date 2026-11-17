@@ -3,6 +3,13 @@
   "name": "Novel",
   "description": "Chapters with text and outline kept separately, judged on what makes a reader turn the page, gathered into books and shipped a chapter or a draft at a time.",
   "config": {
+    "stages": [
+      { "key": "idea", "label": { "en": "idea / untouched", "ru": "идея / ещё не трогали" }, "percent": 0, "colour": "plain", "hex": "#6E737D" },
+      { "key": "start", "label": { "en": "started / first drafts", "ru": "старт / первые наброски" }, "percent": 25, "colour": "info", "hex": "#5CA3FA" },
+      { "key": "half", "label": { "en": "halfway / working draft", "ru": "половина / рабочий черновик" }, "percent": 50, "colour": "warn", "hex": "#E8B341" },
+      { "key": "almost", "label": { "en": "almost ready / polishing", "ru": "почти готово / доводка и полировка" }, "percent": 75, "colour": "accent", "hex": "#B084F7" },
+      { "key": "final", "label": { "en": "final / ready to ship", "ru": "финал, можно выпускать" }, "percent": 100, "colour": "good", "hex": "#5EC486" }
+    ],
     "work_kinds": [
       { "key": "chapter", "label": { "en": "Chapter", "ru": "Глава" }, "folder": "chapters/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } },
       { "key": "scene", "label": { "en": "Scene", "ru": "Сцена" }, "folder": "scenes/{title}", "conception": { "brief": "brief", "idea": "premise", "with": [ "outline" ], "boards": [ "research", "scenarios" ] } },

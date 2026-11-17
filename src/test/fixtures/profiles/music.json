@@ -1990,64 +1990,51 @@
     "stages": [
       {
         "colour": "plain",
+        "hex": "#6E737D",
         "key": "idea",
         "label": {
-          "en": "Idea",
-          "ru": "Идея"
+          "en": "idea / untouched",
+          "ru": "идея / ещё не трогали"
         },
         "percent": 0
       },
       {
-        "colour": "plain",
-        "key": "sketch",
+        "colour": "info",
+        "hex": "#5CA3FA",
+        "key": "start",
         "label": {
-          "en": "Rough take",
-          "ru": "Черновой набросок"
+          "en": "started / first drafts",
+          "ru": "старт / первые наброски"
         },
-        "percent": 17
+        "percent": 25
       },
       {
         "colour": "warn",
+        "hex": "#E8B341",
         "key": "half",
         "label": {
-          "en": "Half there",
-          "ru": "Наполовину"
-        },
-        "percent": 33
-      },
-      {
-        "colour": "warn",
-        "key": "nearly",
-        "label": {
-          "en": "Full draft",
-          "ru": "Полный черновик"
+          "en": "halfway / working draft",
+          "ru": "половина / рабочий черновик"
         },
         "percent": 50
       },
       {
-        "colour": "warn",
-        "key": "polish",
-        "label": {
-          "en": "Polishing",
-          "ru": "Шлифовка"
-        },
-        "percent": 67
-      },
-      {
         "colour": "accent",
-        "key": "done",
+        "hex": "#B084F7",
+        "key": "almost",
         "label": {
-          "en": "Finished",
-          "ru": "Готово"
+          "en": "almost ready / polishing",
+          "ru": "почти готово / доводка и полировка"
         },
-        "percent": 83
+        "percent": 75
       },
       {
         "colour": "good",
+        "hex": "#5EC486",
         "key": "final",
         "label": {
-          "en": "Final",
-          "ru": "Финал"
+          "en": "final / ready to ship",
+          "ru": "финал, можно выпускать"
         },
         "percent": 100
       }

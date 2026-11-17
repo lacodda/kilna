@@ -11,8 +11,9 @@ const vocabulary: Vocabulary = {
   ],
   kinds: [{ key: 'song', label: 'Song' }],
   stages: [
-    { key: 'idea', label: 'Idea', percent: 0 },
-    { key: 'polish', label: 'Polishing', percent: 80 },
+    { key: 'idea', label: 'idea / untouched', percent: 0 },
+    { key: 'almost', label: 'almost ready / polishing', percent: 75 },
+    { key: 'final', label: 'Mixed and mastered', percent: 100 },
   ],
   tiers: [
     { key: 'clip', label: 'Clip' },
@@ -77,25 +78,39 @@ describe('parseQuery', () => {
     expect(missing.unknown).toEqual([{ field: 'collection', value: 'Summer' }])
   })
 
-  it('reads a stage by its key, its label or its number', () => {
-    for (const line of ['stage:polish', 'stage:Polishing', 'stage:POLISH', 'stage:80']) {
-      expect(parseQuery(line, vocabulary).filter.stage, line).toBe(80)
+  it('reads a stage by its key, its words or its number', () => {
+    for (const line of [
+      'stage:almost',
+      'stage:ALMOST',
+      'stage:polishing',
+      'stage:75',
+      // A number of the scale before v0.119 lands on its stop.
+      'stage:83',
+    ]) {
+      expect(parseQuery(line, vocabulary).filter.stage, line).toBe(75)
     }
+    // The whole label, which has a space in it, is written in quotes like any
+    // other value - and the line's own words find a stop the profile renamed,
+    // in either language.
+    for (const line of ['stage:final', 'stage:финал', 'stage:100']) {
+      expect(parseQuery(line, vocabulary).filter.stage, line).toBe(100)
+    }
+    expect(parseQuery('stage:идея', vocabulary).filter.stage).toBe(0)
   })
 
   // The number is what is stored and what `formatQuery` writes, so a line
   // written on one machine has to parse on another whose profile calls the
   // same stop something else.
   it('writes a stage back as its number, and reads it back', () => {
-    const line = formatQuery({ stage: 80 })
-    expect(line).toBe('stage:80')
-    expect(parseQuery(line, vocabulary).filter.stage).toBe(80)
+    const line = formatQuery({ stage: 75 })
+    expect(line).toBe('stage:75')
+    expect(parseQuery(line, vocabulary).filter.stage).toBe(75)
   })
 
   it('reports a stage the profile does not have rather than filtering on it', () => {
-    const parsed = parseQuery('stage:mixed', vocabulary)
+    const parsed = parseQuery('stage:demo', vocabulary)
     expect(parsed.filter.stage).toBeUndefined()
-    expect(parsed.unknown).toEqual([{ field: 'stage', value: 'mixed' }])
+    expect(parsed.unknown).toEqual([{ field: 'stage', value: 'demo' }])
   })
 
   // A stage of zero is a judgement — "this is a bare idea" — and `0` is falsy

@@ -7,7 +7,7 @@ import { useCovers } from '@/lib/useCovers'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { daysBetween, missing, sayNeed } from '@/lib/readiness'
 import { openExternal, shortLink } from '@/lib/link'
-import { allOf, labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { StageDial } from '@/components/StageDial'
 import { stageAt } from '@/lib/stages'
 import { BigCalendarItem } from '@/components/ui/big-calendar-item'
@@ -135,14 +135,7 @@ export function ReleaseLine({ slot, date, now, dragging, onGrab, onOpen, carried
           <RepeatMark mark={repeat} tooltip={false} />
           <ReadyMark release={slot} daysLeft={daysBetween(now, date)} />
           {slot.slot_pinned_at !== null && <Lock aria-hidden className="size-2.5" />}
-          {slot.work_stage !== null && (
-            <StageDial
-              percent={slot.work_stage}
-              stage={stage}
-              size={10}
-              className="hidden @min-[7rem]:block"
-            />
-          )}
+          <StageDial stage={stage} size={10} className="hidden @min-[7rem]:block" />
           <KindGlyph icon={kind?.icon} className="size-3" />
         </>
       }
@@ -199,8 +192,7 @@ export function ReleaseLine({ slot, date, now, dragging, onGrab, onOpen, carried
           <div className="flex justify-between gap-3">
             <dt className="text-faint">{t('stage.label')}</dt>
             <dd className="flex items-center gap-1.5">
-              <StageDial percent={slot.work_stage} stage={stage} size={12} />
-              {stage === undefined ? t('stage.unset') : sayLabel(stage.label)}
+              <StageDial stage={stage} size={12} />
             </dd>
           </div>
           {repeat !== undefined && (

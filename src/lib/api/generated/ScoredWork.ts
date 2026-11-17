@@ -67,10 +67,10 @@ version_count: number,
  */
 bookmarked_at: string | null, 
 /**
- * How finished the work is, 0..=100, as the author judges it. `None` while
- * nobody has said — the dial on the row draws an empty ring for that.
+ * How finished the work is, as the author judges it: one of the five
+ * stops.
  */
-stage: number | null, 
+stage: number, 
 /**
  * For a work that never goes out itself - a song - everything made from
  * it, down the links: the works whose releases are its own facts, so the

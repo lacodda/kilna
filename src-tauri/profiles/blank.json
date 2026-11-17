@@ -4,6 +4,58 @@
   "description": "One kind of work with a text, four statuses and one way out: the rest is yours to name in Settings.",
   "config": {
     "format": 3,
+    "stages": [
+      {
+        "key": "idea",
+        "label": {
+          "en": "idea / untouched",
+          "ru": "идея / ещё не трогали"
+        },
+        "percent": 0,
+        "colour": "plain",
+        "hex": "#6E737D"
+      },
+      {
+        "key": "start",
+        "label": {
+          "en": "started / first drafts",
+          "ru": "старт / первые наброски"
+        },
+        "percent": 25,
+        "colour": "info",
+        "hex": "#5CA3FA"
+      },
+      {
+        "key": "half",
+        "label": {
+          "en": "halfway / working draft",
+          "ru": "половина / рабочий черновик"
+        },
+        "percent": 50,
+        "colour": "warn",
+        "hex": "#E8B341"
+      },
+      {
+        "key": "almost",
+        "label": {
+          "en": "almost ready / polishing",
+          "ru": "почти готово / доводка и полировка"
+        },
+        "percent": 75,
+        "colour": "accent",
+        "hex": "#B084F7"
+      },
+      {
+        "key": "final",
+        "label": {
+          "en": "final / ready to ship",
+          "ru": "финал, можно выпускать"
+        },
+        "percent": 100,
+        "colour": "good",
+        "hex": "#5EC486"
+      }
+    ],
     "work_kinds": [
       {
         "key": "work",

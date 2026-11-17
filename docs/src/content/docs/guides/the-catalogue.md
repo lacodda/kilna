@@ -135,12 +135,14 @@ nothing and is not a word of the profile, which is why it is a chip and
 not a token in the box.
 
 **The dial** in its own column says how finished each work is, as its author
-judges it — an empty ring for one nobody has judged yet. Click it to set the
-stage from the row; the same dial sits beside the star on the card, on the
-calendar chip and on the dashboard. It is not the status: a work is routinely
-*Scored* and still *Polishing*. See
-[`stages`](/kilna/reference/profile-document/#stages) for the stops and how to
-name your own.
+judges it: one of five stops - an empty ring at the start, an arc of a
+quarter, a half and three quarters, the whole ring when it is final. No word
+stands beside it; point at one and it says its stop, *75% — almost ready /
+polishing*. Click it and five dials open in a row: press the one the work
+stands at. The same dial sits beside the star on the card, on the calendar
+chip and on the dashboard. It is not the status: a work is routinely *Scored*
+and still at 75. See [`stages`](/kilna/reference/profile-document/#stages)
+for the stops and how to word them.
 
 **Each row says where the work stands** as a badge in the status's own
 colour — *Scored*, *Scheduled*, *Released* — and what it is in outline
@@ -178,9 +180,14 @@ A few things about how it reads what you type:
   finds the same works. Case never matters, in any alphabet.
 - **A tag is matched whole.** `tag:win` does not find *winter* — tags are words
   you chose, so the exact one is the one you mean.
-- **A stage is named or numbered.** `stage:polish`, `stage:Polishing` and
-  `stage:80` all mean the same stop. The line is written back as the number, so
-  a saved view keeps meaning the same thing if you rename the stop later.
+- **A stage is named or numbered.** `stage:almost`, `stage:polishing` and
+  `stage:75` all mean the same stop - a stop is found by its key, by either
+  half of what it says, or by its number; `stage:idea`, `stage:start`,
+  `stage:half`, `stage:almost` and `stage:final` (and `идея`, `старт`,
+  `половина`, `почти`, `финал`) find theirs whatever you renamed them to. The
+  line is written back as the number, so a saved view keeps meaning the same
+  thing if you rename the stop later, and a number written on the older scale
+  - `stage:83` - reads as the stop it lands on.
 - **A collection is named, and held by what it is.** `collection:"Deep time"`
   finds the album; the box shows the name back, so renaming the album later
   keeps a saved view pointing at it. Two collections with the same name are
@@ -209,10 +216,10 @@ and staying on, filled, while that column is narrowing the list:
 
 Ticking two stops means *either*, the way the status dropdown means one
 status; the funnels on different columns combine as *and*, with each other
-and with everything in the box. So `winter` in the box with *Polishing* and
-*Finished* ticked under Stage is "winter songs that are nearly done". A work
-nobody has staged stands at no stop and is left out once stops are ticked;
-the same for a work with no tier. **Clear** inside the panel empties that
+and with everything in the box. The Stage funnel is the five dials in a row,
+each a tick: `winter` in the box with the last two pressed is "winter songs
+that are nearly done", and the first dial alone is what nobody has touched
+yet. A work with no tier is left out once tiers are ticked. **Clear** inside the panel empties that
 funnel; unticking the last box does the same.
 
 Column filters are not written into the query line: a set of ticked stops

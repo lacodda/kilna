@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { Mark, MarkColour, ProfileConfig, Stage, StyleType, WorkKind } from '@/lib/api/types'
 import { Select } from '@/components/AppSelect'
-import { NumberField } from '@/components/ui/number-field'
+import { StageDial } from '@/components/StageDial'
 import { CoverIdeasEditor } from '@/features/settings/CoverIdeasEditor'
 import { GuardEditor } from '@/features/settings/GuardEditor'
 import { KeyedList } from '@/features/settings/KeyedList'
@@ -9,6 +9,7 @@ import { useColourOptions, WordsEditor } from '@/features/settings/KindWords'
 import { LabelInput } from '@/features/settings/LabelInput'
 import { RhythmEditor } from '@/features/settings/RhythmEditor'
 import type { ProblemsAt } from '@/features/settings/useProfileProblems'
+import { stagesOf } from '@/lib/stages'
 
 /** A kind of work newly made: a draft to start in and a text to write, which
  *  is the least a kind can be - a kind with no status cannot hold a work. */
@@ -82,38 +83,26 @@ export function CraftEditor({
         )}
       </KeyedList>
 
+      {/* The five stops (FR-03): renamed here, and nothing else. Where a
+          stop stands and what colour it wears is the line's - one scale for
+          every craft - so a stop is neither added, nor removed, nor moved;
+          until v0.119 each had a percentage and a colour to set, and a list
+          that could be grown into a dial nobody could read. */}
       <KeyedList<Stage>
         label={t('editor.stages')}
         help={t('editor.stagesHint')}
-        entries={config.stages ?? []}
+        entries={stagesOf(config)}
         onChange={(stages) => patch({ stages })}
-        make={(key) => ({ key, label: key, percent: 0, colour: 'plain' })}
+        removable={false}
       >
         {(stage, set) => (
           <>
+            <StageDial stage={stage} size={16} />
             <LabelInput
               className="flex-1"
               label={stage.label}
               onChange={(label) => set({ label: label ?? '' })}
               aria-label={t('editor.wordOf', { key: stage.key })}
-            />
-            <NumberField
-              className="w-24"
-              hideStepper
-              min={0}
-              max={100}
-              step={1}
-              unit="%"
-              value={stage.percent}
-              onValueChange={(percent) => set({ percent: Math.round(percent ?? 0) })}
-              aria-label={t('editor.stagePercent', { key: stage.key })}
-            />
-            <Select
-              className="w-32"
-              aria-label={t('editor.colourOf', { key: stage.key })}
-              value={stage.colour}
-              onChange={(colour) => set({ colour: colour as MarkColour })}
-              options={colours}
             />
           </>
         )}

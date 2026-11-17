@@ -186,7 +186,7 @@ describe('matchesView', () => {
 
   // Each field of the filter apart, so that dropping one from the comparison
   // fails here by name: the star and the stage were left out until v0.92.
-  it.each([{ bookmarked: true as const }, { stage: 80 }, { collection: 'col-deep' }])(
+  it.each([{ bookmarked: true as const }, { stage: 75 }, { collection: 'col-deep' }])(
     'sees %o, which the saved view does not carry',
     (narrowed) => {
       const held = view({ filter: {} })

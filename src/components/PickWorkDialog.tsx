@@ -225,7 +225,7 @@ function Row({ row }: { row: ScoredWork }) {
       >
         <b className="block truncate text-sm font-medium">{row.title}</b>
       </CommandPaletteRow>
-      <StageDial percent={row.stage} stage={stop} size={14} className="shrink-0" />
+      <StageDial stage={stop} size={14} className="shrink-0" />
     </CommandPaletteItem>
   )
 }

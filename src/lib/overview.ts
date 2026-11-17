@@ -7,14 +7,12 @@ import type {
   ReleaseKind,
   ScheduledRelease,
   Score,
-  Stage,
   VersionRole,
   VersionSummary,
   WidgetPlacement,
   WidgetSize,
 } from '@/lib/api/types'
 import { predecessor } from '@/lib/history'
-import { stageAt, stagesOf } from '@/lib/stages'
 
 /*
  * The overview as a board of widgets (v0.82): which widgets a work's overview
@@ -348,13 +346,6 @@ export function fieldsOf(fields: readonly MetaField[]): { short: MetaField[]; pr
  */
 export function trailOf(history: readonly Score[], count: number): Score[] {
   return history.slice(0, count).reverse()
-}
-
-/** The stop after the one a work is at; `undefined` at the last, or unset. */
-export function nextStage(config: ProfileConfig, percent: number | null): Stage | undefined {
-  const current = stageAt(config, percent)
-  if (current === undefined) return undefined
-  return stagesOf(config).find((stop) => stop.percent > current.percent)
 }
 
 /** A condition, as the line's status vocabulary names it. */

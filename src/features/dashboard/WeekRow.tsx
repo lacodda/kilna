@@ -46,12 +46,7 @@ export function WeekRow({
           {/* How finished the work is, beside how ready the release is: the
               marks say whether it could go out, the dial says whether it is
               done. */}
-          {release.work_stage !== null && (
-            <StageDial
-              percent={release.work_stage}
-              stage={stageAt(profile.config, release.work_stage)}
-            />
-          )}
+          <StageDial stage={stageAt(profile.config, release.work_stage)} />
           <ReadyMarks release={release} daysLeft={daysLeft} />
           {/* Whether its song repeats one out or booked nearby (ADR 0054):
               a week about to go out is the last place to notice. */}

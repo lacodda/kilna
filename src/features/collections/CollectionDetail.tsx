@@ -296,7 +296,7 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
               {order.map((workId, index) => {
                 const row = byId.get(workId)
                 const vocabulary = vocabularyOf(config, row?.kind)
-                const stop = stageAt(config, row?.stage ?? null)
+                const stop = stageAt(config, row?.stage ?? 0)
                 return (
                   <li
                     key={workId}
@@ -333,7 +333,7 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
                         {labelOf(config.work_kinds, row.kind)}
                       </Chip>
                     )}
-                    <StageDial percent={row?.stage ?? null} stage={stop} size={14} />
+                    <StageDial stage={stop} size={14} />
                     <span className="w-24 shrink-0 text-right font-mono text-xs text-dim tabular-nums">
                       {row?.total === null || row?.total === undefined
                         ? t('collections.unjudgedOne')

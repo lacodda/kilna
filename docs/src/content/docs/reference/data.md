@@ -154,8 +154,8 @@ Each work's page includes:
 
 - Front matter: the page's `format` number, title, kind, status,
   created/updated timestamps, a pinned tier and its reason when there is one,
-  the bookmark when set, the stage as a percentage when the work has been
-  judged, its `number` among the works made from the same origin and the
+  the bookmark when set, the stage as the percentage of its stop (0, 25, 50,
+  75 or 100), its `number` among the works made from the same origin and the
   `finished_file` chosen for it when there are any, and every craft-specific
   `meta` field.
 - Every version, grouped by role, newest revision first, with the current one

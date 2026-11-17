@@ -2757,36 +2757,213 @@ pub struct Stage {
     /// themes.
     #[serde(default)]
     pub colour: MarkColour,
+    /// The stop's exact colour, `#RRGGBB` (v0.119). The five stops are told
+    /// apart by colour alone - no word stands beside a dial - and the
+    /// palette has fewer roles than the scale has stops. Where it is set the
+    /// dial draws it; `colour` stays for a stop that names none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub hex: Option<String>,
 }
 
-/// The stops a craft gets when it names none of its own.
+/// The five places a work can stand at (FR-03): a quarter each. One scale
+/// for every craft, so a dial reads the same in every profile and a stage
+/// can be compared across kinds; the words at each stop are the profile's.
+pub const STOPS: [i64; 5] = [0, 25, 50, 75, 100];
+
+/// A stage as it is kept: one of [`STOPS`].
 ///
-/// A dial with nothing to snap to is not a dial, so this is not an empty list:
-/// seven stops are enough to say something useful and few enough to click
-/// through without reading. A profile that means something else says so and
-/// this is never consulted.
+/// Whatever arrives - nothing at all, a number from the seven-stop scale a
+/// work was given before v0.119, one read out of an old line of the
+/// operation log, a parcel written by an earlier release - lands on the stop
+/// nearest to it. "Nobody has said" is the first stop: a work that was never
+/// given a stage and a bare idea are the same thing to anyone looking for
+/// what to pick up, and two states that draw alike were one too many.
+pub fn normalize_stage(stage: Option<i64>) -> i64 {
+    match stage {
+        None => 0,
+        Some(value) if value <= 12 => 0,
+        Some(value) if value <= 37 => 25,
+        Some(value) if value <= 62 => 50,
+        Some(value) if value <= 87 => 75,
+        Some(_) => 100,
+    }
+}
+
+#[cfg(test)]
+mod stage_tests {
+    use super::*;
+
+    /// Studio as it ships.
+    fn studio() -> ProfileConfig {
+        let conn = crate::db::open_in_memory().unwrap();
+        crate::profile::seed(&conn, crate::profile::DEFAULT_KIND).unwrap();
+        crate::profile::active(&conn).unwrap().unwrap().config
+    }
+
+    #[test]
+    fn a_stage_lands_on_the_nearest_of_the_five_stops() {
+        // Nothing at all is the first stop: "nobody has said" is gone.
+        assert_eq!(normalize_stage(None), 0);
+        // The seven stops a work could stand at until v0.119.
+        for (before, after) in [
+            (0, 0),
+            (17, 25),
+            (33, 25),
+            (50, 50),
+            (67, 75),
+            (83, 75),
+            (100, 100),
+        ] {
+            assert_eq!(normalize_stage(Some(before)), after, "{before}");
+        }
+        // The thresholds, each side of each.
+        for (before, after) in [
+            (12, 0),
+            (13, 25),
+            (37, 25),
+            (38, 50),
+            (62, 50),
+            (63, 75),
+            (87, 75),
+            (88, 100),
+        ] {
+            assert_eq!(normalize_stage(Some(before)), after, "{before}");
+        }
+        // Off the dial altogether.
+        assert_eq!(normalize_stage(Some(-5)), 0);
+        assert_eq!(normalize_stage(Some(140)), 100);
+        // And what is on the scale stays where it is.
+        for stop in STOPS {
+            assert_eq!(normalize_stage(Some(stop)), stop);
+        }
+    }
+
+    #[test]
+    fn the_lines_own_stops_are_the_five_each_with_its_colour_and_both_languages() {
+        let stops = default_stages();
+        assert_eq!(
+            stops.iter().map(|stop| stop.percent).collect::<Vec<_>>(),
+            STOPS
+        );
+        assert_eq!(
+            stops
+                .iter()
+                .map(|stop| stop.hex.as_deref().unwrap())
+                .collect::<Vec<_>>(),
+            ["#6E737D", "#5CA3FA", "#E8B341", "#B084F7", "#5EC486"]
+        );
+        for stop in &stops {
+            let Label::PerLocale(words) = &stop.label else {
+                panic!("{} is said in one language", stop.key);
+            };
+            assert!(words.contains_key("en") && words.contains_key("ru"));
+        }
+    }
+
+    #[test]
+    fn a_stop_off_the_scale_two_on_one_place_and_a_colour_that_is_not_one_are_problems() {
+        let mut config = studio();
+        config.stages = default_stages();
+        assert!(config.problems().is_empty());
+
+        config.stages[1].percent = 17;
+        config.stages[2].percent = 75;
+        config.stages[4].hex = Some("green".into());
+        let codes: Vec<String> = config
+            .problems()
+            .iter()
+            .map(|problem| problem.key.clone())
+            .collect();
+        assert_eq!(
+            codes,
+            [
+                "problem.stageOffScale",
+                "problem.stageSharesStop",
+                "problem.stageColour"
+            ]
+        );
+    }
+
+    #[test]
+    fn a_profile_naming_some_of_the_five_answers_for_the_rest_with_the_lines_own() {
+        let mut config = studio();
+        config.stages = default_stages();
+        config.stages.retain(|stop| stop.percent != 50);
+        config.stages[0].label = Label::from("Seed");
+
+        assert_eq!(config.stage_at(0).unwrap().label, "Seed");
+        assert_eq!(config.stage_at(50).unwrap().key, "half");
+        // A number from an older scale reads as the stop it lands on.
+        assert_eq!(config.stage_at(83).unwrap().key, "almost");
+    }
+}
+
+/// The five stops as the line words them: what a craft gets when it names
+/// none of its own, and what every shipped profile carries (FR-03).
 ///
-/// The last stop is "Final" rather than "Finished", because those are two
-/// different claims: a work can be finished and still unreleased, and the
-/// owner wanted to see at a glance which ones were out. Both are set by hand,
-/// like every other stop - the stage stays a judgement, and the fact of a
-/// release is what the status already carries.
+/// Five, where there were seven: nobody could say what told "Nearly there"
+/// from "Polishing", and a scale whose neighbours cannot be told apart is
+/// read by nobody. The words are what a dial says when it is pointed at -
+/// "25% - started / first drafts" - since no word stands beside one.
+///
+/// The last stop is "final", not "released": the stage stays a judgement
+/// made by hand, and the fact of a release is what the status carries.
 pub fn default_stages() -> Vec<Stage> {
     [
-        ("idea", "Idea", 0, MarkColour::Plain),
-        ("raw", "Rough draft", 17, MarkColour::Plain),
-        ("half", "Half there", 33, MarkColour::Warn),
-        ("nearly", "Nearly there", 50, MarkColour::Warn),
-        ("polish", "Polishing", 67, MarkColour::Warn),
-        ("done", "Finished", 83, MarkColour::Accent),
-        ("final", "Final", 100, MarkColour::Good),
+        (
+            "idea",
+            "idea / untouched",
+            "идея / ещё не трогали",
+            0,
+            MarkColour::Plain,
+            "#6E737D",
+        ),
+        (
+            "start",
+            "started / first drafts",
+            "старт / первые наброски",
+            25,
+            MarkColour::Info,
+            "#5CA3FA",
+        ),
+        (
+            "half",
+            "halfway / working draft",
+            "половина / рабочий черновик",
+            50,
+            MarkColour::Warn,
+            "#E8B341",
+        ),
+        (
+            "almost",
+            "almost ready / polishing",
+            "почти готово / доводка и полировка",
+            75,
+            MarkColour::Accent,
+            "#B084F7",
+        ),
+        (
+            "final",
+            "final / ready to ship",
+            "финал, можно выпускать",
+            100,
+            MarkColour::Good,
+            "#5EC486",
+        ),
     ]
     .into_iter()
-    .map(|(key, label, percent, colour)| Stage {
+    .map(|(key, en, ru, percent, colour, hex)| Stage {
         key: key.to_owned(),
-        label: Label::from(label),
+        label: Label::PerLocale(
+            [("en", en), ("ru", ru)]
+                .into_iter()
+                .map(|(language, word)| (language.to_owned(), word.to_owned()))
+                .collect(),
+        ),
         percent,
         colour,
+        hex: Some(hex.to_owned()),
     })
     .collect()
 }
@@ -3209,14 +3386,14 @@ impl ProfileConfig {
         }
     }
 
-    /// The stop a percentage belongs to: the last one it has reached.
-    ///
-    /// Not the nearest: a work at 79 is still polishing, not "finished", and
-    /// rounding up would tell the author their song is done.
+    /// The stop a stage stands at. A profile that names only some of the
+    /// five answers for the rest with the line's own.
     pub fn stage_at(&self, percent: i64) -> Option<Stage> {
+        let at = normalize_stage(Some(percent));
         self.stages()
             .into_iter()
-            .rfind(|stage| stage.percent <= percent)
+            .find(|stage| stage.percent == at)
+            .or_else(|| default_stages().into_iter().find(|s| s.percent == at))
     }
 
     /// Combine axis values into a 0–100 total, as `kind` weighs them.
@@ -3315,6 +3492,7 @@ impl ProfileConfig {
             Reason::of("place.metaFields"),
             self.work_meta_fields.iter().map(|f| f.key.clone()),
         );
+        self.validate_stages(&mut problems);
         unique(
             &mut problems,
             Reason::of("place.styleTypes"),
@@ -3549,6 +3727,45 @@ impl ProfileConfig {
     /// window.
     pub fn validate(&self) -> Vec<String> {
         self.problems().iter().map(Reason::english).collect()
+    }
+
+    /// The stops of the dial (FR-03): each on one of the five places, no two
+    /// on the same one, a colour written as `#RRGGBB`. A stop anywhere else
+    /// is a stop no work can stand at, since a stage is kept on the scale;
+    /// two on one place is a dial that says one of them at random.
+    fn validate_stages(&self, problems: &mut Vec<Reason>) {
+        unique(
+            problems,
+            Reason::of("place.stages"),
+            self.stages.iter().map(|stage| stage.key.clone()),
+        );
+        let mut taken = BTreeSet::new();
+        for stage in &self.stages {
+            if !STOPS.contains(&stage.percent) {
+                problems.push(
+                    Reason::of("problem.stageOffScale")
+                        .param("key", stage.key.clone())
+                        .param("percent", stage.percent),
+                );
+            } else if !taken.insert(stage.percent) {
+                problems.push(
+                    Reason::of("problem.stageSharesStop")
+                        .param("key", stage.key.clone())
+                        .param("percent", stage.percent),
+                );
+            }
+            if let Some(hex) = &stage.hex
+                && !(hex.len() == 7
+                    && hex.starts_with('#')
+                    && hex[1..].chars().all(|c| c.is_ascii_hexdigit()))
+            {
+                problems.push(
+                    Reason::of("problem.stageColour")
+                        .param("key", stage.key.clone())
+                        .param("colour", hex.clone()),
+                );
+            }
+        }
     }
 
     /// The boards, and the conceptions that lay them out (ADR 0065).

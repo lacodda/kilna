@@ -37,7 +37,7 @@ const row = (work_id: string, total: number | null): ScoredWork => ({
   marks: [],
   version_count: 1,
   bookmarked_at: null,
-  stage: null,
+  stage: 0,
   publications: [],
 })
 

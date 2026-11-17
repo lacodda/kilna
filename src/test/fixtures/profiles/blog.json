@@ -589,7 +589,58 @@
       "every_days": 2,
       "monthly": []
     },
-    "stages": [],
+    "stages": [
+      {
+        "colour": "plain",
+        "hex": "#6E737D",
+        "key": "idea",
+        "label": {
+          "en": "idea / untouched",
+          "ru": "идея / ещё не трогали"
+        },
+        "percent": 0
+      },
+      {
+        "colour": "info",
+        "hex": "#5CA3FA",
+        "key": "start",
+        "label": {
+          "en": "started / first drafts",
+          "ru": "старт / первые наброски"
+        },
+        "percent": 25
+      },
+      {
+        "colour": "warn",
+        "hex": "#E8B341",
+        "key": "half",
+        "label": {
+          "en": "halfway / working draft",
+          "ru": "половина / рабочий черновик"
+        },
+        "percent": 50
+      },
+      {
+        "colour": "accent",
+        "hex": "#B084F7",
+        "key": "almost",
+        "label": {
+          "en": "almost ready / polishing",
+          "ru": "почти готово / доводка и полировка"
+        },
+        "percent": 75
+      },
+      {
+        "colour": "good",
+        "hex": "#5EC486",
+        "key": "final",
+        "label": {
+          "en": "final / ready to ship",
+          "ru": "финал, можно выпускать"
+        },
+        "percent": 100
+      }
+    ],
     "style_types": [],
     "work_kinds": [
       {

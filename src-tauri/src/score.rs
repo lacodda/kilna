@@ -99,9 +99,9 @@ pub struct ScoredWork {
     /// Set when the person marked this one to come back to — the star on the
     /// row, and what the catalogue's star filter reads.
     pub bookmarked_at: Option<String>,
-    /// How finished the work is, 0..=100, as the author judges it. `None` while
-    /// nobody has said — the dial on the row draws an empty ring for that.
-    pub stage: Option<i64>,
+    /// How finished the work is, as the author judges it: one of the five
+    /// stops.
+    pub stage: i64,
     /// For a work that never goes out itself - a song - everything made from
     /// it, down the links: the works whose releases are its own facts, so the
     /// row's next release is its audio's or its clip's (v0.86, ADR 0047).
@@ -392,7 +392,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             version_count: row.get(15)?,
             tier_pinned: row.get::<_, i64>(16)? == 1,
             bookmarked_at: row.get(17)?,
-            stage: row.get(18)?,
+            stage: crate::profile::config::normalize_stage(row.get(18)?),
             publications: Vec::new(),
         })
     })?;

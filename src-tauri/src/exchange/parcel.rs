@@ -475,7 +475,7 @@ pub fn of_work(conn: &Connection, work_id: &str) -> Result<Parcel> {
             meta: found.meta,
             tags: found.tags,
             marks: found.marks,
-            stage: found.stage,
+            stage: Some(found.stage),
             tier_pinned: found.tier_pinned,
             tier_pinned_at: found.tier_pinned_at,
             tier_pin_reason: found.tier_pin_reason,
@@ -906,7 +906,9 @@ pub fn land(
         params![
             made.id,
             packed.status_pinned_at.as_ref().filter(|_| known),
-            packed.stage,
+            // A parcel packed by a release before v0.119 carries a stop of the
+            // old scale, or none.
+            crate::profile::config::normalize_stage(packed.stage),
             packed.tier_pinned,
             packed.tier_pinned_at,
             packed.tier_pin_reason,

@@ -1,5 +1,5 @@
 import type { RepeatLevel, ScheduledRelease, ScoredWork } from '@/lib/api/types'
-import { standsAt } from '@/lib/stages'
+import { standsAt, stopOf } from '@/lib/stages'
 
 /** A working gap: something started but not carried through. */
 export type Gap = 'unscored' | 'unscheduled' | 'stale'
@@ -183,7 +183,7 @@ export function narrow<Row extends ScoredWork>(
       return false
     }
     if (filter.bookmarked === true && row.bookmarked_at === null) return false
-    if (filter.stage !== undefined && row.stage !== filter.stage) return false
+    if (filter.stage !== undefined && row.stage !== stopOf(filter.stage)) return false
     if (filter.collection !== undefined && row.collection_id !== filter.collection) return false
     if (needle !== '') {
       // Either way of matching is enough: the index knows the bodies, and the
@@ -279,8 +279,9 @@ export interface ColumnFilters {
    * for one status until v0.79; the funnel on the column asks for several,
    * and `status:` in the box still asks for one. */
   statuses?: string[]
-  /** Stage stops, as their percentages: works standing at any of them, plus
-   * {@link NO_STAGE} for works standing at none. */
+  /** Stage stops, as their percentages: works standing at any of them. What
+   * a view saved before v0.119 ticked - a stop of the older scale, the "no
+   * stage" entry - is read as the stop it lands on (`stopOf`). */
   stages?: number[]
   /** Tier keys. */
   tiers?: string[]
@@ -310,9 +311,8 @@ const FILTERABLE_COLUMNS: FilterableColumn[] = ['title', 'statuses', 'stages', '
 /**
  * Narrow by the header funnels. Applied after `narrow`, on what it left.
  *
- * A work with no stage matches only {@link NO_STAGE}, the funnel's own entry
- * for standing nowhere; a work with no tier still matches none of the ticked
- * tiers, since a tier is earned rather than set and "not yet" is what the
+ * A work stands at one of the five stops and matches its own; a work with
+ * no tier still matches none of the ticked tiers, since a tier is earned rather than set and "not yet" is what the
  * empty cell already says. Marks match on any ticked key, not all — a person
  * ticking two marks is asking "which works carry either", and two ticked
  * statuses ask the same of where the works stand.
@@ -323,7 +323,9 @@ export function narrowByColumns<Row extends ScoredWork>(
 ): Row[] {
   const needle = filters.title?.trim().toLowerCase() ?? ''
   const statuses = isColumnFiltered(filters, 'statuses') ? new Set(filters.statuses) : undefined
-  const stages = isColumnFiltered(filters, 'stages') ? new Set(filters.stages) : undefined
+  const stages = isColumnFiltered(filters, 'stages')
+    ? new Set((filters.stages ?? []).map(stopOf))
+    : undefined
   const tiers = isColumnFiltered(filters, 'tiers') ? new Set(filters.tiers) : undefined
   const marks = isColumnFiltered(filters, 'marks') ? new Set(filters.marks) : undefined
 

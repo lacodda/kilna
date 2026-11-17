@@ -155,7 +155,7 @@ function work(fields: Partial<Work> & Pick<Work, 'id' | 'kind' | 'title'>): Work
     tier_pinned_at: null,
     tier_pin_reason: null,
     bookmarked_at: null,
-    stage: null,
+    stage: 0,
     ordinal: null,
     file: null,
     cover: coverOf(),
@@ -643,7 +643,7 @@ function scheduled(studio: Studio, release: Release): ScheduledRelease {
     total: score?.total ?? null,
     tier: score?.tier ?? null,
     readiness: READY,
-    work_stage: owner?.stage ?? null,
+    work_stage: owner?.stage ?? 0,
   }
 }
 

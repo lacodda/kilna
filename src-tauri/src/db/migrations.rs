@@ -330,6 +330,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0052_operation_gesture.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 53,
+        name: "five_stages",
+        sql: include_str!("../../migrations/0053_five_stages.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what
@@ -806,5 +812,82 @@ mod tests {
         let error = apply(&mut conn).unwrap_err();
 
         assert!(matches!(error, Error::SchemaTooNew { .. }));
+    }
+
+    /// 0053: every work lands on the nearest of the five stops, one with no
+    /// stage on the first, and a work already on the scale is not written.
+    #[test]
+    fn every_work_lands_on_one_of_the_five_stops() {
+        let (conn, profile_id) = crate::fixtures::workspace();
+        let five = MIGRATIONS
+            .iter()
+            .find(|migration| migration.name == "five_stages")
+            .unwrap();
+        let before: [Option<i64>; 9] = [
+            None,
+            Some(0),
+            Some(17),
+            Some(33),
+            Some(50),
+            Some(67),
+            Some(83),
+            Some(100),
+            Some(20),
+        ];
+        let ids: Vec<String> = before
+            .iter()
+            .enumerate()
+            .map(|(at, stage)| {
+                let made = crate::work::create(
+                    &conn,
+                    &profile_id,
+                    crate::work::NewWork {
+                        kind: "song".into(),
+                        title: format!("Work {at}"),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+                // As a space from before v0.119 holds it.
+                conn.execute(
+                    "UPDATE work SET stage = ?2, updated_at = 'then' WHERE id = ?1",
+                    rusqlite::params![made.id, stage],
+                )
+                .unwrap();
+                made.id
+            })
+            .collect();
+
+        conn.execute_batch(five.sql).unwrap();
+
+        let after: Vec<(Option<i64>, String)> = ids
+            .iter()
+            .map(|id| {
+                conn.query_row(
+                    "SELECT stage, updated_at FROM work WHERE id = ?1",
+                    [id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .unwrap()
+            })
+            .collect();
+        assert_eq!(
+            after.iter().map(|(stage, _)| *stage).collect::<Vec<_>>(),
+            [0, 0, 25, 25, 50, 75, 75, 100, 25].map(Some)
+        );
+        // Moving a stage onto the scale is not an edit of the work.
+        assert!(after.iter().all(|(_, updated)| updated == "then"));
+
+        // Twice is once.
+        conn.execute_batch(five.sql).unwrap();
+        let left: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM work
+                  WHERE stage IS NULL OR stage NOT IN (0, 25, 50, 75, 100)",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(left, 0);
     }
 }

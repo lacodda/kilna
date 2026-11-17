@@ -1343,13 +1343,60 @@ fn retired_note_kinds(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bo
     true
 }
 
-/// The stops of the stage dial (0.72): a workspace that predates them gains
-/// the craft's own words - without this the dial would fall back to the
-/// line's generic stops in every real workspace - and stops still at their
-/// shipped percentages follow a regrade.
+/// The stops of the stage dial: the five the line works by (FR-03, v0.119).
+///
+/// A stored profile on any other scale - the seven stops shipped until now,
+/// the six before them, none at all in a workspace older than the dial -
+/// takes the shipped five whole. A stage is kept on the five places, so a
+/// stop anywhere else is one no work stands at any more, and a list mixing
+/// the two scales would be a dial with twelve stops of which seven are dead.
+/// The words of the old stops go with them: they named places that are gone.
+///
+/// A stored profile already on the five keeps its words - a stop the owner
+/// renamed is theirs - and gains only what it lacks: a stop of the five it
+/// does not name, and the exact colour of one that names none.
 fn stages(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let changed = insert_new_keys(&mut config.stages, &shipped.stages, |stage| &stage.key);
-    changed | regrade_stages(&mut config.stages, &shipped.stages)
+    let current = if shipped.stages.is_empty() {
+        config::default_stages()
+    } else {
+        shipped.stages.clone()
+    };
+    let on_the_scale = !config.stages.is_empty()
+        && config
+            .stages
+            .iter()
+            .all(|stage| config::STOPS.contains(&stage.percent));
+    if !on_the_scale {
+        if config.stages == current {
+            return false;
+        }
+        config.stages = current;
+        return true;
+    }
+
+    let mut changed = false;
+    for stop in &current {
+        match config
+            .stages
+            .iter_mut()
+            .find(|stage| stage.percent == stop.percent)
+        {
+            Some(stored) => {
+                if stored.hex.is_none() && stop.hex.is_some() {
+                    stored.hex.clone_from(&stop.hex);
+                    changed = true;
+                }
+            }
+            None => {
+                config.stages.push(stop.clone());
+                changed = true;
+            }
+        }
+    }
+    if changed {
+        config.stages.sort_by_key(|stage| stage.percent);
+    }
+    changed
 }
 
 /// The types a style brick can be (0.75), and a type's hint and glyph where
@@ -2012,36 +2059,6 @@ impl<'de> Deserialize<'de> for DeclaredFormat {
 
         deserializer.deserialize_map(TopLevel)
     }
-}
-
-/// Move a stop that kept a shipped key onto the number the shipped list now
-/// gives it.
-///
-/// [`insert_new_keys`] adds a stop nobody has, which is the whole of what a new
-/// vocabulary word needs — but a stage is not only a word. It is a word at a
-/// number, and the numbers are a scale that has to stay in order: when
-/// "Final" arrived at 100, the six stops before it moved down to make room,
-/// and a stored profile that only gained the new stop would hold "Finished"
-/// and "Final" at 100 together. Two stops on one number is not a dial; every
-/// work at 100 would read as whichever of them came last.
-///
-/// So the number follows the shipped list, while the *word* stays the owner's:
-/// a stop they renamed keeps its name at its new place. A stop they added
-/// themselves is not in the shipped list and is not touched at all. This is
-/// the one field of a vocabulary entry that cannot be left to the owner alone,
-/// because it is not a name for one thing but a position among the others.
-fn regrade_stages(stored: &mut [config::Stage], shipped: &[config::Stage]) -> bool {
-    let mut changed = false;
-    for stop in stored.iter_mut() {
-        let Some(current) = shipped.iter().find(|candidate| candidate.key == stop.key) else {
-            continue;
-        };
-        if stop.percent != current.percent {
-            stop.percent = current.percent;
-            changed = true;
-        }
-    }
-    changed
 }
 
 /// Move a tier onto the word the shipped profile now gives it — but only
@@ -3822,29 +3839,35 @@ mod tests {
     }
 
     #[test]
-    fn carrying_stages_forward_moves_a_shipped_stop_to_its_new_number() {
-        // "Final" arrived at 100 and pushed the six stops before it down. A
-        // stored profile that only gained the new stop would hold "Finished"
-        // and "Final" at 100 together - two stops on one number, and every
-        // work at 100 reading as whichever came last.
+    fn carrying_stages_forward_puts_an_older_scale_on_the_five_stops() {
+        // The seven stops every workspace held until v0.119. A stage is kept
+        // on the five places now, so five of the seven are stops no work
+        // stands at: the stored list takes the shipped five whole rather
+        // than growing into twelve.
         let conn = db::open_in_memory().unwrap();
         seed(&conn, DEFAULT_KIND).unwrap();
         let id = active(&conn).unwrap().unwrap().id;
 
-        // Put the profile back on the old six-stop grid, the way a workspace
-        // made before this version holds it.
         let mut config = config_for(&conn, &id).unwrap();
-        config.stages.retain(|stage| stage.key != "final");
-        for stage in &mut config.stages {
-            stage.percent = match stage.key.as_str() {
-                "sketch" => 20,
-                "half" => 40,
-                "nearly" => 60,
-                "polish" => 80,
-                "done" => 100,
-                _ => stage.percent,
-            };
-        }
+        let shipped = config.stages.clone();
+        config.stages = [
+            ("idea", 0),
+            ("sketch", 17),
+            ("half", 33),
+            ("nearly", 50),
+            ("polish", 67),
+            ("done", 83),
+            ("final", 100),
+        ]
+        .into_iter()
+        .map(|(key, percent)| config::Stage {
+            key: key.to_owned(),
+            label: Label::from(format!("{key} (mine)")),
+            percent,
+            colour: config::MarkColour::Plain,
+            hex: None,
+        })
+        .collect();
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
             params![&id, serde_json::to_string(&config).unwrap()],
@@ -3854,44 +3877,32 @@ mod tests {
         seed(&conn, DEFAULT_KIND).unwrap();
 
         let stages = config_for(&conn, &id).unwrap().stages;
-        let at = |key: &str| {
-            stages
-                .iter()
-                .find(|stage| stage.key == key)
-                .unwrap_or_else(|| panic!("{key} is gone"))
-                .percent
-        };
-
-        assert_eq!(at("final"), 100, "the new stop is the end of the scale");
-        assert_eq!(at("done"), 83, "and the old end moved down to make room");
-        assert_eq!(at("polish"), 67);
-        assert_eq!(at("sketch"), 17);
-        assert_eq!(at("idea"), 0, "the first stop stays where it was");
-
-        let mut percents: Vec<i64> = stages.iter().map(|stage| stage.percent).collect();
-        percents.sort_unstable();
-        let mut unique = percents.clone();
-        unique.dedup();
-        assert_eq!(percents, unique, "no two stops share a number: {stages:?}");
+        assert_eq!(stages, shipped, "the five as they ship");
+        assert_eq!(
+            stages.iter().map(|stage| stage.percent).collect::<Vec<_>>(),
+            config::STOPS
+        );
+        assert!(config_for(&conn, &id).unwrap().validate().is_empty());
     }
 
     #[test]
     fn carrying_stages_forward_keeps_the_word_the_owner_gave_a_stop() {
-        // The number is ours - it is a position among the others - but the
-        // word is theirs, and a renamed stop must arrive at its new place
-        // still carrying their name.
+        // On the five already, the words are the owner's: a stop they
+        // renamed keeps its name, and gains only the exact colour it lacks.
         let conn = db::open_in_memory().unwrap();
         seed(&conn, DEFAULT_KIND).unwrap();
         let id = active(&conn).unwrap().unwrap().id;
 
         let mut config = config_for(&conn, &id).unwrap();
-        config.stages.retain(|stage| stage.key != "final");
-        for stage in &mut config.stages {
-            if stage.key == "done" {
-                stage.label = Label::from("Mixed and mastered");
-                stage.percent = 100;
-            }
-        }
+        // One of the five dropped, one renamed and left without a colour.
+        config.stages.retain(|stage| stage.percent != 75);
+        let half = config
+            .stages
+            .iter_mut()
+            .find(|stage| stage.percent == 50)
+            .unwrap();
+        half.label = Label::from("Mixed, not mastered");
+        half.hex = None;
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
             params![&id, serde_json::to_string(&config).unwrap()],
@@ -3901,9 +3912,14 @@ mod tests {
         seed(&conn, DEFAULT_KIND).unwrap();
 
         let stages = config_for(&conn, &id).unwrap().stages;
-        let done = stages.iter().find(|stage| stage.key == "done").unwrap();
-        assert_eq!(done.label, "Mixed and mastered", "their word, kept");
-        assert_eq!(done.percent, 83, "at the number the scale now gives it");
+        assert_eq!(
+            stages.iter().map(|stage| stage.percent).collect::<Vec<_>>(),
+            config::STOPS,
+            "the missing stop arrives, in its place"
+        );
+        let half = stages.iter().find(|stage| stage.percent == 50).unwrap();
+        assert_eq!(half.label, "Mixed, not mastered", "their word, kept");
+        assert_eq!(half.hex.as_deref(), Some("#E8B341"), "its colour, gained");
     }
 
     #[test]

@@ -230,9 +230,7 @@ pub(super) fn work_page(
     if let Some(bookmarked) = &work.bookmarked_at {
         push_field(&mut page, "bookmarked", bookmarked);
     }
-    if let Some(stage) = work.stage {
-        push_field(&mut page, "stage", &stage.to_string());
-    }
+    push_field(&mut page, "stage", &work.stage.to_string());
     // Its number in its family and the file it is finished as (ADR 0070):
     // facts of the work a folder of its own is named and found by.
     if let Some(ordinal) = work.ordinal {

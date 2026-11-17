@@ -1,25 +1,22 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
-import { StageDial } from '@/components/StageDial'
-import { stageAt, stagesOf } from '@/lib/stages'
-import { say, useProfile } from '@/lib/useProfile'
+import { StageDial, stageWords } from '@/components/StageDial'
+import { StageStops } from '@/components/StageStops'
+import { stageAt } from '@/lib/stages'
+import { useProfile } from '@/lib/useProfile'
 import { useStage } from '@/lib/useStage'
 import { cn } from '@/lib/utils'
 
 /**
- * The dial, and the scale that sets it.
+ * The dial, and the five stops that set it.
  *
- * A row of stops rather than a free slider: the stops are what the craft
- * actually thinks in — an idea, a rough take, polishing — and a continuous
- * slider would invite the author to agonise over 63 versus 67, which is a
- * question about the control rather than about the work.
- *
- * It reports itself as a slider all the same, so the arrow keys, Home and End
- * behave the way they do everywhere else and a screen reader announces a
- * position rather than six unlabelled buttons — the pattern the score axes
- * set, and dowel's AxisBar keeps.
+ * A row of stops rather than a free slider: the stops are what an author
+ * thinks in, and a continuous slider would invite them to agonise over 63
+ * versus 67, which is a question about the control rather than about the
+ * work. Five dials in a row and nothing else (FR-03): no word, no number and
+ * no "Clear" - a work always stands somewhere, and the way back to the start
+ * is the first stop.
  */
 export function StagePicker({
   workId,
@@ -29,7 +26,7 @@ export function StagePicker({
   className,
 }: {
   workId: string
-  percent: number | null
+  percent: number
   compact?: boolean
   className?: string
 }) {
@@ -37,35 +34,14 @@ export function StagePicker({
   const profile = useProfile()
   const [open, setOpen] = useState(false)
   const stage = useStage(workId)
-
-  const stops = stagesOf(profile.config)
   const current = stageAt(profile.config, percent)
-  const index = current === undefined ? -1 : stops.findIndex((stop) => stop.key === current.key)
-
-  const set = (next: number | null) => {
-    stage.mutate(next)
-    // Choosing is the whole errand; the panel closes rather than waiting for a
-    // second, dismissing click.
-    setOpen(false)
-  }
-
-  const step = (delta: number) => {
-    // Unjudged starts at the first stop rather than at the last: arrowing right
-    // from "nothing said" means "begin", not "jump to finished".
-    const target = index === -1 ? (delta > 0 ? 0 : stops.length - 1) : index + delta
-    const clamped = Math.min(Math.max(target, 0), stops.length - 1)
-    set(stops[clamped]?.percent ?? 0)
-  }
+  const words = stageWords(t, current)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        aria-label={
-          current === undefined
-            ? t('stage.unset')
-            : t('stage.atPercent', { percent: percent ?? 0, stage: say(current.label) })
-        }
-        title={current === undefined ? t('stage.set') : say(current.label)}
+        aria-label={words}
+        title={words}
         disabled={stage.isPending}
         className={cn(
           'cursor-pointer rounded-md transition-colors hover:bg-soft',
@@ -73,96 +49,21 @@ export function StagePicker({
           className,
         )}
       >
-        <StageDial percent={percent} stage={current} size={compact ? 14 : 16} />
+        <StageDial stage={current} size={compact ? 14 : 16} />
       </PopoverTrigger>
 
-      <PopoverPopup arrow={false} className="w-auto p-2">
-        <div
-          role="slider"
-          tabIndex={0}
-          aria-label={t('stage.label')}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={percent ?? undefined}
-          aria-valuetext={current === undefined ? t('stage.unset') : say(current.label)}
-          onKeyDown={(event) => {
-            switch (event.key) {
-              case 'ArrowRight':
-              case 'ArrowUp':
-                event.preventDefault()
-                step(1)
-                break
-              case 'ArrowLeft':
-              case 'ArrowDown':
-                event.preventDefault()
-                step(-1)
-                break
-              case 'Home':
-                event.preventDefault()
-                set(stops[0]?.percent ?? 0)
-                break
-              case 'End':
-                event.preventDefault()
-                set(stops[stops.length - 1]?.percent ?? 100)
-                break
-              // Back to "nobody has said", which no stop on the scale can
-              // express — the only way out of having answered.
-              case 'Backspace':
-              case 'Delete':
-                event.preventDefault()
-                set(null)
-                break
-              default:
-                break
-            }
+      <PopoverPopup arrow={false} className="w-auto p-1.5">
+        <StageStops
+          label={t('stage.label')}
+          pick="one"
+          on={[current.percent]}
+          onPick={(next) => {
+            stage.mutate(next)
+            // Choosing is the whole errand; the panel closes rather than
+            // waiting for a second, dismissing click.
+            setOpen(false)
           }}
-          className="flex items-center gap-1 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {stops.map((stop, at) => {
-            const reached = index >= at
-            return (
-              // A glyph with its number under it: the icon button's clothes,
-              // with no size of its own, because a stop is a column rather
-              // than a square.
-              <Button
-                key={stop.key}
-                variant="icon"
-                size={null}
-                // The row owns the keyboard; the stops are pointer targets, or
-                // tabbing past the dial would take six presses.
-                tabIndex={-1}
-                title={`${say(stop.label)} · ${stop.percent}%`}
-                aria-label={say(stop.label)}
-                onClick={() => set(percent === stop.percent ? null : stop.percent)}
-                className="flex-col gap-1 px-1 py-0.5"
-              >
-                <StageDial percent={stop.percent} stage={stop} size={16} />
-                {/* The number, not the word: six words in a row would be a
-                    paragraph, and the word is a hover away. */}
-                <span
-                  className={cn(
-                    'text-2xs tabular-nums transition-colors',
-                    reached ? 'font-semibold text-text' : 'text-faint',
-                  )}
-                >
-                  {stop.percent}
-                </span>
-              </Button>
-            )
-          })}
-
-          {percent !== null && (
-            <Button
-              variant="ghost"
-              size="xs"
-              tabIndex={-1}
-              onClick={() => set(null)}
-              className="ml-1"
-            >
-              {t('stage.clear')}
-            </Button>
-          )}
-        </div>
+        />
       </PopoverPopup>
     </Popover>
   )

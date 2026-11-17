@@ -34,11 +34,13 @@ tier_pinned: string | null, tier_pinned_at: string | null, tier_pin_reason: stri
  */
 bookmarked_at: string | null, 
 /**
- * How finished the work is, 0..=100, as the author judges it. `None` means
- * nobody has said yet, which is not the same as "a bare idea" — the stops
- * along the way are the profile's `stages`.
+ * How finished the work is, as the author judges it: one of the five
+ * stops, 0, 25, 50, 75 or 100 (FR-03). A work starts at 0 - until
+ * v0.119 it started at nothing, "nobody has said", which drew like a
+ * bare idea and meant the same to anyone looking for what to pick up.
+ * The words at each stop are the profile's `stages`.
  */
-stage: number | null, 
+stage: number, 
 /**
  * What the work's cover is built from: the idea, the scene, the hero,
  * the built frame, the bricks, the mark, the details, and the person's

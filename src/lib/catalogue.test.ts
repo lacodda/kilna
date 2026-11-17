@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { NO_STAGE } from '@/lib/stages'
 import {
   ALL_COLUMNS,
   countGaps,
@@ -58,7 +57,7 @@ const row = (over: Partial<CatalogueRow>): CatalogueRow => ({
   marks: [],
   tier_pinned: false,
   version_count: 0,
-  stage: null,
+  stage: 0,
   bookmarked_at: null,
   publications: [],
   next_release: null,
@@ -128,20 +127,18 @@ describe('narrow', () => {
 
   it('narrows to one stage stop', () => {
     const rows = [
-      row({ work_id: 'a', stage: 80 }),
-      row({ work_id: 'b', stage: 20 }),
-      row({ work_id: 'c', stage: null }),
+      row({ work_id: 'a', stage: 75 }),
+      row({ work_id: 'b', stage: 25 }),
+      row({ work_id: 'c', stage: 0 }),
     ]
 
-    expect(narrow(rows, { stage: 80 }).map((r) => r.work_id)).toEqual(['a'])
-  })
-
-  // Zero is a judgement, not an absence: "this is a bare idea" is a different
-  // answer from "nobody has said", and the unjudged row must not come along.
-  it('tells a stage of zero from no stage at all', () => {
-    const rows = [row({ work_id: 'idea', stage: 0 }), row({ work_id: 'unsaid', stage: null })]
-
-    expect(narrow(rows, { stage: 0 }).map((r) => r.work_id)).toEqual(['idea'])
+    expect(narrow(rows, { stage: 75 }).map((r) => r.work_id)).toEqual(['a'])
+    // The first stop is a stop: `0` is falsy, and a filter that dropped it
+    // would make the works nobody has touched the only ones not to be found.
+    expect(narrow(rows, { stage: 0 }).map((r) => r.work_id)).toEqual(['c'])
+    // A line written when the scale had seven stops reads as the stop it
+    // lands on (v0.119).
+    expect(narrow(rows, { stage: 83 }).map((r) => r.work_id)).toEqual(['a'])
   })
 
   it('matches a title regardless of case, in Russian too', () => {
@@ -654,16 +651,16 @@ describe('the remembered widths', () => {
 
 describe('the header funnels', () => {
   const rows = [
-    row({ work_id: 'a', title: 'Гавань огней', stage: 80, tier: 'clip', marks: ['hook'] }),
+    row({ work_id: 'a', title: 'Гавань огней', stage: 75, tier: 'clip', marks: ['hook'] }),
     row({
       work_id: 'b',
       title: 'Paper boats',
       status: 'scored',
-      stage: 20,
+      stage: 25,
       tier: 'pic',
       marks: ['hook', 'bridge'],
     }),
-    row({ work_id: 'c', title: 'Winter shift', stage: null, tier: null, marks: [] }),
+    row({ work_id: 'c', title: 'Winter shift', stage: 0, tier: null, marks: [] }),
   ]
   const ids = (kept: ScoredWork[]) => kept.map((r) => r.work_id)
 
@@ -680,34 +677,25 @@ describe('the header funnels', () => {
   })
 
   it('keeps the works standing at any of the ticked stops', () => {
-    expect(ids(narrowByColumns(rows, { stages: [20, 80] }))).toEqual(['a', 'b'])
-    expect(ids(narrowByColumns(rows, { stages: [40] }))).toEqual([])
+    expect(ids(narrowByColumns(rows, { stages: [25, 75] }))).toEqual(['a', 'b'])
+    expect(ids(narrowByColumns(rows, { stages: [50] }))).toEqual([])
   })
 
-  // A work nobody has judged stands at no stop, as `narrow` reads it: it must
-  // not come along with whichever stops are ticked.
-  it('drops a work with no stage or no tier when those are filtered', () => {
-    expect(ids(narrowByColumns(rows, { stages: [20, 80] }))).not.toContain('c')
+  it('drops a work with no tier when tiers are filtered', () => {
     expect(ids(narrowByColumns(rows, { tiers: ['clip', 'pic'] }))).not.toContain('c')
   })
 
-  it('finds the works that stand at no stop at all', () => {
-    // The entry the owner went looking for and could not find: the funnel
-    // could say "standing here" and had no way to say "never said".
-    expect(ids(narrowByColumns(rows, { stages: [NO_STAGE] }))).toEqual(['c'])
+  it('finds the works nobody has touched at the first stop', () => {
+    // What the owner went looking for: until v0.119 these held no stage at
+    // all and had an entry of their own in the funnel; they stand at 0 now.
+    expect(ids(narrowByColumns(rows, { stages: [0] }))).toEqual(['c'])
+    expect(ids(narrowByColumns(rows, { stages: [0, 75] }))).toEqual(['a', 'c'])
   })
 
-  it('reads a ticked stop and the no-stage tick together as either', () => {
-    expect(ids(narrowByColumns(rows, { stages: [NO_STAGE, 80] }))).toEqual(['a', 'c'])
-  })
-
-  it('tells a stage of zero from no stage, in the funnel as well', () => {
-    // 0 is a real stop a work can stand at — the first one — and the sentinel
-    // must not swallow it. This is the reason NO_STAGE is negative.
-    const beginning = [row({ work_id: 'idea', stage: 0 }), row({ work_id: 'unsaid', stage: null })]
-
-    expect(ids(narrowByColumns(beginning, { stages: [0] }))).toEqual(['idea'])
-    expect(ids(narrowByColumns(beginning, { stages: [NO_STAGE] }))).toEqual(['unsaid'])
+  it('reads what a view saved on the older scale ticked as the stops it lands on', () => {
+    // -1 was the "no stage" tick; 20 and 80 were stops of the scale before.
+    expect(ids(narrowByColumns(rows, { stages: [-1] }))).toEqual(['c'])
+    expect(ids(narrowByColumns(rows, { stages: [20, 80] }))).toEqual(['a', 'b'])
   })
 
   it('slices by what the guard of repeats marks, and by what it marks red', () => {
@@ -750,7 +738,7 @@ describe('the header funnels', () => {
   })
 
   it('combines the funnels as AND', () => {
-    expect(ids(narrowByColumns(rows, { marks: ['hook'], stages: [20] }))).toEqual(['b'])
+    expect(ids(narrowByColumns(rows, { marks: ['hook'], stages: [25] }))).toEqual(['b'])
   })
 
   it('counts as narrowing only while a funnel holds something', () => {
@@ -916,7 +904,7 @@ function release(
     total: null,
     tier: null,
     readiness: { checks: [], ready: true },
-    work_stage: null,
+    work_stage: 0,
     ...over,
   }
 }

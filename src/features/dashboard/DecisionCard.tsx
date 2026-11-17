@@ -76,12 +76,7 @@ export function DecisionCard({ decision, onSelect, onDismiss, dismissing = false
               {/* How finished the work behind it is, beside how close the
                   date is: the reason says what the release lacks, the dial
                   says how far the work has come. */}
-              {decision.slot.release.work_stage !== null && (
-                <StageDial
-                  percent={decision.slot.release.work_stage}
-                  stage={stageAt(profile.config, decision.slot.release.work_stage)}
-                />
-              )}
+              <StageDial stage={stageAt(profile.config, decision.slot.release.work_stage)} />
             </>
           )}
           {/* The accent is for what has a date or a score going stale under
