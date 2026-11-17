@@ -691,7 +691,7 @@ mod tests {
     #[test]
     fn a_parcel_carries_a_board_with_its_pictures_to_another_space() {
         let (from, from_profile, from_dir) = fixtures::workspace_on_disk();
-        let (into, into_profile, into_dir) = fixtures::workspace_on_disk();
+        let (into, into_profile, _into_dir) = fixtures::workspace_on_disk();
         let media = crate::state::media_dir_of(&from).unwrap();
         let video = fixtures::video(&from, &from_profile, "Harbour lights, the clip");
         fixtures::version(&from, &video.id, "plot", "a boat leaves at dawn");
@@ -748,7 +748,10 @@ mod tests {
             Some("scene-01-still.png")
         );
         let landed = Path::new(&frames[0].path);
-        assert!(landed.starts_with(into_dir.path()), "{}", landed.display());
+        // Against the folder as the space names it: a temporary directory
+        // has two spellings on macOS.
+        let own = crate::state::media_dir_of(&into).unwrap();
+        assert!(landed.starts_with(&own), "{}", landed.display());
         assert_eq!(
             std::fs::read(landed).unwrap(),
             std::fs::read(&still).unwrap()
