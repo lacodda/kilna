@@ -108,6 +108,22 @@ textarea,
 }
 
 /*
+ * The mark of what a work feels like (FR-02): drawn in its mood's colour,
+ * which the mark hands over as `--vibe-color` - the profile's own, picked to
+ * read on the dark ground. On a light one the same colour is held to half
+ * the lightness, so a honey amber stays readable on white instead of fading
+ * into it; its hue and its strength are kept, which is what tells one mood
+ * from another.
+ */
+.vibe-mark {
+  color: var(--vibe-color);
+}
+
+:root.light .vibe-mark {
+  color: oklch(from var(--vibe-color) min(l, 0.5) c h);
+}
+
+/*
  * A field's focus ring is drawn inside its box (FR-19 19.1). dowel draws it
  * around the border, and kilna puts fields where the outside is cut off: at
  * the edge of a region that scrolls, of a dialog's body, of a widget. Inside

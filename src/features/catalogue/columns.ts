@@ -39,6 +39,14 @@ export const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
     width: 'w-14',
     naturalWidth: 72,
   },
+  // What the work feels like (FR-02): a mark, beside the dial.
+  vibe: {
+    label: 'catalogue.column.vibe',
+    sort: null,
+    filter: 'vibe',
+    width: 'w-14',
+    naturalWidth: 72,
+  },
   tier: { label: 'catalogue.tier', sort: 'tier', filter: 'tiers', naturalWidth: 128 },
   total: { label: 'catalogue.total', sort: 'total', align: 'right', naturalWidth: 80 },
   versions: {

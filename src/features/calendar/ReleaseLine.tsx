@@ -10,6 +10,8 @@ import { openExternal, shortLink } from '@/lib/link'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { StageDial } from '@/components/StageDial'
 import { stageAt } from '@/lib/stages'
+import { axesOf, resolveVibe, vibeWords } from '@/lib/vibe'
+import { VibeIcon } from '@/components/VibeIcon'
 import { BigCalendarItem } from '@/components/ui/big-calendar-item'
 import { Button } from '@/components/ui/button'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
@@ -53,7 +55,7 @@ interface Props {
  */
 export function ReleaseLine({ slot, date, now, dragging, onGrab, onOpen, carried = false }: Props) {
   const covers = useCovers()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const profile = useProfile()
   const releaseKinds = allOf(profile.config, 'release_kinds')
 
@@ -62,6 +64,7 @@ export function ReleaseLine({ slot, date, now, dragging, onGrab, onOpen, carried
   const released = slot.status === 'released'
   const gaps = missing(slot.readiness)
   const stage = stageAt(profile.config, slot.work_stage)
+  const vibe = resolveVibe(axesOf(profile.config), slot.work_vibe?.vibe)
   // The guard's mark of the song this release is made from (ADR 0054): a
   // month is where a song is placed, so it is where a repeat is seen.
   const repeat = useRepeatMark(slot.work_id)
@@ -136,6 +139,15 @@ export function ReleaseLine({ slot, date, now, dragging, onGrab, onOpen, carried
           <ReadyMark release={slot} daysLeft={daysBetween(now, date)} />
           {slot.slot_pinned_at !== null && <Lock aria-hidden className="size-2.5" />}
           <StageDial stage={stage} size={10} className="hidden @min-[7rem]:block" />
+          {/* What the work feels like - its own, or its song's (FR-02). */}
+          {vibe !== null && (
+            <VibeIcon
+              vibe={vibe}
+              size={14}
+              words={vibeWords(vibe, i18n.resolvedLanguage ?? 'en')}
+              className="hidden @min-[9rem]:block"
+            />
+          )}
           <KindGlyph icon={kind?.icon} className="size-3" />
         </>
       }

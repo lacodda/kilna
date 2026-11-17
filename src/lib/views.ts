@@ -157,6 +157,9 @@ const FILTER_FIELDS = [
   'bookmarked',
   'stage',
   'collection',
+  'mood',
+  'character',
+  'complexity',
 ] as const satisfies readonly (keyof CatalogueFilter)[]
 
 function sameFilter(a: CatalogueFilter, b: CatalogueFilter): boolean {

@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isColumnFiltered, type ColumnFilters, type ColumnId } from '@/lib/catalogue'
+import {
+  isColumnFiltered,
+  NO_VIBE,
+  vibeTick,
+  type ColumnFilters,
+  type ColumnId,
+} from '@/lib/catalogue'
+import { axesOf } from '@/lib/vibe'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { FilterPopover } from '@/components/ui/filter-popover'
@@ -91,6 +98,32 @@ export function ColumnFunnel({ column, filters, onChange }: Props) {
           onChange={(tiers) => onChange({ ...filters, tiers })}
         />,
       )
+    case 'vibe': {
+      // The three lines, each with its words, and the works nobody has
+      // said anything of (FR-02). A profile with no lines has no funnel.
+      const axes = axesOf(profile.config)
+      if (axes === undefined) return null
+      const lines = [
+        ['mood', axes.moods],
+        ['character', axes.characters],
+        ['complexity', axes.complexities],
+      ] as const
+      return shell(
+        <CheckList
+          options={[
+            { value: NO_VIBE, label: t('vibe.unsaid') },
+            ...lines.flatMap(([line, words]) =>
+              words.map((word) => ({
+                value: vibeTick(line, word.key),
+                label: sayLabel(word.label),
+              })),
+            ),
+          ]}
+          chosen={filters.vibe ?? []}
+          onChange={(vibe) => onChange({ ...filters, vibe })}
+        />,
+      )
+    }
     case 'marks': {
       // A profile that defines no marks has nothing to tick, and a funnel
       // opening on an empty panel would be a control that does nothing.

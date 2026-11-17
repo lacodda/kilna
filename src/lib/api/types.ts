@@ -74,6 +74,13 @@ export type Meta = Record<string, JsonValue>
 
 // Works.
 export type { Work } from './generated/Work'
+export type { Vibe } from './generated/Vibe'
+export type { ShownVibe } from './generated/ShownVibe'
+export type { VibeAxes } from './generated/VibeAxes'
+export type { VibeMood } from './generated/VibeMood'
+export type { VibeCharacter } from './generated/VibeCharacter'
+export type { VibeComplexity } from './generated/VibeComplexity'
+export type { VibeGlyph } from './generated/VibeGlyph'
 export type { NewWork } from './generated/NewWork'
 export type { WorkPatch } from './generated/WorkPatch'
 export type { WorkFilter } from './generated/WorkFilter'

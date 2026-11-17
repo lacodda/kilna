@@ -23,6 +23,12 @@ const vocabulary: Vocabulary = {
     { key: 'col-deep', label: 'Deep time' },
     { key: 'col-winter', label: 'Winter' },
   ],
+  moods: [
+    { key: 'dark', label: 'Dark' },
+    { key: 'warm', label: 'Bright' },
+  ],
+  characters: [{ key: 'edgy', label: 'Raw' }],
+  complexities: [{ key: 'complex', label: 'Complex' }],
 }
 
 describe('parseQuery', () => {
@@ -76,6 +82,20 @@ describe('parseQuery', () => {
     const missing = parseQuery('collection:Summer', vocabulary)
     expect(missing.filter.collection).toBeUndefined()
     expect(missing.unknown).toEqual([{ field: 'collection', value: 'Summer' }])
+  })
+
+  it('reads what a work feels like by a key or a word of each line', () => {
+    const parsed = parseQuery('mood:bright character:edgy complexity:COMPLEX tide', vocabulary)
+    expect(parsed.filter).toEqual({ mood: 'warm', character: 'edgy', complexity: 'complex' })
+    expect(parsed.text).toBe('tide')
+    // Written back by key, and read back the same.
+    const line = formatQuery(parsed.filter)
+    expect(line).toBe('mood:warm character:edgy complexity:complex')
+    expect(parseQuery(line, vocabulary).filter).toEqual(parsed.filter)
+    // A word the profile does not have is said, not guessed.
+    expect(parseQuery('mood:sunny', vocabulary).unknown).toEqual([
+      { field: 'mood', value: 'sunny' },
+    ])
   })
 
   it('reads a stage by its key, its words or its number', () => {

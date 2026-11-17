@@ -41,6 +41,12 @@ export interface Vocabulary {
   /** The collections, keyed by id and named by title. The filter holds the
    *  id; a person types the name, and the line shows the name back. */
   collections: Term[]
+  /** The three lines of a work's vibe (FR-02), each with the profile's
+   *  words. Absent in a profile that names none: the operators then find
+   *  nothing to name. */
+  moods?: Term[]
+  characters?: Term[]
+  complexities?: Term[]
 }
 
 /**
@@ -54,7 +60,18 @@ export interface Vocabulary {
  * `collection:` arrived with the collections screen (v0.92) and not before:
  * narrowing by a thing nobody could see or make would have promised it twice.
  */
-export const FIELDS = ['status', 'kind', 'tier', 'tag', 'stage', 'collection'] as const
+export const FIELDS = [
+  'status',
+  'kind',
+  'tier',
+  'tag',
+  'stage',
+  'collection',
+  // What a work feels like (FR-02): `mood:dark character:raw`.
+  'mood',
+  'character',
+  'complexity',
+] as const
 
 /**
  * The five stops by the words the line itself gives them (FR-03), in both
@@ -125,7 +142,18 @@ function resolve(terms: Term[], value: string): string | undefined {
 /** What a parsed line asks for. */
 export interface ParsedQuery {
   /** The filter fields the operators set. Absent fields were not mentioned. */
-  filter: Pick<CatalogueFilter, 'status' | 'kind' | 'tier' | 'tag' | 'stage' | 'collection'>
+  filter: Pick<
+    CatalogueFilter,
+    | 'status'
+    | 'kind'
+    | 'tier'
+    | 'tag'
+    | 'stage'
+    | 'collection'
+    | 'mood'
+    | 'character'
+    | 'complexity'
+  >
   /** Everything that was not an operator, joined back into one phrase. */
   text: string
   /** Operators naming something this profile does not have, for telling the person. */
@@ -206,7 +234,9 @@ export function parseQuery(query: string, vocabulary: Vocabulary): ParsedQuery {
       continue
     }
 
-    filter[field as 'status' | 'kind' | 'tier' | 'collection'] = resolved
+    filter[
+      field as 'status' | 'kind' | 'tier' | 'collection' | 'mood' | 'character' | 'complexity'
+    ] = resolved
   }
 
   return { filter, text: free.join(' '), unknown }
@@ -222,6 +252,12 @@ function vocabularyFor(vocabulary: Vocabulary, field: Field): Term[] {
       return vocabulary.tiers
     case 'collection':
       return vocabulary.collections
+    case 'mood':
+      return vocabulary.moods ?? []
+    case 'character':
+      return vocabulary.characters ?? []
+    case 'complexity':
+      return vocabulary.complexities ?? []
     // Tags and stages are resolved by the caller - a tag against nothing, a
     // stage into a number rather than a key - and return before reaching here.
     // Listed so the switch stays exhaustive.

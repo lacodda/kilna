@@ -726,7 +726,7 @@
     "starred": "Starred",
     "starredHint": "Only the works you starred to come back to",
     "queryPlaceholder": "Search, or narrow: tier:clip status:draft",
-    "queryHint": "Narrow with status:, kind:, tier:, tag:, stage:, collection: — or type words to search everything a work says. Quote a phrase: \"paper boats\".",
+    "queryHint": "Narrow with status:, kind:, tier:, tag:, stage:, collection:, mood:, character:, complexity: — or type words to search everything a work says. Quote a phrase: \"paper boats\".",
     "queryUnknown": "This profile has no {{field}} called \"{{value}}\".",
     "views": "Views",
     "viewSaveCurrent": "Save this view",
@@ -787,7 +787,8 @@
       "ready": "Ready",
       "created": "Added",
       "updated": "Edited",
-      "stage": "Stage"
+      "stage": "Stage",
+      "vibe": "Vibe"
     },
     "releaseHint": "{{kind}} on {{date}}",
     "groupBy": "Group by",
@@ -2334,6 +2335,20 @@
   "stage": {
     "label": "Stage",
     "atPercent": "{{percent}}% — {{stage}}"
+  },
+  "vibe": {
+    "set": "Say what it feels like",
+    "none": "Nobody has said what it feels like.",
+    "saved": "Vibe saved.",
+    "takenFrom": "{{vibe}} (taken from “{{title}}”)",
+    "clear": "Clear",
+    "takeFromSource": "Take it from what it was made from",
+    "line": {
+      "mood": "Mood",
+      "character": "Character",
+      "complexity": "Complexity"
+    },
+    "unsaid": "Nobody has said"
   },
   "cuts": {
     "title": "Cut from",

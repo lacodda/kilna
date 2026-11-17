@@ -798,7 +798,7 @@
     "starred": "Избранное",
     "starredHint": "Только произведения со звездой — к которым вернуться",
     "queryPlaceholder": "Поиск или срез: tier:clip status:draft",
-    "queryHint": "Сузить: status:, kind:, tier:, tag:, stage:, collection: — или просто слова для поиска по всему, что сказано в произведении. Фраза в кавычках: \"бумажные лодки\".",
+    "queryHint": "Сузить: status:, kind:, tier:, tag:, stage:, collection:, mood:, character:, complexity: — или просто слова для поиска по всему, что сказано в произведении. Фраза в кавычках: \"бумажные лодки\".",
     "queryUnknown": "В этом профиле нет {{field}} со значением «{{value}}».",
     "views": "Срезы",
     "viewSaveCurrent": "Сохранить срез",
@@ -865,7 +865,8 @@
       "ready": "Готов",
       "created": "Добавлено",
       "updated": "Правка",
-      "stage": "Стадия"
+      "stage": "Стадия",
+      "vibe": "Настроение"
     },
     "releaseHint": "{{kind}}, {{date}}",
     "groupBy": "Группировать",
@@ -2520,6 +2521,20 @@
   "stage": {
     "label": "Стадия",
     "atPercent": "{{percent}}% — {{stage}}"
+  },
+  "vibe": {
+    "set": "Сказать, какая она",
+    "none": "Никто не сказал, какая она.",
+    "saved": "Настроение сохранено.",
+    "takenFrom": "{{vibe}} (наследуется от «{{title}}»)",
+    "clear": "Сбросить",
+    "takeFromSource": "Наследовать от источника",
+    "line": {
+      "mood": "Настроение",
+      "character": "Характер",
+      "complexity": "Сложность"
+    },
+    "unsaid": "Не задано"
   },
   "cuts": {
     "title": "Нарезано из",

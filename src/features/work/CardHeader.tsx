@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/RowMenu'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StagePicker } from '@/components/StagePicker'
+import { VibePicker } from '@/components/VibePicker'
 import { CollectionPicker } from '@/features/collections/CollectionPicker'
 import { WorkPlayer } from '@/features/work/player'
 import { TabBar } from '@/features/work/TabBar'
@@ -336,6 +337,9 @@ function Title({ work }: { work: Work }) {
               the author says about the work by hand, as against everything
               else on this header, which is derived from what happened. */}
           <StagePicker workId={work.id} percent={work.stage} />
+          {/* What it feels like, beside how far along it is (FR-02): the
+              third thing the author says of the work by hand. */}
+          <WorkVibe work={work} />
         </>
       )}
     </span>
@@ -478,4 +482,16 @@ function MetaStrip({ work }: { work: Work }) {
       })}
     </div>
   )
+}
+
+/**
+ * The work's vibe in its header. What a work with none of its own shows -
+ * the one of what it was made from - is read off the catalogue's row, which
+ * is where it is worked out; until the catalogue has answered, a work's own
+ * is drawn and a taken one is not.
+ */
+function WorkVibe({ work }: { work: Work }) {
+  const rows = useQuery(queries.catalogue()).data
+  const shown = rows?.find((row) => row.work_id === work.id)?.vibe
+  return <VibePicker workId={work.id} own={work.vibe} shown={shown} />
 }

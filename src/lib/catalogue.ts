@@ -55,6 +55,12 @@ export interface CatalogueFilter {
   stage?: number
   /** A collection, by id: the works it holds. */
   collection?: string
+  /** What the work feels like (FR-02), a key on each line: works that show
+   *  that mood, that character, that complexity - their own or the one they
+   *  take from what they were made from. */
+  mood?: string
+  character?: string
+  complexity?: string
 }
 
 /** A column the table can be ordered by. */
@@ -185,6 +191,9 @@ export function narrow<Row extends ScoredWork>(
     if (filter.bookmarked === true && row.bookmarked_at === null) return false
     if (filter.stage !== undefined && row.stage !== stopOf(filter.stage)) return false
     if (filter.collection !== undefined && row.collection_id !== filter.collection) return false
+    for (const line of ['mood', 'character', 'complexity'] as const) {
+      if (filter[line] !== undefined && row.vibe?.vibe[line] !== filter[line]) return false
+    }
     if (needle !== '') {
       // Either way of matching is enough: the index knows the bodies, and the
       // title check keeps a partly typed name narrowing before the search
@@ -260,6 +269,9 @@ export function isNarrowed(filter: CatalogueFilter, columns?: ColumnFilters): bo
     // stop showed no count and no "clear" — and an empty result blamed nothing.
     filter.stage !== undefined ||
     filter.collection !== undefined ||
+    filter.mood !== undefined ||
+    filter.character !== undefined ||
+    filter.complexity !== undefined ||
     isNarrowedByColumns(columns)
   )
 }
@@ -287,6 +299,19 @@ export interface ColumnFilters {
   tiers?: string[]
   /** Mark keys: works carrying any of them. */
   marks?: string[]
+  /** What the works feel like (FR-02), as ticks: `mood:dark`,
+   *  `character:edgy`, `complexity:simple`, and `none` for works nobody has
+   *  said anything of. Ticks on one line ask for any of them; ticks on two
+   *  lines ask for both; `none` is beside the rest, not against them. */
+  vibe?: string[]
+}
+
+/** The tick for works that show no vibe at all. */
+export const NO_VIBE = 'none'
+
+/** A tick of the vibe funnel: a word on one of the three lines. */
+export function vibeTick(line: 'mood' | 'character' | 'complexity', key: string): string {
+  return `${line}:${key}`
 }
 
 /** The column filters, as the header funnels tell them apart. */
@@ -306,7 +331,14 @@ export function isNarrowedByColumns(filters: ColumnFilters = {}): boolean {
   return FILTERABLE_COLUMNS.some((column) => isColumnFiltered(filters, column))
 }
 
-const FILTERABLE_COLUMNS: FilterableColumn[] = ['title', 'statuses', 'stages', 'tiers', 'marks']
+const FILTERABLE_COLUMNS: FilterableColumn[] = [
+  'title',
+  'statuses',
+  'stages',
+  'tiers',
+  'marks',
+  'vibe',
+]
 
 /**
  * Narrow by the header funnels. Applied after `narrow`, on what it left.
@@ -328,6 +360,7 @@ export function narrowByColumns<Row extends ScoredWork>(
     : undefined
   const tiers = isColumnFiltered(filters, 'tiers') ? new Set(filters.tiers) : undefined
   const marks = isColumnFiltered(filters, 'marks') ? new Set(filters.marks) : undefined
+  const vibe = isColumnFiltered(filters, 'vibe') ? new Set(filters.vibe) : undefined
 
   return rows.filter((row) => {
     if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
@@ -335,7 +368,26 @@ export function narrowByColumns<Row extends ScoredWork>(
     if (stages !== undefined && !standsAt(row.stage, stages)) return false
     if (tiers !== undefined && (row.tier === null || !tiers.has(row.tier))) return false
     if (marks !== undefined && !row.marks.some((key) => marks.has(key))) return false
+    if (vibe !== undefined && !feelsLike(row, vibe)) return false
     return true
+  })
+}
+
+/**
+ * Whether a row's vibe is among the ticks: on every line that has ticks, the
+ * word the row shows is one of them - or the row shows nothing and "none" is
+ * ticked.
+ */
+function feelsLike(row: ScoredWork, ticks: ReadonlySet<string>): boolean {
+  const shown = row.vibe?.vibe
+  if (shown === undefined) return ticks.has(NO_VIBE)
+  const lines = (['mood', 'character', 'complexity'] as const).filter((line) =>
+    [...ticks].some((tick) => tick.startsWith(`${line}:`)),
+  )
+  if (lines.length === 0) return false
+  return lines.every((line) => {
+    const said = shown[line]
+    return said !== undefined && said !== null && ticks.has(vibeTick(line, said))
   })
 }
 
@@ -373,6 +425,7 @@ function isColumnFilters(value: unknown): value is ColumnFilters {
   if (!isListOf(candidate.statuses, 'string')) return false
   if (!isListOf(candidate.stages, 'number')) return false
   if (!isListOf(candidate.tiers, 'string')) return false
+  if (!isListOf(candidate.vibe, 'string')) return false
   return isListOf(candidate.marks, 'string')
 }
 
@@ -579,7 +632,17 @@ function isFilter(value: unknown): value is CatalogueFilter {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const candidate = value as Record<string, unknown>
 
-  for (const field of ['search', 'status', 'kind', 'tier', 'tag', 'collection'] as const) {
+  for (const field of [
+    'search',
+    'status',
+    'kind',
+    'tier',
+    'tag',
+    'collection',
+    'mood',
+    'character',
+    'complexity',
+  ] as const) {
     const held = candidate[field]
     if (held !== undefined && typeof held !== 'string') return false
   }
@@ -625,6 +688,7 @@ export type ColumnId =
   | 'marks'
   | 'status'
   | 'stage'
+  | 'vibe'
   | 'tier'
   | 'total'
   | 'versions'
@@ -642,6 +706,7 @@ export const ALL_COLUMNS: ColumnId[] = [
   'marks',
   'status',
   'stage',
+  'vibe',
   'tier',
   'total',
   'versions',
@@ -668,6 +733,7 @@ export const DEFAULT_COLUMNS: ColumnId[] = [
   'marks',
   'status',
   'stage',
+  'vibe',
   'tier',
   'total',
   'versions',
@@ -680,6 +746,11 @@ export const REQUIRED_COLUMN: ColumnId = 'title'
 
 /** The columns v0.79 added to the default list. */
 const INTRODUCED: readonly ColumnId[] = ['status', 'release', 'ready']
+
+/** Columns that came after: the vibe (v0.124). Shown in a list the person
+ *  has not made their own, wherever it does not name them yet - a list that
+ *  names Status was not written knowing of these. */
+const INTRODUCED_LATER: readonly ColumnId[] = ['vibe']
 
 const COLUMNS_CHOSEN_KEY = 'kilna.catalogue.columnsChosen'
 
@@ -699,9 +770,11 @@ const COLUMNS_CHOSEN_KEY = 'kilna.catalogue.columnsChosen'
  * A list that already names any of the three was chosen knowing them.
  */
 export function withIntroduced(list: ColumnId[], chosen: boolean): ColumnId[] {
-  if (chosen || INTRODUCED.some((id) => list.includes(id))) return list
+  if (chosen) return list
+  const knew = INTRODUCED.some((id) => list.includes(id))
   const out = [...list]
-  for (const id of INTRODUCED) {
+  for (const id of [...(knew ? [] : INTRODUCED), ...INTRODUCED_LATER]) {
+    if (out.includes(id)) continue
     const before = DEFAULT_COLUMNS.slice(0, DEFAULT_COLUMNS.indexOf(id))
       .reverse()
       .find((other) => out.includes(other))

@@ -649,6 +649,42 @@ describe('the remembered widths', () => {
   })
 })
 
+describe('what the works feel like (FR-02)', () => {
+  const rows = [
+    row({ work_id: 'song', vibe: { vibe: { mood: 'dark', character: 'edgy' } } }),
+    // A clip shows its song's.
+    row({ work_id: 'clip', vibe: { vibe: { mood: 'dark', character: 'edgy' }, from: 'Song' } }),
+    row({ work_id: 'bright', vibe: { vibe: { mood: 'warm', complexity: 'simple' } } }),
+    row({ work_id: 'unsaid' }),
+  ]
+  const ids = (kept: ScoredWork[]) => kept.map((r) => r.work_id)
+
+  it('narrows by a word on a line, a taken vibe counting as its own', () => {
+    expect(ids(narrow(rows, { mood: 'dark' }))).toEqual(['song', 'clip'])
+    expect(ids(narrow(rows, { mood: 'dark', character: 'calm' }))).toEqual([])
+    expect(ids(narrow(rows, { complexity: 'simple' }))).toEqual(['bright'])
+    expect(isNarrowed({ character: 'edgy' })).toBe(true)
+  })
+
+  it('ticks any word of a line, both of two lines, and the unsaid beside them', () => {
+    expect(ids(narrowByColumns(rows, { vibe: ['mood:dark', 'mood:warm'] }))).toEqual([
+      'song',
+      'clip',
+      'bright',
+    ])
+    expect(
+      ids(narrowByColumns(rows, { vibe: ['mood:dark', 'mood:warm', 'complexity:simple'] })),
+    ).toEqual(['bright'])
+    expect(ids(narrowByColumns(rows, { vibe: ['none'] }))).toEqual(['unsaid'])
+    expect(ids(narrowByColumns(rows, { vibe: ['none', 'mood:warm'] }))).toEqual([
+      'bright',
+      'unsaid',
+    ])
+    expect(narrowByColumns(rows, { vibe: [] })).toHaveLength(4)
+    expect(isNarrowedByColumns({ vibe: ['none'] })).toBe(true)
+  })
+})
+
 describe('the header funnels', () => {
   const rows = [
     row({ work_id: 'a', title: 'Гавань огней', stage: 75, tier: 'clip', marks: ['hook'] }),
@@ -983,9 +1019,11 @@ describe('the columns v0.79 introduced', () => {
     const stored: ColumnId[] = ['title', 'stage', 'marks', 'versions', 'total']
     // Status follows marks, as in the default; the release columns follow
     // versions, however the person ordered the rest.
+    // The vibe (v0.124) follows the stage, where the default has it.
     expect(withIntroduced(stored, false)).toEqual([
       'title',
       'stage',
+      'vibe',
       'marks',
       'status',
       'versions',
@@ -995,15 +1033,26 @@ describe('the columns v0.79 introduced', () => {
     ])
   })
 
+  it('show a later column in a list that knew the earlier ones, and only that', () => {
+    // Written knowing of Status and without Ready: Ready was hidden on
+    // purpose and stays so; the vibe did not exist yet, and shows.
+    const stored: ColumnId[] = ['title', 'status', 'stage', 'total']
+    expect(withIntroduced(stored, false)).toEqual(['title', 'status', 'stage', 'vibe', 'total'])
+    // Named already, it is where the person put it.
+    const placed: ColumnId[] = ['vibe', 'title', 'status']
+    expect(withIntroduced(placed, false)).toEqual(placed)
+  })
+
   it('stay as the person left them once a choice was made', () => {
     const stored: ColumnId[] = ['title', 'stage', 'total']
     expect(withIntroduced(stored, true)).toEqual(stored)
   })
 
   it('are not forced into a list that already names one of them', () => {
-    // Chosen knowing them: the other two were hidden on purpose.
+    // Chosen knowing them: the other two were hidden on purpose. What came
+    // after them (the vibe, v0.124) was not, and shows.
     const stored: ColumnId[] = ['title', 'ready', 'total']
-    expect(withIntroduced(stored, false)).toEqual(stored)
+    expect(withIntroduced(stored, false)).toEqual(['title', 'vibe', 'ready', 'total'])
   })
 
   it('remember the choice on this machine', () => {

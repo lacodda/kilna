@@ -15,6 +15,7 @@ import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
 import { MarkAvatars } from '@/components/MarkAvatars'
 import { StagePicker } from '@/components/StagePicker'
+import { VibePicker } from '@/components/VibePicker'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { RowStar } from './RowStar'
 import { STUCK_LEFT_TITLE, TITLE_HOLD } from './columns'
@@ -123,6 +124,23 @@ export function CatalogueCell({
       return (
         <TableCell className="whitespace-nowrap">
           <StatusBadge row={row} />
+        </TableCell>
+      )
+
+    case 'vibe':
+      return (
+        // The mark and nothing else, set where it stands: its three words
+        // are what it says when it is pointed at. A row with none shows a
+        // quiet way in.
+        <TableCell onClick={(event) => event.stopPropagation()}>
+          <VibePicker
+            workId={row.work_id}
+            // A row's own vibe is the one it shows when it is not taken
+            // from another work.
+            own={row.vibe === undefined || row.vibe.from !== undefined ? undefined : row.vibe.vibe}
+            shown={row.vibe}
+            compact
+          />
         </TableCell>
       )
 

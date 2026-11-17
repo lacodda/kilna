@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Collection } from '@/lib/api/types'
+import type { Collection, Label } from '@/lib/api/types'
 import { unscheduleWorks } from '@/lib/api/releases'
 import { useRepeatMarks } from '@/lib/repeats'
 import { deleteWorks, numberWorks, setWorksStatus } from '@/lib/api/works'
@@ -36,6 +36,7 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { formatQuery, parseQuery, type Vocabulary } from '@/lib/searchQuery'
 import { stagesOf } from '@/lib/stages'
+import { axesOf } from '@/lib/vibe'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useChipDrag } from '@/lib/useChipDrag'
@@ -293,6 +294,10 @@ export function Catalogue({ onSelect }: Props) {
 
   // The profile's own words, which the query box resolves values against so
   // `tier:Picture` works as well as `tier:pic`.
+  const said = (word: { key: string; label: Label }) => ({
+    key: word.key,
+    label: sayLabel(word.label),
+  })
   const vocabulary: Vocabulary = {
     statuses: allOf(profile.config, 'statuses').map((entry) => ({
       ...entry,
@@ -305,6 +310,10 @@ export function Catalogue({ onSelect }: Props) {
     })),
     stages: stagesOf(profile.config).map((entry) => ({ ...entry, label: sayLabel(entry.label) })),
     collections: (collections.data ?? []).map((one) => ({ key: one.id, label: one.title })),
+    // The three lines of a vibe, in the profile's own words (FR-02).
+    moods: axesOf(profile.config)?.moods.map(said),
+    characters: axesOf(profile.config)?.characters.map(said),
+    complexities: axesOf(profile.config)?.complexities.map(said),
   }
 
   // What the box shows. Held apart from the filter rather than derived from it,
