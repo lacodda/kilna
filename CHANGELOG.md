@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.121.0] - 2026-11-17
+
+Any files. The Files tab takes any file, and as many as you pick or drop at
+once: a sound, a clip, a text, subtitles, an archive, where it took pictures.
+A tab with nothing attached draws the place to drop the first ones. Files are
+filed as images, audio, video and other, and one bar arranges the attached
+files and the folder on disk together: which categories show, gathered by
+type or by folder, sorted by name, date, size or type, drawn as large icons,
+tiles, a list or a table with the size and the date. A file says with a tag
+that it is the cover, a candidate or the finished file.
+
+### Features
+- Any files, several at once, and four ways to look through them
+
 ## [0.120.0] - 2026-11-17
 
 A folder by id. Every shipped profile names a work's folder on disk by the
