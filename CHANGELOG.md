@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.122.0] - 2026-11-17
+
+A viewer, and a menu on every file. A click on a file opens it inside kilna:
+a picture fitted to the window and enlarged from there, a clip with its sound
+and speed, a text to read and copy, a PDF, and for anything else what is
+known of it; the arrows page through the files without leaving the window. A
+sound still plays in the card's player, and the one playing is marked. A
+right click on a file opens its menu: look at it, open it in its program,
+show where it lies, save a copy, copy the path, make a picture the cover. A
+file of the folder on disk can also be renamed - never onto a file that is
+there - and moved to the system's recycle bin, which asks first.
+
+### Features
+- Look at a file inside kilna, and do things to it from a menu
+
 ## [0.121.0] - 2026-11-17
 
 Any files. The Files tab takes any file, and as many as you pick or drop at
