@@ -352,6 +352,23 @@ pub fn slots(text: &str) -> Vec<String> {
     out
 }
 
+/// The slots a text cannot do without: the ones outside any `[brackets]`.
+///
+/// A slot in brackets is an offer - "[A tiny line "{brand}" in a corner.]"
+/// reads whole with a brand and is not there without one - so its absence is
+/// nothing to tell a person about (v0.115).
+pub fn required_slots(text: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for piece in parse(text) {
+        if let Piece::Slot(slot) = &piece
+            && !out.contains(&slot.name)
+        {
+            out.push(slot.name.clone());
+        }
+    }
+    out
+}
+
 /// A dressing's description with its slots filled.
 ///
 /// A slot with nothing to say drops out of the prompt with the phrase it

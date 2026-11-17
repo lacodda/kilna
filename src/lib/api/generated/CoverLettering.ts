@@ -16,6 +16,12 @@ title: string | null,
  */
 apart: boolean, 
 /**
+ * With the title apart, the picture still keeps the title's part of the
+ * frame clean for it (v0.115). Off, the first prompt says nothing of a
+ * title at all and the second finds its own room.
+ */
+reserve: boolean, 
+/**
  * The cover's own captions for the dressing's slots, by slot name. A
  * slot not named here is filled from the channel's card.
  */

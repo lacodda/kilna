@@ -2305,7 +2305,10 @@
       "heroUndescribed": "«{{title}}» has no description for a generator yet, so the prompt does not name the hero. Describe the card in the Canon.",
       "markGone": "The chosen variant of the mark is gone from the channel.",
       "markWithoutFile": "The mark {{code}} has no file to lay over the picture; attach one to it in the channel's card.",
-      "slotEmpty": "Nothing fills {{slot}}: its phrase drops out of the prompt."
+      "slotEmpty": "Nothing fills {{slot}}: its phrase drops out of the prompt.",
+      "detailNeedsTranslation": "The detail «{{name}}» has no English for a generator, so the prompt leaves it out. Write its template in the channel’s card.",
+      "typographyWithoutTitle": "A lettering is chosen and the cover has no title: there is nothing to letter, and the prompt leaves it out.",
+      "titleOnMark": "The title and the channel’s mark are both in the lower left corner. Move one of them."
     },
     "idea": {
       "title": "Idea",
@@ -2428,7 +2431,12 @@
     },
     "ground": {
       "title": "Background",
-      "none": "No background chosen"
+      "none": "No background chosen",
+      "role": "What the background is to the picture",
+      "palette": "Palette and mood",
+      "flat": "Flat ground",
+      "paletteHint": "its colours set the picture; the scene keeps the place it describes",
+      "flatHint": "the whole ground, as the background says it - flat, with no scenery"
     },
     "accent": {
       "title": "Accent",
@@ -2438,7 +2446,8 @@
       "colour": "The accent's colour",
       "fromChannel": "The channel's palette",
       "fromDictionary": "Accents of the dictionary",
-      "gradient": "A gradient: {{stops}}"
+      "gradient": "A gradient: {{stops}}",
+      "disc": "A flat disc of the accent behind the subject"
     },
     "mark": {
       "title": "Mark",
@@ -2477,7 +2486,8 @@
       "hint_one": "from the channel's card · {{count}}",
       "hint_other": "from the channel's card · {{count}}",
       "none": "The channel's card has no signature details for this picture.",
-      "ownChoice": "this picture's own"
+      "ownChoice": "this picture's own",
+      "needsTranslation": "no English for the generator: left out"
     },
     "prompt": {
       "title": "The cover's prompt",
@@ -2499,7 +2509,8 @@
       "ownPlaceholder": "Added at the end, as written",
       "copyAll": "Copy all",
       "sent": "Kept on the cover · {{time}}",
-      "changedSince": "the prompt has changed since it was copied"
+      "changedSince": "the prompt has changed since it was copied",
+      "reserve": "Keep the title’s place clean in the picture"
     },
     "references": {
       "title": "To hand the generator",
@@ -2529,6 +2540,13 @@
       "exportWithMark": "Export with the mark",
       "exported": "Cover saved",
       "markHasNoFile": "the mark has no file to lay over - it is exported without one"
+    },
+    "subject": {
+      "title": "The picture is of",
+      "person": "A person",
+      "object": "A thing",
+      "none": "Nobody",
+      "hint": "decides the words of the frame: a head, a chest and eyes are said only of a person"
     }
   },
   "frame": {

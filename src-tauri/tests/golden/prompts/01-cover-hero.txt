@@ -1,0 +1,20 @@
+FRAME: a wide 16:9 cover.
+
+FRAMING: place the hero in the right third of the frame, vertically centred. The hero with what surrounds it takes about 58% of the frame height. Show the hero as a head-and-shoulders bust. One compact group: the hero and what surrounds it overlap and frame each other; nothing floats separately. Accent colour: hot pink (#FF2E63), used for highlights, light edges and key accents. Keep the left 40% of the frame free of the hero and what surrounds it: the title goes there.
+
+STYLE: neo-traditional tattoo art rendered as a detailed digital painting, bold ink outlines, with hot pink (#FF2E63) highlights.
+
+HERO: a small woman in her thirties with a red scarf. Use the attached reference pictures of the hero only for the likeness; render everything in the chosen style.
+
+SCENE: she polishes the lamp of a lighthouse at dusk.
+
+PALETTE: Ink black (#0E0D10) sets the picture's main colours and mood; the scene keeps its own setting.
+
+DETAIL: a small black cat hides somewhere in the picture.
+
+DETAIL: one object in the scene is cracked.
+
+TITLE: the words "Northern Light", spelled exactly, set as a tall left-aligned block in the left part of the frame. TYPOGRAPHY: huge dry-brush hand lettering, in off-white with a hot pink (#FF2E63) echo. Under the title add a small line "NIGHT SHIFT". No other text.
+
+--- NEGATIVE ---
+No watermark, no signature, no frame or border. No readable text except the title and the captions asked for. no skulls. no weapons. no storm, no ships.

@@ -85,6 +85,19 @@ export function CoverPrompts({ cover, view, disabled, change }: Props) {
             {t('cover.prompt.apart')}
           </Switch>
         )}
+        {/* With the title apart the picture says nothing of it - unless its
+            place is to be kept clean for the second prompt (v0.115). */}
+        {view.built && cover.lettering.apart && (
+          <Switch
+            checked={cover.lettering.reserve}
+            disabled={disabled}
+            onCheckedChange={(reserve) =>
+              change((c) => ({ ...c, lettering: { ...c.lettering, reserve } }))
+            }
+          >
+            {t('cover.prompt.reserve')}
+          </Switch>
+        )}
       </header>
 
       <Scroll label={t('cover.prompt.title')} contentClassName="flex flex-col gap-3 p-3">

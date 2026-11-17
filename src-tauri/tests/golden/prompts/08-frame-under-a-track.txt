@@ -1,0 +1,18 @@
+FRAME: a wide 16:9 video frame that stays on screen for the whole track. No title, no text, no logos.
+
+FRAMING: place the hero in the centre of the frame, anchored to the bottom edge. The hero is small, about 36% of the frame height, with a lot of space around. Show the hero in full figure, head to feet. A vast space: the hero is small in it, surrounded by a lot of background. Accent colour: hot pink (#FF2E63), used for highlights, light edges and key accents.
+
+STYLE: neo-traditional tattoo art rendered as a detailed digital painting, bold ink outlines, with hot pink (#FF2E63) highlights.
+
+HERO: a small woman in her thirties with a red scarf.
+
+SCENE: she polishes the lamp of a lighthouse at dusk. the lamp's beam turns slowly through fog.
+
+PALETTE: Ink black (#0E0D10) sets the picture's main colours and mood; the scene keeps its own setting.
+
+DETAIL: a small black cat hides somewhere in the picture.
+
+DETAIL: one object in the scene is cracked.
+
+--- NEGATIVE ---
+No text, no title, no logos, no watermark, no frame or border. no skulls. no weapons.

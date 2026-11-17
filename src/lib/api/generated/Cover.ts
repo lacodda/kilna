@@ -5,6 +5,7 @@ import type { CoverHero } from "./CoverHero";
 import type { CoverLettering } from "./CoverLettering";
 import type { CoverMark } from "./CoverMark";
 import type { CoverSent } from "./CoverSent";
+import type { CoverStaging } from "./CoverStaging";
 import type { Framing } from "./Framing";
 
 /**
@@ -33,10 +34,17 @@ scene: string,
  */
 avoid: string, 
 /**
- * The hero from the canon. Absent, the hero is the one the scene
- * describes.
+ * The hero from the canon. Absent, the picture is of what
+ * [`subject`](Self::subject) says.
  */
 hero: CoverHero | null, 
+/**
+ * How the picture is staged: what it is of when no hero is chosen, and
+ * what the accent and the background are to it (v0.115). Nested, like
+ * everything that is not words: the search reads the words at the top
+ * of the record.
+ */
+staging: CoverStaging, 
 /**
  * The built frame. Absent until a layout is picked.
  */

@@ -60,6 +60,7 @@ function builtView(over: Partial<CoverView> = {}): CoverView {
         name: 'A cat hides in the picture',
         template: 'a small black cat hides somewhere',
         places: ['cover', 'frame'],
+        needs_translation: false,
         default_on: true,
         on: true,
       },

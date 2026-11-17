@@ -57,6 +57,8 @@ export function coverHoldsAnything(cover: Cover): boolean {
     Object.keys(cover.details).length > 0 ||
     cover.lettering.title !== null ||
     cover.lettering.apart ||
+    cover.staging.subject !== null ||
+    cover.staging.disc ||
     Object.keys(cover.lettering.captions).length > 0
   return written || chosen
 }

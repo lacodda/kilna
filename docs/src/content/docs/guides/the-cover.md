@@ -112,12 +112,29 @@ references. Only public cards are offered: a cover reads the public layer of
 the canon and nothing else. A card with no description yet is not named in
 the prompt; the tab says so, and the place to fix it is the card.
 
+With no card chosen, **The picture is of** says what the frame places: *a
+person* the scene describes, *a thing*, or *nobody*. It decides the frame's
+words. A person is "the hero", with a head a title can stand behind and a
+chest it can cross; a thing is "the main subject" and has neither; a picture
+of nobody places nothing and frames the scene - *a wide view of the entire
+scene*, *the focal point sits in the centre*. A cover with no hero never says
+*hero*, *head*, *chest*, *face*, *figure*, *eyes* or *skin*, in any block
+(since v0.115; until then every frame said "the hero" whatever the picture
+showed). Unset, the picture is of a thing.
+
 **Frame.** Eight built-in layouts - an emblem on the right or the left, a
 centre at full height, a hype poster, a title behind the head, a close-up, a
 figure in the void, a split. Picking one sets the rest to its own: where the
 hero stands on a three by three grid, how big (from small to past the edge of
 the frame), how much of them shows (full figure to a detail) and where the
 title goes (nine places). Each can then be moved on its own.
+
+A frame is geometry: where, how big, how much shows, how the frame is
+composed. It says nothing of what is in the picture - that is the scene's -
+or of how it is drawn, which is the style's. The layouts used to add their
+own motifs to every prompt (symbolic objects interlocked, splatters and
+doodles around them, marks on the skin in a close-up); they do not since
+v0.115.
 
 **Styles.** The picture's style, the typography and the dressing - the small
 captions around the title - are bricks of the
@@ -126,14 +143,24 @@ colours. A place asks for a kind of brick by what it is made of: the style is
 any picture brick, the typography a lettering, the dressing a dressing. The
 channel's house styles come first in the list.
 
+A chosen background is the picture's **palette and mood** - its colours set
+the picture, and the scene keeps the place it describes - or, switched to
+**flat ground**, the whole ground as the background's description says it: a
+studio backdrop with no scenery. Palette is where it starts: a scene on a
+street was otherwise told, two lines later, to have no scenery.
+
 **Title.** The words lettered on the cover are the song's, not the
 publication's - "the song - clip" is a name for the catalogue. Write other
-words, or tick *no title* for a cover of captions alone.
+words, or tick *no title* for a cover of captions alone. A lettering letters
+a title: on a cover with none it is left out of the prompt, and the tab says
+so.
 
 **Captions.** A dressing names slots - `{brand}`, `{micro}`, `{num}` - and
 each is filled with the cover's own lines first and the channel's card
 second. A slot with nothing in either drops out of the prompt with the
-phrase around it, and the tab says which.
+phrase around it. The tab says which only for a slot the dressing cannot do
+without: one written in `[square brackets]` is an offer, and an offer nobody
+took is nothing to report.
 
 **Accent.** The colour the composition and the lettering lean on, with the
 words a generator is given for it: from the channel's palette, from the
@@ -141,6 +168,11 @@ words a generator is given for it: from the channel's palette, from the
 dictionary may be a gradient - *Sunset gradient*, *Gold foil*, *Chrome* - and
 the prompt then names every stop in order. A colour typed by hand is one
 colour.
+
+The accent is a colour - *used for highlights, light edges and key accents* -
+unless **A flat disc of the accent behind the subject** is switched on, which
+asks for the circle and draws it in the scheme. Off by default: five of the
+eight layouts used to put that circle behind every picture with an accent.
 
 **Mark.** A variant of the channel's mark - the status whose meaning fits the
 song - where it goes (a corner, hidden in the picture, none) and how it gets
@@ -152,12 +184,17 @@ reference. Hidden in the picture, it can only be drawn.
 **Signature details.** The channel's card lists its signature details, each
 with where it belongs - covers, frames, scenes - and whether it is on by
 default. They appear here as switches, in the card's order. A switch starts
-where the channel puts it, and the cover remembers its own.
+where the channel puts it, and the cover remembers its own. A detail goes
+into the prompt as its template says it, in the generator's English; one
+whose words are in the channel's own language is marked, left out, and named
+among the tab's notes until its template is written in the channel's card.
 
 ## The frame and the prompt agree
 
-The scheme on the stage is the frame the prompt asks for, drawn: the hero's
-box, the title's blocks, the accent's disc, the mark's corner. Both are
+The scheme on the stage is the frame the prompt asks for, drawn: the
+subject's box - a figure for a person, a shape for a thing, nothing for a
+picture of nobody - the title's blocks, the accent's disc when it is asked
+for, the mark's corner. Both are
 written from the same numbers on the Rust side - the part of the frame kept
 for the title is one rectangle that the blocks are drawn in and the sentence
 "keep the left 40% of the frame free" is written from. A test runs every
@@ -173,14 +210,25 @@ it does not go out through yet is offered and said to be so.
 
 Three blocks, each copied on its own or all at once:
 
-- **picture** - the frame, the placement, the style, the composition, the
-  hero, the scene, the ground, the details, the mark when it is drawn, and the
-  title with its lettering and dressing;
+- **picture** - the frame's shape, its framing in one paragraph (where the
+  subject stands, how big, how the frame is composed, the accent, the part
+  kept for a title), the style, the hero, the scene, the ground, the details,
+  the mark when it is drawn, and the title with its lettering and dressing;
 - **negative** - what every cover keeps out, the channel's bans for pictures
   and the hero's, what the scene keeps out, and your own words;
 - **typography** - only when *the title as a second prompt* is on: the
-  picture then asks for no text, and this block is an edit of the finished
-  picture that letters it.
+  picture then asks for no text and keeps no part of the frame for a title,
+  and this block is an edit of the finished picture that letters it. **Keep
+  the title's place clean in the picture** puts the sentence that keeps it
+  back into the first prompt.
+
+The tab warns when the title and the channel's mark are both sent to the
+lower left corner.
+
+How a prompt reads is held to the letter: ten pictures - with a hero, a
+thing, nobody, a disc, a title apart, a frame, a scene - are kept whole in
+the repository and compared on every change, so a reworded sentence shows as
+a difference to read before it ships.
 
 Under each block, **your own words** for it, added at the end as written. A
 cover written by hand before the constructor existed is exactly its own words,
@@ -220,8 +268,8 @@ its corner when the mark goes on that way.
 An audio release's [frame](/kilna/guides/files-and-covers/#the-frame) is
 built from its cover by default: the same idea, hero, style, ground and mark,
 no title and no dressing, in a layout of its own if the cover's does not suit
-a picture with nothing written on it. The still's text is added as your own
-words. **Own scene** keeps the still as you write it, whole - the way every
+a picture with nothing written on it. The still's text is your own words
+about what it shows, and is said with the scene. **Own scene** keeps the still as you write it, whole - the way every
 frame written before v0.88 stays.
 
 ## A scene of a clip

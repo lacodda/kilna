@@ -1,0 +1,14 @@
+FRAME: a wide 16:9 video frame. No title, no text.
+
+FRAMING: place the main subject in the centre of the frame, vertically centred. An extreme close-up: the main subject fills the whole frame and is cropped on all sides. Show one part of the main subject, very large. An extreme close-up: the main subject fills the frame and is cropped by its edges. Accent colour: hot pink (#FF2E63), used for highlights, light edges and key accents.
+
+STYLE: neo-traditional tattoo art rendered as a detailed digital painting, bold ink outlines, with hot pink (#FF2E63) highlights.
+
+SCENE: a kettle boils on a stove; steam fills the frame.
+
+DETAIL: a small black cat hides somewhere in the picture.
+
+DETAIL: one object in the scene is cracked.
+
+--- NEGATIVE ---
+No text, no title, no watermark, no frame or border. no skulls. no weapons.

@@ -304,6 +304,7 @@ pub fn taken_into(cover: &Cover, idea: &Cover) -> Cover {
         scene: idea.scene.clone(),
         avoid: idea.avoid.clone(),
         hero: idea.hero.clone(),
+        staging: idea.staging,
         framing: idea.framing,
         bricks: idea.bricks.clone(),
         accent: idea.accent.clone(),
@@ -463,7 +464,8 @@ impl Lookup {
                 shape: self.shape,
                 lettering: true,
                 colours: &colours,
-                accent: concept.accent.is_some(),
+                subject: concept.subject_of(),
+                disc: concept.staging.disc && concept.accent.is_some(),
                 mark: concept.mark.in_corner(),
             })
         });

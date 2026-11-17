@@ -4,4 +4,4 @@
  * Something the window should say about a cover: a part that is chosen and
  * cannot be used as it is.
  */
-export type CoverProblem = { "kind": "brickGone", place: string, } | { "kind": "heroGone" } | { "kind": "heroUndescribed", title: string, } | { "kind": "markGone" } | { "kind": "markWithoutFile", code: string, } | { "kind": "slotEmpty", slot: string, };
+export type CoverProblem = { "kind": "brickGone", place: string, } | { "kind": "heroGone" } | { "kind": "heroUndescribed", title: string, } | { "kind": "markGone" } | { "kind": "markWithoutFile", code: string, } | { "kind": "slotEmpty", slot: string, } | { "kind": "detailNeedsTranslation", name: string, } | { "kind": "typographyWithoutTitle" } | { "kind": "titleOnMark" };

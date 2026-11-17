@@ -11,7 +11,7 @@
 use rusqlite::Connection;
 use serde::Serialize;
 
-use super::framing::{self, Colours, Drawing, Layout, Scheme, Shape};
+use super::framing::{self, Colours, Corner, Drawing, Layout, Place, Scheme, Shape, Subject};
 use super::prompt::{self, HeroText, Ingredients, MarkText, Prompts, Target};
 use super::{Cover, MarkWay};
 use crate::asset::Asset;
@@ -36,8 +36,12 @@ pub struct DetailState {
     /// The fact's id: what the cover remembers its switch by.
     pub id: String,
     pub name: String,
-    /// What goes into the prompt, the cards it names written in.
+    /// What goes into the prompt, the cards it names written in. Empty for
+    /// a detail that [needs translating](Self::needs_translation).
     pub template: String,
+    /// The detail is written in the channel's own language and has no words
+    /// for a generator: it stays out of the prompt until it has (v0.115).
+    pub needs_translation: bool,
     /// The pictures it belongs in: `cover`, `frame`, `scene`.
     pub places: Vec<String>,
     /// As the channel says.
@@ -143,6 +147,15 @@ pub enum Problem {
     /// A slot of the chosen lettering or dressing has nothing to say: its
     /// phrase drops out of the prompt.
     SlotEmpty { slot: String },
+    /// A detail of the channel that is on has no words for a generator -
+    /// only the channel's own language - and is left out of the prompt.
+    DetailNeedsTranslation { name: String },
+    /// A lettering is chosen and the cover has no title: there is nothing to
+    /// letter, and the lettering is left out.
+    TypographyWithoutTitle,
+    /// The title and the channel's mark are both sent to the lower left
+    /// corner.
+    TitleOnMark,
 }
 
 /// What the Cover tab draws: the prompt, the scheme, and everything the
@@ -221,10 +234,19 @@ impl Channel {
                 let body = fact.body.trim().to_owned();
                 match section.shape {
                     SectionShape::Details => {
-                        let template = crate::canon::view::expand_cards(
-                            conn,
-                            &text("template").unwrap_or_else(|| body.clone()),
-                        )?;
+                        // What a generator is told: the detail's template, or
+                        // its own words where it has none. Words in the
+                        // channel's language are no words for a generator - a
+                        // template left empty or filled in Russian went into
+                        // an English prompt as it stood until v0.115 - so
+                        // such a detail has nothing to send, and says so.
+                        let said = text("template").unwrap_or_else(|| body.clone());
+                        let needs_translation = said.is_empty() || foreign(&said);
+                        let template = if needs_translation {
+                            String::new()
+                        } else {
+                            crate::canon::view::expand_cards(conn, &said)?
+                        };
                         let places = fact
                             .data
                             .get("places")
@@ -250,6 +272,7 @@ impl Channel {
                             id: fact.id.clone(),
                             name: body,
                             template,
+                            needs_translation,
                             places,
                             default_on,
                             on: default_on,
@@ -319,6 +342,12 @@ impl Channel {
     }
 }
 
+/// Whether a text is written in letters a generator's English is not: any
+/// Cyrillic at all.
+fn foreign(text: &str) -> bool {
+    text.chars().any(|c| matches!(c, '\u{0400}'..='\u{052F}'))
+}
+
 /// The words a generator is given for a palette's colour: "Lime - the left
 /// eye of the mark" is "Lime".
 fn colour_name(body: &str) -> String {
@@ -372,7 +401,10 @@ fn resolve(
     };
     let style = brick(cover.bricks.style.as_deref(), "style")?;
     let lettering = target.lettering();
-    let typography = if lettering {
+    // A lettering letters a title. With none there is nothing for it to
+    // say, and its description - "tall condensed capitals" - would be read
+    // as words to draw.
+    let typography = if lettering && !title.trim().is_empty() {
         brick(cover.bricks.typography.as_deref(), "typography")?
     } else {
         None
@@ -475,12 +507,29 @@ fn resolve(
         }
     }
 
-    let details = channel
-        .details_for(cover, target)
-        .into_iter()
-        .filter(|detail| detail.on)
-        .map(|detail| detail.template)
-        .collect();
+    let mut details = Vec::new();
+    for detail in channel.details_for(cover, target) {
+        if !detail.on {
+            continue;
+        }
+        if detail.needs_translation {
+            problems.push(Problem::DetailNeedsTranslation { name: detail.name });
+        } else {
+            details.push(detail.template);
+        }
+    }
+    if lettering && title.trim().is_empty() && cover.bricks.typography.is_some() {
+        problems.push(Problem::TypographyWithoutTitle);
+    }
+    if lettering
+        && !title.trim().is_empty()
+        && cover
+            .framing
+            .is_some_and(|framing| framing.place == Place::Corner)
+        && cover.mark.in_corner() == Some(Corner::BottomLeft)
+    {
+        problems.push(Problem::TitleOnMark);
+    }
 
     let parts = Ingredients {
         style: style.as_ref().and_then(|brick| brick.description.clone()),
@@ -493,7 +542,10 @@ fn resolve(
         background_colour: background
             .as_ref()
             .and_then(|brick| brick.colours.first().cloned()),
+        background_name: background.as_ref().map(|brick| brick.name.clone()),
         background: background.and_then(|brick| brick.description),
+        subject: cover.subject_of(),
+        scene_words: None,
         hero: hero_text,
         details,
         mark,
@@ -502,7 +554,7 @@ fn resolve(
         title,
     };
     if lettering {
-        for slot in slots_of(&parts) {
+        for slot in required_slots_of(&parts) {
             let filled = cover
                 .lettering
                 .captions
@@ -556,6 +608,23 @@ fn slots_of(parts: &Ingredients) -> Vec<String> {
     out
 }
 
+/// The slots among them the prompt cannot do without - the ones outside any
+/// brackets: only those are a problem when empty.
+fn required_slots_of(parts: &Ingredients) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for text in [parts.typography.as_deref(), parts.dressing.as_deref()]
+        .into_iter()
+        .flatten()
+    {
+        for slot in crate::style_set::required_slots(text) {
+            if !OWN_SLOTS.contains(&slot.as_str()) && !out.contains(&slot) {
+                out.push(slot);
+            }
+        }
+    }
+    out
+}
+
 /// The shapes a work's covers take, held or not.
 pub(super) fn formats_of(
     conn: &Connection,
@@ -595,7 +664,13 @@ pub(super) fn shape_for(formats: &[CoverFormat], asked: Option<&str>) -> Shape {
 }
 
 /// The eight layouts, drawn small in the cover's colours.
-fn layouts(shape: Shape, lettering: bool, colours: &Colours, accent: bool) -> Vec<LayoutOption> {
+fn layouts(
+    shape: Shape,
+    lettering: bool,
+    colours: &Colours,
+    subject: Subject,
+    disc: bool,
+) -> Vec<LayoutOption> {
     Layout::ALL
         .into_iter()
         .map(|layout| {
@@ -605,7 +680,8 @@ fn layouts(shape: Shape, lettering: bool, colours: &Colours, accent: bool) -> Ve
                     shape,
                     lettering,
                     colours,
-                    accent,
+                    subject,
+                    disc,
                     mark: None,
                 }),
                 framing,
@@ -635,13 +711,15 @@ pub fn view(conn: &Connection, work_id: &str, format: Option<&str>) -> Result<Co
         resolved.parts.background_colour.as_deref(),
         cover.accent.as_ref().map(|accent| accent.color.as_str()),
     );
-    let accent = cover.accent.is_some();
+    let subject = resolved.parts.subject;
+    let disc = cover.staging.disc && cover.accent.is_some();
     let scheme = cover.framing.map(|framing| {
         framing.scheme(Drawing {
             shape,
             lettering: true,
             colours: &colours,
-            accent,
+            subject,
+            disc,
             mark: cover.mark.in_corner(),
         })
     });
@@ -671,7 +749,7 @@ pub fn view(conn: &Connection, work_id: &str, format: Option<&str>) -> Result<Co
             .map(|corner| framing::mark_box(shape, corner)),
         built: cover.is_built(),
         format: shape.name(),
-        layouts: layouts(Shape::SQUARE, true, &colours, accent),
+        layouts: layouts(Shape::SQUARE, true, &colours, subject, disc),
         details: channel.details_for(cover, Target::Cover),
         marks: channel.marks.clone(),
         palette: channel.palette.clone(),
@@ -738,7 +816,7 @@ pub fn frame_view(conn: &Connection, work_id: &str) -> Result<FrameView> {
     if let Some(framing) = frame.framing {
         cover.framing = Some(framing);
     }
-    let resolved = resolve(
+    let mut resolved = resolve(
         conn,
         &config,
         &channel,
@@ -746,34 +824,31 @@ pub fn frame_view(conn: &Connection, work_id: &str) -> Result<FrameView> {
         Target::Frame,
         String::new(),
     )?;
+    // The person's own words for the still are words about what it shows:
+    // said with the scene, where a generator reads them as the picture,
+    // rather than after the channel's mark at the prompt's end (v0.115).
+    resolved.parts.scene_words =
+        Some(frame.still.trim().to_owned()).filter(|words| !words.is_empty());
     let built = prompt::build(&cover, Target::Frame, shape, &resolved.parts);
     let colours = Colours::on(
         resolved.parts.background_colour.as_deref(),
         cover.accent.as_ref().map(|accent| accent.color.as_str()),
     );
-    let accent = cover.accent.is_some();
+    let subject = resolved.parts.subject;
+    let disc = cover.staging.disc && cover.accent.is_some();
     let scheme = cover.framing.map(|framing| {
         framing.scheme(Drawing {
             shape,
             lettering: false,
             colours: &colours,
-            accent,
+            subject,
+            disc,
             mark: None,
         })
     });
-    let join = |built: String, own: &str| {
-        let own = own.trim();
-        if own.is_empty() {
-            built
-        } else if built.is_empty() {
-            own.to_owned()
-        } else {
-            format!("{built}\n\n{own}")
-        }
-    };
     Ok(FrameView {
         prompts: crate::work::frame::FramePrompts {
-            still: join(built.picture, &frame.still),
+            still: built.picture,
             loop_: written.loop_,
             negative: [built.negative, frame.negative.trim().to_owned()]
                 .into_iter()
@@ -784,7 +859,7 @@ pub fn frame_view(conn: &Connection, work_id: &str) -> Result<FrameView> {
         from_cover: true,
         format: shape.name(),
         scheme,
-        layouts: layouts(shape, false, &colours, accent),
+        layouts: layouts(shape, false, &colours, subject, disc),
         details: channel.details_for(&cover, Target::Frame),
         problems: resolved.problems,
     })
@@ -829,8 +904,18 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
         .find(|block| block.picture)
         .map(|block| block.key.clone());
     let colours = Colours::on(None, work.cover.accent.as_ref().map(|a| a.color.as_str()));
-    let accent = work.cover.accent.is_some();
-    let layouts = layouts(shape, false, &colours, accent);
+    // A scene's subject is a person when it names a character, and a thing
+    // otherwise; the disc is the clip's cover's, with its accent.
+    let disc = work.cover.staging.disc && work.cover.accent.is_some();
+    let cast = crate::scene_note::for_scene(conn, &scene.id)?
+        .iter()
+        .any(|link| config.card_kind(&link.note_kind).is_some());
+    let subject = if cast {
+        Subject::Person
+    } else {
+        Subject::Object
+    };
+    let layouts = layouts(shape, false, &colours, subject, disc);
     let Some(framing) = scene.framing else {
         return Ok(SceneFrameView {
             still: None,
@@ -860,6 +945,10 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
             ..super::Bricks::default()
         },
         accent: work.cover.accent.clone(),
+        staging: super::Staging {
+            disc: work.cover.staging.disc,
+            ..super::Staging::default()
+        },
         details: work.cover.details.clone(),
         ..Cover::default()
     };
@@ -900,6 +989,7 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
             references: false,
         });
     }
+    resolved.parts.subject = subject;
     let built = prompt::build(&cover, Target::Scene, shape, &resolved.parts);
     Ok(SceneFrameView {
         still: Some(built.picture),
@@ -909,7 +999,8 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
             shape,
             lettering: false,
             colours: &colours,
-            accent,
+            subject,
+            disc,
             mark: None,
         })),
         layouts,
@@ -1105,12 +1196,12 @@ mod tests {
             "STYLE: neo-traditional tattoo art",
             "HERO: a small woman with a red scarf.",
             "SCENE: she waits at the end of a pier.",
-            "BACKGROUND: perfectly flat solid ink black",
+            "PALETTE: Ink black (#0E0D10) sets the picture's main colours and mood",
             "DETAIL: a small black cat hides somewhere.",
             "CHANNEL MARK: a cat head with a tear in its eye, hidden somewhere in the picture, small.",
             "TITLE: the words \"Northern Light\", spelled exactly, set huge across the full width behind the hero's head",
             "dry-brush hand lettering with rough bristle texture, fast strokes and ink splatter, in off-white.",
-            "A large flat circle in hot pink (#FF2E63)",
+            "Accent colour: hot pink (#FF2E63), used for highlights",
         ] {
             assert!(picture.contains(part), "`{part}` in: {picture}");
         }
@@ -1139,11 +1230,111 @@ mod tests {
         assert_eq!(view.details.len(), 2, "the details that belong on a cover");
         assert_eq!(view.marks.len(), 1);
         assert_eq!(view.palette[0].name, "Hot pink");
-        assert!(view.problems.contains(&Problem::SlotEmpty {
-            slot: "brand".into()
-        }));
+        // The dressing offers a brand in brackets, and the channel names
+        // none: the offer drops out, and nothing is wrong (v0.115). The
+        // captions editor still offers the slot.
+        assert!(
+            !view
+                .problems
+                .iter()
+                .any(|problem| matches!(problem, Problem::SlotEmpty { .. })),
+            "{:?}",
+            view.problems
+        );
+        assert!(view.slots.iter().any(|slot| slot.name == "brand"));
         assert!(view.scheme.is_some());
         assert!(view.mark_box.is_none(), "a mark drawn in is not laid over");
+    }
+
+    /// A detail written in the channel's language alone stays out of the
+    /// prompt and is said: its Russian went into an English prompt as it
+    /// stood until v0.115.
+    #[test]
+    fn a_detail_with_no_words_for_a_generator_stays_out_and_is_said() {
+        let stage = stage();
+        // A craft has one channel card: the details go on the stage's own.
+        let channel: String = stage
+            .conn
+            .query_row("SELECT id FROM note WHERE kind = 'channel'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        fact_with(
+            &stage.conn,
+            &channel,
+            "details",
+            "Кот прячется в кадре",
+            json!({ "template": "чёрный кот прячется где-то в кадре", "places": ["cover"], "on": true }),
+        );
+        fact_with(
+            &stage.conn,
+            &channel,
+            "details",
+            "A paper boat",
+            json!({ "template": "a paper boat floats somewhere", "places": ["cover"], "on": true }),
+        );
+        write(&stage, cover_of(&stage));
+
+        let view = view(&stage.conn, &stage.clip.id, None).unwrap();
+
+        assert!(
+            !view.prompts.picture.contains("кот"),
+            "{}",
+            view.prompts.picture
+        );
+        assert!(view.problems.contains(&Problem::DetailNeedsTranslation {
+            name: "Кот прячется в кадре".into()
+        }));
+        // A detail a generator can read is sent as it was.
+        assert!(
+            view.prompts
+                .picture
+                .contains("DETAIL: a paper boat floats somewhere.")
+        );
+        let untranslated = view
+            .details
+            .iter()
+            .find(|detail| detail.name.starts_with("Кот"))
+            .unwrap();
+        assert!(untranslated.needs_translation && untranslated.template.is_empty());
+    }
+
+    /// A lettering letters a title: with none it is left out and said, and
+    /// the title sent to the corner the mark sits in is said too.
+    #[test]
+    fn a_lettering_without_a_title_and_a_title_on_the_mark_are_said() {
+        let stage = stage();
+        let mut cover = cover_of(&stage);
+        cover.lettering.title = Some(String::new());
+        write(&stage, cover.clone());
+        let view_of = |stage: &Stage| view(&stage.conn, &stage.clip.id, None).unwrap();
+
+        let untitled = view_of(&stage);
+        assert!(untitled.problems.contains(&Problem::TypographyWithoutTitle));
+        assert!(
+            !untitled.prompts.picture.contains("dry-brush"),
+            "{}",
+            untitled.prompts.picture
+        );
+        assert!(!untitled.prompts.picture.contains("TITLE"));
+
+        cover.lettering.title = None;
+        cover.framing = Some(framing::Framing {
+            place: Place::Corner,
+            ..Layout::Masthead.defaults()
+        });
+        cover.mark = MarkChoice {
+            variant: Some(stage.mark.clone()),
+            place: MarkPlace::Corner,
+            corner: Corner::BottomLeft,
+            ..MarkChoice::default()
+        };
+        write(&stage, cover.clone());
+        assert!(view_of(&stage).problems.contains(&Problem::TitleOnMark));
+
+        cover.mark.corner = Corner::BottomRight;
+        write(&stage, cover);
+        assert!(!view_of(&stage).problems.contains(&Problem::TitleOnMark));
     }
 
     #[test]

@@ -34,6 +34,11 @@ export function DetailSwitches({ details, disabled, onToggle }: Props) {
           >
             {detail.name}
           </Switch>
+          {/* Written in the channel's own language, with no words for a
+              generator: it stays out of the prompt until it has them. */}
+          {detail.needs_translation && (
+            <span className="text-2xs text-warn">{t('cover.details.needsTranslation')}</span>
+          )}
           {detail.on !== detail.default_on && (
             <span className="text-2xs text-faint">{t('cover.details.ownChoice')}</span>
           )}

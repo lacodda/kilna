@@ -37,7 +37,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::profile::config::StyleForm;
-pub use framing::{Corner, Framing, Scheme, Shape};
+pub use framing::{Corner, Framing, Scheme, Shape, Subject};
 
 /// A publication's cover, as the constructor holds it.
 ///
@@ -58,9 +58,14 @@ pub struct Cover {
     /// the idea: it goes into the constructor with the scene and into the
     /// negative after the bans, where the person's own words come last.
     pub avoid: String,
-    /// The hero from the canon. Absent, the hero is the one the scene
-    /// describes.
+    /// The hero from the canon. Absent, the picture is of what
+    /// [`subject`](Self::subject) says.
     pub hero: Option<Hero>,
+    /// How the picture is staged: what it is of when no hero is chosen, and
+    /// what the accent and the background are to it (v0.115). Nested, like
+    /// everything that is not words: the search reads the words at the top
+    /// of the record.
+    pub staging: Staging,
     /// The built frame. Absent until a layout is picked.
     pub framing: Option<Framing>,
     pub bricks: Bricks,
@@ -196,9 +201,44 @@ pub struct Lettering {
     /// The title goes to the generator as a second prompt, an edit of the
     /// finished picture, rather than inside the picture's prompt.
     pub apart: bool,
+    /// With the title apart, the picture still keeps the title's part of the
+    /// frame clean for it (v0.115). Off, the first prompt says nothing of a
+    /// title at all and the second finds its own room.
+    pub reserve: bool,
     /// The cover's own captions for the dressing's slots, by slot name. A
     /// slot not named here is filled from the channel's card.
     pub captions: BTreeMap<String, Vec<String>>,
+}
+
+/// How a picture is staged.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(default)]
+#[ts(rename = "CoverStaging")]
+pub struct Staging {
+    /// What the picture is of when no hero is chosen: a person the scene
+    /// describes, a thing, or nobody. Absent, a thing: the frame then says
+    /// "the main subject" and never a head, a chest or eyes. A cover with a
+    /// hero is of a person whatever this says.
+    pub subject: Option<Subject>,
+    /// The accent is a flat disc behind the subject, rather than a colour
+    /// for highlights and edges. Off unless asked for: until v0.115 five
+    /// layouts of the eight put a moon behind every picture with an accent.
+    pub disc: bool,
+    /// What the chosen background is to the picture.
+    pub ground: Ground,
+}
+
+/// What a chosen background is to the picture (v0.115).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(rename = "CoverGround")]
+pub enum Ground {
+    /// Its colours and its mood: the scene keeps the place it describes.
+    #[default]
+    Palette,
+    /// The whole ground, flat: a studio backdrop with no scenery - what a
+    /// background's description says, as it is written.
+    Flat,
 }
 
 /// The channel's mark on a cover.
@@ -292,6 +332,7 @@ impl Cover {
             || !self.scene.trim().is_empty()
             || !self.avoid.trim().is_empty()
             || self.accent.is_some()
+            || self.staging != Staging::default()
             || self.mark.variant.is_some()
             || !self.details.is_empty()
             || self.lettering != Lettering::default()
@@ -305,6 +346,16 @@ impl Cover {
             || !self.picture.trim().is_empty()
             || !self.negative.trim().is_empty()
             || !self.typography.trim().is_empty()
+    }
+
+    /// What the picture is of: a person when a hero is chosen, else what the
+    /// cover says, else a thing.
+    pub fn subject_of(&self) -> Subject {
+        if self.hero_card().is_some() {
+            Subject::Person
+        } else {
+            self.staging.subject.unwrap_or_default()
+        }
     }
 
     /// The card it names as its hero, if any.

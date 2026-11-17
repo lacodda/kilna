@@ -8,6 +8,7 @@ import { DetailSwitches } from '@/features/cover/DetailSwitches'
 import { FramingPicker } from '@/features/cover/FramingPicker'
 import { HeroPick } from '@/features/cover/HeroPick'
 import { DraftText, Section } from '@/features/cover/Section'
+import { DiscSwitch, GroundPick, SubjectPick } from '@/features/cover/Staging'
 import { AccentPick } from '@/features/work/tabs/cover/AccentPick'
 import { BackgroundPick } from '@/features/work/tabs/cover/BackgroundPick'
 import { CaptionSlots } from '@/features/work/tabs/cover/CaptionSlots'
@@ -81,6 +82,14 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           state={view?.hero ?? null}
           onChange={(hero) => change((c) => ({ ...c, hero }))}
         />
+        {/* With no hero the picture is of what is said here; with one it is
+            of a person, and there is nothing to ask. */}
+        {cover.hero === null && (
+          <SubjectPick
+            subject={cover.staging.subject}
+            onChange={(subject) => change((c) => ({ ...c, staging: { ...c.staging, subject } }))}
+          />
+        )}
       </Section>
 
       <Section
@@ -157,12 +166,24 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           brickId={cover.bricks.background}
           onChange={(background) => change((c) => ({ ...c, bricks: { ...c.bricks, background } }))}
         />
+        {cover.bricks.background !== null && (
+          <GroundPick
+            ground={cover.staging.ground}
+            onChange={(ground) => change((c) => ({ ...c, staging: { ...c.staging, ground } }))}
+          />
+        )}
         <span className="caption">{t('cover.accent.title')}</span>
         <AccentPick
           accent={cover.accent}
           palette={view?.palette ?? []}
           onChange={(accent) => change((c) => ({ ...c, accent }))}
         />
+        {cover.accent !== null && (
+          <DiscSwitch
+            disc={cover.staging.disc}
+            onChange={(disc) => change((c) => ({ ...c, staging: { ...c.staging, disc } }))}
+          />
+        )}
       </Section>
 
       <Section title={t('cover.mark.title')} hint={t('cover.mark.hint')} actions={<CanonLink />}>

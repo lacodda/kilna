@@ -1,0 +1,16 @@
+FRAME: a wide 16:9 video frame. No title, no text.
+
+FRAMING: place the hero in the left third of the frame, anchored to the bottom edge. The hero fills 100% of the frame height, from the bottom edge almost to the top. Show the hero from the waist up. A split frame: the hero fills one half of the frame; the other half stays open.
+
+STYLE: neo-traditional tattoo art rendered as a detailed digital painting, bold ink outlines.
+
+HERO: a small woman with a red scarf Also in the picture: a tall man in a grey coat.
+
+SCENE: they argue across the table.
+
+DETAIL: a small black cat hides somewhere in the picture.
+
+DETAIL: one object in the scene is cracked.
+
+--- NEGATIVE ---
+No text, no title, no watermark, no frame or border. no skulls. no weapons.

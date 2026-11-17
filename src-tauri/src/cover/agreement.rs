@@ -13,7 +13,7 @@
 
 use super::framing::{
     Column, Corner, Crop, Framing, Layout, Paint, Place, Rect, Row, Scheme, SchemeShape, Shape,
-    Size,
+    Size, Subject,
 };
 use super::prompt::{self, Ingredients, MarkText, Target};
 use super::{Accent, Cover, MarkChoice, MarkPlace, MarkWay};
@@ -219,6 +219,12 @@ fn cover_with(framing: Framing, accent: bool) -> Cover {
             color: "#FF2E63".into(),
             ..Accent::default()
         }),
+        // The accent as a disc: the scheme draws one when, and only when,
+        // the prompt asks for it.
+        staging: super::Staging {
+            disc: accent,
+            ..super::Staging::default()
+        },
         ..Cover::default()
     }
 }
@@ -227,6 +233,9 @@ fn parts() -> Ingredients {
     Ingredients {
         title: "Northern Light".into(),
         background_colour: Some("#EFEBE3".into()),
+        // A person: the subject the scheme draws as a figure, whose head and
+        // shoulders the checks below measure.
+        subject: Subject::Person,
         ..Ingredients::default()
     }
 }
@@ -275,7 +284,8 @@ fn agree(shape: Shape, framing: Framing, accent: bool) {
         shape,
         lettering: true,
         colours: &colours,
-        accent,
+        subject: parts.subject,
+        disc: accent,
         mark: None,
     });
     let at = format!("{framing:?} in {} with accent {accent}", shape.name());
@@ -309,7 +319,7 @@ fn agree(shape: Shape, framing: Framing, accent: bool) {
     // How big: the sentence after where the hero stands, before how much of
     // them shows (the crop's sentence opens with "Show").
     let drawn = scheme.hero.h / height;
-    let from = picture.find("PLACEMENT:").expect("a placement");
+    let from = picture.find("FRAMING:").expect("a framing");
     let to = from + picture[from..].find(" Show ").expect("a crop");
     let sizing = &picture[from..to];
     if sizing.contains("An extreme close-up") {
@@ -352,7 +362,7 @@ fn agree(shape: Shape, framing: Framing, accent: bool) {
         Crop::Waist => "from the waist up",
         Crop::Bust => "head-and-shoulders",
         Crop::Head => "only the hero's head",
-        Crop::Detail => "only the eyes or the key object",
+        Crop::Detail => "only the hero's eyes",
     };
     assert!(picture.contains(crop_words), "{at}: the crop is said");
 
@@ -409,7 +419,8 @@ fn a_picture_without_words_draws_and_asks_for_no_title() {
                     shape,
                     lettering: false,
                     colours: &colours,
-                    accent: true,
+                    subject: Subject::Person,
+                    disc: true,
                     mark: None,
                 });
                 assert!(title_blocks(&scheme).is_empty(), "{framing:?}");
@@ -450,7 +461,8 @@ fn the_mark_sits_where_the_prompt_says() {
                     shape,
                     lettering: true,
                     colours: &colours,
-                    accent: false,
+                    subject: Subject::Person,
+                    disc: false,
                     mark: cover.mark.in_corner(),
                 });
                 let boxed = scheme.mark.expect("the scheme shows where the mark goes");
@@ -475,6 +487,168 @@ fn the_mark_sits_where_the_prompt_says() {
                     }
                 }
             }
+        }
+    }
+}
+
+/// The words a frame may say only of a person (FR-07 7.1).
+const OF_A_PERSON: [&str; 7] = ["hero", "head", "chest", "face", "figure", "eyes", "skin"];
+
+/// The words of `text`, lower case: a word is said when it stands whole, so
+/// "headline" does not say "head".
+fn words_of(text: &str) -> Vec<String> {
+    text.split(|c: char| !c.is_alphabetic())
+        .filter(|word| !word.is_empty())
+        .map(str::to_lowercase)
+        .collect()
+}
+
+/// A picture with no hero never speaks of one (v0.115).
+///
+/// Until then every frame said "the hero" - its head behind the title, its
+/// chest under it, its eyes in a close-up - whatever the picture was of, and
+/// a cover of an empty street was told where the hero's face goes. For a
+/// thing and for a picture with no subject, in every layout, place of the
+/// title, size, crop and position, on a cover, a frame and a scene, with the
+/// accent as a colour and as a disc, with the title in the picture and
+/// apart: none of the words of a person, in any block of the prompt.
+#[test]
+fn a_picture_with_no_hero_never_speaks_of_one() {
+    let shape = Shape::parse("16:9").unwrap();
+    let mut checked = 0;
+    for subject in [Subject::Object, Subject::None] {
+        for layout in Layout::ALL {
+            for place in Place::ALL {
+                for size in Size::ALL {
+                    for crop in Crop::ALL {
+                        for column in Column::ALL {
+                            for (disc, apart) in [(false, false), (true, true)] {
+                                let framing = Framing {
+                                    place,
+                                    size,
+                                    crop,
+                                    column,
+                                    ..layout.defaults()
+                                };
+                                let mut cover = cover_with(framing, true);
+                                cover.staging.subject = Some(subject);
+                                cover.staging.disc = disc;
+                                cover.lettering.apart = apart;
+                                cover.lettering.reserve = apart;
+                                let parts = Ingredients {
+                                    subject: cover.subject_of(),
+                                    ..parts()
+                                };
+                                for target in [Target::Cover, Target::Frame, Target::Scene] {
+                                    let built = prompt::build(&cover, target, shape, &parts);
+                                    let said = format!(
+                                        "{}\n{}",
+                                        built.picture,
+                                        built.typography.unwrap_or_default()
+                                    );
+                                    let words = words_of(&said);
+                                    for banned in OF_A_PERSON {
+                                        assert!(
+                                            !words.iter().any(|word| word == banned),
+                                            "{subject:?} {framing:?} {target:?} says `{banned}`:\n{said}"
+                                        );
+                                    }
+                                    checked += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(checked, 2 * 8 * 9 * 6 * 5 * 3 * 2 * 3);
+}
+
+/// The other half: a person is still spoken of as one, so the check above
+/// is about the subject and not about words that went missing everywhere.
+#[test]
+fn a_person_is_still_spoken_of_as_one() {
+    let shape = Shape::parse("16:9").unwrap();
+    let framing = Framing {
+        place: Place::Behind,
+        ..Layout::Masthead.defaults()
+    };
+    let picture =
+        prompt::build(&cover_with(framing, false), Target::Cover, shape, &parts()).picture;
+    assert!(picture.contains("place the hero"), "{picture}");
+    assert!(picture.contains("behind the hero's head"), "{picture}");
+}
+
+/// The accent is a colour unless a disc is asked for, and the frame says
+/// nothing of what the picture holds: no circle by default, and none of the
+/// motifs every frame used to add.
+#[test]
+fn a_frame_is_geometry_and_the_accent_a_colour() {
+    let shape = Shape::parse("16:9").unwrap();
+    for layout in Layout::ALL {
+        let mut cover = cover_with(layout.defaults(), true);
+        cover.staging.disc = false;
+        let picture = prompt::build(&cover, Target::Cover, shape, &parts()).picture;
+        assert!(!picture.contains("circle"), "{layout:?}: {picture}");
+        assert!(
+            picture.contains("Accent colour: hot pink (#FF2E63), used for highlights"),
+            "{layout:?}: {picture}"
+        );
+        for motif in [
+            "symbolic",
+            "splatters",
+            "doodles",
+            "moon",
+            "marks on the skin",
+        ] {
+            assert!(
+                !picture.contains(motif),
+                "{layout:?} says `{motif}`: {picture}"
+            );
+        }
+        assert!(!picture.contains("PLACEMENT:") && !picture.contains("COMPOSITION:"));
+        assert_eq!(picture.matches("FRAMING:").count(), 1, "{picture}");
+
+        // Asked for, the disc is said and drawn - in every layout, not five.
+        cover.staging.disc = true;
+        let picture = prompt::build(&cover, Target::Cover, shape, &parts()).picture;
+        assert!(
+            picture.contains("circle in hot pink"),
+            "{layout:?}: {picture}"
+        );
+    }
+}
+
+/// A close look at a pair of eyes is drawn inside the frame: until v0.115
+/// the largest size drew them at twice the frame's height.
+#[test]
+fn a_close_look_is_drawn_inside_the_frame() {
+    let shape = Shape::parse("16:9").unwrap();
+    let colours = super::framing::Colours::on(None, None);
+    let framing = Framing {
+        size: Size::Macro,
+        crop: Crop::Detail,
+        ..Layout::CloseUp.defaults()
+    };
+    let scheme = framing.scheme(super::framing::Drawing {
+        shape,
+        lettering: false,
+        colours: &colours,
+        subject: Subject::Person,
+        disc: false,
+        mark: None,
+    });
+    for drawn in &scheme.shapes {
+        if let SchemeShape::Ellipse { cy, ry, cx, rx, .. } = drawn {
+            assert!(
+                cy - ry >= -0.01 && cy + ry <= scheme.height + 0.01,
+                "an eye runs out of the frame: {drawn:?}"
+            );
+            assert!(
+                cx - rx >= -0.01 && cx + rx <= scheme.width + 0.01,
+                "{drawn:?}"
+            );
         }
     }
 }

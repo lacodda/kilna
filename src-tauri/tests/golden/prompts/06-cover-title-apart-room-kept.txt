@@ -1,0 +1,21 @@
+FRAME: a wide 16:9 cover.
+
+FRAMING: place the main subject in the left third of the frame, vertically centred. The main subject with what surrounds it takes about 58% of the frame height. Show the upper part of the main subject. One compact group: the main subject and what surrounds it overlap and frame each other; nothing floats separately. Accent colour: hot pink (#FF2E63), used for highlights, light edges and key accents. Keep the right 40% of the frame free of the main subject and what surrounds it: the title goes there.
+
+STYLE: neo-traditional tattoo art rendered as a detailed digital painting, bold ink outlines, with hot pink (#FF2E63) highlights.
+
+SCENE: a paper boat in a gutter.
+
+PALETTE: Ink black (#0E0D10) sets the picture's main colours and mood; the scene keeps its own setting.
+
+DETAIL: a small black cat hides somewhere in the picture.
+
+DETAIL: one object in the scene is cracked.
+
+No text, letters or numbers in this picture, except what the scene itself asks for.
+
+--- NEGATIVE ---
+No watermark, no signature, no frame or border. No text, letters or numbers. no skulls. no weapons.
+
+--- SECOND PROMPT ---
+EDIT THE IMAGE: keep the picture exactly as it is. TITLE: the words "Northern Light", spelled exactly, set as a tall right-aligned block in the right part of the frame. TYPOGRAPHY: huge dry-brush hand lettering, in off-white with a hot pink (#FF2E63) echo. Under the title add a small line "NIGHT SHIFT". No other text. Keep the letters rough.

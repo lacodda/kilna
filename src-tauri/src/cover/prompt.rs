@@ -8,8 +8,8 @@
 
 use serde::Serialize;
 
-use super::framing::Shape;
-use super::{Cover, MarkPlace};
+use super::framing::{Said, Shape, Subject};
+use super::{Cover, Ground, MarkPlace};
 use crate::style_set::{self, SlotValues};
 
 /// What a prompt is written for.
@@ -47,8 +47,17 @@ pub struct Ingredients {
     pub typography: Option<String>,
     pub dressing: Option<String>,
     pub background: Option<String>,
+    /// What the background is called, for a picture that takes it as its
+    /// palette rather than as a flat ground.
+    pub background_name: Option<String>,
     /// The background's colour: what the ink is chosen against.
     pub background_colour: Option<String>,
+    /// What the picture is of - what its frame places.
+    pub subject: Subject,
+    /// Words of the picture's own that belong to what it shows: a frame's
+    /// "own words for the still", said with the scene rather than after
+    /// everything else.
+    pub scene_words: Option<String>,
     pub hero: Option<HeroText>,
     /// The signature details that are on for this picture, their cards'
     /// descriptions written in.
@@ -125,13 +134,23 @@ pub fn build(cover: &Cover, target: Target, shape: Shape, parts: &Ingredients) -
         ),
         Target::Scene => format!("{} No title, no text.", shape.sentence("video frame")),
     }];
-    if let Some(framing) = &cover.framing {
-        picture.push(framing.placement(lettering));
+    // Whether this picture carries words, and whether this prompt keeps
+    // room for them: a title that goes apart is the second prompt's, and the
+    // first says nothing of it unless the cover asks for the room.
+    let words = lettering && (!parts.title.trim().is_empty() || parts.dressing.is_some());
+    let accent = cover.accent.as_ref().map(super::Accent::said);
+    match &cover.framing {
+        Some(framing) => picture.push(framing.paragraph(&Said {
+            subject: parts.subject,
+            lettering: words,
+            room_for_title: words && (!cover.lettering.apart || cover.lettering.reserve),
+            accent: accent.as_deref(),
+            disc: cover.staging.disc,
+        })),
+        // No frame to say it in: the accent is still the picture's colour.
+        None => picture.extend(accent.as_deref().map(accent_sentence)),
     }
     picture.extend(parts.style.as_deref().map(fill));
-    if let Some(framing) = &cover.framing {
-        picture.push(fill(framing.layout.composition(lettering)));
-    }
     if let Some(hero) = &parts.hero
         && let Some(description) = hero.description.as_deref()
     {
@@ -143,10 +162,16 @@ pub fn build(cover: &Cover, target: Target, shape: Shape, parts: &Ingredients) -
         }
         picture.push(line);
     }
-    if !cover.scene.trim().is_empty() {
-        picture.push(format!("SCENE: {}", sentence(&cover.scene)));
+    let shown: Vec<String> = [Some(cover.scene.as_str()), parts.scene_words.as_deref()]
+        .into_iter()
+        .flatten()
+        .map(sentence)
+        .filter(|words| !words.is_empty())
+        .collect();
+    if !shown.is_empty() {
+        picture.push(format!("SCENE: {}", shown.join(" ")));
     }
-    picture.extend(parts.background.as_deref().map(fill));
+    picture.extend(ground_paragraph(cover.staging.ground, parts, &fill));
     picture.extend(
         parts
             .details
@@ -266,7 +291,7 @@ fn lettering_paragraph(
         };
         let setting = cover
             .framing
-            .map(|framing| format!(", {}", framing.place.setting(framing.column)))
+            .map(|framing| format!(", {}", framing.place.setting(framing.column, parts.subject)))
             .unwrap_or_default();
         words.push(format!(
             "TITLE: the words \"{title}\", spelled exactly{script}{setting}."
@@ -274,9 +299,6 @@ fn lettering_paragraph(
     }
     if let Some(typography) = parts.typography.as_deref() {
         words.push(fill(typography));
-        if !title.is_empty() {
-            words.push("The lettering matches the picture's style and colours.".to_owned());
-        }
     }
     if let Some(dressing) = parts.dressing.as_deref() {
         words.push(fill(dressing));
@@ -292,6 +314,40 @@ fn lettering_paragraph(
             .collect::<Vec<_>>()
             .join(" "),
     )
+}
+
+/// The accent of a picture that has no frame to say it in.
+fn accent_sentence(accent: &str) -> String {
+    format!("Accent colour: {accent}, used for highlights, light edges and key accents.")
+}
+
+/// The background, as the cover takes it: the whole ground, as its
+/// description says - "perfectly flat, no scenery" - or the picture's colours
+/// and mood, with the scene keeping the place it describes. Until v0.115
+/// every background was the first, and a scene on a street was told, two
+/// lines later, to have no scenery.
+fn ground_paragraph(
+    ground: Ground,
+    parts: &Ingredients,
+    fill: &dyn Fn(&str) -> String,
+) -> Option<String> {
+    match ground {
+        Ground::Flat => parts.background.as_deref().map(fill),
+        Ground::Palette => {
+            let said = match (
+                parts.background_name.as_deref().map(str::trim),
+                parts.background_colour.as_deref().map(str::trim),
+            ) {
+                (Some(name), Some(colour)) if !name.is_empty() => format!("{name} ({colour})"),
+                (Some(name), None) if !name.is_empty() => name.to_owned(),
+                (_, Some(colour)) => colour.to_owned(),
+                _ => return None,
+            };
+            Some(format!(
+                "PALETTE: {said} sets the picture's main colours and mood; the scene keeps its own setting."
+            ))
+        }
+    }
 }
 
 fn mark_line(cover: &Cover, mark: &MarkText) -> String {
@@ -428,8 +484,8 @@ mod tests {
         let picture = &prompts.picture;
         let order = [
             "FRAME: a wide 16:9 cover.",
-            "PLACEMENT: place the hero in the right third of the frame, vertically centred.",
-            "COMPOSITION:",
+            "FRAMING: place the main subject in the right third of the frame, vertically centred.",
+            "One compact group:",
             "SCENE: a lighthouse keeper polishes the lamp.",
             "TITLE: the words \"Northern Light\", spelled exactly, set as a tall left-aligned block",
             "No other text.",
@@ -604,7 +660,8 @@ mod tests {
             picture.contains("Add a line \"OWN\" and \"keep going\"."),
             "{picture}"
         );
-        assert!(picture.contains("A large flat circle in hot pink (#FF2E63)"));
+        assert!(picture.contains("Accent colour: hot pink (#FF2E63)"));
+        assert!(!picture.contains("circle"), "{picture}");
     }
 
     #[test]
@@ -749,4 +806,83 @@ mod tests {
     }
 
     use super::super::framing::Framing;
+
+    /// A title that goes apart is the second prompt's: the first keeps no
+    /// part of the frame for it unless the cover asks for the room.
+    #[test]
+    fn a_title_apart_reserves_nothing_unless_asked() {
+        let mut cover = built();
+        cover.lettering.apart = true;
+        let apart = build(&cover, Target::Cover, wide(), &parts());
+        assert!(
+            !apart.picture.contains("title"),
+            "the first prompt speaks of a title: {}",
+            apart.picture
+        );
+        assert!(apart.typography.unwrap().contains("TITLE: the words"));
+
+        cover.lettering.reserve = true;
+        let reserved = build(&cover, Target::Cover, wide(), &parts()).picture;
+        assert!(
+            reserved.contains("Keep the left 40% of the frame"),
+            "{reserved}"
+        );
+    }
+
+    /// The lettering is said as its brick says it, and nothing is added
+    /// about matching the picture.
+    #[test]
+    fn nothing_is_added_to_a_lettering() {
+        let with_lettering = Ingredients {
+            typography: Some("TYPOGRAPHY: thin grotesque capitals.".into()),
+            ..parts()
+        };
+        let picture = build(&built(), Target::Cover, wide(), &with_lettering).picture;
+        assert!(picture.contains("TYPOGRAPHY: thin grotesque capitals. No other text."));
+        assert!(!picture.contains("matches the picture"), "{picture}");
+    }
+
+    /// A background is the picture's palette unless the cover takes it as a
+    /// flat ground: only then is "no scenery" said beside a scene.
+    #[test]
+    fn a_background_is_a_palette_unless_taken_flat() {
+        let with_ground = Ingredients {
+            background: Some("BACKGROUND: perfectly flat solid ink black, no scenery.".into()),
+            background_name: Some("Ink black".into()),
+            background_colour: Some("#0E0D10".into()),
+            ..parts()
+        };
+        let mut cover = built();
+        let palette = build(&cover, Target::Cover, wide(), &with_ground).picture;
+        assert!(!palette.contains("no scenery"), "{palette}");
+        assert!(palette.contains("PALETTE: Ink black (#0E0D10) sets"));
+
+        cover.staging.ground = Ground::Flat;
+        let flat = build(&cover, Target::Cover, wide(), &with_ground).picture;
+        assert!(flat.contains("BACKGROUND: perfectly flat solid ink black, no scenery."));
+        assert!(!flat.contains("PALETTE"));
+    }
+
+    /// A frame's own words are words about what it shows, and are said with
+    /// the scene.
+    #[test]
+    fn a_frames_own_words_are_said_with_the_scene() {
+        let with_words = Ingredients {
+            scene_words: Some("rain on the lamp glass".into()),
+            mark: Some(MarkText {
+                prompt: "a cat's head".into(),
+                has_file: false,
+            }),
+            ..parts()
+        };
+        let picture = build(&built(), Target::Frame, wide(), &with_words).picture;
+        assert!(
+            picture
+                .contains("SCENE: a lighthouse keeper polishes the lamp. rain on the lamp glass."),
+            "{picture}"
+        );
+        assert!(
+            picture.find("rain on the lamp glass").unwrap() < picture.find("CHANNEL MARK").unwrap()
+        );
+    }
 }

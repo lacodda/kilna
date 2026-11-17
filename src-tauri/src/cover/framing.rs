@@ -1,5 +1,16 @@
-//! The frame a picture is built in: where the hero stands, how big, how much
-//! of them shows, and where the title goes.
+//! The frame a picture is built in: where its subject stands, how big, how
+//! much of it shows, and where the title goes.
+//!
+//! The subject is a person, an object, or nobody (v0.115, [`Subject`]): a
+//! frame says "the hero" only of a person, and of a picture with no subject
+//! it places nothing and frames the scene. Until then every sentence said
+//! "the hero" - its head, its chest, its eyes - whatever the picture showed,
+//! and a cover of an empty street was told where to put the hero's face.
+//!
+//! A frame is geometry and nothing else: where, how big, how much shows. The
+//! sentences that told every picture to be an emblem of interlocked symbolic
+//! objects with splatters around it went with v0.115 - what is in the
+//! picture is the scene's to say, and how it is drawn is the style's.
 //!
 //! Built into the code rather than kept as bricks (the owner's decision of
 //! 2026-09-27: "the composition is built in and not edited"). Eight layouts,
@@ -28,6 +39,33 @@ pub struct Framing {
     /// Where the title goes. Read only where a picture carries words: a
     /// frame under a track and a scene of a clip carry none.
     pub place: Place,
+}
+
+/// What a picture is of, which is what a frame places.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(rename = "CoverSubject")]
+pub enum Subject {
+    /// A person, or a creature drawn as one: the hero.
+    Person,
+    /// A thing: the main subject, with no head, chest or eyes to speak of.
+    #[default]
+    Object,
+    /// Nobody and nothing in particular: the scene itself.
+    None,
+}
+
+impl Subject {
+    pub const ALL: [Subject; 3] = [Subject::Person, Subject::Object, Subject::None];
+
+    /// What the frame's sentences call the subject. A picture with none has
+    /// no word for it: its sentences are written apart.
+    fn noun(self) -> &'static str {
+        match self {
+            Subject::Person => "the hero",
+            Subject::Object | Subject::None => "the main subject",
+        }
+    }
 }
 
 /// The eight layouts. Picking one sets the five settings to its own; each can
@@ -136,46 +174,54 @@ impl Layout {
         }
     }
 
-    /// Whether the composition puts a disc of the accent behind the hero.
-    /// Only when there is an accent: the sentence that asks for it is dropped
-    /// without one, and so is the disc.
-    fn has_disc(self) -> bool {
-        matches!(
-            self,
-            Layout::EmblemRight
-                | Layout::EmblemLeft
-                | Layout::Centre
-                | Layout::Masthead
-                | Layout::Figure
-        )
-    }
-
-    /// How the objects are composed, with `{accent}` where the accent goes.
-    /// A phrase in brackets drops out whole when there is no accent - the
-    /// rule of a dressing's slots (`style_set::fill`).
-    pub fn composition(self, lettering: bool) -> &'static str {
+    /// How the frame is composed: its geometry, and nothing about what is in
+    /// it. `open` is what a split frame's other half is left to.
+    fn composition(self, subject: Subject, lettering: bool) -> String {
+        let n = subject.noun();
+        let other_half = if lettering {
+            "is left to a huge vertical title"
+        } else {
+            "stays open"
+        };
+        if subject == Subject::None {
+            return match self {
+                Layout::EmblemRight | Layout::EmblemLeft | Layout::Centre => {
+                    "One compact composition: the elements of the scene are grouped together; nothing floats separately.".to_owned()
+                }
+                Layout::Poster => {
+                    "A dense full-bleed composition that runs to the frame edges.".to_owned()
+                }
+                Layout::Masthead => {
+                    "A magazine-cover layout: the scene is centred and fills the frame.".to_owned()
+                }
+                Layout::CloseUp => {
+                    "An extreme close-up of a part of the scene, cropped by the frame edges.".to_owned()
+                }
+                Layout::Figure => "A vast, open view with a lot of empty space.".to_owned(),
+                Layout::Split => format!(
+                    "A split frame: the scene fills one half of the frame; the other half {other_half}."
+                ),
+            };
+        }
         match self {
-            Layout::EmblemRight | Layout::EmblemLeft | Layout::Centre => {
-                "COMPOSITION: one compact emblem: the hero and three to six symbolic objects are interlocked, overlapping, coiling around and framing each other; nothing floats separately.[ A large flat circle in {accent} sits behind the hero like a moon.] Around the emblem: splatters, dry strokes, thin geometric lines and small doodles."
-            }
-            Layout::Poster => {
-                "COMPOSITION: a dense full-bleed poster: the hero dominates the frame, symbolic objects burst out around the hero and overlap the frame edges; splatters, drips, thin geometric lines, arrows and small doodles spread across the background up to the edges.[ Accent colour: {accent}.]"
-            }
+            Layout::EmblemRight | Layout::EmblemLeft | Layout::Centre => format!(
+                "One compact group: {n} and what surrounds it overlap and frame each other; nothing floats separately."
+            ),
+            Layout::Poster => format!(
+                "A dense full-bleed poster: {n} dominates the frame, and what surrounds it overlaps the frame edges."
+            ),
             Layout::Masthead => {
-                "COMPOSITION: a magazine-cover layout: the hero stands in front, large and centred; the symbolic objects are grouped around the shoulders and at the bottom.[ A large flat circle in {accent} sits low behind the hero.]"
+                format!("A magazine-cover layout: {n} stands in front, large and centred.")
             }
             Layout::CloseUp => {
-                "COMPOSITION: an extreme close-up: the hero's face, or the key object, fills the frame and is cropped by its edges; the symbolic objects appear as marks on the skin, as reflections in the eyes, or peek in from the edges.[ Accent colour: {accent}.]"
+                format!("An extreme close-up: {n} fills the frame and is cropped by its edges.")
             }
             Layout::Figure => {
-                "COMPOSITION: a small lonely figure in a vast space: the hero stands small, surrounded by a lot of background; a few symbolic objects lie around like clues.[ A huge flat circle in {accent} sits low on the horizon behind the figure.]"
+                format!("A vast space: {n} is small in it, surrounded by a lot of background.")
             }
-            Layout::Split if lettering => {
-                "COMPOSITION: a split frame: the hero and the symbolic objects fill one half of the frame, tightly interlocked; the other half is left to a huge vertical title.[ Accent colour: {accent}.]"
-            }
-            Layout::Split => {
-                "COMPOSITION: a split frame: the hero and the symbolic objects fill one half of the frame, tightly interlocked; the other half stays open.[ Accent colour: {accent}.]"
-            }
+            Layout::Split => format!(
+                "A split frame: {n} fills one half of the frame; the other half {other_half}."
+            ),
         }
     }
 }
@@ -271,24 +317,39 @@ impl Size {
     }
 
     /// The sentence. Every size but the last names its share as a percent,
-    /// which is what the test holds the scheme's hero to.
-    fn sentence(self) -> String {
+    /// which is what the test holds the scheme's subject to.
+    fn sentence(self, subject: Subject) -> String {
         let percent = percent(self.share());
+        let name = subject.noun();
+        // The sentence opens with the name.
+        let n = format!("T{}", &name[1..]);
         match self {
             Size::Small => format!(
-                "The hero is small, about {percent}% of the frame height, with a lot of space around."
+                "{n} is small, about {percent}% of the frame height, with a lot of space around."
             ),
-            Size::Emblem => format!(
-                "The hero with the objects around takes about {percent}% of the frame height."
-            ),
-            Size::Large => format!("The hero is large, about {percent}% of the frame height."),
+            Size::Emblem => {
+                format!("{n} with what surrounds it takes about {percent}% of the frame height.")
+            }
+            Size::Large => format!("{n} is large, about {percent}% of the frame height."),
             Size::Full => format!(
-                "The hero fills {percent}% of the frame height, from the bottom edge almost to the top."
+                "{n} fills {percent}% of the frame height, from the bottom edge almost to the top."
             ),
             Size::Over => format!(
-                "The hero is bigger than the frame, about {percent}% of its height: the figure is cropped by the frame edges."
+                "{n} is bigger than the frame, about {percent}% of its height, and is cropped by the frame edges."
             ),
-            Size::Macro => "An extreme close-up: the face or the key object fills the whole frame and is cropped on all sides.".to_owned(),
+            Size::Macro => format!(
+                "An extreme close-up: {name} fills the whole frame and is cropped on all sides."
+            ),
+        }
+    }
+
+    /// How much of a scene with no subject the frame takes in.
+    fn view(self) -> &'static str {
+        match self {
+            Size::Small | Size::Emblem => "A wide view of the entire scene.",
+            Size::Large | Size::Full => "A medium view of the scene.",
+            Size::Over => "A close view of the scene, cropped by the frame edges.",
+            Size::Macro => "An extreme close-up of a detail of the scene.",
         }
     }
 }
@@ -330,13 +391,24 @@ impl Crop {
         }
     }
 
-    fn sentence(self) -> &'static str {
-        match self {
-            Crop::Full => "Show the hero in full figure, head to feet.",
-            Crop::Waist => "Show the hero from the waist up.",
-            Crop::Bust => "Show the hero as a head-and-shoulders bust.",
-            Crop::Head => "Show only the hero's head, very large.",
-            Crop::Detail => "Show only the eyes or the key object, extremely close.",
+    /// How much shows. A person is said by their body; a thing has none, and
+    /// is said by how much of it is in the frame. A picture with no subject
+    /// has nothing to crop.
+    fn sentence(self, subject: Subject) -> &'static str {
+        match (subject, self) {
+            (Subject::None, _) => "",
+            (Subject::Person, Crop::Full) => "Show the hero in full figure, head to feet.",
+            (Subject::Person, Crop::Waist) => "Show the hero from the waist up.",
+            (Subject::Person, Crop::Bust) => "Show the hero as a head-and-shoulders bust.",
+            (Subject::Person, Crop::Head) => "Show only the hero's head, very large.",
+            (Subject::Person, Crop::Detail) => "Show only the hero's eyes, extremely close.",
+            (Subject::Object, Crop::Full) => "Show the main subject whole.",
+            (Subject::Object, Crop::Waist) => "Show most of the main subject.",
+            (Subject::Object, Crop::Bust) => "Show the upper part of the main subject.",
+            (Subject::Object, Crop::Head) => "Show one part of the main subject, very large.",
+            (Subject::Object, Crop::Detail) => {
+                "Show only a key detail of the main subject, extremely close."
+            }
         }
     }
 
@@ -457,14 +529,21 @@ impl Place {
 
     /// The sentence that keeps the title's part of the frame for it, written
     /// from the zone's own numbers.
-    fn space(self, hero: Column) -> String {
+    fn space(self, hero: Column, subject: Subject) -> String {
         let zones = self.zones(hero);
         let first = zones[0];
+        let n = subject.noun();
+        let some = subject != Subject::None;
         match self {
             Place::Left | Place::Right => format!(
-                "Keep the {} {}% of the frame free of the hero and the objects: the title goes there.",
+                "Keep the {} {}% of the frame {}: the title goes there.",
                 if self == Place::Left { "left" } else { "right" },
-                percent(first.w)
+                percent(first.w),
+                if some {
+                    format!("free of {n} and what surrounds it")
+                } else {
+                    "calm and empty".to_owned()
+                }
             ),
             Place::Top => format!(
                 "Keep the top {}% of the frame calm: the title goes there.",
@@ -475,11 +554,17 @@ impl Place {
                 percent(first.h)
             ),
             Place::Behind => format!(
-                "Keep a wide calm band across the top {}% of the frame, behind the hero's head, for a giant title.",
-                percent(first.h)
+                "Keep a wide calm band across the top {}% of the frame{} for a giant title.",
+                percent(first.h),
+                match subject {
+                    Subject::Person => ", behind the hero's head,",
+                    Subject::Object => ", behind the main subject,",
+                    Subject::None => "",
+                }
             ),
             Place::Overlap => format!(
-                "The title crosses the hero between {}% and {}% of the frame height, so keep that band simple.",
+                "The title crosses {} between {}% and {}% of the frame height, so keep that band simple.",
+                if some { n } else { "the picture" },
                 percent(first.y),
                 percent(first.y + first.h)
             ),
@@ -494,15 +579,20 @@ impl Place {
                 percent(first.h)
             ),
             Place::Poster => format!(
-                "Leave the top {}% and the bottom {}% of the frame to the lettering; the head may overlap the top lettering.",
+                "Leave the top {}% and the bottom {}% of the frame to the lettering{}.",
                 percent(zones[0].h),
-                percent(zones[1].h)
+                percent(zones[1].h),
+                match subject {
+                    Subject::Person => "; the head may overlap the top lettering",
+                    Subject::Object => "; the main subject may overlap the top lettering",
+                    Subject::None => "",
+                }
             ),
         }
     }
 
     /// How the title is set there - the end of the lettering's sentence.
-    pub fn setting(self, hero: Column) -> String {
+    pub fn setting(self, hero: Column, subject: Subject) -> String {
         match self {
             Place::Left => {
                 "set as a tall left-aligned block in the left part of the frame".to_owned()
@@ -512,14 +602,29 @@ impl Place {
             }
             Place::Top => "set as a wide line across the top of the frame".to_owned(),
             Place::Bottom => "set as a wide line across the bottom of the frame".to_owned(),
-            Place::Behind => "set huge across the full width behind the hero's head; the head overlaps and hides part of the letters".to_owned(),
-            Place::Overlap => "set huge across the hero's chest, in front of the figure, slightly overlapping it".to_owned(),
+            Place::Behind => match subject {
+                Subject::Person => "set huge across the full width behind the hero's head; the head overlaps and hides part of the letters",
+                Subject::Object => "set huge across the full width behind the main subject, which overlaps and hides part of the letters",
+                Subject::None => "set huge across the full width in the upper part of the frame",
+            }
+            .to_owned(),
+            Place::Overlap => match subject {
+                Subject::Person => "set huge across the hero's chest, in front of the figure, slightly overlapping it",
+                Subject::Object => "set huge across the main subject, in front of it, slightly overlapping it",
+                Subject::None => "set huge across the middle of the frame, in front of the scene",
+            }
+            .to_owned(),
             Place::Vertical => format!(
                 "set as a huge vertical title running top to bottom along the {} side",
                 vertical_side(hero).word()
             ),
             Place::Corner => "set small in the lower left corner, like a label".to_owned(),
-            Place::Poster => "set huge across the top, partly hidden behind the hero's head, with a second smaller line at the bottom".to_owned(),
+            Place::Poster => match subject {
+                Subject::Person => "set huge across the top, partly hidden behind the hero's head, with a second smaller line at the bottom",
+                Subject::Object => "set huge across the top, partly hidden behind the main subject, with a second smaller line at the bottom",
+                Subject::None => "set huge across the top, with a second smaller line at the bottom",
+            }
+            .to_owned(),
         }
     }
 }
@@ -781,8 +886,12 @@ pub struct Drawing<'a> {
     /// Whether the picture carries a title.
     pub lettering: bool,
     pub colours: &'a Colours,
-    /// Whether there is an accent to put a disc in.
-    pub accent: bool,
+    /// What the picture is of: a person is drawn as one, a thing as a
+    /// shape, and a picture with no subject draws none.
+    pub subject: Subject,
+    /// Whether a disc of the accent stands behind the subject: asked for by
+    /// its own switch, and only with an accent to paint it in.
+    pub disc: bool,
     /// The corner a mark sits in, when it sits in one.
     pub mark: Option<Corner>,
 }
@@ -814,22 +923,71 @@ pub fn mark_box(shape: Shape, corner: Corner) -> Rect {
     Rect::new(round4(x), round4(y), round4(side_x), round4(side_y))
 }
 
+/// What a frame's paragraph is said for.
+#[derive(Debug, Clone, Copy)]
+pub struct Said<'a> {
+    pub subject: Subject,
+    /// Whether the picture carries words at all: a split frame's other half
+    /// is left to a title only where there is one.
+    pub lettering: bool,
+    /// Whether the title's part of the frame is kept for it in this prompt.
+    pub room_for_title: bool,
+    /// The accent, as a prompt says it.
+    pub accent: Option<&'a str>,
+    /// The accent is a disc behind the subject rather than a colour.
+    pub disc: bool,
+}
+
 impl Framing {
-    /// The placement sentence: where the hero stands, how big, how much of
-    /// them shows, and - on a picture with words - the part kept for them.
-    pub fn placement(&self, lettering: bool) -> String {
-        let mut sentence = format!(
-            "PLACEMENT: place the hero {}, {}. {} {}",
-            self.column.phrase(),
-            self.row.phrase(),
-            self.size.sentence(),
-            self.crop.sentence()
-        );
-        if lettering {
-            sentence.push(' ');
-            sentence.push_str(&self.place.space(self.column));
+    /// The frame's paragraph: where the subject stands, how big, how much of
+    /// it shows, how the frame is composed, what the accent is for, and - on
+    /// a picture that keeps room for words - the part kept for them.
+    ///
+    /// One block (v0.115). Until then a PLACEMENT and a COMPOSITION said the
+    /// same frame twice, three paragraphs apart, and could disagree.
+    pub fn paragraph(&self, said: &Said<'_>) -> String {
+        let subject = said.subject;
+        let mut out: Vec<String> = Vec::new();
+        if subject == Subject::None {
+            out.push(format!(
+                "FRAMING: no single subject. {} The focal point sits {}, {}.",
+                self.size.view(),
+                self.column.phrase(),
+                self.row.phrase()
+            ));
+        } else {
+            out.push(format!(
+                "FRAMING: place {} {}, {}. {} {}",
+                subject.noun(),
+                self.column.phrase(),
+                self.row.phrase(),
+                self.size.sentence(subject),
+                self.crop.sentence(subject)
+            ));
         }
-        sentence
+        out.push(self.layout.composition(subject, said.lettering));
+        if let Some(accent) = said.accent {
+            out.push(if !said.disc {
+                format!(
+                    "Accent colour: {accent}, used for highlights, light edges and key accents."
+                )
+            } else if subject == Subject::None {
+                format!("A large flat circle in {accent} sits in the background.")
+            } else {
+                format!(
+                    "A large flat circle in {accent} sits behind {}.",
+                    subject.noun()
+                )
+            });
+        }
+        if said.room_for_title {
+            out.push(self.place.space(self.column, subject));
+        }
+        out.into_iter()
+            .map(|sentence| sentence.trim().to_owned())
+            .filter(|sentence| !sentence.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 
     /// The hero's box, in the scheme's units.
@@ -856,17 +1014,28 @@ impl Framing {
             paint: Paint::Background,
         }];
 
-        if drawing.accent && self.layout.has_disc() {
+        // The subject as the frame shows it: the part of its box that is in
+        // the frame. A subject bigger than the frame is cropped by it, and
+        // what is drawn of it is drawn in what is left - a close look at a
+        // pair of eyes drew them at twice the frame's height until v0.115.
+        let shown = Rect::new(
+            hero.x.max(0.0),
+            hero.y.max(0.0),
+            round(hero.x.max(0.0).mul_add(-1.0, (hero.x + hero.w).min(width))),
+            round(hero.y.max(0.0).mul_add(-1.0, (hero.y + hero.h).min(height))),
+        );
+
+        if drawing.disc {
             let (head_at, reach) = self.crop.head();
-            let (cy, r) = if self.layout == Layout::Figure {
-                (height * 0.78, height * 0.38)
-            } else {
-                (hero.y + head_at * hero.h, reach * hero.h)
+            let (cy, r) = match drawing.subject {
+                Subject::Person => (hero.y + head_at * hero.h, reach * hero.h),
+                Subject::Object => (shown.y + shown.h / 2.0, 0.5 * shown.h.min(shown.w)),
+                Subject::None => (height * 0.5, height * 0.3),
             };
             shapes.push(SchemeShape::Circle {
-                cx: round(hero.x + hero.w / 2.0),
-                cy: round(cy),
-                r: round(r),
+                cx: round(shown.x + shown.w / 2.0),
+                cy: round(cy.clamp(0.0, height)),
+                r: round(r.min(height * 0.6)),
                 paint: Paint::Accent,
             });
         }
@@ -902,7 +1071,21 @@ impl Framing {
             rect,
             paint: Paint::Ink,
         }));
-        shapes.extend(figure(self.crop, hero));
+        match drawing.subject {
+            Subject::Person if self.crop == Crop::Detail => {
+                shapes.extend(figure(self.crop, shown));
+            }
+            Subject::Person => shapes.extend(figure(self.crop, hero)),
+            // A thing is a shape that fills its box, not a body.
+            Subject::Object => shapes.push(SchemeShape::Ellipse {
+                cx: round(shown.x + shown.w / 2.0),
+                cy: round(shown.y + shown.h / 2.0),
+                rx: round(shown.w * 0.42),
+                ry: round(shown.h * 0.42),
+                paint: Paint::Figure,
+            }),
+            Subject::None => {}
+        }
         shapes.extend(front.into_iter().map(|rect| SchemeShape::Rect {
             rect,
             paint: Paint::Ink,
@@ -1160,7 +1343,8 @@ mod tests {
             shape: Shape::parse("16:9").unwrap(),
             lettering: false,
             colours: &colours,
-            accent: true,
+            subject: Subject::Person,
+            disc: true,
             mark: None,
         });
         assert!(scheme.zones.is_empty());
@@ -1174,7 +1358,16 @@ mod tests {
             )),
             "no title is drawn"
         );
-        assert!(!framing.placement(false).contains("title"));
-        assert!(framing.placement(true).contains("left 40%"));
+        let said = |room_for_title: bool| {
+            framing.paragraph(&Said {
+                subject: Subject::Person,
+                lettering: room_for_title,
+                room_for_title,
+                accent: None,
+                disc: false,
+            })
+        };
+        assert!(!said(false).contains("title"));
+        assert!(said(true).contains("left 40%"));
     }
 }

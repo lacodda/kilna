@@ -453,6 +453,8 @@ export type { PackedParcel } from './generated/PackedParcel'
 export type { IntakeRequest } from './generated/IntakeRequest'
 export type { IntakeFound } from './generated/IntakeFound'
 export type { IntakeBrought } from './generated/IntakeBrought'
+export type { CoverSubject } from './generated/CoverSubject'
+export type { CoverGround } from './generated/CoverGround'
 
 // Looking after a space.
 export type { KeptBackup } from './generated/KeptBackup'

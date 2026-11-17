@@ -9,9 +9,15 @@ export type CoverDetail = {
  */
 id: string, name: string, 
 /**
- * What goes into the prompt, the cards it names written in.
+ * What goes into the prompt, the cards it names written in. Empty for
+ * a detail that [needs translating](Self::needs_translation).
  */
 template: string, 
+/**
+ * The detail is written in the channel's own language and has no words
+ * for a generator: it stays out of the prompt until it has (v0.115).
+ */
+needs_translation: boolean, 
 /**
  * The pictures it belongs in: `cover`, `frame`, `scene`.
  */
