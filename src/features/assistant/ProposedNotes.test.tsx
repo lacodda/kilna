@@ -49,7 +49,9 @@ function serve(proposal: Record<string, unknown>) {
     chat_id: CHAT,
     role: 'assistant',
     body: 'A proposal.',
-    meta: { proposal },
+    // A proposal as it is stored: plain JSON, whatever the window's types
+    // say about its optional parts.
+    meta: { proposal } as unknown as Message['meta'],
     created_at: NOW,
   }
   backend = mockBackend({
