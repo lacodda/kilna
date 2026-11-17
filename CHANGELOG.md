@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.119.0] - 2026-11-17
+
+Five stages. A work stands at one of five stops - 0, 25, 50, 75, 100 - in
+every craft, where there were seven and a work nobody had judged held none.
+A new work starts at the first. When this release opens a workspace, every
+work moves to the nearest stop (17 and 33 to 25, 67 and 83 to 75) and one
+with no stage to the first; a stored profile takes the five stops, each with
+its own colour. The dial is an empty ring, an arc of a quarter, a half and
+three quarters, and the whole ring; no word stands beside one anywhere, and
+what a stop is called is said when it is pointed at. The picker, the
+overview's widget and the stage filter are the five dials in a row, without
+"Clear". `stage:` finds a stop by its key, its words or its number, in
+English and Russian.
+
+### Features
+- Five stops for every craft, and no work without one
+
+### Breaking Changes
+- `Work.stage`, `ScoredWork.stage`, `Publication.stage`
+and `ScheduledRelease.work_stage` are numbers, never null; a profile's
+`stages` must stand at 0, 25, 50, 75 or 100.
+
 ## [0.118.0] - 2026-11-17
 
 Focus, spacing, scroll. A field's focus ring is drawn inside its box and a
