@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, within } from '@testing-library/react'
-import type { ProfileConfig, WorkKind } from '@/lib/api/types'
+import type { ProfileConfig, VersionRole, WorkKind } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, NOW, studio, type Studio } from '@/test/workspace'
@@ -23,7 +23,12 @@ beforeEach(() => {
   workspace = studio()
   // The audio kind alone: what is tested here is one kind's doors.
   const config = workspace.profile.config
-  config.work_kinds = config.work_kinds.filter((kind) => kind.key === 'audio')
+  // An audio release names no roles of its own since v0.117; the checklist
+  // offers a kind's roles, so this one is given the clip's concept.
+  const concept: VersionRole[] = [{ key: 'plot', label: { en: 'Concept', ru: 'Концепция' } }]
+  config.work_kinds = config.work_kinds
+    .filter((kind) => kind.key === 'audio')
+    .map((kind) => ({ ...kind, version_roles: concept }))
   config.prompts = config.prompts.slice(0, 2)
   backend = mockBackend({
     ...answersFor(workspace),
