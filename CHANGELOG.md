@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.113.0] - 2026-11-17
+
+Out and in. A work leaves by itself: its card's menu saves or copies its page
+- the page the export writes - and packs it into a `.kilna.zip` with its
+files. And works arrive: New, Settings and the palette open one dialog that
+takes files, a folder or a pasted text, lists what it found and where each
+stands, and writes nothing until it is told to. A page kilna wrote and a
+parcel come back as the works they were - versions with their numbers and
+lineage, scores, release, notes, the board with its frames - under the ids
+and dates they were made with (ADR 0081); any other `.md` or `.txt` becomes a
+work of the kind named, with the text as its first version. The export is
+format 8: a version's body stands between two marks and the page ends with
+the work's parcel, so a page exported, brought into an empty space and
+exported again is the same page to the byte. Bringing in only adds - a work
+already here, or deleted here, is passed over - and is one step for Undo.
+
+### Bug Fixes
+- Start a text from outside with its kind's fields and code
+
+### Features
+- Take a work out as a page or a parcel and bring works in
+
 ## [0.112.0] - 2026-11-16
 
 Profiles, whole. Settings → Profile edits the whole document, laid out in
