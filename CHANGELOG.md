@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.118.0] - 2026-11-17
+
+Focus, spacing, scroll. A field's focus ring is drawn inside its box and a
+region that scrolls leaves room for one, so a ring is no longer cut by the
+edge of a widget, a tab or a dialog. Every dialog stands its parts one step
+apart. Where a comment was written is a field with a list of the channels
+already used, in place of a row of buttons under it, and a new work of a
+trial picks its kind in a select. The assistant's drawer lets go of the
+pointer: the bar of a long conversation is dragged and text is selected,
+where a press anywhere in the panel used to start a swipe to close it. A
+task's chat says its action in the window's language, in chats made before
+this release too, and two dialogs that read "[object Object]" say the word.
+
+### Features
+- Keep focus rings whole, one step in dialogs, a drawer that lets go of the pointer
+
 ## [0.117.0] - 2026-11-17
 
 A card without leftovers. A work's card shows the tabs its kind has something
