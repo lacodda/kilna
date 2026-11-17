@@ -2936,7 +2936,8 @@
       "noCover": "A {{kind}} does not go out under a cover.",
       "ordinalBelowOne": "A work’s number starts at 1, and {{number}} is below it.",
       "ordinalTaken": "Number {{number}} is “{{title}}”’s: two works under one number would share one folder.",
-      "ordinalMadeFromNothing": "“{{title}}” is made from nothing, so it has no number among works made from the same one."
+      "ordinalMadeFromNothing": "“{{title}}” is made from nothing, so it has no number among works made from the same one.",
+      "unknownVibe": "There is no {{line}} “{{key}}” here; there are: {{known}}."
     },
     "version": {
       "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}.",
@@ -3624,7 +3625,10 @@
     "phrasesMustProduce": "{{place}} is about phrases and must produce `bricks`",
     "phrasesNeverRead": "{{place}} is about phrases but never reads `{phrases}`",
     "phrasesNotAbout": "{{place}} reads `{{placeholder}}` but is not about phrases: give it `\"scope\": \"phrases\"`",
-    "commentMustProduce": "{{place}} is about a comment and must produce `comment` or `reply`"
+    "commentMustProduce": "{{place}} is about a comment and must produce `comment` or `reply`",
+    "vibeEmpty": "a work’s feel has no {{what}}: a line needs words on it",
+    "vibeColour": "mood `{{key}}` has the colour `{{colour}}`, which is not written as #RRGGBB",
+    "vibeStrokes": "complexity `{{key}}` is drawn with {{strokes}} strokes: one, two or three"
   },
   "place": {
     "workKind": "work kind {{n}} (`{{key}}`)",
@@ -3669,7 +3673,10 @@
     "cardFields": "{{in}}: field",
     "sections": "{{in}}: section",
     "media": "{{in}}: medium",
-    "compositionTypes": "{{in}}: type"
+    "compositionTypes": "{{in}}: type",
+    "moods": "mood",
+    "characters": "character",
+    "complexities": "complexity"
   },
   "batch": {
     "skipped_one": "{{count}} passed over",

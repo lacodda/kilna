@@ -3391,6 +3391,118 @@
         "hex": "#5EC486"
       }
     ],
+    "vibe": {
+      "moods": [
+        {
+          "key": "dark",
+          "label": {
+            "en": "Dark",
+            "ru": "Мрачная"
+          },
+          "color": "#7A82AB"
+        },
+        {
+          "key": "melancholy",
+          "label": {
+            "en": "Melancholy",
+            "ru": "Меланхоличная"
+          },
+          "color": "#608EBA"
+        },
+        {
+          "key": "contemplative",
+          "label": {
+            "en": "Contemplative",
+            "ru": "Созерцательная"
+          },
+          "color": "#6FAEA0"
+        },
+        {
+          "key": "warm",
+          "label": {
+            "en": "Bright",
+            "ru": "Светлая"
+          },
+          "color": "#DEA058"
+        },
+        {
+          "key": "joyful",
+          "label": {
+            "en": "Joyful",
+            "ru": "Весёлая"
+          },
+          "color": "#E8786C"
+        }
+      ],
+      "characters": [
+        {
+          "key": "calm",
+          "label": {
+            "en": "Calm",
+            "ru": "Спокойная"
+          },
+          "glyph": "calm"
+        },
+        {
+          "key": "playful",
+          "label": {
+            "en": "Playful",
+            "ru": "Игривая"
+          },
+          "glyph": "playful"
+        },
+        {
+          "key": "steady",
+          "label": {
+            "en": "Steady",
+            "ru": "Умеренная"
+          },
+          "glyph": "steady"
+        },
+        {
+          "key": "edgy",
+          "label": {
+            "en": "Raw",
+            "ru": "Надрывная"
+          },
+          "glyph": "edgy"
+        },
+        {
+          "key": "drive",
+          "label": {
+            "en": "Drive",
+            "ru": "Драйв"
+          },
+          "glyph": "drive"
+        }
+      ],
+      "complexities": [
+        {
+          "key": "simple",
+          "label": {
+            "en": "Simple",
+            "ru": "Простая"
+          },
+          "strokes": 1
+        },
+        {
+          "key": "medium",
+          "label": {
+            "en": "Medium",
+            "ru": "Средняя"
+          },
+          "strokes": 2
+        },
+        {
+          "key": "complex",
+          "label": {
+            "en": "Complex",
+            "ru": "Сложная"
+          },
+          "strokes": 3
+        }
+      ]
+    },
     "rhythm": {
       "every_days": 3,
       "default_time": "12:00"

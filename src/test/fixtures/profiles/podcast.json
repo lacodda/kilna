@@ -777,6 +777,124 @@
       }
     ],
     "style_types": [],
+    "vibe": {
+      "characters": [
+        {
+          "glyph": "calm",
+          "key": "calm",
+          "label": {
+            "en": "Calm",
+            "ru": "Спокойная"
+          }
+        },
+        {
+          "glyph": "playful",
+          "key": "playful",
+          "label": {
+            "en": "Playful",
+            "ru": "Игривая"
+          }
+        },
+        {
+          "glyph": "steady",
+          "key": "steady",
+          "label": {
+            "en": "Steady",
+            "ru": "Умеренная"
+          }
+        },
+        {
+          "glyph": "edgy",
+          "key": "edgy",
+          "label": {
+            "en": "Raw",
+            "ru": "Надрывная"
+          }
+        },
+        {
+          "glyph": "drive",
+          "key": "drive",
+          "label": {
+            "en": "Drive",
+            "ru": "Драйв"
+          }
+        }
+      ],
+      "complexities": [
+        {
+          "key": "simple",
+          "label": {
+            "en": "Simple",
+            "ru": "Простая"
+          },
+          "strokes": 1
+        },
+        {
+          "key": "medium",
+          "label": {
+            "en": "Medium",
+            "ru": "Средняя"
+          },
+          "strokes": 2
+        },
+        {
+          "key": "complex",
+          "label": {
+            "en": "Complex",
+            "ru": "Сложная"
+          },
+          "strokes": 3
+        }
+      ],
+      "labels": {
+        "complexity": {
+          "en": "How deep it goes",
+          "ru": "Глубина разбора"
+        }
+      },
+      "moods": [
+        {
+          "color": "#7A82AB",
+          "key": "dark",
+          "label": {
+            "en": "Dark",
+            "ru": "Мрачная"
+          }
+        },
+        {
+          "color": "#608EBA",
+          "key": "melancholy",
+          "label": {
+            "en": "Melancholy",
+            "ru": "Меланхоличная"
+          }
+        },
+        {
+          "color": "#6FAEA0",
+          "key": "contemplative",
+          "label": {
+            "en": "Contemplative",
+            "ru": "Созерцательная"
+          }
+        },
+        {
+          "color": "#DEA058",
+          "key": "warm",
+          "label": {
+            "en": "Bright",
+            "ru": "Светлая"
+          }
+        },
+        {
+          "color": "#E8786C",
+          "key": "joyful",
+          "label": {
+            "en": "Joyful",
+            "ru": "Весёлая"
+          }
+        }
+      ]
+    },
     "work_kinds": [
       {
         "axes": [

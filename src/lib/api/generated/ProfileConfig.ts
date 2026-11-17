@@ -11,6 +11,7 @@ import type { PromptTemplate } from "./PromptTemplate";
 import type { Rhythm } from "./Rhythm";
 import type { Stage } from "./Stage";
 import type { StyleType } from "./StyleType";
+import type { VibeAxes } from "./VibeAxes";
 import type { WorkKind } from "./WorkKind";
 
 /**
@@ -66,6 +67,12 @@ stages: Array<Stage>,
  * panel existed still loads.
  */
 prompts: Array<PromptTemplate>, 
+/**
+ * The three lines a work's feel is said along, and the words on each
+ * (FR-02): moods, characters, complexities. Absent, [`Self::vibe`]
+ * answers with the line's own.
+ */
+vibe?: VibeAxes, 
 /**
  * How often the craft aims to ship. Absent in a profile written before the
  * field existed; without it the auto-layout has nothing to pace by and

@@ -49,6 +49,12 @@ pub struct ProfileConfig {
     /// panel existed still loads.
     #[serde(default)]
     pub prompts: Vec<crate::assistant::prompt::PromptTemplate>,
+    /// The three lines a work's feel is said along, and the words on each
+    /// (FR-02): moods, characters, complexities. Absent, [`Self::vibe`]
+    /// answers with the line's own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub vibe: Option<VibeAxes>,
     /// How often the craft aims to ship. Absent in a profile written before the
     /// field existed; without it the auto-layout has nothing to pace by and
     /// refuses rather than inventing a cadence.
@@ -207,6 +213,8 @@ pub struct RawProfileConfig {
     #[serde(default)]
     pub prompts: Vec<crate::assistant::prompt::PromptTemplate>,
     #[serde(default)]
+    pub vibe: Option<VibeAxes>,
+    #[serde(default)]
     pub rhythm: Option<Rhythm>,
     #[serde(default)]
     pub catalogue_columns: Option<Vec<String>>,
@@ -277,6 +285,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             marks: raw.marks,
             stages: raw.stages,
             prompts: raw.prompts,
+            vibe: raw.vibe,
             rhythm: raw.rhythm,
             catalogue_columns: raw.catalogue_columns,
             catalogue_columns_by_kind: raw.catalogue_columns_by_kind,
@@ -2766,6 +2775,220 @@ pub struct Stage {
     pub hex: Option<String>,
 }
 
+/// The three lines a work's feel is said along (FR-02), and the words on
+/// each. The mark drawn for a work is built from one of each: the colour of
+/// its mood, the shape of its character, as many strokes as it is complex.
+///
+/// In the profile rather than in the window, like the stops: the lines are
+/// the same for every craft - five colours, five shapes, three weights - and
+/// what they are called is the craft's. A blog calls the third "how deep it
+/// goes", a novel "how many layers the plot has".
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct VibeAxes {
+    pub moods: Vec<VibeMood>,
+    pub characters: Vec<VibeCharacter>,
+    pub complexities: Vec<VibeComplexity>,
+    /// What each line is called, where the craft has its own word for it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub labels: Option<VibeLabels>,
+    /// The value a line stands at while it is unsaid and another is said -
+    /// a mark is built of all three. The middle of each line unless named.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub neutral: Option<crate::work::Vibe>,
+}
+
+/// A mood: a word, and the colour a mark of it is drawn in.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct VibeMood {
+    pub key: String,
+    pub label: Label,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub hint: Option<Label>,
+    /// `#RRGGBB`, as it reads on the dark theme; the window deepens it for
+    /// the light one.
+    pub color: String,
+}
+
+/// A character: a word, and the shape a mark of it takes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct VibeCharacter {
+    pub key: String,
+    pub label: Label,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub hint: Option<Label>,
+    pub glyph: VibeGlyph,
+}
+
+/// The five shapes the window draws a character as.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
+pub enum VibeGlyph {
+    /// A level wave.
+    Calm,
+    /// A diamond.
+    Playful,
+    /// A circle: even all round.
+    Steady,
+    /// A broken, pointed line.
+    Edgy,
+    /// A chevron, pointing on.
+    Drive,
+}
+
+/// How complex: a word, and how many strokes the mark is drawn with.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct VibeComplexity {
+    pub key: String,
+    pub label: Label,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub hint: Option<Label>,
+    /// One, two or three.
+    pub strokes: u8,
+}
+
+/// What the three lines are called, where a craft says so.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct VibeLabels {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub mood: Option<Label>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub character: Option<Label>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub complexity: Option<Label>,
+}
+
+impl VibeAxes {
+    /// Whether every key a vibe names is one of this profile's. A mood the
+    /// profile does not have is a mark nobody could draw, so it is refused
+    /// with the ones there are.
+    pub fn check(&self, vibe: &crate::work::Vibe) -> crate::error::Result<()> {
+        let lines: [(&str, &Option<String>, Vec<&str>); 3] = [
+            (
+                "mood",
+                &vibe.mood,
+                self.moods.iter().map(|m| m.key.as_str()).collect(),
+            ),
+            (
+                "character",
+                &vibe.character,
+                self.characters.iter().map(|c| c.key.as_str()).collect(),
+            ),
+            (
+                "complexity",
+                &vibe.complexity,
+                self.complexities.iter().map(|c| c.key.as_str()).collect(),
+            ),
+        ];
+        for (line, said, known) in lines {
+            if let Some(key) = said
+                && !known.contains(&key.as_str())
+            {
+                return Err(crate::error::Error::refused("work.unknownVibe")
+                    .param("line", line)
+                    .param("key", key.clone())
+                    .param("known", known.join(", ")));
+            }
+        }
+        Ok(())
+    }
+
+    /// The value each line stands at while it is unsaid: the one the profile
+    /// names, or the middle of the line.
+    pub fn neutral(&self) -> crate::work::Vibe {
+        let named = self.neutral.clone().unwrap_or_default();
+        let middle = |keys: Vec<&String>| keys.get(keys.len() / 2).map(|key| (*key).clone());
+        crate::work::Vibe {
+            mood: named
+                .mood
+                .or_else(|| middle(self.moods.iter().map(|m| &m.key).collect())),
+            character: named
+                .character
+                .or_else(|| middle(self.characters.iter().map(|c| &c.key).collect())),
+            complexity: named
+                .complexity
+                .or_else(|| middle(self.complexities.iter().map(|c| &c.key).collect())),
+        }
+    }
+}
+
+/// The lines as the line itself words them: what a craft gets when it names
+/// none, and what Studio ships (FR-02).
+///
+/// The five colours are told apart from one another and from the five
+/// colours of the stage dial, which stands beside a mark in every row: the
+/// joyful one is a coral, since a lime sat right against the green of a
+/// finished stage.
+pub fn default_vibe() -> VibeAxes {
+    let label = |en: &str, ru: &str| {
+        Label::PerLocale(
+            [("en", en), ("ru", ru)]
+                .into_iter()
+                .map(|(language, word)| (language.to_owned(), word.to_owned()))
+                .collect(),
+        )
+    };
+    VibeAxes {
+        moods: [
+            ("dark", "Dark", "Мрачная", "#7A82AB"),
+            ("melancholy", "Melancholy", "Меланхоличная", "#608EBA"),
+            (
+                "contemplative",
+                "Contemplative",
+                "Созерцательная",
+                "#6FAEA0",
+            ),
+            ("warm", "Bright", "Светлая", "#DEA058"),
+            ("joyful", "Joyful", "Весёлая", "#E8786C"),
+        ]
+        .into_iter()
+        .map(|(key, en, ru, color)| VibeMood {
+            key: key.to_owned(),
+            label: label(en, ru),
+            hint: None,
+            color: color.to_owned(),
+        })
+        .collect(),
+        characters: [
+            ("calm", "Calm", "Спокойная", VibeGlyph::Calm),
+            ("playful", "Playful", "Игривая", VibeGlyph::Playful),
+            ("steady", "Steady", "Умеренная", VibeGlyph::Steady),
+            ("edgy", "Raw", "Надрывная", VibeGlyph::Edgy),
+            ("drive", "Drive", "Драйв", VibeGlyph::Drive),
+        ]
+        .into_iter()
+        .map(|(key, en, ru, glyph)| VibeCharacter {
+            key: key.to_owned(),
+            label: label(en, ru),
+            hint: None,
+            glyph,
+        })
+        .collect(),
+        complexities: [
+            ("simple", "Simple", "Простая", 1),
+            ("medium", "Medium", "Средняя", 2),
+            ("complex", "Complex", "Сложная", 3),
+        ]
+        .into_iter()
+        .map(|(key, en, ru, strokes)| VibeComplexity {
+            key: key.to_owned(),
+            label: label(en, ru),
+            hint: None,
+            strokes,
+        })
+        .collect(),
+        labels: None,
+        neutral: None,
+    }
+}
+
 /// The five places a work can stand at (FR-03): a quarter each. One scale
 /// for every craft, so a dial reads the same in every profile and a stage
 /// can be compared across kinds; the words at each stop are the profile's.
@@ -2881,6 +3104,72 @@ mod stage_tests {
                 "problem.stageOffScale",
                 "problem.stageSharesStop",
                 "problem.stageColour"
+            ]
+        );
+    }
+
+    #[test]
+    fn the_lines_of_a_vibe_are_five_colours_five_shapes_and_three_weights() {
+        let axes = default_vibe();
+        assert_eq!(
+            (
+                axes.moods.len(),
+                axes.characters.len(),
+                axes.complexities.len()
+            ),
+            (5, 5, 3)
+        );
+        // No mood wears a colour of the stage dial, which stands beside it.
+        let stages: Vec<String> = default_stages()
+            .into_iter()
+            .filter_map(|stop| stop.hex)
+            .collect();
+        let colours: std::collections::BTreeSet<&str> =
+            axes.moods.iter().map(|mood| mood.color.as_str()).collect();
+        assert_eq!(colours.len(), 5, "five colours, told apart");
+        assert!(
+            colours
+                .iter()
+                .all(|colour| !stages.iter().any(|s| s == colour))
+        );
+        assert_eq!(
+            axes.complexities
+                .iter()
+                .map(|c| c.strokes)
+                .collect::<Vec<_>>(),
+            [1, 2, 3]
+        );
+        // A line unsaid stands at its middle while another is said.
+        let neutral = axes.neutral();
+        assert_eq!(
+            (
+                neutral.mood.as_deref(),
+                neutral.character.as_deref(),
+                neutral.complexity.as_deref()
+            ),
+            (Some("contemplative"), Some("steady"), Some("medium"))
+        );
+
+        let mut config = studio();
+        config.vibe = Some(axes);
+        assert!(config.problems().is_empty());
+        let axes = config.vibe.as_mut().unwrap();
+        axes.moods[0].color = "indigo".into();
+        axes.moods[1].key = axes.moods[2].key.clone();
+        axes.complexities[2].strokes = 4;
+        axes.characters.clear();
+        let codes: Vec<String> = config
+            .problems()
+            .iter()
+            .map(|problem| problem.key.clone())
+            .collect();
+        assert_eq!(
+            codes,
+            [
+                "problem.repeatedKey",
+                "problem.vibeEmpty",
+                "problem.vibeColour",
+                "problem.vibeStrokes"
             ]
         );
     }
@@ -3386,6 +3675,12 @@ impl ProfileConfig {
         }
     }
 
+    /// The lines a work's feel is said along: the profile's, or the line's
+    /// own when it names none.
+    pub fn vibe(&self) -> VibeAxes {
+        self.vibe.clone().unwrap_or_else(default_vibe)
+    }
+
     /// The stop a stage stands at. A profile that names only some of the
     /// five answers for the rest with the line's own.
     pub fn stage_at(&self, percent: i64) -> Option<Stage> {
@@ -3493,6 +3788,7 @@ impl ProfileConfig {
             self.work_meta_fields.iter().map(|f| f.key.clone()),
         );
         self.validate_stages(&mut problems);
+        self.validate_vibe(&mut problems);
         unique(
             &mut problems,
             Reason::of("place.styleTypes"),
@@ -3727,6 +4023,56 @@ impl ProfileConfig {
     /// window.
     pub fn validate(&self) -> Vec<String> {
         self.problems().iter().map(Reason::english).collect()
+    }
+
+    /// The lines of a work's feel (FR-02): each with words on it, no two
+    /// under one key, a mood's colour written as `#RRGGBB`, a character's
+    /// shape one the window can draw, a complexity of one, two or three
+    /// strokes - a mark is built of exactly these.
+    fn validate_vibe(&self, problems: &mut Vec<Reason>) {
+        let Some(axes) = &self.vibe else {
+            return;
+        };
+        let mut line = |place: Reason, keys: Vec<String>| {
+            if keys.is_empty() {
+                problems.push(Reason::of("problem.vibeEmpty").param("what", place.clone()));
+            }
+            unique(problems, place, keys.into_iter());
+        };
+        line(
+            Reason::of("place.moods"),
+            axes.moods.iter().map(|m| m.key.clone()).collect(),
+        );
+        line(
+            Reason::of("place.characters"),
+            axes.characters.iter().map(|c| c.key.clone()).collect(),
+        );
+        line(
+            Reason::of("place.complexities"),
+            axes.complexities.iter().map(|c| c.key.clone()).collect(),
+        );
+        for mood in &axes.moods {
+            let hex = &mood.color;
+            if !(hex.len() == 7
+                && hex.starts_with('#')
+                && hex[1..].chars().all(|c| c.is_ascii_hexdigit()))
+            {
+                problems.push(
+                    Reason::of("problem.vibeColour")
+                        .param("key", mood.key.clone())
+                        .param("colour", hex.clone()),
+                );
+            }
+        }
+        for complexity in &axes.complexities {
+            if !(1..=3).contains(&complexity.strokes) {
+                problems.push(
+                    Reason::of("problem.vibeStrokes")
+                        .param("key", complexity.key.clone())
+                        .param("strokes", i64::from(complexity.strokes)),
+                );
+            }
+        }
     }
 
     /// The stops of the dial (FR-03): each on one of the five places, no two

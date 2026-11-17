@@ -3,6 +3,28 @@
   "name": "Blog",
   "description": "Posts with draft and angle kept separately, judged on whether a stranger reads past the first paragraph, scheduled into a calendar and shipped as a publish.",
   "config": {
+    "vibe": {
+      "moods": [
+        { "key": "dark", "label": { "en": "Dark", "ru": "Мрачная" }, "color": "#7A82AB" },
+        { "key": "melancholy", "label": { "en": "Melancholy", "ru": "Меланхоличная" }, "color": "#608EBA" },
+        { "key": "contemplative", "label": { "en": "Contemplative", "ru": "Созерцательная" }, "color": "#6FAEA0" },
+        { "key": "warm", "label": { "en": "Bright", "ru": "Светлая" }, "color": "#DEA058" },
+        { "key": "joyful", "label": { "en": "Joyful", "ru": "Весёлая" }, "color": "#E8786C" }
+      ],
+      "characters": [
+        { "key": "calm", "label": { "en": "Calm", "ru": "Спокойная" }, "glyph": "calm" },
+        { "key": "playful", "label": { "en": "Playful", "ru": "Игривая" }, "glyph": "playful" },
+        { "key": "steady", "label": { "en": "Steady", "ru": "Умеренная" }, "glyph": "steady" },
+        { "key": "edgy", "label": { "en": "Raw", "ru": "Надрывная" }, "glyph": "edgy" },
+        { "key": "drive", "label": { "en": "Drive", "ru": "Драйв" }, "glyph": "drive" }
+      ],
+      "complexities": [
+        { "key": "simple", "label": { "en": "Simple", "ru": "Простая" }, "strokes": 1 },
+        { "key": "medium", "label": { "en": "Medium", "ru": "Средняя" }, "strokes": 2 },
+        { "key": "complex", "label": { "en": "Complex", "ru": "Сложная" }, "strokes": 3 }
+      ],
+      "labels": { "complexity": { "en": "How deep it goes", "ru": "Глубина разбора" } }
+    },
     "stages": [
       { "key": "idea", "label": { "en": "idea / untouched", "ru": "идея / ещё не трогали" }, "percent": 0, "colour": "plain", "hex": "#6E737D" },
       { "key": "start", "label": { "en": "started / first drafts", "ru": "старт / первые наброски" }, "percent": 25, "colour": "info", "hex": "#5CA3FA" },

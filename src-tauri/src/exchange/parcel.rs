@@ -99,6 +99,11 @@ pub struct PackedWork {
     pub marks: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stage: Option<i64>,
+    /// What the work feels like (FR-02). Its keys are the profile's; a
+    /// space that does not have one of them lands the work without it
+    /// rather than refusing the parcel.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vibe: Option<crate::work::Vibe>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tier_pinned: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -280,6 +285,7 @@ impl Parcel {
                 tags,
                 marks: Vec::new(),
                 stage: None,
+                vibe: None,
                 tier_pinned: None,
                 tier_pinned_at: None,
                 tier_pin_reason: None,
@@ -476,6 +482,7 @@ pub fn of_work(conn: &Connection, work_id: &str) -> Result<Parcel> {
             tags: found.tags,
             marks: found.marks,
             stage: Some(found.stage),
+            vibe: found.vibe,
             tier_pinned: found.tier_pinned,
             tier_pinned_at: found.tier_pinned_at,
             tier_pin_reason: found.tier_pin_reason,
@@ -901,7 +908,7 @@ pub fn land(
     // The work as it stood, last: every write above moved `updated_at`.
     conn.execute(
         "UPDATE work SET status_pinned_at = ?2, stage = ?3, tier_pinned = ?4, tier_pinned_at = ?5,
-                tier_pin_reason = ?6, bookmarked_at = ?7, updated_at = ?8
+                tier_pin_reason = ?6, bookmarked_at = ?7, updated_at = ?8, vibe = ?9
           WHERE id = ?1",
         params![
             made.id,
@@ -914,6 +921,16 @@ pub fn land(
             packed.tier_pin_reason,
             packed.bookmarked_at,
             packed.updated_at,
+            // In the words of the space it lands in, or not at all.
+            packed
+                .vibe
+                .clone()
+                .and_then(crate::work::Vibe::kept)
+                .filter(|vibe| {
+                    crate::profile::config_for(conn, profile_id)
+                        .is_ok_and(|config| config.vibe().check(vibe).is_ok())
+                })
+                .and_then(|vibe| serde_json::to_string(&vibe).ok()),
         ],
     )?;
 

@@ -69,6 +69,13 @@ pub struct Work {
     /// folder (`v1/video/v2.mp4`). `None` lets the kind's rule find it - the
     /// newest file its pattern matches (ADR 0070).
     pub file: Option<String>,
+    /// What the work feels like, when somebody has said (FR-02): its mood,
+    /// its character and how complex it is, each a key of the profile's
+    /// `vibe`. Its own; what a clip made from it shows when it has none is
+    /// worked out where the works are listed ([`effective_vibes`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub vibe: Option<Vibe>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -181,6 +188,15 @@ pub struct WorkPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub file: Option<Option<String>>,
+    /// What the work feels like (FR-02). The whole of it, as the picker
+    /// sends it: a line left out of the object is a line unsaid, and `null`
+    /// - or an object saying nothing - is "nobody has said".
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub vibe: Option<Option<Vibe>>,
 }
 
 /// Narrowing applied to a listing. Every field may be left out - serde
@@ -198,7 +214,138 @@ pub struct WorkFilter {
 const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
      status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at, \
      tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage, cover, frame, ordinal, \
-     file FROM work";
+     file, vibe FROM work";
+
+/// The vibe a work shows: its own, or - for one that has none - that of
+/// what it was made from, however far back (FR-02). A clip of a song is the
+/// song's mood on another surface; it says its own only when somebody said
+/// one for it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+pub struct ShownVibe {
+    pub vibe: Vibe,
+    /// The title of the work it is taken from, when it is not the work's
+    /// own.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub from: Option<String>,
+}
+
+/// The vibe every work of a profile shows, by work. A work with none of its
+/// own and none to take is left out.
+///
+/// Read in two queries and walked in memory: a catalogue of four hundred
+/// works asked one by one up their chains is four hundred walks through the
+/// database, for a mark in a column.
+pub fn shown_vibes(
+    conn: &Connection,
+    profile_id: &str,
+) -> Result<std::collections::HashMap<String, ShownVibe>> {
+    use std::collections::HashMap;
+    let mut own: HashMap<String, (String, Option<Vibe>)> = HashMap::new();
+    let mut statement = conn.prepare("SELECT id, title, vibe FROM work WHERE profile_id = ?1")?;
+    for row in statement.query_map(params![profile_id], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+        ))
+    })? {
+        let (id, title, vibe) = row?;
+        own.insert(id, (title, Vibe::stored(vibe)));
+    }
+    // What each work was made from, the first link first: a work made from
+    // two is the first one's on another surface.
+    let mut made_from: HashMap<String, String> = HashMap::new();
+    let mut statement = conn.prepare(
+        "SELECT work_id, source_id FROM work_link WHERE profile_id = ?1 AND role != ?2
+          ORDER BY created_at, rowid",
+    )?;
+    for row in statement.query_map(params![profile_id, crate::link::LAB], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })? {
+        let (work, source) = row?;
+        made_from.entry(work).or_insert(source);
+    }
+
+    let mut shown = HashMap::new();
+    for (id, (_, vibe)) in &own {
+        if let Some(vibe) = vibe {
+            shown.insert(
+                id.clone(),
+                ShownVibe {
+                    vibe: vibe.clone(),
+                    from: None,
+                },
+            );
+            continue;
+        }
+        // Up the chain, no further than a chain goes: a link that comes
+        // round to where it began is followed once.
+        let mut at = id;
+        for _ in 0..8 {
+            let Some(source) = made_from.get(at) else {
+                break;
+            };
+            match own.get(source) {
+                Some((title, Some(vibe))) => {
+                    shown.insert(
+                        id.clone(),
+                        ShownVibe {
+                            vibe: vibe.clone(),
+                            from: Some(title.clone()),
+                        },
+                    );
+                    break;
+                }
+                Some(_) => at = source,
+                None => break,
+            }
+        }
+    }
+    Ok(shown)
+}
+
+/// What a work feels like, along three lines (FR-02): each a key of the
+/// profile's `vibe`, any of them left unsaid. The mark drawn for it is worked
+/// out from the three and never set by hand.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Vibe {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub mood: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub character: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub complexity: Option<String>,
+}
+
+impl Vibe {
+    /// Whether nothing is said along any line - which is kept as no vibe at
+    /// all, not as an empty one.
+    pub fn is_empty(&self) -> bool {
+        self.mood.is_none() && self.character.is_none() && self.complexity.is_none()
+    }
+
+    /// The vibe as it is kept: blank keys taken for unsaid, and nothing at
+    /// all when none is left.
+    pub fn kept(self) -> Option<Self> {
+        let said = |key: Option<String>| key.filter(|key| !key.trim().is_empty());
+        let vibe = Self {
+            mood: said(self.mood),
+            character: said(self.character),
+            complexity: said(self.complexity),
+        };
+        (!vibe.is_empty()).then_some(vibe)
+    }
+
+    /// A vibe read out of its column: nothing for an empty column, for a
+    /// value that is not one, and for one that says nothing.
+    fn stored(raw: Option<String>) -> Option<Self> {
+        serde_json::from_str::<Self>(&raw?).ok()?.kept()
+    }
+}
 
 /// Create a work in the given profile.
 ///
@@ -554,6 +701,21 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
         };
         set(&mut assignments, &mut values, "file", Box::new(file));
     }
+    if let Some(vibe) = patch.vibe {
+        // Held to the profile's own words: a mood the profile does not have
+        // is a mark nobody could draw.
+        let vibe = vibe.and_then(Vibe::kept);
+        if let Some(said) = &vibe {
+            let before = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
+            let config = crate::profile::config_for(conn, &before.profile_id)?;
+            config.vibe().check(said)?;
+        }
+        let stored = match &vibe {
+            Some(said) => Some(serde_json::to_string(said)?),
+            None => None,
+        };
+        set(&mut assignments, &mut values, "vibe", Box::new(stored));
+    }
 
     if assignments.is_empty() {
         return get(conn, id)?.ok_or_else(|| unknown_work(id));
@@ -744,6 +906,7 @@ struct RawWork {
     frame: String,
     ordinal: Option<i64>,
     file: Option<String>,
+    vibe: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
@@ -774,6 +937,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         frame: row.get(20)?,
         ordinal: row.get(21)?,
         file: row.get(22)?,
+        vibe: row.get(23)?,
     })
 }
 
@@ -801,6 +965,7 @@ impl RawWork {
             stage: self.stage,
             ordinal: self.ordinal,
             file: self.file,
+            vibe: Vibe::stored(self.vibe),
             created_at: self.created_at,
             updated_at: self.updated_at,
         })
@@ -1372,6 +1537,130 @@ mod tests {
         )
         .unwrap();
         assert_eq!(cleared.bookmarked_at, None);
+    }
+
+    fn vibe(mood: Option<&str>, character: Option<&str>, complexity: Option<&str>) -> Vibe {
+        Vibe {
+            mood: mood.map(str::to_owned),
+            character: character.map(str::to_owned),
+            complexity: complexity.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn a_vibe_is_said_along_one_two_or_three_lines_and_unsaid_whole() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        assert_eq!(song.vibe, None, "nobody has said");
+        let set = |said: Option<Vibe>| {
+            update(
+                &conn,
+                &song.id,
+                WorkPatch {
+                    vibe: Some(said),
+                    ..WorkPatch::default()
+                },
+            )
+        };
+
+        // One line said, the others left: kept as said, nothing made up.
+        let one = set(Some(vibe(Some("melancholy"), None, None))).unwrap();
+        assert_eq!(one.vibe, Some(vibe(Some("melancholy"), None, None)));
+        let all = set(Some(vibe(Some("dark"), Some("edgy"), Some("complex")))).unwrap();
+        assert_eq!(
+            get(&conn, &song.id).unwrap().unwrap().vibe,
+            all.vibe,
+            "read back as written"
+        );
+        // A free word under `meta.mood` is the person's and is not this.
+        let with_word = update(
+            &conn,
+            &song.id,
+            WorkPatch {
+                meta: Some(
+                    serde_json::json!({ "mood": "bittersweet, late autumn" })
+                        .as_object()
+                        .cloned()
+                        .unwrap(),
+                ),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(with_word.meta["mood"], "bittersweet, late autumn");
+        assert_eq!(with_word.vibe, all.vibe);
+
+        // A word the profile does not have is refused, with the ones it has.
+        let refused = set(Some(vibe(Some("sunny"), None, None))).unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("work.unknownVibe"));
+        assert_eq!(get(&conn, &song.id).unwrap().unwrap().vibe, all.vibe);
+
+        // Nothing said along any line, and nothing at all, are the same: no
+        // vibe, kept as an empty column.
+        assert_eq!(set(Some(vibe(None, Some("  "), None))).unwrap().vibe, None);
+        set(Some(vibe(Some("warm"), None, None))).unwrap();
+        assert_eq!(set(None).unwrap().vibe, None);
+        let stored: Option<String> = conn
+            .query_row(
+                "SELECT vibe FROM work WHERE id = ?1",
+                params![song.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored, None);
+    }
+
+    #[test]
+    fn a_work_with_no_vibe_shows_the_one_of_what_it_was_made_from() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        let clip = crate::actions::work::derive(&conn, &song.id, "video", None, None, None)
+            .unwrap()
+            .work;
+        let short = crate::actions::work::derive(&conn, &clip.id, "short", None, None, None)
+            .unwrap()
+            .work;
+        let alone = fixtures::song(&conn, &profile_id, "Alone");
+        let say = |id: &str, said: Option<Vibe>| {
+            update(
+                &conn,
+                id,
+                WorkPatch {
+                    vibe: Some(said),
+                    ..WorkPatch::default()
+                },
+            )
+            .unwrap();
+        };
+
+        assert!(shown_vibes(&conn, &profile_id).unwrap().is_empty());
+
+        say(&song.id, Some(vibe(Some("melancholy"), Some("calm"), None)));
+        let shown = shown_vibes(&conn, &profile_id).unwrap();
+        assert_eq!(shown[&song.id].from, None, "its own");
+        // The clip, and the short cut from the clip, show the song's.
+        for made in [&clip.id, &short.id] {
+            assert_eq!(shown[made].vibe, shown[&song.id].vibe);
+            assert_eq!(shown[made].from.as_deref(), Some("Tide"));
+        }
+        assert!(
+            !shown.contains_key(&alone.id),
+            "nothing to take, nothing shown"
+        );
+
+        // One said for the clip is the clip's, and the short takes the
+        // nearest: the clip's, not the song's.
+        say(&clip.id, Some(vibe(Some("joyful"), None, None)));
+        let shown = shown_vibes(&conn, &profile_id).unwrap();
+        assert_eq!(shown[&clip.id].from, None);
+        assert_eq!(shown[&short.id].vibe.mood.as_deref(), Some("joyful"));
+        assert_eq!(shown[&short.id].from.as_deref(), Some(clip.title.as_str()));
+
+        // The catalogue's rows carry the same.
+        let rows = crate::score::catalogue(&conn, &profile_id).unwrap();
+        let row = |id: &str| rows.iter().find(|row| row.work_id == id).unwrap();
+        assert_eq!(row(&short.id).vibe, Some(shown[&short.id].clone()));
+        assert_eq!(row(&alone.id).vibe, None);
     }
 
     #[test]

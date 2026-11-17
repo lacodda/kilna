@@ -3141,7 +3141,8 @@
       "noCover": "У вида «{{kind}}» нет обложки.",
       "ordinalBelowOne": "Номер произведения начинается с 1, а {{number}} меньше.",
       "ordinalTaken": "Номер {{number}} — у «{{title}}»: два произведения под одним номером делили бы одну папку.",
-      "ordinalMadeFromNothing": "«{{title}}» ни из чего не сделано, и у него нет номера среди сделанных из того же."
+      "ordinalMadeFromNothing": "«{{title}}» ни из чего не сделано, и у него нет номера среди сделанных из того же.",
+      "unknownVibe": "Здесь нет {{line}} «{{key}}»; есть: {{known}}."
     },
     "version": {
       "unknownRole": "У вида «{{kind}}» нет роли версии «{{role}}». Есть: {{known}}.",
@@ -3829,7 +3830,10 @@
     "phrasesMustProduce": "{{place}}: действие о фразах и должно порождать `bricks`",
     "phrasesNeverRead": "{{place}}: действие о фразах, но `{phrases}` оно не читает",
     "phrasesNotAbout": "{{place}}: читает `{{placeholder}}`, но не о фразах: задайте `\"scope\": \"phrases\"`",
-    "commentMustProduce": "{{place}}: действие о комментарии и должно порождать `comment` или `reply`"
+    "commentMustProduce": "{{place}}: действие о комментарии и должно порождать `comment` или `reply`",
+    "vibeEmpty": "у настроения работы нет ни одного значения в списке «{{what}}»: на линии должны быть слова",
+    "vibeColour": "у настроения `{{key}}` цвет `{{colour}}` записан не как #RRGGBB",
+    "vibeStrokes": "сложность `{{key}}` рисуется в {{strokes}} штрихов: один, два или три"
   },
   "place": {
     "workKind": "вид произведения {{n}} (`{{key}}`)",
@@ -3874,7 +3878,10 @@
     "cardFields": "{{in}}: поле",
     "sections": "{{in}}: раздел",
     "media": "{{in}}: носитель",
-    "compositionTypes": "{{in}}: тип"
+    "compositionTypes": "{{in}}: тип",
+    "moods": "настроение",
+    "characters": "характер",
+    "complexities": "сложность"
   },
   "batch": {
     "skipped_one": "Пропущено: {{count}}",

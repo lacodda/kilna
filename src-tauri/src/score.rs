@@ -102,6 +102,11 @@ pub struct ScoredWork {
     /// How finished the work is, as the author judges it: one of the five
     /// stops.
     pub stage: i64,
+    /// What the work feels like, as it shows it (FR-02): its own vibe, or
+    /// the one of what it was made from. Absent when nobody has said.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub vibe: Option<crate::work::ShownVibe>,
     /// For a work that never goes out itself - a song - everything made from
     /// it, down the links: the works whose releases are its own facts, so the
     /// row's next release is its audio's or its clip's (v0.86, ADR 0047).
@@ -399,11 +404,18 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             tier_pinned: row.get::<_, i64>(16)? == 1,
             bookmarked_at: row.get(17)?,
             stage: crate::profile::config::normalize_stage(row.get(18)?),
+            vibe: None,
             publications: Vec::new(),
         })
     })?;
 
     let mut rows = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    // What each feels like: its own vibe, or the one of what it was made
+    // from (FR-02).
+    let mut vibes = crate::work::shown_vibes(conn, profile_id)?;
+    for row in &mut rows {
+        row.vibe = vibes.remove(&row.work_id);
+    }
     // A work with no door speaks through what was made from it: its counts
     // are theirs, as its status is (`work::status::speaking_for`).
     for row in &mut rows {

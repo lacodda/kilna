@@ -56,6 +56,11 @@ pub struct ScheduledRelease {
     /// a work can have every role filled and still be three verses of
     /// placeholder, and only the author knows that.
     pub work_stage: i64,
+    /// What the work feels like, as it shows it (FR-02): its own vibe, or
+    /// the one of the song it was made from.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub work_vibe: Option<crate::work::ShownVibe>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
@@ -990,6 +995,7 @@ fn read_scheduled_where(
             ))
         })?
         .collect::<rusqlite::Result<_>>()?;
+    let vibes = crate::work::shown_vibes(conn, profile_id)?;
     // Which works have a cover chosen, for the places that will not go out
     // without one (v0.97) - in one query, as the roles are.
     let covered: std::collections::HashSet<String> = crate::asset::covers_of(conn, profile_id)?
@@ -1031,6 +1037,7 @@ fn read_scheduled_where(
             Ok(ScheduledRelease {
                 work_kind: kinds.get(&release.work_id).cloned().unwrap_or_default(),
                 work_stage: stages.get(&release.work_id).copied().unwrap_or(0),
+                work_vibe: vibes.get(&release.work_id).cloned(),
                 release,
                 work_title,
                 total,

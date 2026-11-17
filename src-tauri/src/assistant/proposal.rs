@@ -1878,6 +1878,7 @@ mod instruction_tests {
             work_meta_fields: Vec::new(),
             marks: Vec::new(),
             stages: Vec::new(),
+            vibe: None,
             cover_ideas: None,
             guard: None,
             boards: Vec::new(),

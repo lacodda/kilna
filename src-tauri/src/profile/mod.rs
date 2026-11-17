@@ -366,6 +366,10 @@ const UPGRADE: &[Step] = &[
         carry: stages,
     },
     Step {
+        name: "the lines a work's feel is said along",
+        carry: vibe_axes,
+    },
+    Step {
         name: "tier words untouched since they shipped",
         carry: reword_untouched_tiers,
     },
@@ -1340,6 +1344,18 @@ fn retired_note_kinds(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bo
     for (at, kind) in places.into_iter().zip(plain) {
         config.note_kinds[at] = kind;
     }
+    true
+}
+
+/// The lines a work's feel is said along (FR-02, v0.124), where the stored
+/// profile names none: a space made before them has no moods to pick from,
+/// and the picker would stand empty. A profile that has them keeps them as
+/// they are - the words on a line are the owner's to change.
+fn vibe_axes(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    if config.vibe.is_some() {
+        return false;
+    }
+    config.vibe = Some(shipped.vibe());
     true
 }
 

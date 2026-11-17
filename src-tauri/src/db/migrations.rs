@@ -336,6 +336,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0053_five_stages.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 54,
+        name: "work_vibe",
+        sql: include_str!("../../migrations/0054_work_vibe.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what
