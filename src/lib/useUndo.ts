@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { lastUndoable, undoLast } from '@/lib/api/undo'
+import { sayUndone } from '@/lib/undone'
 import { say } from '@/lib/toast'
 
 /**
@@ -36,7 +37,7 @@ export function useUndo(): { undo: () => void } {
         // copy of what each command already knows — one that would go stale
         // quietly the first time a kind was added.
         await client.invalidateQueries()
-        say.ok(t('undo.done', { what: t(taken.action, taken.params) }))
+        say.ok(sayUndone(taken))
       } catch (cause: unknown) {
         say.failedTo(t('undo.failed'), cause)
       }

@@ -63,12 +63,23 @@ pub struct Report {
 pub fn rebuild(from: &Connection, into: &mut Connection) -> Result<Report> {
     let operations = operation::all(from)?;
     let mut report = Report::default();
+    // An undo names the operation it took back by id, and reverses it from
+    // what that operation recorded.
+    let by_id: std::collections::HashMap<&str, &Operation> = operations
+        .iter()
+        .map(|entry| (entry.id.as_str(), entry))
+        .collect();
 
-    for entry in operations {
-        match apply(into, &entry) {
+    for entry in &operations {
+        let applied = if entry.kind.starts_with(crate::undo::UNDO_PREFIX) {
+            take_back(into, entry, &by_id)
+        } else {
+            apply(into, entry)
+        };
+        match applied {
             Ok(true) => {
                 report.applied += 1;
-                restate(into, &entry)?;
+                restate(into, entry)?;
             }
             Ok(false) => {
                 if !report.unknown.contains(&entry.kind) {
@@ -85,6 +96,43 @@ pub fn rebuild(from: &Connection, into: &mut Connection) -> Result<Report> {
     }
 
     Ok(report)
+}
+
+/// Replay an undo: reverse the operation it names, at the moment and under
+/// the ids the undo recorded (v0.114).
+///
+/// `false` - reported as unknown - when the log does not hold the operation
+/// it took back, which no complete log does.
+fn take_back(
+    conn: &Connection,
+    entry: &Operation,
+    by_id: &std::collections::HashMap<&str, &Operation>,
+) -> Result<bool> {
+    let Some(taken) = entry
+        .params
+        .get("operation")
+        .and_then(Value::as_str)
+        .and_then(|id| by_id.get(id))
+    else {
+        return Ok(false);
+    };
+    let at = required(&entry.params, "at")?;
+    // An undo logged before v0.114 recorded no seed: its trash entries are
+    // minted afresh, as they were then, and a restore of one by id will not
+    // find it - the hole that version closed for every undo since.
+    let seed = entry
+        .params
+        .get("id")
+        .and_then(Value::as_str)
+        .map_or_else(|| uuid::Uuid::new_v4().to_string(), str::to_owned);
+    // The profile as this workspace knows it: the id in the log belongs to
+    // the workspace the log came from.
+    let mut taken = (*taken).clone();
+    if taken.params.contains_key("profile") {
+        taken.profile_id = Some(workspace_profile(conn, &taken.params)?);
+    }
+    crate::undo::reverse(conn, &taken, &at, &mut crate::undo::Ids::from_seed(&seed))?;
+    Ok(true)
 }
 
 /// Bring derived statuses back in line, the way the command that recorded this

@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import i18n from '@/i18n'
 import { lastUndoable, undoLast } from '@/lib/api/undo'
+import { sayUndone } from '@/lib/undone'
 import { say } from '@/lib/toast'
 
 /**
@@ -41,9 +42,9 @@ export function announceEdited({
 
     say.undoable(message, i18n.t('toast.undo'), () => {
       undoLast(offer.operationId)
-        .then(() => {
+        .then((taken) => {
           void client.invalidateQueries()
-          say.ok(i18n.t('undo.done', { what: i18n.t(offer.action, offer.params) }))
+          say.ok(sayUndone(taken))
         })
         .catch((cause: unknown) => say.failedTo(i18n.t('undo.failed'), cause))
     })

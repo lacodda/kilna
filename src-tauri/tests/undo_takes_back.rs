@@ -1841,3 +1841,104 @@ fn a_booked_layout_is_one_step_back() {
             .is_empty()
     );
 }
+
+/// One gesture is one undo (v0.114).
+///
+/// Making a clip from a song records three operations in one unit of work -
+/// the work, the link to its song, the release it goes out through. Until
+/// v0.114 undo took back the last of them and left a person to press it
+/// twice more, or not know to. Now the offer says how many go with it, one
+/// press takes them all, and each leaves its own line in the log.
+#[test]
+fn a_gesture_of_several_operations_is_taken_back_whole() {
+    let (conn, profile_id, song_id) = workspace();
+    let before = operation::count(&conn).unwrap();
+
+    let made = actions::work::derive(&conn, &song_id, "video", None, None, None).unwrap();
+    let recorded = operation::count(&conn).unwrap() - before;
+    assert!(
+        recorded > 1,
+        "making a clip recorded {recorded} operation; the test needs a gesture of several"
+    );
+    let gesture: Vec<_> = operation::latest(&conn, recorded)
+        .unwrap()
+        .into_iter()
+        .map(|entry| entry.gesture_id)
+        .collect();
+    assert!(
+        gesture[0].is_some() && gesture.iter().all(|id| id == &gesture[0]),
+        "the operations of one gesture do not share an id: {gesture:?}"
+    );
+
+    let offer = undo::last(&conn).unwrap().expect("the gesture is offered");
+    assert_eq!(offer.also as i64, recorded - 1);
+    undo::undo(&conn, &offer.operation_id).unwrap();
+
+    assert!(work::get(&conn, &made.work.id).unwrap().is_none());
+    assert!(
+        kilna_lib::link::sources(&conn, &made.work.id)
+            .unwrap()
+            .is_empty()
+    );
+    if let Some(release_id) = &made.release_id {
+        assert!(
+            kilna_lib::release::get(&conn, release_id)
+                .unwrap()
+                .is_none()
+        );
+    }
+    // The song it was made from is where it was.
+    assert!(work::get(&conn, &song_id).unwrap().is_some());
+    // Nothing destroyed: the clip waits in the trash, whole.
+    assert!(
+        kilna_lib::trash::list(&conn, &profile_id)
+            .unwrap()
+            .iter()
+            .any(|entry| entry.entity_id == made.work.id)
+    );
+    // And what stands last in the log is an undo, which is not offered again:
+    // one press, not a walk back through the gesture.
+    assert!(undo::last(&conn).unwrap().is_none());
+    let last = operation::latest(&conn, 1).unwrap().remove(0);
+    assert!(last.kind.starts_with(undo::UNDO_PREFIX), "{}", last.kind);
+}
+
+/// A gesture is taken back whole or not at all: one operation of it that
+/// cannot be reversed withdraws the offer, rather than leaving half of what
+/// was asked for standing.
+#[test]
+fn a_gesture_holding_an_irreversible_operation_is_not_offered() {
+    let (conn, _profile_id, _work_id) = workspace();
+
+    kilna_lib::db::unit::atomically(&conn, |conn| {
+        actions::work::create(
+            conn,
+            NewWork {
+                kind: "song".into(),
+                title: "Winter road".into(),
+                ..NewWork::default()
+            },
+        )?;
+        actions::work::resync_statuses(conn)?;
+        Ok(())
+    })
+    .unwrap();
+
+    assert!(!undo::reversible("status.resync"));
+    assert!(
+        undo::last(&conn).unwrap().is_none(),
+        "half a gesture is being offered: the creation without the resync recorded with it"
+    );
+
+    // The same creation alone, in a unit of its own, is offered as before.
+    actions::work::create(
+        &conn,
+        NewWork {
+            kind: "song".into(),
+            title: "The long way round".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(undo::last(&conn).unwrap().map(|offer| offer.also), Some(0));
+}

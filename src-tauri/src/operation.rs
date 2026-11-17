@@ -38,6 +38,10 @@ pub struct Operation {
     /// Everything a replay needs — the input and what the code generated.
     pub params: Map<String, Value>,
     pub recorded_at: String,
+    /// The gesture it was recorded in: every operation of one outermost unit
+    /// of work carries the same id, and undo takes them back together.
+    /// `None` for one that stands alone, and for the log before v0.114.
+    pub gesture_id: Option<String>,
 }
 
 /// An operation about to be written down.
@@ -112,8 +116,8 @@ pub fn record(conn: &Connection, entry: Intent) -> Result<()> {
     let device_id = crate::device::id(conn)?;
 
     conn.execute(
-        "INSERT INTO operation (id, device_id, profile_id, kind, params, recorded_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO operation (id, device_id, profile_id, kind, params, recorded_at, gesture_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             id,
             device_id,
@@ -121,6 +125,7 @@ pub fn record(conn: &Connection, entry: Intent) -> Result<()> {
             entry.kind,
             Value::Object(entry.params).to_string(),
             now(),
+            crate::db::unit::gesture_id(conn),
         ],
     )?;
 
@@ -131,7 +136,7 @@ pub fn record(conn: &Connection, entry: Intent) -> Result<()> {
 pub fn all(conn: &Connection) -> Result<Vec<Operation>> {
     read(
         conn,
-        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at
+        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at, gesture_id
                   FROM operation ORDER BY recorded_at, seq",
         params![],
     )
@@ -141,7 +146,7 @@ pub fn all(conn: &Connection) -> Result<Vec<Operation>> {
 pub fn latest(conn: &Connection, limit: i64) -> Result<Vec<Operation>> {
     read(
         conn,
-        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at
+        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at, gesture_id
            FROM operation ORDER BY recorded_at DESC, seq DESC LIMIT ?1",
         params![limit],
     )
@@ -151,12 +156,23 @@ pub fn latest(conn: &Connection, limit: i64) -> Result<Vec<Operation>> {
 pub fn by_id(conn: &Connection, id: &str) -> Result<Option<Operation>> {
     Ok(read(
         conn,
-        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at
+        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at, gesture_id
            FROM operation WHERE id = ?1",
         params![id],
     )?
     .into_iter()
     .next())
+}
+
+/// The operations of one gesture, newest first - the order they are taken
+/// back in.
+pub fn of_gesture(conn: &Connection, gesture_id: &str) -> Result<Vec<Operation>> {
+    read(
+        conn,
+        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at, gesture_id
+           FROM operation WHERE gesture_id = ?1 ORDER BY recorded_at DESC, seq DESC",
+        params![gesture_id],
+    )
 }
 
 /// How many operations the log holds.
@@ -182,6 +198,7 @@ fn read(conn: &Connection, sql: &str, args: impl rusqlite::Params) -> Result<Vec
                 .and_then(|value| value.as_object().cloned())
                 .unwrap_or_default(),
             recorded_at: row.get(6)?,
+            gesture_id: row.get(7)?,
         })
     })?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)

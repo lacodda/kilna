@@ -2103,6 +2103,7 @@
   "undo": {
     "nothing": "Nothing to undo",
     "done": "Taken back: {{what}}",
+    "doneWith": "Taken back: {{what}}, and {{count}} more with it",
     "failed": "take that back",
     "work.create": "adding a work",
     "work.update": "an edit to a work",

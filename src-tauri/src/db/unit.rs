@@ -39,6 +39,9 @@ type Effect = Box<dyn FnOnce(&Connection)>;
 struct Frame {
     depth: usize,
     effects: Vec<(usize, Effect)>,
+    /// What the operations recorded inside the outermost unit are marked
+    /// with, minted when the first of them asks - see [`gesture_id`].
+    gesture: Option<String>,
 }
 
 thread_local! {
@@ -63,6 +66,27 @@ pub fn atomically<T>(conn: &Connection, work: impl FnOnce(&Connection) -> Result
     let done = work(conn)?;
     guard.release()?;
     Ok(done)
+}
+
+/// The id the operations of the unit open on `conn` share, or `None` when no
+/// unit is open.
+///
+/// One outermost unit is one gesture - a package kept, a work made from
+/// another - however many operations it records, and undo takes a gesture
+/// back whole (v0.114). The id is minted by the first operation that asks
+/// and forgotten when the outermost unit closes, so the next unit is the
+/// next gesture.
+pub fn gesture_id(conn: &Connection) -> Option<String> {
+    FRAMES.with(|frames| {
+        let mut frames = frames.borrow_mut();
+        let frame = frames.get_mut(&key(conn)).filter(|frame| frame.depth > 0)?;
+        Some(
+            frame
+                .gesture
+                .get_or_insert_with(|| uuid::Uuid::new_v4().to_string())
+                .clone(),
+        )
+    })
 }
 
 /// Do `effect` once the current unit's writes are committed - now, when no

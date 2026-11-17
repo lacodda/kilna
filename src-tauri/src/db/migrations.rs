@@ -324,6 +324,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0051_scene_layer.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 52,
+        name: "operation_gesture",
+        sql: include_str!("../../migrations/0052_operation_gesture.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what

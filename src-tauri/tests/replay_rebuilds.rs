@@ -1006,3 +1006,90 @@ fn closed_days_pins_and_shifts_rebuild() {
     }
     assert_eq!(built["time_off"].as_array().unwrap().len(), 1);
 }
+
+/// A replay knows an undo (v0.114).
+///
+/// Until now every `undo.*` operation went to `report.unknown`, and a rebuilt
+/// workspace still held what had been taken back. An undo is replayed as it
+/// was made: the operation it names reversed, at the undo's moment, burying
+/// what it buries under the entries it buried them under - so a restore from
+/// the trash logged after it still finds the entry it names.
+#[test]
+fn an_undo_rebuilds_as_it_was_taken() {
+    let source = workspace();
+    let song = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+
+    // An edit taken back: the title is the first one again.
+    actions::work::update(
+        &source,
+        &song.id,
+        work::WorkPatch {
+            title: Some("Harbour lights, again".into()),
+            ..work::WorkPatch::default()
+        },
+    )
+    .unwrap();
+    let offer = kilna_lib::undo::last(&source).unwrap().unwrap();
+    kilna_lib::undo::undo(&source, &offer.operation_id).unwrap();
+
+    // A gesture of several operations taken back whole: the clip, its link
+    // and its release go, the clip to the trash.
+    let made = actions::work::derive(&source, &song.id, "video", None, None, None).unwrap();
+    let offer = kilna_lib::undo::last(&source).unwrap().unwrap();
+    assert!(offer.also > 0);
+    kilna_lib::undo::undo(&source, &offer.operation_id).unwrap();
+
+    // And brought back out of the trash by the entry the undo buried it
+    // under: the id a replay has to bury it under too.
+    let profile_id = profile_keys(&source)[0].0.clone();
+    let entry = kilna_lib::trash::list(&source, &profile_id)
+        .unwrap()
+        .into_iter()
+        .find(|entry| entry.entity_id == made.work.id)
+        .expect("the clip waits in the trash");
+    actions::trash::restore(&source, &entry.id).unwrap();
+    assert!(work::get(&source, &made.work.id).unwrap().is_some());
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+
+    assert!(
+        report.unknown.is_empty(),
+        "the replay met kinds it does not know: {:?}",
+        report.unknown
+    );
+    assert_eq!(
+        work::get(&rebuilt, &song.id).unwrap().unwrap().title,
+        "Harbour lights"
+    );
+    assert!(work::get(&rebuilt, &made.work.id).unwrap().is_some());
+    // Everything but the moments of the deletions' traces: the database
+    // writes those itself, at its own clock and under its own device, and a
+    // rebuild is a different moment on a different device. That the same rows
+    // were buried is what the traces are compared by.
+    let without_moments = |conn: &Connection| {
+        let mut all = contents(conn);
+        let buried: Vec<String> = all
+            .remove("tombstone")
+            .and_then(|rows| rows.as_array().cloned())
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|row| row.as_str())
+            .map(|row| row.split('\u{1f}').take(2).collect::<Vec<_>>().join(" "))
+            .collect();
+        (all, buried)
+    };
+    assert_eq!(
+        without_moments(&rebuilt),
+        without_moments(&source),
+        "the rebuilt workspace is not the same workspace"
+    );
+}

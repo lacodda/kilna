@@ -40,6 +40,10 @@ pub struct Undoable {
     pub action: String,
     /// Values the sentence interpolates — usually the title of the thing.
     pub params: Map<String, Value>,
+    /// How many more operations of the same gesture go back with it: a
+    /// package kept is a work, its versions and its board, and one undo
+    /// takes them all (v0.114).
+    pub also: usize,
 }
 
 /// The last operation that can be taken back, if there is one.
@@ -48,11 +52,12 @@ pub struct Undoable {
 /// command run while the panel was open — cannot leave the offer pointing at
 /// something that is no longer last.
 pub fn last(conn: &Connection) -> Result<Option<Undoable>> {
-    let Some(entry) = operation::latest(conn, 1)?.into_iter().next() else {
+    let gesture = last_gesture(conn)?;
+    let Some(entry) = gesture.first() else {
         return Ok(None);
     };
 
-    // Only the newest operation is ever offered. Looking further back for
+    // Only the newest gesture is ever offered. Looking further back for
     // something reversible would offer to take back an edit with later work
     // sitting on top of it, which is the question the session-deep stack exists
     // to avoid asking — see the module note.
@@ -60,15 +65,63 @@ pub fn last(conn: &Connection) -> Result<Option<Undoable>> {
     // An undo is not itself undoable either: offering that would be a redo
     // wearing the same button, and pressing undo twice would oscillate instead
     // of walking back.
-    if entry.kind.starts_with(UNDO_PREFIX) || !reversible(&entry.kind) {
+    //
+    // And a gesture is taken back whole or not at all (v0.114): one operation
+    // of it that cannot be reversed withdraws the offer, rather than leaving
+    // half of what was asked for standing.
+    if gesture
+        .iter()
+        .any(|one| one.kind.starts_with(UNDO_PREFIX) || !reversible(&one.kind))
+    {
         return Ok(None);
     }
 
     Ok(Some(Undoable {
         operation_id: entry.id.clone(),
         action: format!("undo.{}", entry.kind),
-        params: describing(&entry),
+        params: describing(entry),
+        also: gesture.len() - 1,
     }))
+}
+
+/// The operations of the newest gesture, newest first: the last operation,
+/// and whatever was recorded in the same unit of work with it.
+fn last_gesture(conn: &Connection) -> Result<Vec<Operation>> {
+    let Some(entry) = operation::latest(conn, 1)?.into_iter().next() else {
+        return Ok(Vec::new());
+    };
+    match entry.gesture_id.as_deref() {
+        Some(gesture_id) => operation::of_gesture(conn, gesture_id),
+        None => Ok(vec![entry]),
+    }
+}
+
+/// The ids a reversal mints - a trash entry for what it buries - drawn from
+/// one seed in the order they are asked for.
+///
+/// The seed is recorded with the undo, so a replay buries the same rows under
+/// the same entries, and a restore logged later still finds the one it names
+/// (ADR 0014).
+pub struct Ids {
+    seed: uuid::Uuid,
+    drawn: u32,
+}
+
+impl Ids {
+    pub fn from_seed(seed: &str) -> Self {
+        Self {
+            // A seed that is no uuid is still a seed: hashed into one.
+            seed: uuid::Uuid::parse_str(seed).unwrap_or_else(|_| {
+                uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, seed.as_bytes())
+            }),
+            drawn: 0,
+        }
+    }
+
+    fn next(&mut self) -> String {
+        self.drawn += 1;
+        uuid::Uuid::new_v5(&self.seed, self.drawn.to_string().as_bytes()).to_string()
+    }
 }
 
 /// Operations recorded by an undo carry this prefix, so they can be told apart
@@ -191,31 +244,61 @@ pub fn undo(conn: &Connection, operation_id: &str) -> Result<Undoable> {
         if offer.operation_id != operation_id {
             return Err(Error::refused("undo.stale"));
         }
-
-        let entry = operation::by_id(conn, operation_id)?
-            .ok_or_else(|| Error::not_found("operation", operation_id))?;
+        let gesture = last_gesture(conn)?;
+        let whole = gesture.len() > 1;
 
         // The undo is stamped with a moment of its own rather than the one
         // it takes back: it is a thing that happens now, and a row claiming
         // it was last touched before the edit it reverses would be lying
         // about its own history.
         let at = crate::time::now();
-        reverse(conn, &entry, &at)?;
 
-        let logged = Intent::new(format!("{UNDO_PREFIX}{}", entry.kind))
-            .param("operation", entry.id.clone())
-            .param("at", at);
-        let logged = match entry.profile_id.as_deref() {
-            Some(profile_id) => logged.in_profile(profile_id),
-            None => logged,
-        };
-        operation::record(conn, logged)?;
+        // Newest first: what was made last is unmade first, as it was built
+        // on what came before it.
+        for entry in &gesture {
+            let seed = uuid::Uuid::new_v4().to_string();
+            let reversed = crate::db::unit::atomically(conn, |conn| {
+                reverse(conn, entry, &at, &mut Ids::from_seed(&seed))
+            });
+            match reversed {
+                Ok(()) => {}
+                // What an earlier step of this undo already took with it: a
+                // work sent to the trash takes its release and its links,
+                // and there is nothing left of them to take back. No line in
+                // the log either - nothing was done.
+                Err(Error::NotFound { .. }) if whole => continue,
+                Err(cause) => return Err(cause),
+            }
+
+            let mut logged = Intent::new(format!("{UNDO_PREFIX}{}", entry.kind))
+                .param("operation", entry.id.clone())
+                .param("at", at.clone())
+                .param("id", seed);
+            // The profile by its key, as every operation names it: a replay
+            // lands in a workspace that minted its own ids.
+            if let Some(profile) = entry.params.get("profile") {
+                logged = logged.param("profile", profile.clone());
+            }
+            if let Some(profile_id) = entry.profile_id.as_deref() {
+                logged = logged.in_profile(profile_id);
+            }
+            operation::record(conn, logged)?;
+        }
         Ok(offer)
     })
 }
 
 /// Apply the opposite of one operation, at the undo's moment.
-fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
+///
+/// Public to the crate for the replay, which takes an undo back the way it
+/// was taken the first time: the same operation, the same moment, the same
+/// ids.
+pub(crate) fn reverse(
+    conn: &Connection,
+    entry: &Operation,
+    at: &str,
+    minted_ids: &mut Ids,
+) -> Result<()> {
     let params = &entry.params;
     let at = at.to_owned();
 
@@ -579,8 +662,10 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // has them back.
         "scene.frame" => {
             let ids: Vec<String> = from_params(params, "ids")?;
-            let minted: Vec<crate::minted::Minted> =
-                ids.iter().map(|_| crate::minted::Minted::fresh()).collect();
+            let minted: Vec<crate::minted::Minted> = ids
+                .iter()
+                .map(|_| crate::minted::Minted::of(minted_ids.next(), at.clone()))
+                .collect();
             let discarded =
                 crate::trash::discard_batch(conn, crate::trash::Entity::Scene, &ids, &minted)?;
             for (id, cause) in discarded.failed {
@@ -702,7 +787,7 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
                 conn,
                 entity,
                 &id,
-                crate::minted::Minted::of(uuid::Uuid::new_v4().to_string(), at.clone()),
+                crate::minted::Minted::of(minted_ids.next(), at.clone()),
             )?;
         }
 
@@ -729,7 +814,7 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
                 };
                 crate::note::update_at(conn, &id, patch, &at)?;
             }
-            let minted = crate::minted::Minted::of(uuid::Uuid::new_v4().to_string(), at.clone());
+            let minted = crate::minted::Minted::of(minted_ids.next(), at.clone());
             crate::trash::discard_minted(conn, crate::trash::Entity::Work, &work_id, minted)?;
             if !stayed {
                 crate::trash::restore(conn, &required(params, "entryId")?)?;

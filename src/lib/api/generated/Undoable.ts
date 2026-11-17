@@ -21,4 +21,10 @@ action: string,
 /**
  * Values the sentence interpolates — usually the title of the thing.
  */
-params: { [key in string]: JsonValue }, };
+params: { [key in string]: JsonValue }, 
+/**
+ * How many more operations of the same gesture go back with it: a
+ * package kept is a work, its versions and its board, and one undo
+ * takes them all (v0.114).
+ */
+also: number, };
