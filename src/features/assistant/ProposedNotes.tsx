@@ -114,7 +114,7 @@ function OneNote({ note }: { note: ProposedNote }) {
         {said.length > 0 && <span className="text-dim">{said.join(' · ')}</span>}
         {tags.length > 0 && <span className="text-faint">{tags.join(', ')}</span>}
         {note.title !== undefined && (
-          <span className="line-clamp-4 whitespace-pre-wrap text-dim">{note.body}</span>
+          <span className="selectable line-clamp-4 whitespace-pre-wrap text-dim">{note.body}</span>
         )}
       </span>
     )
@@ -176,7 +176,9 @@ function Change({
   long?: boolean
 }) {
   const { t } = useTranslation()
-  const block = long ? 'line-clamp-6 whitespace-pre-wrap' : 'truncate'
+  // A note's words, as they are and as they would be: text a person may
+  // want to copy out, so it can be selected.
+  const block = long ? 'selectable line-clamp-6 whitespace-pre-wrap' : 'selectable truncate'
   return (
     <span className="flex flex-col gap-0.5">
       <span className="caption">{label}</span>
