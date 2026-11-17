@@ -1,0 +1,113 @@
+{
+  "config": {
+    "collection_kinds": [
+      {
+        "key": "collection",
+        "label": {
+          "en": "Collection",
+          "ru": "Сборник"
+        }
+      }
+    ],
+    "format": 3,
+    "marks": [],
+    "note_kinds": [
+      {
+        "key": "note",
+        "label": {
+          "en": "Note",
+          "ru": "Заметка"
+        }
+      }
+    ],
+    "prompts": [],
+    "rhythm": {
+      "default_time": null,
+      "every_days": 7,
+      "monthly": []
+    },
+    "stages": [],
+    "style_types": [],
+    "work_kinds": [
+      {
+        "key": "work",
+        "label": {
+          "en": "Work",
+          "ru": "Произведение"
+        },
+        "release_kinds": [
+          {
+            "key": "release",
+            "label": {
+              "en": "Release",
+              "ru": "Выпуск"
+            },
+            "requires": [
+              "text"
+            ]
+          }
+        ],
+        "statuses": [
+          {
+            "derive": "draft",
+            "key": "draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
+          },
+          {
+            "colour": "accent",
+            "derive": "scored",
+            "key": "scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
+          },
+          {
+            "colour": "warn",
+            "derive": "scheduled",
+            "key": "scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
+          },
+          {
+            "colour": "good",
+            "derive": "released",
+            "key": "released",
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            }
+          },
+          {
+            "colour": "plain",
+            "derive": "manual",
+            "key": "shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
+          }
+        ],
+        "version_roles": [
+          {
+            "body": "markdown",
+            "key": "text",
+            "label": {
+              "en": "Text",
+              "ru": "Текст"
+            }
+          }
+        ]
+      }
+    ],
+    "work_meta_fields": []
+  },
+  "description": "One kind of work with a text, four statuses and one way out: the rest is yours to name in Settings.",
+  "key": "blank",
+  "name": "Empty"
+}

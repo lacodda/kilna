@@ -7,135 +7,240 @@
             "fields": [
               {
                 "key": "why",
-                "label": "What is there, and why it fits",
+                "label": {
+                  "en": "What is there, and why it fits",
+                  "ru": "Что там и почему подходит"
+                },
                 "multiline": true
               },
               {
                 "key": "quote",
-                "label": "Quote",
+                "label": {
+                  "en": "Quote",
+                  "ru": "Цитата"
+                },
                 "multiline": true,
                 "shape": "quote"
               },
               {
                 "key": "translation",
-                "label": "Translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
                 "multiline": true
               },
               {
-                "hint": "Canto XXIII; the last chapter",
+                "hint": {
+                  "en": "Canto XXIII; the last chapter",
+                  "ru": "Песнь XXIII; последняя глава"
+                },
                 "key": "address",
-                "label": "Where in it"
+                "label": {
+                  "en": "Where in it",
+                  "ru": "Где"
+                }
               },
               {
                 "key": "proof",
-                "label": "Checked at",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
                 "shape": "proof"
               },
               {
-                "hint": "The image for a line; the structure; the move that closes it",
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
                 "key": "take",
-                "label": "What to take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
                 "multiline": true
               },
               {
-                "hint": "Only the opening fits - it gets loud later",
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
                 "key": "caveat",
-                "label": "Caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
                 "multiline": true
               },
               {
-                "hint": "gilded lead cloaks; Arzamas; the hot spring",
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
                 "key": "chips",
-                "label": "Images and names",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
                 "shape": "chips"
               }
             ],
             "key": "work",
-            "label": "Work",
+            "label": {
+              "en": "Work",
+              "ru": "Произведение"
+            },
             "library": true
           },
           {
             "fields": [
               {
                 "key": "quote",
-                "label": "The text",
+                "label": {
+                  "en": "The text",
+                  "ru": "Текст"
+                },
                 "multiline": true,
                 "shape": "quote"
               },
               {
-                "hint": "Matthew 23:27",
+                "hint": {
+                  "en": "Matthew 23:27",
+                  "ru": "Мф 23:27"
+                },
                 "key": "address",
-                "label": "Address"
+                "label": {
+                  "en": "Address",
+                  "ru": "Адрес"
+                }
               },
               {
                 "key": "translation",
-                "label": "Translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
                 "multiline": true
               },
               {
                 "key": "proof",
-                "label": "Checked at",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
                 "shape": "proof"
               },
               {
                 "key": "why",
-                "label": "Why it is here",
+                "label": {
+                  "en": "Why it is here",
+                  "ru": "Почему здесь"
+                },
                 "multiline": true
               },
               {
-                "hint": "The image for a line; the structure; the move that closes it",
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
                 "key": "take",
-                "label": "What to take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
                 "multiline": true
               },
               {
-                "hint": "gilded lead cloaks; Arzamas; the hot spring",
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
                 "key": "chips",
-                "label": "Images and names",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
                 "shape": "chips"
               }
             ],
             "key": "text",
-            "label": "Primary source",
+            "label": {
+              "en": "Primary source",
+              "ru": "Первоисточник"
+            },
             "library": true
           },
           {
             "fields": [
               {
-                "hint": "Pharisee",
+                "hint": {
+                  "en": "Pharisee",
+                  "ru": "Фарисей"
+                },
                 "key": "term",
-                "label": "Concept"
+                "label": {
+                  "en": "Concept",
+                  "ru": "Концепция"
+                }
               },
               {
                 "key": "meaning",
-                "label": "What it is",
+                "label": {
+                  "en": "What it is",
+                  "ru": "Что это"
+                },
                 "multiline": true
               },
               {
                 "key": "figurative",
-                "label": "What it means of a person",
+                "label": {
+                  "en": "What it means of a person",
+                  "ru": "Переносный смысл"
+                },
                 "multiline": true
               },
               {
-                "hint": "Only the opening fits - it gets loud later",
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
                 "key": "caveat",
-                "label": "Caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
                 "multiline": true
               },
               {
-                "hint": "gilded lead cloaks; Arzamas; the hot spring",
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
                 "key": "chips",
-                "label": "Images and names",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
                 "shape": "chips"
               }
             ],
             "key": "concept",
-            "label": "Concept"
+            "label": {
+              "en": "Concept",
+              "ru": "Концепция"
+            }
           }
         ],
-        "description": "What the chapter could draw on: works of culture, primary sources, concepts - each with why it belongs and what to take. Everything not turned down goes into the order, the starred first; a quote goes word for word only once it is checked.",
+        "description": {
+          "en": "What the chapter could draw on: works of culture, primary sources, concepts - each with why it belongs and what to take. Everything not turned down goes into the order, the starred first; a quote goes word for word only once it is checked.",
+          "ru": "На что могла бы опереться глава: произведения культуры, первоисточники, понятия — у каждого с причиной, почему он здесь, и что взять. Всё, что не отклонено, попадает в заказ, отмеченное звёздочкой первым; цитата идёт слово в слово, только если сверена."
+        },
         "key": "research",
-        "label": "Research",
+        "label": {
+          "en": "Research",
+          "ru": "Исследовать"
+        },
         "rule": "all"
       },
       {
@@ -143,43 +248,73 @@
           {
             "fields": [
               {
-                "hint": "She finds her own name in a stranger's diary",
+                "hint": {
+                  "en": "She finds her own name in a stranger's diary",
+                  "ru": "Она находит своё имя в чужом дневнике"
+                },
                 "key": "line",
-                "label": "In one line"
+                "label": {
+                  "en": "In one line",
+                  "ru": "Одной фразой"
+                }
               },
               {
                 "key": "image",
-                "label": "The image through it",
+                "label": {
+                  "en": "The image through it",
+                  "ru": "Сквозной образ"
+                },
                 "multiline": true
               },
               {
                 "key": "ending",
-                "label": "How it ends",
+                "label": {
+                  "en": "How it ends",
+                  "ru": "Чем кончается"
+                },
                 "multiline": true
               }
             ],
             "key": "scenario",
-            "label": "Scenario"
+            "label": {
+              "en": "Scenario",
+              "ru": "Сценарий"
+            }
           }
         ],
-        "description": "Ways the chapter could go: the move it turns on, the image through it, how it ends. Star the ones to write by.",
+        "description": {
+          "en": "Ways the chapter could go: the move it turns on, the image through it, how it ends. Star the ones to write by.",
+          "ru": "Как могла бы пойти глава: на каком ходе она поворачивается, какой образ её пронизывает, чем кончается. Отметьте звёздочкой те, по которым писать."
+        },
         "key": "scenarios",
-        "label": "Scenarios",
+        "label": {
+          "en": "Scenarios",
+          "ru": "Сценарии"
+        },
         "rule": "one"
       }
     ],
     "collection_kinds": [
       {
         "key": "book",
-        "label": "Book"
+        "label": {
+          "en": "Book",
+          "ru": "Книга"
+        }
       },
       {
         "key": "part",
-        "label": "Part"
+        "label": {
+          "en": "Part",
+          "ru": "Часть"
+        }
       },
       {
         "key": "collection",
-        "label": "Collection"
+        "label": {
+          "en": "Collection",
+          "ru": "Сборник"
+        }
       }
     ],
     "format": 3,
@@ -191,37 +326,58 @@
         ],
         "icon": "user",
         "key": "character",
-        "label": "Character",
+        "label": {
+          "en": "Character",
+          "ru": "Персонаж"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "General",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
             "lenses": [
               "public"
             ]
           },
           {
-            "hint": "The description for a picture is written from these",
+            "hint": {
+              "en": "The description for a picture is written from these",
+              "ru": "Из этих фактов собирается описание для генератора"
+            },
             "key": "looks",
-            "label": "Appearance",
+            "label": {
+              "en": "Appearance",
+              "ru": "Внешность"
+            },
             "lenses": [
               "cover"
             ]
           },
           {
             "key": "voice",
-            "label": "Character and voice",
+            "label": {
+              "en": "Character and voice",
+              "ru": "Характер и голос"
+            },
             "lenses": [
               "public"
             ]
           },
           {
             "key": "bio",
-            "label": "Biography"
+            "label": {
+              "en": "Biography",
+              "ru": "Биография"
+            }
           },
           {
             "key": "circle",
-            "label": "Circle",
+            "label": {
+              "en": "Circle",
+              "ru": "Окружение"
+            },
             "shape": "relations"
           },
           {
@@ -229,36 +385,60 @@
             "kinds": [
               "event"
             ],
-            "label": "Events",
+            "label": {
+              "en": "Events",
+              "ru": "События"
+            },
             "shape": "relations"
           },
           {
             "key": "symbols",
-            "label": "Symbols",
+            "label": {
+              "en": "Symbols",
+              "ru": "Символы"
+            },
             "lenses": [
               "cover",
               "public"
             ]
           },
           {
-            "hint": "What this person never does, says or wears",
+            "hint": {
+              "en": "What this person never does, says or wears",
+              "ru": "Чего этот человек никогда не делает, не говорит и не носит"
+            },
             "key": "bans",
-            "label": "Never",
+            "label": {
+              "en": "Never",
+              "ru": "Никогда"
+            },
             "lenses": [
               "cover",
               "public"
             ]
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           },
           {
-            "hint": "What is deliberately left open, for the next chapters to build",
+            "hint": {
+              "en": "What is deliberately left open, for the next chapters to build",
+              "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
+            },
             "key": "open",
-            "label": "Live zones"
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
           }
         ]
       },
@@ -268,41 +448,68 @@
         ],
         "icon": "map-pin",
         "key": "location",
-        "label": "Location",
+        "label": {
+          "en": "Location",
+          "ru": "Место"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "General",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
             "lenses": [
               "public"
             ]
           },
           {
             "key": "looks",
-            "label": "Appearance",
+            "label": {
+              "en": "Appearance",
+              "ru": "Внешность"
+            },
             "lenses": [
               "cover"
             ]
           },
           {
             "key": "history",
-            "label": "History"
+            "label": {
+              "en": "History",
+              "ru": "История"
+            }
           },
           {
             "key": "circle",
-            "label": "Who is here",
+            "label": {
+              "en": "Who is here",
+              "ru": "Кто здесь"
+            },
             "shape": "relations"
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           },
           {
-            "hint": "What is deliberately left open, for the next chapters to build",
+            "hint": {
+              "en": "What is deliberately left open, for the next chapters to build",
+              "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
+            },
             "key": "open",
-            "label": "Live zones"
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
           }
         ]
       },
@@ -312,35 +519,56 @@
         ],
         "icon": "box",
         "key": "object",
-        "label": "Object",
+        "label": {
+          "en": "Object",
+          "ru": "Предмет"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "General",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
             "lenses": [
               "public"
             ]
           },
           {
             "key": "looks",
-            "label": "Appearance",
+            "label": {
+              "en": "Appearance",
+              "ru": "Внешность"
+            },
             "lenses": [
               "cover"
             ]
           },
           {
             "key": "history",
-            "label": "History"
+            "label": {
+              "en": "History",
+              "ru": "История"
+            }
           },
           {
             "key": "circle",
-            "label": "Whose it is",
+            "label": {
+              "en": "Whose it is",
+              "ru": "Чей"
+            },
             "shape": "relations"
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           }
         ]
@@ -348,11 +576,17 @@
       {
         "icon": "users",
         "key": "group",
-        "label": "Group",
+        "label": {
+          "en": "Group",
+          "ru": "Группа"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "General",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
             "lenses": [
               "public"
             ]
@@ -362,77 +596,131 @@
             "kinds": [
               "character"
             ],
-            "label": "Members",
+            "label": {
+              "en": "Members",
+              "ru": "Состав"
+            },
             "shape": "relations"
           },
           {
             "key": "history",
-            "label": "History"
+            "label": {
+              "en": "History",
+              "ru": "История"
+            }
           },
           {
             "key": "circle",
-            "label": "Around it",
+            "label": {
+              "en": "Around it",
+              "ru": "Вокруг"
+            },
             "shape": "relations"
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           },
           {
-            "hint": "What is deliberately left open, for the next chapters to build",
+            "hint": {
+              "en": "What is deliberately left open, for the next chapters to build",
+              "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
+            },
             "key": "open",
-            "label": "Live zones"
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
           }
         ]
       },
       {
         "icon": "calendar",
         "key": "event",
-        "label": "Event",
+        "label": {
+          "en": "Event",
+          "ru": "Событие"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "What happened"
+            "label": {
+              "en": "What happened",
+              "ru": "Что случилось"
+            }
           },
           {
             "key": "circle",
-            "label": "Who took part",
+            "label": {
+              "en": "Who took part",
+              "ru": "Кто участвовал"
+            },
             "shape": "relations"
           },
           {
             "key": "aftermath",
-            "label": "What it changed"
+            "label": {
+              "en": "What it changed",
+              "ru": "Что изменило"
+            }
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           },
           {
-            "hint": "What is deliberately left open, for the next chapters to build",
+            "hint": {
+              "en": "What is deliberately left open, for the next chapters to build",
+              "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
+            },
             "key": "open",
-            "label": "Live zones"
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
           }
         ]
       },
       {
         "icon": "sparkle",
         "key": "theme",
-        "label": "Theme",
+        "label": {
+          "en": "Theme",
+          "ru": "Тема"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "What it is",
+            "label": {
+              "en": "What it is",
+              "ru": "Что это"
+            },
             "lenses": [
               "public"
             ]
           },
           {
             "key": "motifs",
-            "label": "Motifs",
+            "label": {
+              "en": "Motifs",
+              "ru": "Мотивы"
+            },
             "lenses": [
               "cover",
               "public"
@@ -440,13 +728,22 @@
           },
           {
             "key": "circle",
-            "label": "Tied to",
+            "label": {
+              "en": "Tied to",
+              "ru": "Связано с"
+            },
             "shape": "relations"
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           }
         ]
@@ -454,181 +751,307 @@
       {
         "icon": "book",
         "key": "lore",
-        "label": "Lore",
+        "label": {
+          "en": "Lore",
+          "ru": "Лор"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "What it is"
+            "label": {
+              "en": "What it is",
+              "ru": "Что это"
+            }
           },
           {
             "key": "rules",
-            "label": "Rules of the world"
+            "label": {
+              "en": "Rules of the world",
+              "ru": "Правила мира"
+            }
           },
           {
             "key": "circle",
-            "label": "Tied to",
+            "label": {
+              "en": "Tied to",
+              "ru": "Связано с"
+            },
             "shape": "relations"
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           },
           {
-            "hint": "What is deliberately left open, for the next chapters to build",
+            "hint": {
+              "en": "What is deliberately left open, for the next chapters to build",
+              "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
+            },
             "key": "open",
-            "label": "Live zones"
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
           }
         ]
       },
       {
         "icon": "quote",
         "key": "phrase",
-        "label": "Phrase",
+        "label": {
+          "en": "Phrase",
+          "ru": "Фраза"
+        },
         "line": true,
         "material": true
       },
       {
         "key": "note",
-        "label": "Note"
+        "label": {
+          "en": "Note",
+          "ru": "Заметка"
+        }
       },
       {
         "icon": "library",
         "key": "source",
-        "label": "Library",
+        "label": {
+          "en": "Library",
+          "ru": "Библиотека"
+        },
         "library": true,
         "media": [
           {
             "key": "literature",
-            "label": "Literature"
+            "label": {
+              "en": "Literature",
+              "ru": "Литература"
+            }
           },
           {
             "key": "film",
-            "label": "Film"
+            "label": {
+              "en": "Film",
+              "ru": "Кино"
+            }
           },
           {
             "key": "painting",
-            "label": "Painting"
+            "label": {
+              "en": "Painting",
+              "ru": "Живопись"
+            }
           },
           {
             "key": "music",
-            "label": "Music",
+            "label": {
+              "en": "Music",
+              "ru": "Музыка"
+            },
             "quoted": false
           },
           {
             "key": "scripture",
-            "label": "Scripture"
+            "label": {
+              "en": "Scripture",
+              "ru": "Священный текст"
+            }
           },
           {
             "key": "myth",
-            "label": "Myth"
+            "label": {
+              "en": "Myth",
+              "ru": "Миф"
+            }
           },
           {
             "key": "history",
-            "label": "History"
+            "label": {
+              "en": "History",
+              "ru": "История"
+            }
           },
           {
             "key": "place",
-            "label": "Place"
+            "label": {
+              "en": "Place",
+              "ru": "Место"
+            }
           }
         ]
       }
     ],
     "prompts": [
       {
-        "description": "Where a reader would stop reading.",
+        "description": {
+          "en": "Where a reader would stop reading.",
+          "ru": "Где читатель перестанет читать."
+        },
         "key": "critique",
-        "label": "Critique the chapter",
-        "template": "Here is a chapter called \"{title}\".\n\n{role:text}\n\nWhere would a reader put this down? Be specific about paragraphs. Name what is limp, what is explained twice, and what the chapter is avoiding. Do not rewrite it."
+        "label": {
+          "en": "Critique the chapter",
+          "ru": "Разобрать главу"
+        },
+        "template": "Here is a chapter called \"{title}\".\n\n{role:text}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a reader put this down? Be specific about paragraphs. Name what is limp, what is explained twice, and what the chapter is avoiding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it."
       },
       {
-        "description": "Does the text still do what the outline promised?",
+        "description": {
+          "en": "Does the text still do what the outline promised?",
+          "ru": "Делает ли текст то, что обещал план?"
+        },
         "key": "continuity",
-        "label": "Check against the outline",
+        "label": {
+          "en": "Check against the outline",
+          "ru": "Сверить с планом"
+        },
         "template": "The outline for \"{title}\":\n\n{role:outline}\n\nThe chapter as written:\n\n{role:text}\n\nWhat did the chapter promise and not deliver? What did it do that the outline did not account for? Say whether the drift is an improvement or a problem."
       },
       {
-        "description": "Does everyone sound like the same person?",
+        "description": {
+          "en": "Does everyone sound like the same person?",
+          "ru": "Не говорят ли все одним голосом?"
+        },
         "key": "voice",
-        "label": "Test the voice",
+        "label": {
+          "en": "Test the voice",
+          "ru": "Проверить голоса"
+        },
         "template": "A chapter called \"{title}\":\n\n{role:text}\n\nQuote three lines of dialogue and say who could have said them. If any of them could belong to anyone, say so plainly — that is the problem to fix."
       },
       {
-        "description": "Options for the following chapter.",
+        "description": {
+          "en": "Options for the following chapter.",
+          "ru": "Варианты следующей главы."
+        },
         "key": "next",
-        "label": "What happens next",
+        "label": {
+          "en": "What happens next",
+          "ru": "Что дальше"
+        },
         "template": "This chapter ends where you can see:\n\n{role:text}\n\nSuggest three ways the next chapter could open that do not simply continue the scene. One sentence each, no explanation."
       },
       {
-        "description": "Rate it along the profile axes, with a reason.",
+        "description": {
+          "en": "Rate it along the profile axes, with a reason.",
+          "ru": "Оценить по осям профиля, с обоснованием."
+        },
         "key": "score",
-        "label": "Score the chapter",
+        "label": {
+          "en": "Score the chapter",
+          "ru": "Оценить главу"
+        },
         "method": "# Judge of finished work\n\n## Role\n\nYou are judging release potential — how the finished piece stands against the profile's axes — not helping to improve it. Score each axis on its own scale as the profile describes it; the marks of a rubric, where given, are the anchors: find the nearest one below the work and place it there. Do not average impressions across axes, and do not let a strong axis lift a weak one.\n\n## How to judge\n\n1. Read the whole piece once as a listener or reader would, without a pen.\n2. Read it again per axis, in the profile's order, and write one line of evidence for each axis before the number — a quote or a concrete observation, not an adjective.\n3. Be honest rather than kind: a flattering score is worth nothing to the author, and a 10 is reserved for work with nothing left to fix on that axis.\n4. Where the profile names tiers, say which tier the total lands in and what, if anything, would move it up one.\n\n## Output\n\nYour reasoning first: the evidence per axis, one line each, then the tier and what would move it. Then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "score",
         "template": "Here is a chapter called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing."
       },
       {
-        "description": "A pasted screenshot of a comment, copied out word for word.",
+        "description": {
+          "en": "A pasted screenshot of a comment, copied out word for word.",
+          "ru": "Вставленный скриншот комментария, переписанный слово в слово."
+        },
         "icon": "eye",
         "key": "read-comment",
-        "label": "Read a comment",
+        "label": {
+          "en": "Read a comment",
+          "ru": "Прочитать комментарий"
+        },
         "method": "# Comment reader\n\n## Role\n\nYou are looking at a screenshot of a comment someone left under a published work, and copying it out so it can be kept and answered.\n\n## How to read it\n\n- Copy the comment **word for word**, in the language it was written in: no translation, no correction of spelling or grammar, no shortening. Keep its line breaks and its emoji.\n- The author is the name shown beside the comment. Leave it out if none is visible.\n- A relative time (\"3 weeks ago\", \"2 дня назад\") becomes the day it means, counted back from today. No time shown means no day.\n- If the screenshot shows several comments, take the one the others answer — not a reply under it. If it shows the title of what the comment was written under, give it as `about`.\n- Never invent what the picture does not show.\n\n## Output\n\nOne line saying what you read, then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "comment",
         "scope": "comment",
         "template": "Read the comment in this screenshot."
       },
       {
-        "description": "A reply in the voice the channel already speaks in, for you to post.",
+        "description": {
+          "en": "A reply in the voice the channel already speaks in, for you to post.",
+          "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами."
+        },
         "icon": "reply",
         "key": "reply-to-comment",
-        "label": "Draft a reply",
+        "label": {
+          "en": "Draft a reply",
+          "ru": "Черновик ответа"
+        },
         "method": "# Reply writer\n\n## Role\n\nYou are writing, for the author of a book, the reply to one comment from their audience. The author will read it, change what they like and post it themselves.\n\n## The voice\n\n- The replies already posted on the same channel are given with the task. They **are** the voice: match their length, their warmth, their language, how they address people, whether they use emoji. Do not describe the voice — use it.\n- With nothing posted yet, write as a person, not as a brand: plain, warm, short.\n- Answer in the language of the comment.\n\n## What to write\n\n- Answer what the comment actually says. A question gets an answer; praise gets a real thank-you that shows it was read, never a template.\n- Use what the work's text is given for when the comment is about something in it — a line, a moment, a character. Never explain the work unasked.\n- One to three sentences, unless the posted replies are longer as a rule.\n- Never promise anything on the author's behalf: a release date, a sequel, a collaboration. Never argue, and never answer rudeness in kind — a hostile comment gets a short, calm line or the note that it may not need a reply.\n- If a draft is given, rewrite it: keep what the author wrote that already works.\n\n## Output\n\nThe reply alone, as it would be posted.\n",
         "produces": "reply",
         "scope": "comment",
         "template": "Write the reply."
       },
       {
-        "description": "What the chapter says about the world, proposed as facts with the line each was read off; contradictions shown before anything is applied.",
+        "description": {
+          "en": "What the chapter says about the world, proposed as facts with the line each was read off; contradictions shown before anything is applied.",
+          "ru": "Что глава говорит о мире, предложением фактов со строкой, по которой каждый прочитан; противоречия показываются до применения."
+        },
         "icon": "book",
         "key": "gather-canon",
-        "label": "Gather facts into the canon",
+        "label": {
+          "en": "Gather facts into the canon",
+          "ru": "Собрать факты в канон"
+        },
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
         "template": "The work is “{title}”. Its text:\n\n{body}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what this text adds to the canon."
       },
       {
-        "description": "The selected lines, proposed as facts of the canon with their source.",
+        "description": {
+          "en": "The selected lines, proposed as facts of the canon with their source.",
+          "ru": "Выделенные строки — предложением фактов канона с источником."
+        },
         "icon": "quote",
         "key": "to-canon",
-        "label": "To the canon",
+        "label": {
+          "en": "To the canon",
+          "ru": "В канон"
+        },
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
         "scope": "selection",
         "template": "The work is “{title}”. The author selected these lines of it:\n\n{selection}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what these lines add to the canon."
       },
       {
-        "description": "The card's free note, proposed as facts filed under its sections.",
+        "description": {
+          "en": "The card's free note, proposed as facts filed under its sections.",
+          "ru": "Свободная заметка карточки — предложением фактов по разделам."
+        },
         "icon": "list",
         "key": "gather-card",
-        "label": "Gather facts from the note",
+        "label": {
+          "en": "Gather facts from the note",
+          "ru": "Собрать факты из заметки"
+        },
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
         "scope": "canon",
         "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
       },
       {
-        "description": "An English description of the card written from its facts, given to a picture generator instead of the name.",
+        "description": {
+          "en": "An English description of the card written from its facts, given to a picture generator instead of the name.",
+          "ru": "Английское описание из фактов карточки — генератор получает его вместо имени."
+        },
         "icon": "image",
         "key": "describe-card",
-        "label": "Describe for the generator",
+        "label": {
+          "en": "Describe for the generator",
+          "ru": "Описать для генератора"
+        },
         "method": "# Card describer\n\n## Role\n\nYou write the description a picture generator is given for a card of the canon, instead of the name. A generator does not know who the person is; it knows only what it is told.\n\n## What to write\n\n- English, one paragraph: who (age, build), face, hair, marks; then nothing else.\n- Only the facts given. No clothing unless the facts are about clothing; no mood, no setting, no story.\n- Concrete and countable: named colours, named materials, sizes. Forty to eighty words.\n\n## Output\n\nThe description alone. No preamble, no heading, nothing after it.\n",
         "produces": "card-prompt",
         "scope": "canon",
         "template": "Write the description of this card for a picture generator."
       },
       {
-        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "description": {
+          "en": "The brief and what is starred, worked into one idea - and the brief set straight.",
+          "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел."
+        },
         "icon": "wand",
         "key": "refine",
         "kinds": [
@@ -636,13 +1059,19 @@
           "scene",
           "story"
         ],
-        "label": "Refine the idea",
+        "label": {
+          "en": "Refine the idea",
+          "ru": "Уточнить идею"
+        },
         "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their chapter is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the chapter is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the chapter itself. Nothing the author did not give as their own.\n",
         "produces": "conception",
         "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the chapter is about."
       },
       {
-        "description": "Works of culture, primary sources and concepts the chapter could draw on, quotes checked on the web - put on the research board.",
+        "description": {
+          "en": "Works of culture, primary sources and concepts the chapter could draw on, quotes checked on the web - put on the research board.",
+          "ru": "Произведения культуры, первоисточники и понятия, на которые могла бы опереться глава, с цитатами, сверенными в сети, — на доске исследования."
+        },
         "icon": "globe",
         "key": "research",
         "kinds": [
@@ -650,7 +1079,10 @@
           "scene",
           "story"
         ],
-        "label": "Research",
+        "label": {
+          "en": "Research",
+          "ru": "Исследовать"
+        },
         "method": "# Research\n\n## Role\n\nYou gather what a chapter could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the chapter, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the chapter is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Quiet beats loud: where the author asked for a quiet example, a betrayal or a murder is not one.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the chapter it serves (\"holy things as goods\", \"faith without show\"), not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the chapter itself. Nothing invented: a work you are not sure exists is not a card.\n",
         "produces": "cards:research",
         "scope": "board",
@@ -658,7 +1090,10 @@
         "web": true
       },
       {
-        "description": "Ways the chapter could go, put on the board.",
+        "description": {
+          "en": "Ways the chapter could go, put on the board.",
+          "ru": "Варианты, как могла бы пойти глава, — на доске."
+        },
         "icon": "lightbulb",
         "key": "scenarios",
         "kinds": [
@@ -666,14 +1101,20 @@
           "scene",
           "story"
         ],
-        "label": "Propose scenarios",
+        "label": {
+          "en": "Propose scenarios",
+          "ru": "Предложить сценарии"
+        },
         "method": "# Ways it could go\n\n## Role\n\nYou propose ways a chapter could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the chapter itself.\n",
         "produces": "cards:scenarios",
         "scope": "board",
         "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}"
       },
       {
-        "description": "The chapter, written from the whole order - to talk over in the chat and insert once it is right.",
+        "description": {
+          "en": "The chapter, written from the whole order - to talk over in the chat and insert once it is right.",
+          "ru": "Глава, написанная по всему заказу, — обсудить в чате и вставить, когда она будет верной."
+        },
         "icon": "pen",
         "key": "write",
         "kinds": [
@@ -681,7 +1122,10 @@
           "scene",
           "story"
         ],
-        "label": "Write from the brief",
+        "label": {
+          "en": "Write from the brief",
+          "ru": "Написать по замыслу"
+        },
         "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the chapter they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write in the voice and the point of view the fields and the brief give.\n- Lay it out as prose in paragraphs, with scene breaks where the time or the place jumps.\n- Write in the language of the brief.\n\n## Output\n\nThe chapter alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
         "template": "{order}\n\nWrite the chapter."
       }
@@ -689,47 +1133,80 @@
     "relation_kinds": [
       {
         "key": "family",
-        "label": "Family"
+        "label": {
+          "en": "Family",
+          "ru": "Семья"
+        }
       },
       {
         "key": "partner",
-        "label": "Loved one"
+        "label": {
+          "en": "Loved one",
+          "ru": "Любимый человек"
+        }
       },
       {
         "key": "friend",
-        "label": "Friend"
+        "label": {
+          "en": "Friend",
+          "ru": "Друг"
+        }
       },
       {
         "key": "enemy",
-        "label": "Enemy"
+        "label": {
+          "en": "Enemy",
+          "ru": "Враг"
+        }
       },
       {
         "key": "colleague",
-        "label": "Colleague"
+        "label": {
+          "en": "Colleague",
+          "ru": "Коллега"
+        }
       },
       {
         "key": "pet",
-        "label": "Pet"
+        "label": {
+          "en": "Pet",
+          "ru": "Питомец"
+        }
       },
       {
         "key": "member",
-        "label": "Member"
+        "label": {
+          "en": "Member",
+          "ru": "Участник"
+        }
       },
       {
         "key": "place",
-        "label": "Place"
+        "label": {
+          "en": "Place",
+          "ru": "Место"
+        }
       },
       {
         "key": "owner",
-        "label": "Owner"
+        "label": {
+          "en": "Owner",
+          "ru": "Владелец"
+        }
       },
       {
         "key": "event",
-        "label": "Took part"
+        "label": {
+          "en": "Took part",
+          "ru": "Участие"
+        }
       },
       {
         "key": "other",
-        "label": "Other"
+        "label": {
+          "en": "Other",
+          "ru": "Другое"
+        }
       }
     ],
     "rhythm": {
@@ -743,42 +1220,72 @@
       {
         "axes": [
           {
-            "description": "Does the reader turn the page, or put the book down here?",
+            "description": {
+              "en": "Does the reader turn the page, or put the book down here?",
+              "ru": "Читатель переворачивает страницу — или здесь откладывает книгу?"
+            },
             "key": "pull",
             "kind": "scale",
-            "label": "Pull",
+            "label": {
+              "en": "Pull",
+              "ru": "Тяга"
+            },
             "scale": 10.0,
             "weight": 2.0
           },
           {
-            "description": "Sentence by sentence: rhythm, precision, nothing limp.",
+            "description": {
+              "en": "Sentence by sentence: rhythm, precision, nothing limp.",
+              "ru": "Фраза за фразой: ритм, точность, ничего вялого."
+            },
             "key": "prose",
             "kind": "scale",
-            "label": "Prose",
+            "label": {
+              "en": "Prose",
+              "ru": "Проза"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Do people behave like people rather than like plot requirements?",
+            "description": {
+              "en": "Do people behave like people rather than like plot requirements?",
+              "ru": "Люди ведут себя как люди, а не как требования сюжета?"
+            },
             "key": "character",
             "kind": "scale",
-            "label": "Character",
+            "label": {
+              "en": "Character",
+              "ru": "Персонаж"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Does the chapter earn its place and end where it should?",
+            "description": {
+              "en": "Does the chapter earn its place and end where it should?",
+              "ru": "Заслуживает ли глава своего места и заканчивается ли там, где нужно?"
+            },
             "key": "structure",
             "kind": "scale",
-            "label": "Structure",
+            "label": {
+              "en": "Structure",
+              "ru": "Структура"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Is something at stake on every page?",
+            "description": {
+              "en": "Is something at stake on every page?",
+              "ru": "Есть ли на каждой странице что-то поставленное на карту?"
+            },
             "key": "tension",
             "kind": "scale",
-            "label": "Tension",
+            "label": {
+              "en": "Tension",
+              "ru": "Напряжение"
+            },
             "scale": 10.0,
             "weight": 1.0
           }
@@ -796,27 +1303,42 @@
         },
         "folder": "chapters/{title}",
         "key": "chapter",
-        "label": "Chapter",
+        "label": {
+          "en": "Chapter",
+          "ru": "Глава"
+        },
         "release_kinds": [
           {
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "What you want the reader watching for this time.",
+                "hint": {
+                  "en": "What you want the reader watching for this time.",
+                  "ru": "На что вы хотите, чтобы читатель обращал внимание в этот раз."
+                },
                 "key": "brief",
-                "label": "What to read for",
+                "label": {
+                  "en": "What to read for",
+                  "ru": "На что смотреть"
+                },
                 "type": "text"
               }
             ],
             "icon": "users",
             "key": "beta",
-            "label": "To beta readers",
+            "label": {
+              "en": "To beta readers",
+              "ru": "Бета-читателям"
+            },
             "requires": [
               "text"
             ]
@@ -825,28 +1347,46 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "The lines that go above the fold.",
+                "hint": {
+                  "en": "The lines that go above the fold.",
+                  "ru": "Строки, которые видны до разворота."
+                },
                 "key": "teaser",
-                "label": "Teaser",
+                "label": {
+                  "en": "Teaser",
+                  "ru": "Тизер"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "book-open",
             "key": "serial",
-            "label": "Serial instalment",
+            "label": {
+              "en": "Serial instalment",
+              "ru": "Выпуск сериала"
+            },
             "links": [
               "royalroad.com",
               "wattpad.com",
@@ -861,22 +1401,37 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "Who you are, what this is, why them.",
+                "hint": {
+                  "en": "Who you are, what this is, why them.",
+                  "ru": "Кто вы, что это и почему именно им."
+                },
                 "key": "cover_letter",
-                "label": "Cover letter",
+                "label": {
+                  "en": "Cover letter",
+                  "ru": "Сопроводительное письмо"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "The whole story, ending included.",
+                "hint": {
+                  "en": "The whole story, ending included.",
+                  "ru": "Вся история, включая финал."
+                },
                 "key": "synopsis",
-                "label": "Synopsis",
+                "label": {
+                  "en": "Synopsis",
+                  "ru": "Синопсис"
+                },
                 "required": true,
                 "template": "{role:outline}",
                 "type": "text"
@@ -884,7 +1439,10 @@
             ],
             "icon": "send",
             "key": "submission",
-            "label": "Submission",
+            "label": {
+              "en": "Submission",
+              "ru": "Подача в издательство"
+            },
             "requires": [
               "text"
             ]
@@ -893,28 +1451,46 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "The back cover.",
+                "hint": {
+                  "en": "The back cover.",
+                  "ru": "Текст для задней обложки."
+                },
                 "key": "blurb",
-                "label": "Blurb",
+                "label": {
+                  "en": "Blurb",
+                  "ru": "Аннотация"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "book",
             "key": "published",
-            "label": "Publication",
+            "label": {
+              "en": "Publication",
+              "ru": "Публикация"
+            },
             "links": [
               "books.apple.com",
               "kobo.com",
@@ -929,58 +1505,88 @@
           {
             "derive": "draft",
             "key": "draft",
-            "label": "Draft"
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
           },
           {
             "colour": "info",
             "derive": "manual",
             "key": "revised",
-            "label": "Revised"
+            "label": {
+              "en": "Revised",
+              "ru": "Доработано"
+            }
           },
           {
             "colour": "accent",
             "derive": "scored",
             "key": "scored",
-            "label": "Scored"
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
           },
           {
             "colour": "warn",
             "derive": "scheduled",
             "key": "ready",
-            "label": "Ready"
+            "label": {
+              "en": "Ready",
+              "ru": "Готово"
+            }
           },
           {
             "colour": "good",
             "derive": "released",
             "key": "published",
-            "label": "Published"
+            "label": {
+              "en": "Published",
+              "ru": "Опубликовано"
+            }
           },
           {
             "colour": "plain",
             "derive": "manual",
             "key": "shelved",
-            "label": "Shelved"
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
           }
         ],
         "tiers": [
           {
             "key": "rework",
-            "label": "Needs rework",
+            "label": {
+              "en": "Needs rework",
+              "ru": "Нужна переработка"
+            },
             "min": 0.0
           },
           {
             "key": "usable",
-            "label": "Usable",
+            "label": {
+              "en": "Usable",
+              "ru": "Годится"
+            },
             "min": 55.0
           },
           {
             "key": "strong",
-            "label": "Strong",
+            "label": {
+              "en": "Strong",
+              "ru": "Сильная"
+            },
             "min": 70.0
           },
           {
             "key": "keystone",
-            "label": "Keystone",
+            "label": {
+              "en": "Keystone",
+              "ru": "Опорная"
+            },
             "min": 82.0
           }
         ],
@@ -988,68 +1594,119 @@
           {
             "body": "markdown",
             "key": "text",
-            "label": "Text",
-            "skeleton": "## Plan\n\n\n## Draft\n\n"
+            "label": {
+              "en": "Text",
+              "ru": "Текст"
+            },
+            "skeleton": {
+              "en": "## Plan\n\n\n## Draft\n\n",
+              "ru": "## План\n\n\n## Черновик\n\n"
+            }
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Outline",
-            "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n"
+            "label": {
+              "en": "Outline",
+              "ru": "План"
+            },
+            "skeleton": {
+              "en": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n",
+              "ru": "## Идея\n\n\n## Ключевые события\n\n\n## Финал\n\n"
+            }
           },
           {
             "body": "markdown",
             "key": "notes",
-            "label": "Working notes"
+            "label": {
+              "en": "Working notes",
+              "ru": "Рабочие заметки"
+            }
           },
           {
             "body": "markdown",
             "counts_as_version": false,
             "key": "brief",
-            "label": "Brief",
-            "skeleton": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n"
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n",
+              "ru": "## О чём это\n\n## Откуда это взялось\n\n## Как я это вижу\n\n## Что должна сделать глава\n"
+            }
           }
         ]
       },
       {
         "axes": [
           {
-            "description": "Does the reader turn the page, or put the book down here?",
+            "description": {
+              "en": "Does the reader turn the page, or put the book down here?",
+              "ru": "Читатель переворачивает страницу — или здесь откладывает книгу?"
+            },
             "key": "pull",
             "kind": "scale",
-            "label": "Pull",
+            "label": {
+              "en": "Pull",
+              "ru": "Тяга"
+            },
             "scale": 10.0,
             "weight": 2.0
           },
           {
-            "description": "Sentence by sentence: rhythm, precision, nothing limp.",
+            "description": {
+              "en": "Sentence by sentence: rhythm, precision, nothing limp.",
+              "ru": "Фраза за фразой: ритм, точность, ничего вялого."
+            },
             "key": "prose",
             "kind": "scale",
-            "label": "Prose",
+            "label": {
+              "en": "Prose",
+              "ru": "Проза"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Do people behave like people rather than like plot requirements?",
+            "description": {
+              "en": "Do people behave like people rather than like plot requirements?",
+              "ru": "Люди ведут себя как люди, а не как требования сюжета?"
+            },
             "key": "character",
             "kind": "scale",
-            "label": "Character",
+            "label": {
+              "en": "Character",
+              "ru": "Персонаж"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Does the chapter earn its place and end where it should?",
+            "description": {
+              "en": "Does the chapter earn its place and end where it should?",
+              "ru": "Заслуживает ли глава своего места и заканчивается ли там, где нужно?"
+            },
             "key": "structure",
             "kind": "scale",
-            "label": "Structure",
+            "label": {
+              "en": "Structure",
+              "ru": "Структура"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Is something at stake on every page?",
+            "description": {
+              "en": "Is something at stake on every page?",
+              "ru": "Есть ли на каждой странице что-то поставленное на карту?"
+            },
             "key": "tension",
             "kind": "scale",
-            "label": "Tension",
+            "label": {
+              "en": "Tension",
+              "ru": "Напряжение"
+            },
             "scale": 10.0,
             "weight": 1.0
           }
@@ -1067,27 +1724,42 @@
         },
         "folder": "scenes/{title}",
         "key": "scene",
-        "label": "Scene",
+        "label": {
+          "en": "Scene",
+          "ru": "Сцена"
+        },
         "release_kinds": [
           {
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "What you want the reader watching for this time.",
+                "hint": {
+                  "en": "What you want the reader watching for this time.",
+                  "ru": "На что вы хотите, чтобы читатель обращал внимание в этот раз."
+                },
                 "key": "brief",
-                "label": "What to read for",
+                "label": {
+                  "en": "What to read for",
+                  "ru": "На что смотреть"
+                },
                 "type": "text"
               }
             ],
             "icon": "users",
             "key": "beta",
-            "label": "To beta readers",
+            "label": {
+              "en": "To beta readers",
+              "ru": "Бета-читателям"
+            },
             "requires": [
               "text"
             ]
@@ -1096,28 +1768,46 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "The lines that go above the fold.",
+                "hint": {
+                  "en": "The lines that go above the fold.",
+                  "ru": "Строки, которые видны до разворота."
+                },
                 "key": "teaser",
-                "label": "Teaser",
+                "label": {
+                  "en": "Teaser",
+                  "ru": "Тизер"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "book-open",
             "key": "serial",
-            "label": "Serial instalment",
+            "label": {
+              "en": "Serial instalment",
+              "ru": "Выпуск сериала"
+            },
             "links": [
               "royalroad.com",
               "wattpad.com",
@@ -1132,22 +1822,37 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "Who you are, what this is, why them.",
+                "hint": {
+                  "en": "Who you are, what this is, why them.",
+                  "ru": "Кто вы, что это и почему именно им."
+                },
                 "key": "cover_letter",
-                "label": "Cover letter",
+                "label": {
+                  "en": "Cover letter",
+                  "ru": "Сопроводительное письмо"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "The whole story, ending included.",
+                "hint": {
+                  "en": "The whole story, ending included.",
+                  "ru": "Вся история, включая финал."
+                },
                 "key": "synopsis",
-                "label": "Synopsis",
+                "label": {
+                  "en": "Synopsis",
+                  "ru": "Синопсис"
+                },
                 "required": true,
                 "template": "{role:outline}",
                 "type": "text"
@@ -1155,7 +1860,10 @@
             ],
             "icon": "send",
             "key": "submission",
-            "label": "Submission",
+            "label": {
+              "en": "Submission",
+              "ru": "Подача в издательство"
+            },
             "requires": [
               "text"
             ]
@@ -1164,28 +1872,46 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "The back cover.",
+                "hint": {
+                  "en": "The back cover.",
+                  "ru": "Текст для задней обложки."
+                },
                 "key": "blurb",
-                "label": "Blurb",
+                "label": {
+                  "en": "Blurb",
+                  "ru": "Аннотация"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "book",
             "key": "published",
-            "label": "Publication",
+            "label": {
+              "en": "Publication",
+              "ru": "Публикация"
+            },
             "links": [
               "books.apple.com",
               "kobo.com",
@@ -1200,58 +1926,88 @@
           {
             "derive": "draft",
             "key": "draft",
-            "label": "Draft"
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
           },
           {
             "colour": "info",
             "derive": "manual",
             "key": "revised",
-            "label": "Revised"
+            "label": {
+              "en": "Revised",
+              "ru": "Доработано"
+            }
           },
           {
             "colour": "accent",
             "derive": "scored",
             "key": "scored",
-            "label": "Scored"
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
           },
           {
             "colour": "warn",
             "derive": "scheduled",
             "key": "ready",
-            "label": "Ready"
+            "label": {
+              "en": "Ready",
+              "ru": "Готово"
+            }
           },
           {
             "colour": "good",
             "derive": "released",
             "key": "published",
-            "label": "Published"
+            "label": {
+              "en": "Published",
+              "ru": "Опубликовано"
+            }
           },
           {
             "colour": "plain",
             "derive": "manual",
             "key": "shelved",
-            "label": "Shelved"
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
           }
         ],
         "tiers": [
           {
             "key": "rework",
-            "label": "Needs rework",
+            "label": {
+              "en": "Needs rework",
+              "ru": "Нужна переработка"
+            },
             "min": 0.0
           },
           {
             "key": "usable",
-            "label": "Usable",
+            "label": {
+              "en": "Usable",
+              "ru": "Годится"
+            },
             "min": 55.0
           },
           {
             "key": "strong",
-            "label": "Strong",
+            "label": {
+              "en": "Strong",
+              "ru": "Сильная"
+            },
             "min": 70.0
           },
           {
             "key": "keystone",
-            "label": "Keystone",
+            "label": {
+              "en": "Keystone",
+              "ru": "Опорная"
+            },
             "min": 82.0
           }
         ],
@@ -1259,68 +2015,119 @@
           {
             "body": "markdown",
             "key": "text",
-            "label": "Text",
-            "skeleton": "## Plan\n\n\n## Draft\n\n"
+            "label": {
+              "en": "Text",
+              "ru": "Текст"
+            },
+            "skeleton": {
+              "en": "## Plan\n\n\n## Draft\n\n",
+              "ru": "## План\n\n\n## Черновик\n\n"
+            }
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Outline",
-            "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n"
+            "label": {
+              "en": "Outline",
+              "ru": "План"
+            },
+            "skeleton": {
+              "en": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n",
+              "ru": "## Идея\n\n\n## Ключевые события\n\n\n## Финал\n\n"
+            }
           },
           {
             "body": "markdown",
             "key": "notes",
-            "label": "Working notes"
+            "label": {
+              "en": "Working notes",
+              "ru": "Рабочие заметки"
+            }
           },
           {
             "body": "markdown",
             "counts_as_version": false,
             "key": "brief",
-            "label": "Brief",
-            "skeleton": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n"
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n",
+              "ru": "## О чём это\n\n## Откуда это взялось\n\n## Как я это вижу\n\n## Что должна сделать глава\n"
+            }
           }
         ]
       },
       {
         "axes": [
           {
-            "description": "Does the reader turn the page, or put the book down here?",
+            "description": {
+              "en": "Does the reader turn the page, or put the book down here?",
+              "ru": "Читатель переворачивает страницу — или здесь откладывает книгу?"
+            },
             "key": "pull",
             "kind": "scale",
-            "label": "Pull",
+            "label": {
+              "en": "Pull",
+              "ru": "Тяга"
+            },
             "scale": 10.0,
             "weight": 2.0
           },
           {
-            "description": "Sentence by sentence: rhythm, precision, nothing limp.",
+            "description": {
+              "en": "Sentence by sentence: rhythm, precision, nothing limp.",
+              "ru": "Фраза за фразой: ритм, точность, ничего вялого."
+            },
             "key": "prose",
             "kind": "scale",
-            "label": "Prose",
+            "label": {
+              "en": "Prose",
+              "ru": "Проза"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Do people behave like people rather than like plot requirements?",
+            "description": {
+              "en": "Do people behave like people rather than like plot requirements?",
+              "ru": "Люди ведут себя как люди, а не как требования сюжета?"
+            },
             "key": "character",
             "kind": "scale",
-            "label": "Character",
+            "label": {
+              "en": "Character",
+              "ru": "Персонаж"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Does the chapter earn its place and end where it should?",
+            "description": {
+              "en": "Does the chapter earn its place and end where it should?",
+              "ru": "Заслуживает ли глава своего места и заканчивается ли там, где нужно?"
+            },
             "key": "structure",
             "kind": "scale",
-            "label": "Structure",
+            "label": {
+              "en": "Structure",
+              "ru": "Структура"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Is something at stake on every page?",
+            "description": {
+              "en": "Is something at stake on every page?",
+              "ru": "Есть ли на каждой странице что-то поставленное на карту?"
+            },
             "key": "tension",
             "kind": "scale",
-            "label": "Tension",
+            "label": {
+              "en": "Tension",
+              "ru": "Напряжение"
+            },
             "scale": 10.0,
             "weight": 1.0
           }
@@ -1338,27 +2145,42 @@
         },
         "folder": "stories/{title}",
         "key": "story",
-        "label": "Short story",
+        "label": {
+          "en": "Short story",
+          "ru": "Рассказ"
+        },
         "release_kinds": [
           {
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "What you want the reader watching for this time.",
+                "hint": {
+                  "en": "What you want the reader watching for this time.",
+                  "ru": "На что вы хотите, чтобы читатель обращал внимание в этот раз."
+                },
                 "key": "brief",
-                "label": "What to read for",
+                "label": {
+                  "en": "What to read for",
+                  "ru": "На что смотреть"
+                },
                 "type": "text"
               }
             ],
             "icon": "users",
             "key": "beta",
-            "label": "To beta readers",
+            "label": {
+              "en": "To beta readers",
+              "ru": "Бета-читателям"
+            },
             "requires": [
               "text"
             ]
@@ -1367,28 +2189,46 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "The lines that go above the fold.",
+                "hint": {
+                  "en": "The lines that go above the fold.",
+                  "ru": "Строки, которые видны до разворота."
+                },
                 "key": "teaser",
-                "label": "Teaser",
+                "label": {
+                  "en": "Teaser",
+                  "ru": "Тизер"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "book-open",
             "key": "serial",
-            "label": "Serial instalment",
+            "label": {
+              "en": "Serial instalment",
+              "ru": "Выпуск сериала"
+            },
             "links": [
               "royalroad.com",
               "wattpad.com",
@@ -1403,22 +2243,37 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "Who you are, what this is, why them.",
+                "hint": {
+                  "en": "Who you are, what this is, why them.",
+                  "ru": "Кто вы, что это и почему именно им."
+                },
                 "key": "cover_letter",
-                "label": "Cover letter",
+                "label": {
+                  "en": "Cover letter",
+                  "ru": "Сопроводительное письмо"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "The whole story, ending included.",
+                "hint": {
+                  "en": "The whole story, ending included.",
+                  "ru": "Вся история, включая финал."
+                },
                 "key": "synopsis",
-                "label": "Synopsis",
+                "label": {
+                  "en": "Synopsis",
+                  "ru": "Синопсис"
+                },
                 "required": true,
                 "template": "{role:outline}",
                 "type": "text"
@@ -1426,7 +2281,10 @@
             ],
             "icon": "send",
             "key": "submission",
-            "label": "Submission",
+            "label": {
+              "en": "Submission",
+              "ru": "Подача в издательство"
+            },
             "requires": [
               "text"
             ]
@@ -1435,28 +2293,46 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "The back cover.",
+                "hint": {
+                  "en": "The back cover.",
+                  "ru": "Текст для задней обложки."
+                },
                 "key": "blurb",
-                "label": "Blurb",
+                "label": {
+                  "en": "Blurb",
+                  "ru": "Аннотация"
+                },
                 "required": true,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "book",
             "key": "published",
-            "label": "Publication",
+            "label": {
+              "en": "Publication",
+              "ru": "Публикация"
+            },
             "links": [
               "books.apple.com",
               "kobo.com",
@@ -1471,58 +2347,88 @@
           {
             "derive": "draft",
             "key": "draft",
-            "label": "Draft"
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
           },
           {
             "colour": "info",
             "derive": "manual",
             "key": "revised",
-            "label": "Revised"
+            "label": {
+              "en": "Revised",
+              "ru": "Доработано"
+            }
           },
           {
             "colour": "accent",
             "derive": "scored",
             "key": "scored",
-            "label": "Scored"
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
           },
           {
             "colour": "warn",
             "derive": "scheduled",
             "key": "ready",
-            "label": "Ready"
+            "label": {
+              "en": "Ready",
+              "ru": "Готово"
+            }
           },
           {
             "colour": "good",
             "derive": "released",
             "key": "published",
-            "label": "Published"
+            "label": {
+              "en": "Published",
+              "ru": "Опубликовано"
+            }
           },
           {
             "colour": "plain",
             "derive": "manual",
             "key": "shelved",
-            "label": "Shelved"
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
           }
         ],
         "tiers": [
           {
             "key": "rework",
-            "label": "Needs rework",
+            "label": {
+              "en": "Needs rework",
+              "ru": "Нужна переработка"
+            },
             "min": 0.0
           },
           {
             "key": "usable",
-            "label": "Usable",
+            "label": {
+              "en": "Usable",
+              "ru": "Годится"
+            },
             "min": 55.0
           },
           {
             "key": "strong",
-            "label": "Strong",
+            "label": {
+              "en": "Strong",
+              "ru": "Сильная"
+            },
             "min": 70.0
           },
           {
             "key": "keystone",
-            "label": "Keystone",
+            "label": {
+              "en": "Keystone",
+              "ru": "Опорная"
+            },
             "min": 82.0
           }
         ],
@@ -1530,26 +2436,47 @@
           {
             "body": "markdown",
             "key": "text",
-            "label": "Text",
-            "skeleton": "## Plan\n\n\n## Draft\n\n"
+            "label": {
+              "en": "Text",
+              "ru": "Текст"
+            },
+            "skeleton": {
+              "en": "## Plan\n\n\n## Draft\n\n",
+              "ru": "## План\n\n\n## Черновик\n\n"
+            }
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Outline",
-            "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n"
+            "label": {
+              "en": "Outline",
+              "ru": "План"
+            },
+            "skeleton": {
+              "en": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n",
+              "ru": "## Идея\n\n\n## Ключевые события\n\n\n## Финал\n\n"
+            }
           },
           {
             "body": "markdown",
             "key": "notes",
-            "label": "Working notes"
+            "label": {
+              "en": "Working notes",
+              "ru": "Рабочие заметки"
+            }
           },
           {
             "body": "markdown",
             "counts_as_version": false,
             "key": "brief",
-            "label": "Brief",
-            "skeleton": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n"
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## What it is about\n\n## Where it comes from\n\n## How I see it\n\n## What the chapter must do\n",
+              "ru": "## О чём это\n\n## Откуда это взялось\n\n## Как я это вижу\n\n## Что должна сделать глава\n"
+            }
           }
         ]
       }
@@ -1557,27 +2484,42 @@
     "work_meta_fields": [
       {
         "key": "words",
-        "label": "Words",
+        "label": {
+          "en": "Words",
+          "ru": "Слов"
+        },
         "type": "number"
       },
       {
         "key": "pov",
-        "label": "POV",
+        "label": {
+          "en": "POV",
+          "ru": "Точка зрения"
+        },
         "type": "text"
       },
       {
         "key": "setting",
-        "label": "Setting",
+        "label": {
+          "en": "Setting",
+          "ru": "Место действия"
+        },
         "type": "text"
       },
       {
         "key": "timeline",
-        "label": "In-story date",
+        "label": {
+          "en": "In-story date",
+          "ru": "Дата в истории"
+        },
         "type": "text"
       },
       {
         "key": "premise",
-        "label": "Premise",
+        "label": {
+          "en": "Premise",
+          "ru": "Идея"
+        },
         "type": "multiline"
       }
     ]

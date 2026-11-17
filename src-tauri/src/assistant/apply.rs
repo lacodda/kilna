@@ -14,6 +14,7 @@ use crate::assistant::proposal::{BoardChange, PackagedScene, Proposal};
 use crate::assistant::{ASSISTANT, Message};
 use crate::error::{Error, Result};
 use crate::profile;
+use crate::speech::Speech;
 use crate::time;
 
 /// Whether a message carries a proposal nobody has applied yet.
@@ -215,10 +216,15 @@ pub fn dismiss(conn: &Connection, message_id: &str) -> Result<()> {
 /// column the versions panel gives them; markdown roles are markdown. The
 /// fence is chosen longer than any run of backticks in the text, so a lyric
 /// with a code fence in it does not end the block early.
+///
+/// Written in a language (v0.112, ADR 0080): English for the body the
+/// message is stored with, and the window's own when the window reads the
+/// chat - the headings from the locale, the profile's words in that language.
 pub fn render_package(
     proposal: &Proposal,
     config: &profile::config::ProfileConfig,
     kind: &str,
+    speech: Speech<'_>,
 ) -> String {
     let Proposal::Work {
         title,
@@ -240,7 +246,7 @@ pub fn render_package(
     let mut out = String::new();
 
     if let Some(title) = title {
-        let kind_label = config.kind(kind).map_or(kind, |k| k.label.as_str());
+        let kind_label = config.kind(kind).map_or(kind, |k| speech.word(&k.label));
         out.push_str(&format!("## {title} · {kind_label}\n\n"));
     }
 
@@ -249,7 +255,7 @@ pub fn render_package(
             .version_roles
             .iter()
             .find(|r| r.key == packaged.role);
-        let heading = role.map_or(packaged.role.as_str(), |r| r.label.as_str());
+        let heading = role.map_or(packaged.role.as_str(), |r| speech.word(&r.label));
         match &packaged.label {
             Some(label) => out.push_str(&format!("### {heading} — {label}\n\n")),
             None => out.push_str(&format!("### {heading}\n\n")),
@@ -267,15 +273,18 @@ pub fn render_package(
     }
 
     if !fields.is_empty() {
-        out.push_str("### Fields\n\n");
+        out.push_str(&format!("### {}\n\n", speech.say("proposalBody.fields")));
         for (key, value) in fields {
             let label = config
                 .work_meta_fields
                 .iter()
                 .find(|f| f.key == *key)
-                .map_or(key.as_str(), |f| f.label.as_str());
+                .map_or(key.as_str(), |f| speech.word(&f.label));
             let shown = match value {
                 Value::String(text) => text.clone(),
+                // A list reads as its entries, not as the brackets it is
+                // stored in.
+                Value::Array(_) => profile::config::MetaFieldType::entries(value).join(", "),
                 other => other.to_string(),
             };
             if shown.contains('\n') {
@@ -288,16 +297,19 @@ pub fn render_package(
     }
     if !unknown_fields.is_empty() {
         out.push_str(&format!(
-            "_Not fields of this profile, left out: {}._\n\n",
-            unknown_fields.join(", ")
+            "_{}_\n\n",
+            speech.say_with(
+                "proposalBody.notProfileFields",
+                &[("fields", json!(unknown_fields.join(", ")))]
+            )
         ));
     }
 
     if let Some(marks) = score {
-        out.push_str("### Score\n\n");
+        out.push_str(&format!("### {}\n\n", speech.say("proposalBody.score")));
         for (key, value) in &marks.axes {
             let axis = vocabulary.axes.iter().find(|a| a.key == *key);
-            let label = axis.map_or(key.as_str(), |a| a.label.as_str());
+            let label = axis.map_or(key.as_str(), |a| speech.word(&a.label));
             match axis {
                 Some(axis) => out.push_str(&format!("- {label}: {value}/{}\n", axis.scale)),
                 None => out.push_str(&format!("- {label}: {value}\n")),
@@ -310,7 +322,7 @@ pub fn render_package(
     }
 
     if !notes.is_empty() {
-        out.push_str("### Notes\n\n");
+        out.push_str(&format!("### {}\n\n", speech.say("proposalBody.notes")));
         for packaged in notes {
             match &packaged.title {
                 Some(t) => out.push_str(&format!("**{t}**\n\n{}\n\n", packaged.body.trim_end())),
@@ -320,8 +332,8 @@ pub fn render_package(
     }
 
     if !trials.is_empty() {
-        out.push_str("### Trials\n\n");
-        out.push_str(&render_trials(trials, &[]));
+        out.push_str(&format!("### {}\n\n", speech.say("proposalBody.trials")));
+        out.push_str(&render_trials(trials, &[], speech));
         out.push('\n');
     }
 
@@ -329,14 +341,14 @@ pub fn render_package(
         let Some(board) = config.board(&packaged.board) else {
             continue;
         };
-        out.push_str(&format!("### {}\n\n", board.label));
-        out.push_str(&render_cards(board, &packaged.cards, &[], &[]));
+        out.push_str(&format!("### {}\n\n", speech.word(&board.label)));
+        out.push_str(&render_cards(board, &packaged.cards, &[], &[], speech));
         out.push_str("\n\n");
     }
 
     if !scenes.is_empty() {
-        out.push_str("### Scenes\n\n");
-        out.push_str(&render_board(scenes, vocabulary, BoardChange::Add));
+        out.push_str(&format!("### {}\n\n", speech.say("proposalBody.scenes")));
+        out.push_str(&render_board(scenes, vocabulary, BoardChange::Add, speech));
         out.push_str("\n\n");
     }
 
@@ -345,7 +357,7 @@ pub fn render_package(
             .release_kinds
             .iter()
             .find(|k| k.key == packaged.kind);
-        let heading = kind.map_or(packaged.kind.as_str(), |k| k.label.as_str());
+        let heading = kind.map_or(packaged.kind.as_str(), |k| speech.word(&k.label));
         match &packaged.scheduled_at {
             Some(date) => out.push_str(&format!("### {heading} — {date}\n\n")),
             // No date is not a missing one: a release with none is queued,
@@ -355,7 +367,7 @@ pub fn render_package(
         for (key, value) in &packaged.fields {
             let label = kind
                 .and_then(|k| k.fields.iter().find(|f| f.key == *key))
-                .map_or(key.as_str(), |f| f.label.as_str());
+                .map_or(key.as_str(), |f| speech.word(&f.label));
             let shown = match value {
                 Value::String(text) => text.clone(),
                 other => other.to_string(),
@@ -369,8 +381,11 @@ pub fn render_package(
         out.push('\n');
         if !packaged.unknown_fields.is_empty() {
             out.push_str(&format!(
-                "_Not fields of this kind of release, left out: {}._\n\n",
-                packaged.unknown_fields.join(", ")
+                "_{}_\n\n",
+                speech.say_with(
+                    "proposalBody.notReleaseFields",
+                    &[("fields", json!(packaged.unknown_fields.join(", ")))]
+                )
             ));
         }
     }
@@ -379,8 +394,8 @@ pub fn render_package(
 }
 
 /// The message body a proposed storyboard is shown with: the board as a
-/// table — number, section, seconds, kind of shot, description — and under
-/// it each scene's prompt blocks in fences, readable before a row is
+/// table — number, section, seconds, kind of shot, layer, description — and
+/// under it each scene's prompt blocks in fences, readable before a row is
 /// written. Numbers are the scenes' own when given, else their order, the
 /// same rule the application follows on a replaced board; an added scene
 /// without a number is shown as `+`, since where it lands is after the last
@@ -389,6 +404,7 @@ pub fn render_board(
     scenes: &[PackagedScene],
     vocabulary: &profile::config::WorkKind,
     change: BoardChange,
+    speech: Speech<'_>,
 ) -> String {
     let mut out = String::new();
     let has_shots = !vocabulary.shot_types.is_empty();
@@ -397,7 +413,15 @@ pub fn render_board(
             .shot_types
             .iter()
             .find(|s| s.key == key)
-            .map_or(key.to_owned(), |s| s.label.as_str().to_owned())
+            .map_or(key.to_owned(), |s| speech.word(&s.label).to_owned())
+    };
+    let has_layers = !vocabulary.layers.is_empty();
+    let layer_label = |key: &str| {
+        vocabulary
+            .layers
+            .iter()
+            .find(|l| l.key == key)
+            .map_or(key.to_owned(), |l| speech.word(&l.label).to_owned())
     };
     let number = |index: usize, scene: &PackagedScene| match scene.position {
         Some(position) => position.to_string(),
@@ -405,11 +429,20 @@ pub fn render_board(
         None => "+".to_owned(),
     };
 
-    out.push_str(if has_shots {
-        "| # | Section | Time | Shot | Description |\n| --- | --- | --- | --- | --- |\n"
-    } else {
-        "| # | Section | Time | Description |\n| --- | --- | --- | --- |\n"
-    });
+    let mut heads = vec![
+        "#".to_owned(),
+        speech.say("proposalBody.colSection"),
+        speech.say("proposalBody.colTime"),
+    ];
+    if has_shots {
+        heads.push(speech.say("proposalBody.colShot"));
+    }
+    if has_layers {
+        heads.push(speech.say("proposalBody.colLayer"));
+    }
+    heads.push(speech.say("proposalBody.colDescription"));
+    out.push_str(&format!("| {} |\n", heads.join(" | ")));
+    out.push_str(&format!("| {} |\n", vec!["---"; heads.len()].join(" | ")));
     for (index, scene) in scenes.iter().enumerate() {
         let time = match (scene.starts_at, scene.ends_at) {
             (Some(from), Some(to)) => format!("{}–{}", timecode(from), timecode(to)),
@@ -428,6 +461,11 @@ pub fn render_board(
                 &scene.shot_type.as_deref().map_or(String::new(), shot_label),
             ));
         }
+        if has_layers {
+            row.push(cell(
+                &scene.layer.as_deref().map_or(String::new(), layer_label),
+            ));
+        }
         row.push(cell(&scene.description));
         out.push_str(&format!("| {} |\n", row.join(" | ")));
     }
@@ -441,13 +479,16 @@ pub fn render_board(
                     .blocks
                     .get(&block.key)
                     .and_then(Value::as_str)
-                    .map(|text| (block.label.as_str(), text))
+                    .map(|text| (speech.word(&block.label), text))
             })
             .collect();
         if blocks.is_empty() {
             continue;
         }
-        out.push_str(&format!("\n**Scene {}**\n", number(index, scene)));
+        out.push_str(&format!(
+            "\n**{}**\n",
+            speech.say_with("proposalBody.scene", &[("n", json!(number(index, scene)))])
+        ));
         for (label, text) in blocks {
             let fence = "`".repeat(longest_backtick_run(text).max(2) + 1);
             out.push_str(&format!(
@@ -476,12 +517,43 @@ fn longest_backtick_run(text: &str) -> usize {
     longest
 }
 
+/// What was left out of a proposal, as its lines: which item, what part of
+/// it, and the value the workspace does not have.
+fn dropped_lines<'d>(
+    out: &mut String,
+    speech: Speech<'_>,
+    heading: &str,
+    line: &str,
+    dropped: impl Iterator<Item = (usize, &'d str, &'d str)>,
+) {
+    let mut first = true;
+    for (n, part, value) in dropped {
+        if first {
+            out.push_str(&speech.say(heading));
+            out.push('\n');
+            first = false;
+        }
+        out.push_str(&format!(
+            "- {}\n",
+            speech.say_with(
+                line,
+                &[
+                    ("n", json!(n.to_string())),
+                    ("part", json!(part)),
+                    ("value", json!(value)),
+                ]
+            )
+        ));
+    }
+}
+
 /// Trials as a person reads them before putting them on the board: by
 /// series, each with what it moves, its text in a fence and who to listen
 /// to; then what was left out, and why.
 pub fn render_trials(
     trials: &[crate::lab::answer::Packaged],
     dropped: &[crate::lab::answer::Dropped],
+    speech: Speech<'_>,
 ) -> String {
     let mut out = String::new();
     let mut series: Option<&str> = None;
@@ -497,7 +569,13 @@ pub fn render_trials(
             head.push_str(&format!(" _{}_", trial.angle));
         }
         if let Some(crate::lab::answer::Parent::Earlier(earlier)) = &trial.parent {
-            head.push_str(&format!(" (varies {})", earlier + 1));
+            head.push_str(&format!(
+                " ({})",
+                speech.say_with(
+                    "proposalBody.varies",
+                    &[("n", json!((earlier + 1).to_string()))]
+                )
+            ));
         }
         if let Some(verdict) = trial.verdict {
             head.push_str(&format!(" · {}", verdict.as_str()));
@@ -507,22 +585,29 @@ pub fn render_trials(
         let fence = "`".repeat(longest_backtick_run(&trial.body).max(2) + 1);
         out.push_str(&format!("{fence}\n{}\n{fence}\n", trial.body.trim_end()));
         if !trial.reference.is_empty() {
-            out.push_str(&format!("Listen to: {}\n", trial.reference));
+            out.push_str(&speech.say_with(
+                "proposalBody.listenTo",
+                &[("reference", json!(trial.reference))],
+            ));
+            out.push('\n');
         }
         if !trial.outcome.is_empty() {
-            out.push_str(&format!("Heard: {}\n", trial.outcome));
+            out.push_str(
+                &speech.say_with("proposalBody.heard", &[("outcome", json!(trial.outcome))]),
+            );
+            out.push('\n');
         }
         out.push('\n');
     }
-    if !dropped.is_empty() {
-        out.push_str("Left out, not in the workspace:\n");
-        for one in dropped {
-            out.push_str(&format!(
-                "- trial {}: {} “{}”\n",
-                one.trial, one.part, one.value
-            ));
-        }
-    }
+    dropped_lines(
+        &mut out,
+        speech,
+        "proposalBody.leftOutWorkspace",
+        "proposalBody.droppedTrial",
+        dropped
+            .iter()
+            .map(|one| (one.trial, one.part.as_str(), one.value.as_str())),
+    );
     out.trim_end().to_owned()
 }
 
@@ -533,11 +618,15 @@ pub fn render_ideas(
     conn: &rusqlite::Connection,
     ideas: &[crate::cover::idea::Packaged],
     dropped: &[crate::cover::idea::Dropped],
+    speech: Speech<'_>,
 ) -> String {
     let mut out = String::new();
     for (index, idea) in ideas.iter().enumerate() {
         let headline = if idea.headline.is_empty() {
-            format!("Idea {}", index + 1)
+            speech.say_with(
+                "proposalBody.idea",
+                &[("n", json!((index + 1).to_string()))],
+            )
         } else {
             idea.headline.clone()
         };
@@ -553,7 +642,13 @@ pub fn render_ideas(
             out.push_str(&format!("\n> {}\n", idea.concept.scene.trim()));
         }
         if !idea.concept.avoid.trim().is_empty() {
-            out.push_str(&format!("\n> Avoid: {}\n", idea.concept.avoid.trim()));
+            out.push_str(&format!(
+                "\n> {}\n",
+                speech.say_with(
+                    "proposalBody.avoid",
+                    &[("avoid", json!(idea.concept.avoid.trim()))]
+                )
+            ));
         }
         let mut parts = Vec::new();
         if let Some(framing) = idea.concept.framing {
@@ -585,15 +680,15 @@ pub fn render_ideas(
         }
         out.push('\n');
     }
-    if !dropped.is_empty() {
-        out.push_str("Left out, not in the workspace:\n");
-        for one in dropped {
-            out.push_str(&format!(
-                "- idea {}: {} “{}”\n",
-                one.idea, one.part, one.value
-            ));
-        }
-    }
+    dropped_lines(
+        &mut out,
+        speech,
+        "proposalBody.leftOutWorkspace",
+        "proposalBody.droppedIdea",
+        dropped
+            .iter()
+            .map(|one| (one.idea, one.part.as_str(), one.value.as_str())),
+    );
     out.trim_end().to_owned()
 }
 
@@ -605,6 +700,7 @@ pub fn render_cards(
     cards: &[crate::board::answer::Packaged],
     directions: &[String],
     dropped: &[crate::board::answer::Dropped],
+    speech: Speech<'_>,
 ) -> String {
     let mut out = String::new();
     for card in cards {
@@ -613,7 +709,12 @@ pub fn render_cards(
             Some(kind) => kind
                 .fields
                 .iter()
-                .filter_map(|field| Some((field.label.to_string(), card.fields.get(&field.key)?)))
+                .filter_map(|field| {
+                    Some((
+                        speech.word(&field.label).to_owned(),
+                        card.fields.get(&field.key)?,
+                    ))
+                })
                 .collect(),
             None => card
                 .fields
@@ -648,21 +749,83 @@ pub fn render_cards(
         out.push('\n');
     }
     if !directions.is_empty() {
-        out.push_str(&format!(
-            "Where to dig next: {}\n\n",
-            directions.join(" · ")
+        out.push_str(&speech.say_with(
+            "proposalBody.digNext",
+            &[("directions", json!(directions.join(" · ")))],
         ));
+        out.push_str("\n\n");
     }
-    if !dropped.is_empty() {
-        out.push_str("Left out, not on the board:\n");
-        for one in dropped {
-            out.push_str(&format!(
-                "- card {}: {} “{}”\n",
-                one.card, one.part, one.value
-            ));
-        }
-    }
+    dropped_lines(
+        &mut out,
+        speech,
+        "proposalBody.leftOutBoard",
+        "proposalBody.droppedCard",
+        dropped
+            .iter()
+            .map(|one| (one.card, one.part.as_str(), one.value.as_str())),
+    );
     out.trim_end().to_owned()
+}
+
+/// The body of a message as the window reads it in its own language
+/// (v0.112, ADR 0080), when the body is one kilna wrote out itself from a
+/// proposal an agent sent - the package, the board, the trials, the ideas,
+/// the cards, the canon. None for every other message, whose body is what
+/// somebody said and stays as said; none in the language bodies are stored
+/// in, where what is stored is already right.
+///
+/// `work_kind` is the kind of the work the chat is on, when it is on one:
+/// a package for an existing work names no kind of its own.
+pub fn spoken_body(
+    conn: &Connection,
+    config: &profile::config::ProfileConfig,
+    work_kind: Option<&str>,
+    message: &Message,
+    speech: Speech<'_>,
+) -> Option<String> {
+    if speech.is_source() || message.meta.get("source").and_then(Value::as_str) != Some("mcp") {
+        return None;
+    }
+    let proposal: Proposal = message
+        .meta
+        .get("proposal")
+        .cloned()
+        .and_then(|value| serde_json::from_value(value).ok())?;
+    match &proposal {
+        Proposal::Work {
+            work_kind: named, ..
+        } => {
+            let kind = named.as_deref().or(work_kind)?;
+            Some(render_package(&proposal, config, kind, speech))
+        }
+        Proposal::Scenes { scenes, change } => Some(render_board(
+            scenes,
+            config.vocabulary(work_kind?),
+            *change,
+            speech,
+        )),
+        Proposal::Trials {
+            trials, dropped, ..
+        } => Some(render_trials(trials, dropped, speech)),
+        Proposal::CoverIdeas { ideas, dropped, .. } => {
+            Some(render_ideas(conn, ideas, dropped, speech))
+        }
+        Proposal::Cards {
+            board,
+            cards,
+            directions,
+            dropped,
+            ..
+        } => Some(render_cards(
+            config.board(board)?,
+            cards,
+            directions,
+            dropped,
+            speech,
+        )),
+        Proposal::Canon { package } => Some(render_canon(conn, package, speech)),
+        _ => None,
+    }
 }
 
 /// The message meta a proposal from outside the window is stored with.
@@ -795,8 +958,13 @@ pub struct CanonProposal {
     pub created_at: String,
 }
 
-/// Every proposal for the canon nobody has answered, oldest first.
-pub fn pending_canon(conn: &Connection, profile_id: &str) -> Result<Vec<CanonProposal>> {
+/// Every proposal for the canon nobody has answered, oldest first - the body
+/// of one an agent sent written out in the window's language (v0.112).
+pub fn pending_canon(
+    conn: &Connection,
+    profile_id: &str,
+    speech: Speech<'_>,
+) -> Result<Vec<CanonProposal>> {
     let mut statement = conn.prepare(
         "SELECT m.id, m.chat_id, c.title, c.work_id, m.body, m.meta, m.created_at
            FROM chat_message m
@@ -859,6 +1027,16 @@ pub fn pending_canon(conn: &Connection, profile_id: &str) -> Result<Vec<CanonPro
             Proposal::CardPrompt { note_id, .. } => touch(note_id),
             _ => {}
         }
+        // What kilna wrote out itself from an agent's package is written
+        // again in the language of the window that reads it.
+        let body = match (&proposal, speech.is_source()) {
+            (Proposal::Canon { package }, false)
+                if meta.get("source").and_then(Value::as_str) == Some("mcp") =>
+            {
+                render_canon(conn, package, speech)
+            }
+            _ => body,
+        };
         out.push(CanonProposal {
             message_id,
             chat_id,
@@ -876,7 +1054,11 @@ pub fn pending_canon(conn: &Connection, profile_id: &str) -> Result<Vec<CanonPro
 /// A proposal for the canon as a person reads it in a chat: the new cards,
 /// the facts by card, the relations. The body of a message an agent's
 /// proposal lands as, where there is no answer of the assistant's own to show.
-pub fn render_canon(conn: &Connection, package: &crate::canon::proposal::Package) -> String {
+pub fn render_canon(
+    conn: &Connection,
+    package: &crate::canon::proposal::Package,
+    speech: Speech<'_>,
+) -> String {
     use crate::canon::proposal::FactChange;
 
     let name = |id: &str| -> String {
@@ -891,14 +1073,16 @@ pub fn render_canon(conn: &Connection, package: &crate::canon::proposal::Package
     };
     let mut out = String::new();
     if !package.cards.is_empty() {
-        out.push_str("New cards:\n");
+        out.push_str(&speech.say("proposalBody.newCards"));
+        out.push('\n');
         for card in &package.cards {
             out.push_str(&format!("- {} ({})\n", card.title, card.kind));
         }
         out.push('\n');
     }
     if !package.facts.is_empty() {
-        out.push_str("Facts:\n");
+        out.push_str(&speech.say("proposalBody.facts"));
+        out.push('\n');
         for fact in &package.facts {
             let card = name(fact.card.as_deref().unwrap_or_default());
             match fact.change {
@@ -908,19 +1092,32 @@ pub fn render_canon(conn: &Connection, package: &crate::canon::proposal::Package
                     fact.body.as_deref().unwrap_or_default()
                 )),
                 FactChange::Refine => out.push_str(&format!(
-                    "- {card}, refined: {}\n",
-                    fact.body.as_deref().unwrap_or_default()
+                    "- {}\n",
+                    speech.say_with(
+                        "proposalBody.refined",
+                        &[
+                            ("card", json!(card)),
+                            ("body", json!(fact.body.as_deref().unwrap_or_default())),
+                        ]
+                    )
                 )),
                 FactChange::Retire => out.push_str(&format!(
-                    "- {card}, retired: {}\n",
-                    fact.reason.as_deref().unwrap_or_default()
+                    "- {}\n",
+                    speech.say_with(
+                        "proposalBody.retired",
+                        &[
+                            ("card", json!(card)),
+                            ("reason", json!(fact.reason.as_deref().unwrap_or_default())),
+                        ]
+                    )
                 )),
             }
         }
         out.push('\n');
     }
     if !package.links.is_empty() {
-        out.push_str("Relations:\n");
+        out.push_str(&speech.say("proposalBody.relations"));
+        out.push('\n');
         for link in &package.links {
             out.push_str(&format!("- {} — {}", name(&link.from), name(&link.to)));
             if let Some(label) = &link.label {
@@ -931,22 +1128,24 @@ pub fn render_canon(conn: &Connection, package: &crate::canon::proposal::Package
         out.push('\n');
     }
     if !package.pictures.is_empty() {
-        out.push_str("Pictures:\n");
+        out.push_str(&speech.say("proposalBody.pictures"));
+        out.push('\n');
         for picture in &package.pictures {
             let file = std::path::Path::new(&picture.path)
                 .file_name()
                 .map(|name| name.to_string_lossy().into_owned())
                 .unwrap_or_else(|| picture.path.clone());
-            out.push_str(&format!(
-                "- {} · {}: {file}\n",
-                picture.card_title,
-                picture.role.as_deref().unwrap_or("reference")
-            ));
+            let role = picture
+                .role
+                .clone()
+                .unwrap_or_else(|| speech.say("proposalBody.reference"));
+            out.push_str(&format!("- {} · {role}: {file}\n", picture.card_title));
         }
         out.push('\n');
     }
     if !package.descriptions.is_empty() {
-        out.push_str("Descriptions for pictures:\n");
+        out.push_str(&speech.say("proposalBody.descriptions"));
+        out.push('\n');
         for description in &package.descriptions {
             out.push_str(&format!(
                 "- {}: {}\n",

@@ -54,6 +54,7 @@ pub mod score;
 pub mod search;
 pub mod shelf;
 pub mod space;
+pub mod speech;
 pub mod state;
 pub mod style_brick;
 pub mod style_set;
@@ -247,6 +248,15 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::spaces::forget_space,
             commands::spaces::take_launch_target,
             commands::spaces::open_target,
+            commands::types::list_space_types,
+            commands::types::save_space_type,
+            commands::types::add_space_type,
+            commands::types::rename_space_type,
+            commands::types::delete_space_type,
+            commands::types::space_type_document,
+            commands::types::profile_document,
+            commands::types::read_profile_document,
+            commands::types::check_profile_config,
             commands::workspace::update_profile_config,
             commands::workspace::workspace_path,
             commands::workspace::log_path,

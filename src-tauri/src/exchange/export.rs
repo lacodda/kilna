@@ -196,17 +196,27 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         let scenes = crate::scene::for_work(conn, &work.id)?;
         if !scenes.is_empty() {
             page.push_str("\n## Scenes\n\n");
-            page.push_str(
-                "| # | Section | From | To | Shot | Description |\n|---|---|---|---|---|---|\n",
-            );
+            // A Layer column only for a kind that names layers.
+            let has_layers = !profile.config.vocabulary(&work.kind).layers.is_empty();
+            page.push_str(if has_layers {
+                "| # | Section | From | To | Shot | Layer | Description |\n|---|---|---|---|---|---|---|\n"
+            } else {
+                "| # | Section | From | To | Shot | Description |\n|---|---|---|---|---|---|\n"
+            });
             for scene in &scenes {
+                let layer = if has_layers {
+                    format!("{} | ", scene.layer.as_deref().unwrap_or("—"))
+                } else {
+                    String::new()
+                };
                 page.push_str(&format!(
-                    "| {} | {} | {} | {} | {} | {} |\n",
+                    "| {} | {} | {} | {} | {} | {}{} |\n",
                     scene.position,
                     scene.section.as_deref().unwrap_or("—"),
                     scene.starts_at.map(seconds).unwrap_or_else(|| "—".into()),
                     scene.ends_at.map(seconds).unwrap_or_else(|| "—".into()),
                     scene.shot_type.as_deref().unwrap_or("—"),
+                    layer,
                     scene.description.replace('\n', " ").replace('|', "\\|"),
                 ));
             }

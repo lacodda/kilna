@@ -7,135 +7,240 @@
             "fields": [
               {
                 "key": "why",
-                "label": "What is there, and why it fits",
+                "label": {
+                  "en": "What is there, and why it fits",
+                  "ru": "Что там и почему подходит"
+                },
                 "multiline": true
               },
               {
                 "key": "quote",
-                "label": "Quote",
+                "label": {
+                  "en": "Quote",
+                  "ru": "Цитата"
+                },
                 "multiline": true,
                 "shape": "quote"
               },
               {
                 "key": "translation",
-                "label": "Translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
                 "multiline": true
               },
               {
-                "hint": "Canto XXIII; the last chapter",
+                "hint": {
+                  "en": "Canto XXIII; the last chapter",
+                  "ru": "Песнь XXIII; последняя глава"
+                },
                 "key": "address",
-                "label": "Where in it"
+                "label": {
+                  "en": "Where in it",
+                  "ru": "Где"
+                }
               },
               {
                 "key": "proof",
-                "label": "Checked at",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
                 "shape": "proof"
               },
               {
-                "hint": "The image for a line; the structure; the move that closes it",
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
                 "key": "take",
-                "label": "What to take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
                 "multiline": true
               },
               {
-                "hint": "Only the opening fits - it gets loud later",
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
                 "key": "caveat",
-                "label": "Caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
                 "multiline": true
               },
               {
-                "hint": "gilded lead cloaks; Arzamas; the hot spring",
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
                 "key": "chips",
-                "label": "Images and names",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
                 "shape": "chips"
               }
             ],
             "key": "work",
-            "label": "Work",
+            "label": {
+              "en": "Work",
+              "ru": "Произведение"
+            },
             "library": true
           },
           {
             "fields": [
               {
                 "key": "quote",
-                "label": "The text",
+                "label": {
+                  "en": "The text",
+                  "ru": "Текст"
+                },
                 "multiline": true,
                 "shape": "quote"
               },
               {
-                "hint": "Matthew 23:27",
+                "hint": {
+                  "en": "Matthew 23:27",
+                  "ru": "Мф 23:27"
+                },
                 "key": "address",
-                "label": "Address"
+                "label": {
+                  "en": "Address",
+                  "ru": "Адрес"
+                }
               },
               {
                 "key": "translation",
-                "label": "Translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
                 "multiline": true
               },
               {
                 "key": "proof",
-                "label": "Checked at",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
                 "shape": "proof"
               },
               {
                 "key": "why",
-                "label": "Why it is here",
+                "label": {
+                  "en": "Why it is here",
+                  "ru": "Почему здесь"
+                },
                 "multiline": true
               },
               {
-                "hint": "The image for a line; the structure; the move that closes it",
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
                 "key": "take",
-                "label": "What to take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
                 "multiline": true
               },
               {
-                "hint": "gilded lead cloaks; Arzamas; the hot spring",
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
                 "key": "chips",
-                "label": "Images and names",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
                 "shape": "chips"
               }
             ],
             "key": "text",
-            "label": "Primary source",
+            "label": {
+              "en": "Primary source",
+              "ru": "Первоисточник"
+            },
             "library": true
           },
           {
             "fields": [
               {
-                "hint": "Pharisee",
+                "hint": {
+                  "en": "Pharisee",
+                  "ru": "Фарисей"
+                },
                 "key": "term",
-                "label": "Concept"
+                "label": {
+                  "en": "Concept",
+                  "ru": "Концепция"
+                }
               },
               {
                 "key": "meaning",
-                "label": "What it is",
+                "label": {
+                  "en": "What it is",
+                  "ru": "Что это"
+                },
                 "multiline": true
               },
               {
                 "key": "figurative",
-                "label": "What it means of a person",
+                "label": {
+                  "en": "What it means of a person",
+                  "ru": "Переносный смысл"
+                },
                 "multiline": true
               },
               {
-                "hint": "Only the opening fits - it gets loud later",
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
                 "key": "caveat",
-                "label": "Caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
                 "multiline": true
               },
               {
-                "hint": "gilded lead cloaks; Arzamas; the hot spring",
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
                 "key": "chips",
-                "label": "Images and names",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
                 "shape": "chips"
               }
             ],
             "key": "concept",
-            "label": "Concept"
+            "label": {
+              "en": "Concept",
+              "ru": "Концепция"
+            }
           }
         ],
-        "description": "What the episode could draw on: works of culture, primary sources, concepts - each with why it belongs and what to take. Everything not turned down goes into the order, the starred first; a quote goes word for word only once it is checked.",
+        "description": {
+          "en": "What the episode could draw on: works of culture, primary sources, concepts - each with why it belongs and what to take. Everything not turned down goes into the order, the starred first; a quote goes word for word only once it is checked.",
+          "ru": "На что мог бы опереться выпуск: произведения культуры, первоисточники, понятия — у каждого с причиной, почему он здесь, и что взять. Всё, что не отклонено, попадает в заказ, отмеченное звёздочкой первым; цитата идёт слово в слово, только если сверена."
+        },
         "key": "research",
-        "label": "Research",
+        "label": {
+          "en": "Research",
+          "ru": "Исследовать"
+        },
         "rule": "all"
       },
       {
@@ -143,43 +248,73 @@
           {
             "fields": [
               {
-                "hint": "Open on the sound of the last tram of the night",
+                "hint": {
+                  "en": "Open on the sound of the last tram of the night",
+                  "ru": "Начать со звука последнего трамвая за ночь"
+                },
                 "key": "line",
-                "label": "In one line"
+                "label": {
+                  "en": "In one line",
+                  "ru": "Одной фразой"
+                }
               },
               {
                 "key": "image",
-                "label": "The thread through it",
+                "label": {
+                  "en": "The thread through it",
+                  "ru": "Сквозная нить"
+                },
                 "multiline": true
               },
               {
                 "key": "ending",
-                "label": "How it closes",
+                "label": {
+                  "en": "How it closes",
+                  "ru": "Чем закрывается"
+                },
                 "multiline": true
               }
             ],
             "key": "scenario",
-            "label": "Way in"
+            "label": {
+              "en": "Way in",
+              "ru": "Вход"
+            }
           }
         ],
-        "description": "Ways the episode could go: the move it opens on, the thread through it, how it closes. Star the ones to write by.",
+        "description": {
+          "en": "Ways the episode could go: the move it opens on, the thread through it, how it closes. Star the ones to write by.",
+          "ru": "Как мог бы пойти выпуск: каким ходом он открывается, какая нить его пронизывает, чем закрывается. Отметьте звёздочкой те, по которым писать."
+        },
         "key": "scenarios",
-        "label": "Ways in",
+        "label": {
+          "en": "Ways in",
+          "ru": "Входы"
+        },
         "rule": "one"
       }
     ],
     "collection_kinds": [
       {
         "key": "season",
-        "label": "Season"
+        "label": {
+          "en": "Season",
+          "ru": "Сезон"
+        }
       },
       {
         "key": "series",
-        "label": "Series"
+        "label": {
+          "en": "Series",
+          "ru": "Серия"
+        }
       },
       {
         "key": "miniseries",
-        "label": "Miniseries"
+        "label": {
+          "en": "Miniseries",
+          "ru": "Мини-сериал"
+        }
       }
     ],
     "format": 3,
@@ -188,49 +323,79 @@
       {
         "icon": "user",
         "key": "guest",
-        "label": "Guest",
+        "label": {
+          "en": "Guest",
+          "ru": "Гость"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "Who they are",
+            "label": {
+              "en": "Who they are",
+              "ru": "Кто это"
+            },
             "lenses": [
               "public"
             ]
           },
           {
             "key": "voice",
-            "label": "How they speak",
+            "label": {
+              "en": "How they speak",
+              "ru": "Как говорит"
+            },
             "lenses": [
               "public"
             ]
           },
           {
             "key": "bio",
-            "label": "Background",
+            "label": {
+              "en": "Background",
+              "ru": "Предыстория"
+            },
             "lenses": [
               "public"
             ]
           },
           {
-            "hint": "What the guest agreed to have said about them",
+            "hint": {
+              "en": "What the guest agreed to have said about them",
+              "ru": "Что гость разрешил говорить о себе"
+            },
             "key": "public",
-            "label": "What may be said",
+            "label": {
+              "en": "What may be said",
+              "ru": "Что можно говорить"
+            },
             "lenses": [
               "public"
             ]
           },
           {
-            "hint": "Subjects the guest asked to keep out",
+            "hint": {
+              "en": "Subjects the guest asked to keep out",
+              "ru": "Темы, которых гость просил не касаться"
+            },
             "key": "bans",
-            "label": "Never",
+            "label": {
+              "en": "Never",
+              "ru": "Никогда"
+            },
             "lenses": [
               "public"
             ]
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           }
         ]
@@ -238,23 +403,38 @@
       {
         "icon": "list",
         "key": "segment",
-        "label": "Segment",
+        "label": {
+          "en": "Segment",
+          "ru": "Сегмент"
+        },
         "sections": [
           {
             "key": "identity",
-            "label": "What it is",
+            "label": {
+              "en": "What it is",
+              "ru": "Что это"
+            },
             "lenses": [
               "public"
             ]
           },
           {
             "key": "rules",
-            "label": "How it runs"
+            "label": {
+              "en": "How it runs",
+              "ru": "Как идёт"
+            }
           },
           {
-            "hint": "Counted from scenes, texts, covers and sources",
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
             "key": "where",
-            "label": "Where it appears",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
             "shape": "appearances"
           }
         ]
@@ -262,121 +442,205 @@
       {
         "icon": "quote",
         "key": "phrase",
-        "label": "Phrase",
+        "label": {
+          "en": "Phrase",
+          "ru": "Фраза"
+        },
         "line": true,
         "material": true
       },
       {
         "key": "note",
-        "label": "Note"
+        "label": {
+          "en": "Note",
+          "ru": "Заметка"
+        }
       },
       {
         "icon": "library",
         "key": "source",
-        "label": "Library",
+        "label": {
+          "en": "Library",
+          "ru": "Библиотека"
+        },
         "library": true,
         "media": [
           {
             "key": "literature",
-            "label": "Literature"
+            "label": {
+              "en": "Literature",
+              "ru": "Литература"
+            }
           },
           {
             "key": "film",
-            "label": "Film"
+            "label": {
+              "en": "Film",
+              "ru": "Кино"
+            }
           },
           {
             "key": "painting",
-            "label": "Painting"
+            "label": {
+              "en": "Painting",
+              "ru": "Живопись"
+            }
           },
           {
             "key": "music",
-            "label": "Music",
+            "label": {
+              "en": "Music",
+              "ru": "Музыка"
+            },
             "quoted": false
           },
           {
             "key": "scripture",
-            "label": "Scripture"
+            "label": {
+              "en": "Scripture",
+              "ru": "Священный текст"
+            }
           },
           {
             "key": "myth",
-            "label": "Myth"
+            "label": {
+              "en": "Myth",
+              "ru": "Миф"
+            }
           },
           {
             "key": "history",
-            "label": "History"
+            "label": {
+              "en": "History",
+              "ru": "История"
+            }
           },
           {
             "key": "place",
-            "label": "Place"
+            "label": {
+              "en": "Place",
+              "ru": "Место"
+            }
           }
         ]
       }
     ],
     "prompts": [
       {
-        "description": "Where a listener would tap away.",
+        "description": {
+          "en": "Where a listener would tap away.",
+          "ru": "Где слушатель переключится."
+        },
         "key": "critique",
-        "label": "Critique the script",
-        "template": "Here is the script for an episode called \"{title}\".\n\n{role:script}\n\nWhere would a listener stop listening? Be specific about timestamps or sections. Name what rambles, what over-explains, and what the episode is avoiding. Do not rewrite it — say what is wrong."
+        "label": {
+          "en": "Critique the script",
+          "ru": "Разобрать сценарий"
+        },
+        "template": "Here is the script for an episode called \"{title}\".\n\n{role:script}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a listener stop listening? Be specific about timestamps or sections. Name what rambles, what over-explains, and what the episode is avoiding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong."
       },
       {
-        "description": "Is the first thirty seconds worth the listener's time?",
+        "description": {
+          "en": "Is the first thirty seconds worth the listener's time?",
+          "ru": "Стоят ли первые тридцать секунд времени слушателя?"
+        },
         "key": "cold_open",
-        "label": "Test the cold open",
+        "label": {
+          "en": "Test the cold open",
+          "ru": "Проверить начало"
+        },
         "template": "The opening of an episode called \"{title}\":\n\n{role:script}\n\nJudge only the first thirty seconds as written. Would a new listener keep going? Give three concrete ways to make the open sharper, and say what to cut, not what to add."
       },
       {
-        "description": "Do the notes actually describe what was said?",
+        "description": {
+          "en": "Do the notes actually describe what was said?",
+          "ru": "Описывают ли ноты то, что действительно было сказано?"
+        },
         "key": "notes_check",
-        "label": "Check show notes against the script",
+        "label": {
+          "en": "Check show notes against the script",
+          "ru": "Сверить шоу-ноты со сценарием"
+        },
         "template": "The script for \"{title}\":\n\n{role:script}\n\nThe show notes for it:\n\n{role:notes}\n\nWhat does the episode cover that the notes miss? What do the notes promise that the script never delivers? List the gaps, do not rewrite the notes."
       },
       {
-        "description": "Moments worth cutting for social.",
+        "description": {
+          "en": "Moments worth cutting for social.",
+          "ru": "Моменты, которые стоит вырезать для соцсетей."
+        },
         "key": "clip_picks",
-        "label": "Pick clip candidates",
+        "label": {
+          "en": "Pick clip candidates",
+          "ru": "Подобрать моменты для клипов"
+        },
         "template": "The script for an episode called \"{title}\":\n\n{role:script}\n\nPick three moments that would work as a standalone clip under ninety seconds. For each, give the rough boundary and one sentence on why it stands alone. No explanations beyond that."
       },
       {
-        "description": "Rate it along the profile axes, with a reason.",
+        "description": {
+          "en": "Rate it along the profile axes, with a reason.",
+          "ru": "Оценить по осям профиля, с обоснованием."
+        },
         "key": "score",
-        "label": "Score the episode",
+        "label": {
+          "en": "Score the episode",
+          "ru": "Оценить выпуск"
+        },
         "method": "# Judge of finished work\n\n## Role\n\nYou are judging release potential — how the finished piece stands against the profile's axes — not helping to improve it. Score each axis on its own scale as the profile describes it; the marks of a rubric, where given, are the anchors: find the nearest one below the work and place it there. Do not average impressions across axes, and do not let a strong axis lift a weak one.\n\n## How to judge\n\n1. Read the whole piece once as a listener or reader would, without a pen.\n2. Read it again per axis, in the profile's order, and write one line of evidence for each axis before the number — a quote or a concrete observation, not an adjective.\n3. Be honest rather than kind: a flattering score is worth nothing to the author, and a 10 is reserved for work with nothing left to fix on that axis.\n4. Where the profile names tiers, say which tier the total lands in and what, if anything, would move it up one.\n\n## Output\n\nYour reasoning first: the evidence per axis, one line each, then the tier and what would move it. Then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "score",
         "template": "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing."
       },
       {
-        "description": "A pasted screenshot of a comment, copied out word for word.",
+        "description": {
+          "en": "A pasted screenshot of a comment, copied out word for word.",
+          "ru": "Вставленный скриншот комментария, переписанный слово в слово."
+        },
         "icon": "eye",
         "key": "read-comment",
-        "label": "Read a comment",
+        "label": {
+          "en": "Read a comment",
+          "ru": "Прочитать комментарий"
+        },
         "method": "# Comment reader\n\n## Role\n\nYou are looking at a screenshot of a comment someone left under a published work, and copying it out so it can be kept and answered.\n\n## How to read it\n\n- Copy the comment **word for word**, in the language it was written in: no translation, no correction of spelling or grammar, no shortening. Keep its line breaks and its emoji.\n- The author is the name shown beside the comment. Leave it out if none is visible.\n- A relative time (\"3 weeks ago\", \"2 дня назад\") becomes the day it means, counted back from today. No time shown means no day.\n- If the screenshot shows several comments, take the one the others answer — not a reply under it. If it shows the title of what the comment was written under, give it as `about`.\n- Never invent what the picture does not show.\n\n## Output\n\nOne line saying what you read, then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "comment",
         "scope": "comment",
         "template": "Read the comment in this screenshot."
       },
       {
-        "description": "A reply in the voice the channel already speaks in, for you to post.",
+        "description": {
+          "en": "A reply in the voice the channel already speaks in, for you to post.",
+          "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами."
+        },
         "icon": "reply",
         "key": "reply-to-comment",
-        "label": "Draft a reply",
+        "label": {
+          "en": "Draft a reply",
+          "ru": "Черновик ответа"
+        },
         "method": "# Reply writer\n\n## Role\n\nYou are writing, for the author of an episode, the reply to one comment from their audience. The author will read it, change what they like and post it themselves.\n\n## The voice\n\n- The replies already posted on the same channel are given with the task. They **are** the voice: match their length, their warmth, their language, how they address people, whether they use emoji. Do not describe the voice — use it.\n- With nothing posted yet, write as a person, not as a brand: plain, warm, short.\n- Answer in the language of the comment.\n\n## What to write\n\n- Answer what the comment actually says. A question gets an answer; praise gets a real thank-you that shows it was read, never a template.\n- Use what the work's text is given for when the comment is about something in it — a line, a moment, a character. Never explain the work unasked.\n- One to three sentences, unless the posted replies are longer as a rule.\n- Never promise anything on the author's behalf: a release date, a sequel, a collaboration. Never argue, and never answer rudeness in kind — a hostile comment gets a short, calm line or the note that it may not need a reply.\n- If a draft is given, rewrite it: keep what the author wrote that already works.\n\n## Output\n\nThe reply alone, as it would be posted.\n",
         "produces": "reply",
         "scope": "comment",
         "template": "Write the reply."
       },
       {
-        "description": "The card's free note, proposed as facts filed under its sections.",
+        "description": {
+          "en": "The card's free note, proposed as facts filed under its sections.",
+          "ru": "Свободная заметка карточки — предложением фактов по разделам."
+        },
         "icon": "list",
         "key": "gather-card",
-        "label": "Gather facts from the note",
+        "label": {
+          "en": "Gather facts from the note",
+          "ru": "Собрать факты из заметки"
+        },
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
         "scope": "canon",
         "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
       },
       {
-        "description": "The brief and what is starred, worked into one idea - and the brief set straight.",
+        "description": {
+          "en": "The brief and what is starred, worked into one idea - and the brief set straight.",
+          "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел."
+        },
         "icon": "wand",
         "key": "refine",
         "kinds": [
@@ -384,13 +648,19 @@
           "segment",
           "trailer"
         ],
-        "label": "Refine the idea",
+        "label": {
+          "en": "Refine the idea",
+          "ru": "Уточнить идею"
+        },
         "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their episode is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the episode is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the episode itself. Nothing the author did not give as their own.\n",
         "produces": "conception",
         "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the episode is about."
       },
       {
-        "description": "Works of culture, primary sources and concepts the episode could draw on, quotes checked on the web - put on the research board.",
+        "description": {
+          "en": "Works of culture, primary sources and concepts the episode could draw on, quotes checked on the web - put on the research board.",
+          "ru": "Произведения культуры, первоисточники и понятия, на которые мог бы опереться выпуск, с цитатами, сверенными в сети, — на доске исследования."
+        },
         "icon": "globe",
         "key": "research",
         "kinds": [
@@ -398,7 +668,10 @@
           "segment",
           "trailer"
         ],
-        "label": "Research",
+        "label": {
+          "en": "Research",
+          "ru": "Исследовать"
+        },
         "method": "# Research\n\n## Role\n\nYou gather what a episode could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the episode, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the episode is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Quiet beats loud: where the author asked for a quiet example, a betrayal or a murder is not one.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the episode it serves (\"holy things as goods\", \"faith without show\"), not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the episode itself. Nothing invented: a work you are not sure exists is not a card.\n",
         "produces": "cards:research",
         "scope": "board",
@@ -406,7 +679,10 @@
         "web": true
       },
       {
-        "description": "Ways the episode could go, put on the board.",
+        "description": {
+          "en": "Ways the episode could go, put on the board.",
+          "ru": "Варианты, как мог бы пойти выпуск, — на доске."
+        },
         "icon": "lightbulb",
         "key": "scenarios",
         "kinds": [
@@ -414,14 +690,20 @@
           "segment",
           "trailer"
         ],
-        "label": "Propose ways in",
+        "label": {
+          "en": "Propose ways in",
+          "ru": "Предложить входы"
+        },
         "method": "# Ways it could go\n\n## Role\n\nYou propose ways a episode could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the episode itself.\n",
         "produces": "cards:scenarios",
         "scope": "board",
         "template": "An episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}"
       },
       {
-        "description": "The script, written from the whole order - to talk over in the chat and insert once it is right.",
+        "description": {
+          "en": "The script, written from the whole order - to talk over in the chat and insert once it is right.",
+          "ru": "Сценарий, написанный по всему заказу, — обсудить в чате и вставить, когда он будет верным."
+        },
         "icon": "pen",
         "key": "write",
         "kinds": [
@@ -429,7 +711,10 @@
           "segment",
           "trailer"
         ],
-        "label": "Write from the brief",
+        "label": {
+          "en": "Write from the brief",
+          "ru": "Написать по замыслу"
+        },
         "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the episode they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write it to be said aloud: short sentences, one thought each, no phrase a speaker would trip on.\n- Lay it out in the script's section markers: [Cold open], [Intro], [Segment 1], [Segment 2], [Outro].\n- Write in the language of the brief.\n\n## Output\n\nThe script alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
         "template": "{order}\n\nWrite the script."
       }
@@ -445,50 +730,86 @@
       {
         "axes": [
           {
-            "description": "Does the cold open earn the next thirty seconds?",
+            "description": {
+              "en": "Does the cold open earn the next thirty seconds?",
+              "ru": "Заслуживает ли начало следующих тридцати секунд?"
+            },
             "key": "hook",
             "kind": "scale",
-            "label": "Hook",
+            "label": {
+              "en": "Hook",
+              "ru": "Зацепка"
+            },
             "scale": 10.0,
             "weight": 2.0
           },
           {
-            "description": "Could a listener explain the point to someone else afterward?",
+            "description": {
+              "en": "Could a listener explain the point to someone else afterward?",
+              "ru": "Сможет ли слушатель потом пересказать суть другому?"
+            },
             "key": "clarity",
             "kind": "scale",
-            "label": "Clarity",
+            "label": {
+              "en": "Clarity",
+              "ru": "Ясность"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Where does it drag, and would a listener skip ahead?",
+            "description": {
+              "en": "Where does it drag, and would a listener skip ahead?",
+              "ru": "Где затягивается и перемотал бы слушатель вперёд?"
+            },
             "key": "pacing",
             "kind": "scale",
-            "label": "Pacing",
+            "label": {
+              "en": "Pacing",
+              "ru": "Темп"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Is there a claim here nobody else is making, or just a summary?",
+            "description": {
+              "en": "Is there a claim here nobody else is making, or just a summary?",
+              "ru": "Есть ли здесь утверждение, которого больше никто не делает, — или просто пересказ?"
+            },
             "key": "insight",
             "kind": "scale",
-            "label": "Insight",
+            "label": {
+              "en": "Insight",
+              "ru": "Мысль"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Energy, pauses, whether it sounds read or spoken.",
+            "description": {
+              "en": "Energy, pauses, whether it sounds read or spoken.",
+              "ru": "Энергия, паузы, звучит ли это как чтение или как живая речь."
+            },
             "key": "delivery",
             "kind": "scale",
-            "label": "Delivery",
+            "label": {
+              "en": "Delivery",
+              "ru": "Подача"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Is there a moment worth clipping and sending to a friend?",
+            "description": {
+              "en": "Is there a moment worth clipping and sending to a friend?",
+              "ru": "Есть ли момент, который стоит вырезать и отправить другу?"
+            },
             "key": "shareability",
             "kind": "scale",
-            "label": "Shareability",
+            "label": {
+              "en": "Shareability",
+              "ru": "Цитируемость"
+            },
             "scale": 10.0,
             "weight": 1.0
           }
@@ -506,36 +827,57 @@
         },
         "folder": "episodes/{title}",
         "key": "episode",
-        "label": "Episode",
+        "label": {
+          "en": "Episode",
+          "ru": "Выпуск"
+        },
         "release_kinds": [
           {
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 255,
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "What the episode covers, and the links it mentions.",
+                "hint": {
+                  "en": "What the episode covers, and the links it mentions.",
+                  "ru": "О чём выпуск и какие ссылки в нём упомянуты."
+                },
                 "key": "description",
-                "label": "Show notes",
+                "label": {
+                  "en": "Show notes",
+                  "ru": "Шоу-ноты"
+                },
                 "required": true,
                 "template": "{role:notes}",
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "rss",
             "key": "feed",
-            "label": "Feed release",
+            "label": {
+              "en": "Feed release",
+              "ru": "Релиз в ленте"
+            },
             "links": [
               "podcasts.apple.com",
               "open.spotify.com/episode/",
@@ -550,7 +892,10 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 100,
                 "required": true,
                 "template": "{title}",
@@ -558,20 +903,32 @@
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "limit": 5000,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "audio-lines",
             "key": "clip",
-            "label": "Audio clip",
+            "label": {
+              "en": "Audio clip",
+              "ru": "Аудиоклип"
+            },
             "links": [
               "youtube.com/shorts/",
               "tiktok.com",
@@ -585,7 +942,10 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 205,
                 "required": true,
                 "template": "{title}",
@@ -593,27 +953,42 @@
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "limit": 5000,
                 "required": true,
                 "template": "{role:notes}",
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               },
               {
                 "key": "pinned",
-                "label": "Pinned comment",
+                "label": {
+                  "en": "Pinned comment",
+                  "ru": "Закреплённый комментарий"
+                },
                 "type": "text"
               }
             ],
             "icon": "video",
             "key": "video",
-            "label": "Video upload",
+            "label": {
+              "en": "Video upload",
+              "ru": "Загрузка видео"
+            },
             "links": [
               "youtube.com/watch",
               "youtu.be",
@@ -628,58 +1003,88 @@
           {
             "derive": "draft",
             "key": "draft",
-            "label": "Draft"
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
           },
           {
             "colour": "info",
             "derive": "manual",
             "key": "recorded",
-            "label": "Recorded"
+            "label": {
+              "en": "Recorded",
+              "ru": "Записано"
+            }
           },
           {
             "colour": "accent",
             "derive": "scored",
             "key": "scored",
-            "label": "Scored"
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
           },
           {
             "colour": "warn",
             "derive": "scheduled",
             "key": "scheduled",
-            "label": "Scheduled"
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
           },
           {
             "colour": "good",
             "derive": "released",
             "key": "released",
-            "label": "Released"
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            }
           },
           {
             "colour": "plain",
             "derive": "manual",
             "key": "shelved",
-            "label": "Shelved"
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
           }
         ],
         "tiers": [
           {
             "key": "hold",
-            "label": "Hold",
+            "label": {
+              "en": "Hold",
+              "ru": "Придержать"
+            },
             "min": 0.0
           },
           {
             "key": "feed",
-            "label": "Feed release",
+            "label": {
+              "en": "Feed release",
+              "ru": "Релиз в ленте"
+            },
             "min": 55.0
           },
           {
             "key": "clip",
-            "label": "Audio clip",
+            "label": {
+              "en": "Audio clip",
+              "ru": "Аудиоклип"
+            },
             "min": 68.0
           },
           {
             "key": "flagship",
-            "label": "Flagship episode",
+            "label": {
+              "en": "Flagship episode",
+              "ru": "Главный выпуск"
+            },
             "min": 80.0
           }
         ],
@@ -687,75 +1092,126 @@
           {
             "body": "plain",
             "key": "script",
-            "label": "Script",
+            "label": {
+              "en": "Script",
+              "ru": "Сценарий"
+            },
             "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n"
           },
           {
             "body": "markdown",
             "key": "notes",
-            "label": "Show notes"
+            "label": {
+              "en": "Show notes",
+              "ru": "Шоу-ноты"
+            }
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Research outline"
+            "label": {
+              "en": "Research outline",
+              "ru": "План исследования"
+            }
           },
           {
             "body": "markdown",
             "counts_as_version": false,
             "key": "brief",
-            "label": "Brief",
-            "skeleton": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n"
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n",
+              "ru": "## О чём это\n\n## Почему сейчас\n\n## Как я это слышу\n\n## С чем должен уйти слушатель\n"
+            }
           }
         ]
       },
       {
         "axes": [
           {
-            "description": "Does the cold open earn the next thirty seconds?",
+            "description": {
+              "en": "Does the cold open earn the next thirty seconds?",
+              "ru": "Заслуживает ли начало следующих тридцати секунд?"
+            },
             "key": "hook",
             "kind": "scale",
-            "label": "Hook",
+            "label": {
+              "en": "Hook",
+              "ru": "Зацепка"
+            },
             "scale": 10.0,
             "weight": 2.0
           },
           {
-            "description": "Could a listener explain the point to someone else afterward?",
+            "description": {
+              "en": "Could a listener explain the point to someone else afterward?",
+              "ru": "Сможет ли слушатель потом пересказать суть другому?"
+            },
             "key": "clarity",
             "kind": "scale",
-            "label": "Clarity",
+            "label": {
+              "en": "Clarity",
+              "ru": "Ясность"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Where does it drag, and would a listener skip ahead?",
+            "description": {
+              "en": "Where does it drag, and would a listener skip ahead?",
+              "ru": "Где затягивается и перемотал бы слушатель вперёд?"
+            },
             "key": "pacing",
             "kind": "scale",
-            "label": "Pacing",
+            "label": {
+              "en": "Pacing",
+              "ru": "Темп"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Is there a claim here nobody else is making, or just a summary?",
+            "description": {
+              "en": "Is there a claim here nobody else is making, or just a summary?",
+              "ru": "Есть ли здесь утверждение, которого больше никто не делает, — или просто пересказ?"
+            },
             "key": "insight",
             "kind": "scale",
-            "label": "Insight",
+            "label": {
+              "en": "Insight",
+              "ru": "Мысль"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Energy, pauses, whether it sounds read or spoken.",
+            "description": {
+              "en": "Energy, pauses, whether it sounds read or spoken.",
+              "ru": "Энергия, паузы, звучит ли это как чтение или как живая речь."
+            },
             "key": "delivery",
             "kind": "scale",
-            "label": "Delivery",
+            "label": {
+              "en": "Delivery",
+              "ru": "Подача"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Is there a moment worth clipping and sending to a friend?",
+            "description": {
+              "en": "Is there a moment worth clipping and sending to a friend?",
+              "ru": "Есть ли момент, который стоит вырезать и отправить другу?"
+            },
             "key": "shareability",
             "kind": "scale",
-            "label": "Shareability",
+            "label": {
+              "en": "Shareability",
+              "ru": "Цитируемость"
+            },
             "scale": 10.0,
             "weight": 1.0
           }
@@ -773,36 +1229,57 @@
         },
         "folder": "segments/{title}",
         "key": "segment",
-        "label": "Segment",
+        "label": {
+          "en": "Segment",
+          "ru": "Сегмент"
+        },
         "release_kinds": [
           {
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 255,
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "What the episode covers, and the links it mentions.",
+                "hint": {
+                  "en": "What the episode covers, and the links it mentions.",
+                  "ru": "О чём выпуск и какие ссылки в нём упомянуты."
+                },
                 "key": "description",
-                "label": "Show notes",
+                "label": {
+                  "en": "Show notes",
+                  "ru": "Шоу-ноты"
+                },
                 "required": true,
                 "template": "{role:notes}",
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "rss",
             "key": "feed",
-            "label": "Feed release",
+            "label": {
+              "en": "Feed release",
+              "ru": "Релиз в ленте"
+            },
             "links": [
               "podcasts.apple.com",
               "open.spotify.com/episode/",
@@ -817,7 +1294,10 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 100,
                 "required": true,
                 "template": "{title}",
@@ -825,20 +1305,32 @@
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "limit": 5000,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "audio-lines",
             "key": "clip",
-            "label": "Audio clip",
+            "label": {
+              "en": "Audio clip",
+              "ru": "Аудиоклип"
+            },
             "links": [
               "youtube.com/shorts/",
               "tiktok.com",
@@ -852,7 +1344,10 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 205,
                 "required": true,
                 "template": "{title}",
@@ -860,27 +1355,42 @@
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "limit": 5000,
                 "required": true,
                 "template": "{role:notes}",
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               },
               {
                 "key": "pinned",
-                "label": "Pinned comment",
+                "label": {
+                  "en": "Pinned comment",
+                  "ru": "Закреплённый комментарий"
+                },
                 "type": "text"
               }
             ],
             "icon": "video",
             "key": "video",
-            "label": "Video upload",
+            "label": {
+              "en": "Video upload",
+              "ru": "Загрузка видео"
+            },
             "links": [
               "youtube.com/watch",
               "youtu.be",
@@ -895,58 +1405,88 @@
           {
             "derive": "draft",
             "key": "draft",
-            "label": "Draft"
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
           },
           {
             "colour": "info",
             "derive": "manual",
             "key": "recorded",
-            "label": "Recorded"
+            "label": {
+              "en": "Recorded",
+              "ru": "Записано"
+            }
           },
           {
             "colour": "accent",
             "derive": "scored",
             "key": "scored",
-            "label": "Scored"
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
           },
           {
             "colour": "warn",
             "derive": "scheduled",
             "key": "scheduled",
-            "label": "Scheduled"
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
           },
           {
             "colour": "good",
             "derive": "released",
             "key": "released",
-            "label": "Released"
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            }
           },
           {
             "colour": "plain",
             "derive": "manual",
             "key": "shelved",
-            "label": "Shelved"
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
           }
         ],
         "tiers": [
           {
             "key": "hold",
-            "label": "Hold",
+            "label": {
+              "en": "Hold",
+              "ru": "Придержать"
+            },
             "min": 0.0
           },
           {
             "key": "feed",
-            "label": "Feed release",
+            "label": {
+              "en": "Feed release",
+              "ru": "Релиз в ленте"
+            },
             "min": 55.0
           },
           {
             "key": "clip",
-            "label": "Audio clip",
+            "label": {
+              "en": "Audio clip",
+              "ru": "Аудиоклип"
+            },
             "min": 68.0
           },
           {
             "key": "flagship",
-            "label": "Flagship episode",
+            "label": {
+              "en": "Flagship episode",
+              "ru": "Главный выпуск"
+            },
             "min": 80.0
           }
         ],
@@ -954,75 +1494,126 @@
           {
             "body": "plain",
             "key": "script",
-            "label": "Script",
+            "label": {
+              "en": "Script",
+              "ru": "Сценарий"
+            },
             "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n"
           },
           {
             "body": "markdown",
             "key": "notes",
-            "label": "Show notes"
+            "label": {
+              "en": "Show notes",
+              "ru": "Шоу-ноты"
+            }
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Research outline"
+            "label": {
+              "en": "Research outline",
+              "ru": "План исследования"
+            }
           },
           {
             "body": "markdown",
             "counts_as_version": false,
             "key": "brief",
-            "label": "Brief",
-            "skeleton": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n"
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n",
+              "ru": "## О чём это\n\n## Почему сейчас\n\n## Как я это слышу\n\n## С чем должен уйти слушатель\n"
+            }
           }
         ]
       },
       {
         "axes": [
           {
-            "description": "Does the cold open earn the next thirty seconds?",
+            "description": {
+              "en": "Does the cold open earn the next thirty seconds?",
+              "ru": "Заслуживает ли начало следующих тридцати секунд?"
+            },
             "key": "hook",
             "kind": "scale",
-            "label": "Hook",
+            "label": {
+              "en": "Hook",
+              "ru": "Зацепка"
+            },
             "scale": 10.0,
             "weight": 2.0
           },
           {
-            "description": "Could a listener explain the point to someone else afterward?",
+            "description": {
+              "en": "Could a listener explain the point to someone else afterward?",
+              "ru": "Сможет ли слушатель потом пересказать суть другому?"
+            },
             "key": "clarity",
             "kind": "scale",
-            "label": "Clarity",
+            "label": {
+              "en": "Clarity",
+              "ru": "Ясность"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Where does it drag, and would a listener skip ahead?",
+            "description": {
+              "en": "Where does it drag, and would a listener skip ahead?",
+              "ru": "Где затягивается и перемотал бы слушатель вперёд?"
+            },
             "key": "pacing",
             "kind": "scale",
-            "label": "Pacing",
+            "label": {
+              "en": "Pacing",
+              "ru": "Темп"
+            },
             "scale": 10.0,
             "weight": 1.5
           },
           {
-            "description": "Is there a claim here nobody else is making, or just a summary?",
+            "description": {
+              "en": "Is there a claim here nobody else is making, or just a summary?",
+              "ru": "Есть ли здесь утверждение, которого больше никто не делает, — или просто пересказ?"
+            },
             "key": "insight",
             "kind": "scale",
-            "label": "Insight",
+            "label": {
+              "en": "Insight",
+              "ru": "Мысль"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Energy, pauses, whether it sounds read or spoken.",
+            "description": {
+              "en": "Energy, pauses, whether it sounds read or spoken.",
+              "ru": "Энергия, паузы, звучит ли это как чтение или как живая речь."
+            },
             "key": "delivery",
             "kind": "scale",
-            "label": "Delivery",
+            "label": {
+              "en": "Delivery",
+              "ru": "Подача"
+            },
             "scale": 10.0,
             "weight": 1.0
           },
           {
-            "description": "Is there a moment worth clipping and sending to a friend?",
+            "description": {
+              "en": "Is there a moment worth clipping and sending to a friend?",
+              "ru": "Есть ли момент, который стоит вырезать и отправить другу?"
+            },
             "key": "shareability",
             "kind": "scale",
-            "label": "Shareability",
+            "label": {
+              "en": "Shareability",
+              "ru": "Цитируемость"
+            },
             "scale": 10.0,
             "weight": 1.0
           }
@@ -1040,36 +1631,57 @@
         },
         "folder": "trailers/{title}",
         "key": "trailer",
-        "label": "Trailer",
+        "label": {
+          "en": "Trailer",
+          "ru": "Трейлер"
+        },
         "release_kinds": [
           {
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 255,
                 "required": true,
                 "template": "{title}",
                 "type": "line"
               },
               {
-                "hint": "What the episode covers, and the links it mentions.",
+                "hint": {
+                  "en": "What the episode covers, and the links it mentions.",
+                  "ru": "О чём выпуск и какие ссылки в нём упомянуты."
+                },
                 "key": "description",
-                "label": "Show notes",
+                "label": {
+                  "en": "Show notes",
+                  "ru": "Шоу-ноты"
+                },
                 "required": true,
                 "template": "{role:notes}",
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "rss",
             "key": "feed",
-            "label": "Feed release",
+            "label": {
+              "en": "Feed release",
+              "ru": "Релиз в ленте"
+            },
             "links": [
               "podcasts.apple.com",
               "open.spotify.com/episode/",
@@ -1084,7 +1696,10 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 100,
                 "required": true,
                 "template": "{title}",
@@ -1092,20 +1707,32 @@
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "limit": 5000,
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               }
             ],
             "icon": "audio-lines",
             "key": "clip",
-            "label": "Audio clip",
+            "label": {
+              "en": "Audio clip",
+              "ru": "Аудиоклип"
+            },
             "links": [
               "youtube.com/shorts/",
               "tiktok.com",
@@ -1119,7 +1746,10 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "limit": 205,
                 "required": true,
                 "template": "{title}",
@@ -1127,27 +1757,42 @@
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "limit": 5000,
                 "required": true,
                 "template": "{role:notes}",
                 "type": "text"
               },
               {
-                "hint": "Comma separated.",
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags"
               },
               {
                 "key": "pinned",
-                "label": "Pinned comment",
+                "label": {
+                  "en": "Pinned comment",
+                  "ru": "Закреплённый комментарий"
+                },
                 "type": "text"
               }
             ],
             "icon": "video",
             "key": "video",
-            "label": "Video upload",
+            "label": {
+              "en": "Video upload",
+              "ru": "Загрузка видео"
+            },
             "links": [
               "youtube.com/watch",
               "youtu.be",
@@ -1162,58 +1807,88 @@
           {
             "derive": "draft",
             "key": "draft",
-            "label": "Draft"
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
           },
           {
             "colour": "info",
             "derive": "manual",
             "key": "recorded",
-            "label": "Recorded"
+            "label": {
+              "en": "Recorded",
+              "ru": "Записано"
+            }
           },
           {
             "colour": "accent",
             "derive": "scored",
             "key": "scored",
-            "label": "Scored"
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
           },
           {
             "colour": "warn",
             "derive": "scheduled",
             "key": "scheduled",
-            "label": "Scheduled"
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
           },
           {
             "colour": "good",
             "derive": "released",
             "key": "released",
-            "label": "Released"
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            }
           },
           {
             "colour": "plain",
             "derive": "manual",
             "key": "shelved",
-            "label": "Shelved"
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
           }
         ],
         "tiers": [
           {
             "key": "hold",
-            "label": "Hold",
+            "label": {
+              "en": "Hold",
+              "ru": "Придержать"
+            },
             "min": 0.0
           },
           {
             "key": "feed",
-            "label": "Feed release",
+            "label": {
+              "en": "Feed release",
+              "ru": "Релиз в ленте"
+            },
             "min": 55.0
           },
           {
             "key": "clip",
-            "label": "Audio clip",
+            "label": {
+              "en": "Audio clip",
+              "ru": "Аудиоклип"
+            },
             "min": 68.0
           },
           {
             "key": "flagship",
-            "label": "Flagship episode",
+            "label": {
+              "en": "Flagship episode",
+              "ru": "Главный выпуск"
+            },
             "min": 80.0
           }
         ],
@@ -1221,25 +1896,40 @@
           {
             "body": "plain",
             "key": "script",
-            "label": "Script",
+            "label": {
+              "en": "Script",
+              "ru": "Сценарий"
+            },
             "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n"
           },
           {
             "body": "markdown",
             "key": "notes",
-            "label": "Show notes"
+            "label": {
+              "en": "Show notes",
+              "ru": "Шоу-ноты"
+            }
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Research outline"
+            "label": {
+              "en": "Research outline",
+              "ru": "План исследования"
+            }
           },
           {
             "body": "markdown",
             "counts_as_version": false,
             "key": "brief",
-            "label": "Brief",
-            "skeleton": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n"
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## What it is about\n\n## Why now\n\n## How I hear it\n\n## What the listener should leave with\n",
+              "ru": "## О чём это\n\n## Почему сейчас\n\n## Как я это слышу\n\n## С чем должен уйти слушатель\n"
+            }
           }
         ]
       }
@@ -1247,27 +1937,42 @@
     "work_meta_fields": [
       {
         "key": "duration",
-        "label": "Duration",
+        "label": {
+          "en": "Duration",
+          "ru": "Длительность"
+        },
         "type": "number"
       },
       {
         "key": "guest",
-        "label": "Guest",
+        "label": {
+          "en": "Guest",
+          "ru": "Гость"
+        },
         "type": "text"
       },
       {
         "key": "recorded_on",
-        "label": "Recorded on",
+        "label": {
+          "en": "Recorded on",
+          "ru": "Дата записи"
+        },
         "type": "date"
       },
       {
         "key": "explicit",
-        "label": "Explicit",
+        "label": {
+          "en": "Explicit",
+          "ru": "Для взрослых"
+        },
         "type": "boolean"
       },
       {
         "key": "premise",
-        "label": "Premise",
+        "label": {
+          "en": "Premise",
+          "ru": "Идея"
+        },
         "type": "multiline"
       }
     ]

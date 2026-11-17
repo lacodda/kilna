@@ -30,6 +30,7 @@ use crate::journal::{self, Record};
 use crate::link;
 use crate::note::{self, NoteFilter};
 use crate::scene;
+use crate::speech::Speech;
 use crate::work::version;
 use crate::work::{self, WorkFilter};
 use crate::{assistant, profile, release, score, search};
@@ -334,6 +335,7 @@ fn scenes_arg(description: &str) -> Value {
             "starts_at": { "type": "number", "description": "Seconds from the start of the video" },
             "ends_at": { "type": "number", "description": "Seconds from the start; not before `starts_at`" },
             "shot_type": text_arg("A key of the kind's `shot_types`"),
+            "layer": text_arg("A key of the kind's `layers`"),
             "description": text_arg("What happens in the scene"),
             "blocks": { "type": "object", "description": "Prompt blocks by the kind's `scene_blocks` key, each the text a generator is given", "additionalProperties": { "type": "string" } },
         } },
@@ -549,7 +551,7 @@ fn tools() -> Vec<Value> {
         tool(
             "scenes",
             "The storyboard of a work, in order: each scene's number, section, seconds, kind of \
-             shot (a key of the kind's `shot_types`), description and prompt blocks (by the kind's \
+             shot (a key of the kind's `shot_types`), layer (a key of the kind's `layers`), description and prompt blocks (by the kind's \
              `scene_blocks` key). The shared context is the current version of the `context` \
              role — read it with `text`. Empty for a kind with no storyboard.",
             json!({ "work": work_arg() }),
@@ -614,7 +616,7 @@ fn tools() -> Vec<Value> {
                 "scenes": scenes_arg(
                     "The storyboard of a new video, or scenes added after the last of an \
                      existing one's board; only for a kind with a storyboard (see `workspace`: \
-                     `shot_types`, `scene_blocks`)"
+                     `shot_types`, `layers`, `scene_blocks`)"
                 ),
                 "trials": {
                     "type": "array",
@@ -1265,6 +1267,7 @@ pub fn run_tool(
                         })).collect::<Vec<_>>(),
                         "goes_out": kind.has_doors(),
                         "shot_types": kind.shot_types,
+                        "layers": kind.layers,
                         "scene_blocks": kind.scene_blocks,
                         "cover": kind.cover,
                         "frame": kind.frame,
@@ -1652,7 +1655,7 @@ pub fn run_tool(
                 &Value::Object(args.clone()),
                 &defaults,
             )?;
-            let body = apply::render_canon(conn, &package);
+            let body = apply::render_canon(conn, &package, Speech::ENGLISH);
             let summary = format!(
                 "{} card(s), {} fact(s), {} relation(s), {} picture(s), {} description(s)",
                 package.cards.len(),
@@ -2079,7 +2082,7 @@ pub fn run_tool(
                 trials,
                 boards,
             };
-            let body = apply::render_package(&proposal, &config, &kind);
+            let body = apply::render_package(&proposal, &config, &kind, Speech::ENGLISH);
             let mut summary = package_summary(&proposal);
             if !trials_left_out.is_empty() {
                 summary.push_str(&format!(
@@ -2173,7 +2176,7 @@ pub fn run_tool(
                 .iter()
                 .map(|one| format!("idea {}: {} “{}”", one.idea, one.part, one.value))
                 .collect();
-            let body = apply::render_ideas(conn, &read.ideas, &read.dropped);
+            let body = apply::render_ideas(conn, &read.ideas, &read.dropped, Speech::ENGLISH);
             let proposal = Proposal::CoverIdeas {
                 work_id: found.id.clone(),
                 ideas: read.ideas,
@@ -2269,7 +2272,13 @@ pub fn run_tool(
                 .iter()
                 .map(|one| format!("card {}: {} “{}”", one.card, one.part, one.value))
                 .collect();
-            let body = apply::render_cards(board, &read.cards, &read.directions, &read.dropped);
+            let body = apply::render_cards(
+                board,
+                &read.cards,
+                &read.directions,
+                &read.dropped,
+                Speech::ENGLISH,
+            );
             let proposal = Proposal::Cards {
                 work_id: found.id.clone(),
                 board: board.key.clone(),
@@ -2362,7 +2371,7 @@ pub fn run_tool(
                 .iter()
                 .map(|one| format!("trial {}: {} “{}”", one.trial, one.part, one.value))
                 .collect();
-            let body = apply::render_trials(&read.trials, &read.dropped);
+            let body = apply::render_trials(&read.trials, &read.dropped, Speech::ENGLISH);
             let proposal = Proposal::Trials {
                 work_id: found.id.clone(),
                 trials: read.trials,
@@ -2412,7 +2421,7 @@ pub fn run_tool(
             }
             let count = scenes.len();
             let standing = scene::count(conn, &found.id)?;
-            let body = apply::render_board(&scenes, vocabulary, change);
+            let body = apply::render_board(&scenes, vocabulary, change, Speech::ENGLISH);
             let proposal = Proposal::Scenes { scenes, change };
             deliver(
                 conn,
@@ -3391,6 +3400,66 @@ mod tests {
         assert_eq!(none.refusal().map(|r| r.code), Some("mcp.workHasNoRelease"));
     }
 
+    /// What kilna wrote out itself from an agent's proposal is stored in
+    /// English, and read in the language of the window that opens the chat
+    /// (v0.112, ADR 0080): the headings from the locale, the kind's words in
+    /// that language, what the agent wrote left as written.
+    #[test]
+    fn a_proposed_board_is_stored_in_english_and_read_in_the_windows_language() {
+        let (conn, _) = workspace();
+        let video_id = video(&conn);
+        run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({
+                "work": video_id,
+                "scenes": [
+                    { "section": "intro", "shot_type": "wide", "layer": "story",
+                      "description": "the harbour at dawn",
+                      "blocks": { "still": "a harbour, first light, 35mm" } }
+                ]
+            })),
+        )
+        .unwrap();
+        let stored = first_message(&conn, &video_id);
+        assert!(
+            stored
+                .body
+                .contains("| # | Section | Time | Shot | Layer | Description |"),
+            "{}",
+            stored.body
+        );
+
+        let body_in = |speech: Speech<'_>| {
+            crate::assistant::transcript_in(&conn, &stored.chat_id, speech)
+                .unwrap()
+                .unwrap()
+                .messages
+                .into_iter()
+                .find(|message| message.id == stored.id)
+                .unwrap()
+                .body
+        };
+        let russian = body_in(Speech::of("ru"));
+        for expected in [
+            "| # | Раздел | Время | Кадр | Слой | Описание |",
+            "| + | intro |  | Общий | Сюжет | the harbour at dawn |",
+            "**Сцена +**",
+            "a harbour, first light, 35mm",
+        ] {
+            assert!(
+                russian.contains(expected),
+                "missing {expected:?} in:\n{russian}"
+            );
+        }
+        // English, and a language the window does not speak, read what is
+        // stored; and reading changed nothing that is stored.
+        assert_eq!(body_in(Speech::ENGLISH), stored.body);
+        assert_eq!(body_in(Speech::of("en-GB")), stored.body);
+        assert_eq!(first_message(&conn, &video_id).body, stored.body);
+    }
+
     #[test]
     fn a_proposed_storyboard_waits_in_the_chat_as_a_readable_board() {
         let (conn, _) = workspace();
@@ -3402,7 +3471,7 @@ mod tests {
             &args(json!({
                 "work": video_id,
                 "scenes": [
-                    { "section": "intro", "starts_at": 0, "ends_at": 4.5, "shot_type": "wide",
+                    { "section": "intro", "starts_at": 0, "ends_at": 4.5, "shot_type": "wide", "layer": "story",
                       "description": "the harbour at dawn",
                       "blocks": { "still": "a harbour, first light, 35mm", "negative": "no people" } },
                     { "section": "verse 1", "shot_type": "close", "description": "hands on a rope" }
@@ -3424,15 +3493,16 @@ mod tests {
         assert_eq!(message.meta["proposal"]["kind"], "scenes");
         assert_eq!(message.meta["proposal"]["change"], "add");
         assert_eq!(message.meta["proposal"]["scenes"][0]["shot_type"], "wide");
+        assert_eq!(message.meta["proposal"]["scenes"][0]["layer"], "story");
         assert_eq!(
             message.meta["proposal"]["scenes"][0]["blocks"]["still"],
             "a harbour, first light, 35mm"
         );
         assert!(apply::is_pending(&message));
         for expected in [
-            "| # | Section | Time | Shot | Description |",
-            "| + | intro | 0:00–0:04.5 | Wide | the harbour at dawn |",
-            "| + | verse 1 |  | Close-up | hands on a rope |",
+            "| # | Section | Time | Shot | Layer | Description |",
+            "| + | intro | 0:00–0:04.5 | Wide | Story | the harbour at dawn |",
+            "| + | verse 1 |  | Close-up |  | hands on a rope |",
             "_Still frame_",
             "a harbour, first light, 35mm",
         ] {
@@ -3471,7 +3541,8 @@ mod tests {
         let message = first_message(&conn, &video_id);
         assert_eq!(message.meta["proposal"]["change"], "replace");
         assert!(
-            message.body.contains("| 2 |  |  |  | two |"),
+            // Section, time, shot and layer are all unset: four empty cells.
+            message.body.contains("| 2 |  |  |  |  | two |"),
             "{}",
             message.body
         );

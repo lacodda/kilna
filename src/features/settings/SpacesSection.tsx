@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { ListRow } from '@/components/ui/list-row'
 import { LookPicker } from '@/features/spaces/LookPicker'
 import { NewSpaceDialog } from '@/features/spaces/NewSpaceDialog'
+import { SpaceTypes } from '@/features/settings/SpaceTypes'
 import { SpaceGlyph, kindLook } from '@/features/spaces/look'
 import { useOpenSpace } from '@/features/spaces/useOpenSpace'
 
@@ -139,6 +140,9 @@ export function SpacesSection() {
           <div className="flex flex-col">{trashed.map(row)}</div>
         </>
       )}
+
+      {/* What a new space can be made of beside the shipped kinds. */}
+      <SpaceTypes />
 
       <NewSpaceDialog open={making} onOpenChange={setMaking} />
       <PromptDialog

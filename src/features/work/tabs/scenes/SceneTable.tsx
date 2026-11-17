@@ -9,6 +9,8 @@ import { CELL } from '@/features/work/tabs/scenes/SceneRow'
 interface Props {
   /** The kind names kinds of shot, so the board has a column for them. */
   shots: boolean
+  /** The kind names layers, so the board has a column for them. */
+  layers: boolean
   /** The board has an About column. */
   about: boolean
   /** What the body says when the filters leave no row; null while they
@@ -19,8 +21,16 @@ interface Props {
 }
 
 /** How many columns a row spans, for the open row under it. */
-export function columnsOf({ shots, about }: { shots: boolean; about: boolean }): number {
-  return 6 + (shots ? 1 : 0) + (about ? 1 : 0)
+export function columnsOf({
+  shots,
+  layers,
+  about,
+}: {
+  shots: boolean
+  layers: boolean
+  about: boolean
+}): number {
+  return 6 + (shots ? 1 : 0) + (layers ? 1 : 0) + (about ? 1 : 0)
 }
 
 /**
@@ -40,7 +50,7 @@ export function columnsOf({ shots, about }: { shots: boolean; about: boolean }):
  * board fits a laptop, and it scrolls sideways only when the window is
  * narrower than the cells themselves.
  */
-export function SceneTable({ shots, about, none, children }: Props) {
+export function SceneTable({ shots, layers, about, none, children }: Props) {
   const { t } = useTranslation()
 
   // How wide the pane actually is. The table may be wider than it on a
@@ -64,7 +74,7 @@ export function SceneTable({ shots, about, none, children }: Props) {
     watching.current = watch
   }
 
-  const columns = columnsOf({ shots, about })
+  const columns = columnsOf({ shots, layers, about })
   const heading = cn(CELL, 'whitespace-nowrap')
 
   return (
@@ -85,6 +95,7 @@ export function SceneTable({ shots, about, none, children }: Props) {
               <TableHeader className={heading}>{t('scenes.section')}</TableHeader>
               <TableHeader className={heading}>{t('scenes.span')}</TableHeader>
               {shots && <TableHeader className={heading}>{t('scenes.shotType')}</TableHeader>}
+              {layers && <TableHeader className={heading}>{t('scenes.layer')}</TableHeader>}
               {/* The column that takes what the others leave. */}
               <TableHeader className={cn(heading, 'w-full')}>{t('scenes.description')}</TableHeader>
               {about && <TableHeader className={heading}>{t('scenes.about')}</TableHeader>}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
-import { isLabelMap, resolveLabel } from '@/lib/label'
+import { isLabelMap, relabel, relabelOptional, resolveLabel } from '@/lib/label'
 
 describe('resolveLabel', () => {
   it('says a map in the language asked, then English, then whatever it holds', () => {
@@ -41,5 +41,29 @@ describe('i18n interpolation', () => {
   it('leaves ordinary values alone', () => {
     const english = i18n.getFixedT('en')
     expect(english('editor.producesVersion', { role: 'Lyrics' })).toContain('Lyrics')
+  })
+})
+
+describe('relabel', () => {
+  it('rewrites a word in the window language and keeps the others', () => {
+    expect(relabel({ en: 'Song', ru: 'Песня' }, 'Трек', 'ru')).toEqual({ en: 'Song', ru: 'Трек' })
+    expect(relabel({ en: 'Song', ru: 'Песня' }, 'Трек', 'ru-RU')).toEqual({
+      en: 'Song',
+      ru: 'Трек',
+    })
+    // A language the word did not have yet is added, not written over English.
+    expect(relabel({ en: 'Song' }, 'Песня', 'ru')).toEqual({ en: 'Song', ru: 'Песня' })
+  })
+
+  it('keeps a typed word one string', () => {
+    expect(relabel('Track', 'Трек', 'ru')).toBe('Трек')
+    expect(relabel(undefined, 'Трек', 'ru')).toBe('Трек')
+  })
+
+  it('lets an optional word go in one language, and altogether with its last', () => {
+    expect(relabelOptional({ en: 'A hint', ru: 'Подсказка' }, '', 'ru')).toEqual({ en: 'A hint' })
+    expect(relabelOptional({ ru: 'Подсказка' }, '', 'ru')).toBeUndefined()
+    expect(relabelOptional('A hint', '', 'en')).toBeUndefined()
+    expect(relabelOptional(null, 'A hint', 'en')).toBe('A hint')
   })
 })

@@ -7,7 +7,7 @@ import type { JsonValue } from "./serde_json/JsonValue";
  * edits one block and sends them all, so the log's `before` holds the set
  * as it was and an undo puts the set back.
  */
-export type ScenePatch = { position?: number | null, section?: string | null | null, starts_at?: number | null | null, ends_at?: number | null | null, shot_type?: string | null | null, description?: string | null, blocks?: { [key in string]: JsonValue } | null, 
+export type ScenePatch = { position?: number | null, section?: string | null | null, starts_at?: number | null | null, ends_at?: number | null | null, shot_type?: string | null | null, layer?: string | null | null, description?: string | null, blocks?: { [key in string]: JsonValue } | null, 
 /**
  * `Some(None)` takes the built frame away: the blocks are copied as
  * written again.

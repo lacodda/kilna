@@ -422,6 +422,7 @@ export function studio(): Studio {
       starts_at: 0,
       ends_at: 12,
       shot_type: null,
+      layer: null,
       description: 'The lantern is lit on the riverbank.',
       blocks: { still: 'close-up of hands lighting a paper lantern at dusk' },
       framing: null,
@@ -437,6 +438,7 @@ export function studio(): Studio {
       starts_at: 12,
       ends_at: 30,
       shot_type: null,
+      layer: null,
       description: 'The lantern drifts under the bridge.',
       blocks: {},
       framing: null,
@@ -1058,6 +1060,11 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     // into spaces, its name already given (ADR 0077).
     current_space: () => ({ space: SPACE, held_by: null, portable: false }),
     list_spaces: () => [SPACE],
+    list_space_types: () => [],
+    // The draft of a profile is asked about as it is edited; what is wrong
+    // with one is the backend's to say, and a test that wants a problem
+    // answers with it.
+    check_profile_config: () => [],
     take_launch_target: () => null,
     warn_unready_releases: () => ({ standing: 0, tomorrow: [] }),
     last_undoable: () => null,

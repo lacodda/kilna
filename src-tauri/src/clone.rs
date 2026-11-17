@@ -109,6 +109,7 @@ pub fn clone_work_minted(
                 starts_at: original.starts_at,
                 ends_at: original.ends_at,
                 shot_type: original.shot_type.clone(),
+                layer: original.layer.clone(),
                 description: Some(original.description.clone()),
                 blocks: Some(original.blocks.clone()),
             },

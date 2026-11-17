@@ -80,7 +80,7 @@ const BROKEN: Plugin = {
   executable: 'kilna-plugin-broken',
   path: 'C:/workspace/plugins/kilna-plugin-broken.cmd',
   usable: false,
-  reason: 'its manifest could not be read: expected value',
+  reason: { key: 'plugins.why.badManifest', params: { cause: 'expected value' } },
   enabled: true,
   settings: {},
   manifest: null,
@@ -134,7 +134,9 @@ describe('the plugins in Settings', () => {
 
     const broken = within(block(main, BROKEN.executable))
     expect(broken.getByText(en.plugins.state.unusable)).toBeVisible()
-    expect(broken.getByText(BROKEN.reason!)).toBeVisible()
+    expect(
+      broken.getByText(en.plugins.why.badManifest.replace('{{cause}}', 'expected value')),
+    ).toBeVisible()
   })
 
   it('says where a plugin goes when there are none, and how one is written', async () => {

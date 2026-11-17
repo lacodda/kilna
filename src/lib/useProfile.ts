@@ -65,6 +65,7 @@ export interface Vocabulary {
   release_kinds: ReleaseKind[]
   statuses: Status[]
   shot_types: Kind[]
+  layers: Kind[]
   scene_blocks: SceneBlock[]
   /** Works of this kind go out under a cover built in the constructor
    *  (v0.88, ADR 0049). */
@@ -83,6 +84,7 @@ const NOTHING: Vocabulary = {
   release_kinds: [],
   statuses: [],
   shot_types: [],
+  layers: [],
   scene_blocks: [],
   cover: false,
   frame: false,
@@ -108,6 +110,7 @@ export function vocabularyOf(config: ProfileConfig, kind: string | undefined): V
     release_kinds: found.release_kinds ?? [],
     statuses: found.statuses ?? [],
     shot_types: found.shot_types ?? [],
+    layers: found.layers ?? [],
     scene_blocks: found.scene_blocks ?? [],
     cover: found.cover ?? false,
     frame: found.frame ?? false,

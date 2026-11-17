@@ -243,7 +243,7 @@ fn through_an_action(path: &str) -> bool {
 /// Each entry is a promise that replaying the log without its write still
 /// produces the right database, and says why. Anything not on this list that
 /// writes has to hand the write to an action.
-const WRITES_PAST_THE_ACTIONS: [(&str, &str); 17] = [
+const WRITES_PAST_THE_ACTIONS: [(&str, &str); 19] = [
     (
         "create_space",
         "a space is a folder of its own with a database of its own (ADR 0077): making one \
@@ -259,6 +259,13 @@ const WRITES_PAST_THE_ACTIONS: [(&str, &str); 17] = [
         "restore_space",
         "taking a space out of the trash is this machine's registry, which is not a workspace",
     ),
+    (
+        "rename_space_type",
+        "a type of space is this machine's record of what it makes spaces of (ADR 0079), kept \
+         in the application's database beside the registry: no workspace's log is the place \
+         for it",
+    ),
+    ("delete_space_type", "as above"),
     (
         "open_target",
         "as above: a space double-clicked is written into this machine's registry, and taken \

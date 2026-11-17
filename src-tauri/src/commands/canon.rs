@@ -145,9 +145,13 @@ pub fn set_picture_role(state: State<'_, AppState>, id: String, role: String) ->
 #[tauri::command]
 pub fn pending_canon_proposals(
     state: State<'_, AppState>,
+    locale: Option<String>,
 ) -> Result<Vec<crate::assistant::apply::CanonProposal>> {
     let conn = state.conn();
-    crate::assistant::apply::pending_canon(&conn, &active(&conn)?)
+    let speech = locale
+        .as_deref()
+        .map_or(crate::speech::Speech::ENGLISH, crate::speech::Speech::of);
+    crate::assistant::apply::pending_canon(&conn, &active(&conn)?, speech)
 }
 
 /// A proposal for the canon read against the canon as it stands now: for each

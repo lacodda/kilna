@@ -1069,6 +1069,7 @@ fn add_scene(
             starts_at: packaged.starts_at,
             ends_at: packaged.ends_at,
             shot_type: packaged.shot_type,
+            layer: packaged.layer,
             description: Some(packaged.description),
             blocks: Some(packaged.blocks),
         },
@@ -1094,6 +1095,7 @@ fn rewrite_scene(
             starts_at: Some(packaged.starts_at),
             ends_at: Some(packaged.ends_at),
             shot_type: Some(packaged.shot_type),
+            layer: Some(packaged.layer),
             description: Some(packaged.description),
             blocks: Some(packaged.blocks),
             // A storyboard proposed whole says nothing about a scene's built
@@ -1135,6 +1137,7 @@ fn revise_scene(conn: &Connection, id: &str, packaged: PackagedScene) -> Result<
             starts_at: packaged.starts_at.map(Some),
             ends_at: packaged.ends_at.map(Some),
             shot_type: packaged.shot_type.map(Some),
+            layer: packaged.layer.map(Some),
             description: (!packaged.description.trim().is_empty()).then_some(packaged.description),
             blocks,
             framing: None,
@@ -1300,6 +1303,7 @@ mod tests {
             starts_at: Some(12.0),
             ends_at: Some(16.5),
             shot_type: Some("wide".into()),
+            layer: Some("story".into()),
             description: description.into(),
             blocks,
         }
@@ -1333,6 +1337,7 @@ mod tests {
             vec![(1, "old scene 1"), (2, "new two"), (3, "new three")]
         );
         assert_eq!(board[1].shot_type.as_deref(), Some("wide"));
+        assert_eq!(board[1].layer.as_deref(), Some("story"));
         assert_eq!(board[1].blocks["still"], "new two, 35mm");
         assert_eq!(board[1].ends_at, Some(16.5));
         assert_eq!(
@@ -1497,13 +1502,14 @@ mod tests {
             &[packaged("the harbour"), second.clone()],
             vocabulary,
             BoardChange::Add,
+            crate::speech::Speech::ENGLISH,
         );
         assert!(
-            added.contains("| + | chorus | 0:12–0:16.5 | Wide | the harbour |"),
+            added.contains("| + | chorus | 0:12–0:16.5 | Wide | Story | the harbour |"),
             "{added}"
         );
         assert!(
-            added.contains("| 7 | chorus |  | Wide | hands on a rope |"),
+            added.contains("| 7 | chorus |  | Wide | Story | hands on a rope |"),
             "{added}"
         );
         assert!(
@@ -1515,7 +1521,12 @@ mod tests {
             "no blocks, no section: {added}"
         );
 
-        let replaced = render_board(&[packaged("the harbour")], vocabulary, BoardChange::Replace);
+        let replaced = render_board(
+            &[packaged("the harbour")],
+            vocabulary,
+            BoardChange::Replace,
+            crate::speech::Speech::ENGLISH,
+        );
         assert!(
             replaced.contains("| 1 | chorus |"),
             "a replaced board numbers in order: {replaced}"
@@ -2437,7 +2448,7 @@ mod tests {
         let (conn, profile_id, _) = workspace();
         let config = profile::config_for(&conn, &profile_id).unwrap();
 
-        let body = render_package(&package(), &config, "song");
+        let body = render_package(&package(), &config, "song", crate::speech::Speech::ENGLISH);
 
         assert!(body.starts_with("## Winter road · Song"), "{body}");
         assert!(
@@ -2481,7 +2492,7 @@ mod tests {
             boards: Vec::new(),
         };
 
-        let body = render_package(&proposal, &config, "song");
+        let body = render_package(&proposal, &config, "song", crate::speech::Speech::ENGLISH);
 
         assert!(body.contains("````\na line with ``` in it\n````"), "{body}");
     }
@@ -2499,6 +2510,7 @@ mod tests {
             starts_at: None,
             ends_at: None,
             shot_type: Some("close".into()),
+            layer: Some("performance".into()),
             description: String::new(),
             blocks,
         };
@@ -2537,6 +2549,7 @@ mod tests {
         );
         assert_eq!(board[1].blocks["still"], "a new still");
         assert_eq!(board[1].shot_type.as_deref(), Some("close"));
+        assert_eq!(board[1].layer.as_deref(), Some("performance"));
         assert_eq!(operation_kinds(&conn), vec!["scene.update", "scene.create"]);
 
         let unnumbered = propose(
@@ -3000,7 +3013,12 @@ mod tests {
         let chat = chat_on(&conn, &profile_id, None);
         propose(&conn, &chat, "", Proposal::Canon { package });
 
-        let waiting = crate::assistant::apply::pending_canon(&conn, &profile_id).unwrap();
+        let waiting = crate::assistant::apply::pending_canon(
+            &conn,
+            &profile_id,
+            crate::speech::Speech::ENGLISH,
+        )
+        .unwrap();
         assert_eq!(waiting.len(), 1);
         assert!(
             waiting[0].cards.contains(&wren.id),

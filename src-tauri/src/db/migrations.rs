@@ -318,18 +318,32 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0050_spaces.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 51,
+        name: "scene_layer",
+        sql: include_str!("../../migrations/0051_scene_layer.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what
 /// this machine knows about the spaces it has opened, and the settings that
 /// are the person's whatever space is open. Numbered apart from a space's: the
 /// two files never meet, and each says its own version.
-pub const APP_MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "spaces",
-    sql: include_str!("../../app-migrations/0001_spaces.sql"),
-    rebuilds: false,
-}];
+pub const APP_MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "spaces",
+        sql: include_str!("../../app-migrations/0001_spaces.sql"),
+        rebuilds: false,
+    },
+    Migration {
+        version: 2,
+        name: "space_types",
+        sql: include_str!("../../app-migrations/0002_space_types.sql"),
+        rebuilds: false,
+    },
+];
 
 /// The newest schema this build understands.
 pub fn latest_version() -> i64 {
@@ -440,9 +454,11 @@ mod tests {
 
     /// The application's database is brought up by its own steps, never a
     /// space's: a space's tables in `app.db`, or the registry in a space,
-    /// would be a second home for one of them.
+    /// would be a second home for one of them. It holds what this machine
+    /// knows whatever space is open: the spaces, the types they are made of
+    /// (v0.112, ADR 0079) and the assistant's settings.
     #[test]
-    fn the_application_database_holds_the_registry_and_the_settings_only() {
+    fn the_application_database_holds_the_registry_the_types_and_the_settings_only() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         assert_eq!(apply_app(&mut conn).unwrap(), latest_app_version());
@@ -457,7 +473,7 @@ mod tests {
             .unwrap()
             .collect::<rusqlite::Result<_>>()
             .unwrap();
-        assert_eq!(tables, ["assistant_settings", "space"]);
+        assert_eq!(tables, ["assistant_settings", "space", "space_type"]);
         assert_eq!(apply_app(&mut conn).unwrap(), latest_app_version());
     }
 

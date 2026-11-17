@@ -318,6 +318,36 @@ pub fn rename(conn: &Connection, id: &str, title: Option<&str>) -> Result<()> {
     Ok(())
 }
 
+/// A chat as a window reads it in its own language (v0.112, ADR 0080): the
+/// messages as stored, except the bodies kilna wrote out itself from a
+/// proposal an agent sent, which are written out again in that language from
+/// the proposal the message carries. What is stored is not touched - an
+/// exported chat, and an agent reading it, get the body as it was written.
+pub fn transcript_in(
+    conn: &Connection,
+    chat_id: &str,
+    speech: crate::speech::Speech<'_>,
+) -> Result<Option<Transcript>> {
+    let Some(mut transcript) = transcript(conn, chat_id)? else {
+        return Ok(None);
+    };
+    if speech.is_source() {
+        return Ok(Some(transcript));
+    }
+    let config = crate::profile::config_for(conn, &transcript.chat.profile_id)?;
+    let work_kind = match transcript.chat.work_id.as_deref() {
+        Some(id) => crate::work::get(conn, id)?.map(|work| work.kind),
+        None => None,
+    };
+    for message in &mut transcript.messages {
+        if let Some(body) = apply::spoken_body(conn, &config, work_kind.as_deref(), message, speech)
+        {
+            message.body = body;
+        }
+    }
+    Ok(Some(transcript))
+}
+
 pub fn transcript(conn: &Connection, chat_id: &str) -> Result<Option<Transcript>> {
     let Some(chat) = get(conn, chat_id)? else {
         return Ok(None);

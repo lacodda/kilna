@@ -18,7 +18,11 @@ starts_at: number | null, ends_at: number | null,
 /**
  * A key of the kind's `shot_types`; unset when not yet decided.
  */
-shot_type: string | null, description: string, 
+shot_type: string | null, 
+/**
+ * A key of the kind's `layers`; unset when not yet decided.
+ */
+layer: string | null, description: string, 
 /**
  * Prompt blocks by the kind's `scene_blocks` key.
  */

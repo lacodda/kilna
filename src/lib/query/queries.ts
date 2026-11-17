@@ -1,4 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
+import i18n from '@/i18n'
 import { listReleaseAssets, listWorkAssets, listCovers } from '@/lib/api/assets'
 import { mediaDirectory, mediaRoot, workFolder } from '@/lib/api/folders'
 import {
@@ -91,7 +92,7 @@ import {
   workTimeline,
 } from '@/lib/api/works'
 import { getWorkspace, mcpRegistration } from '@/lib/api/workspace'
-import { currentSpace, listSpaces } from '@/lib/api/spaces'
+import { currentSpace, listSpaceTypes, listSpaces } from '@/lib/api/spaces'
 import { activity } from '@/lib/api/shell'
 import { keys } from '@/lib/query/keys'
 
@@ -109,6 +110,7 @@ export const queries = {
   workspace: () => queryOptions({ queryKey: keys.workspace, queryFn: getWorkspace }),
   spaces: () => queryOptions({ queryKey: keys.spaces, queryFn: listSpaces }),
   currentSpace: () => queryOptions({ queryKey: keys.currentSpace, queryFn: currentSpace }),
+  spaceTypes: () => queryOptions({ queryKey: keys.spaceTypes, queryFn: listSpaceTypes }),
 
   works: () => queryOptions({ queryKey: keys.works, queryFn: () => listWorks() }),
   work: (id: string) => queryOptions({ queryKey: keys.work(id), queryFn: () => getWork(id) }),
@@ -297,7 +299,10 @@ export const queries = {
       queryFn: () => canonTimeline(id ?? undefined),
     }),
   canonProposals: () =>
-    queryOptions({ queryKey: keys.canonProposals, queryFn: pendingCanonProposals }),
+    queryOptions({
+      queryKey: keys.canonProposals,
+      queryFn: () => pendingCanonProposals(i18n.resolvedLanguage ?? 'en'),
+    }),
   canonReview: (messageId: string) =>
     queryOptions({
       queryKey: keys.canonReview(messageId),
@@ -361,8 +366,14 @@ export const queries = {
     queryOptions({ queryKey: keys.waitingScores(workId), queryFn: () => waitingScores(workId) }),
   chats: (workId?: string) =>
     queryOptions({ queryKey: keys.chats(workId), queryFn: () => listChatSummaries(workId) }),
-  transcript: (chatId: string) =>
-    queryOptions({ queryKey: keys.transcript(chatId), queryFn: () => getTranscript(chatId) }),
+  // Keyed by the window's language too: a proposal's body is said in it, and
+  // a window that changes language reads the chat again. Everything that
+  // refreshes a transcript names it by its first two parts, as before.
+  transcript: (chatId: string, language: string = i18n.resolvedLanguage ?? 'en') =>
+    queryOptions({
+      queryKey: [...keys.transcript(chatId), language] as const,
+      queryFn: () => getTranscript(chatId, language),
+    }),
   runs: (chatId: string) =>
     queryOptions({ queryKey: keys.runs(chatId), queryFn: () => listRuns(chatId) }),
   activeRuns: () => queryOptions({ queryKey: keys.activeRuns, queryFn: activeRuns }),

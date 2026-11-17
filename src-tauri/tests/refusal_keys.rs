@@ -198,11 +198,100 @@ fn no_sentence_is_written_for_a_refusal_nobody_makes() {
         .collect();
     let stale: Vec<String> = locale("en")
         .into_keys()
-        .filter(|key| key.starts_with("refusal.") || key.starts_with("skip."))
+        .filter(|key| {
+            key.starts_with("refusal.")
+                || key.starts_with("skip.")
+                || key.starts_with("problem.")
+                || key.starts_with("place.")
+                || key.starts_with("plugins.why.")
+        })
         .filter(|key| !used.contains(key))
         .collect();
     assert!(
         stale.is_empty(),
         "these sentences describe refusals nothing makes any more: {stale:?}"
+    );
+}
+
+/// What the profile validator says travels as `problem.*` reasons, each with
+/// a `place.*` of its own: every key the source names must be in the English
+/// locale, and a sentence's values must be given where its key is written.
+#[test]
+fn every_problem_and_place_has_a_sentence_that_is_given_its_values() {
+    let sources = backend();
+    let english = locale("en");
+    let marker = "Reason::of(\"";
+    let mut problems = Vec::new();
+    let mut seen = 0;
+    for file in &sources {
+        for (at, _) in file.text.match_indices(marker) {
+            if file.code.as_bytes()[at] == b' ' {
+                continue;
+            }
+            let start = at + marker.len();
+            let Some(end) = file.text[start..].find('"') else {
+                continue;
+            };
+            let key = &file.text[start..start + end];
+            if !(key.starts_with("problem.") || key.starts_with("place.")) {
+                continue;
+            }
+            seen += 1;
+            let Some(sentence) = english.get(key) else {
+                problems.push(format!("{}: `{key}` has no sentence in en.json", file.path));
+                continue;
+            };
+            // The values are passed in the same statement, or - for a place
+            // built by a helper - in the helper's chain; both end at `;` or
+            // at the function's closing brace.
+            let rest = &file.text[start + end..];
+            let function_end = format!("{}}}", char::from(10u8));
+            let stop = [rest.find(';'), rest.find(&function_end)]
+                .into_iter()
+                .flatten()
+                .min()
+                .unwrap_or(rest.len());
+            // Formatting may put a value's name on a line of its own.
+            let window: String = rest[..stop].split_whitespace().collect();
+            for name in placeholders(sentence) {
+                if !window.contains(&format!(".param(\"{name}\"")) {
+                    problems.push(format!(
+                        "{}: `{key}` says {{{{{name}}}}} and is not given it",
+                        file.path
+                    ));
+                }
+            }
+        }
+    }
+    // The scan's watchdog: the validator names well over a hundred of them.
+    assert!(seen >= 100, "found only {seen} problems and places");
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+/// The body a proposal is shown with is written out whole by the backend, in
+/// the window's language (`speech.rs`, ADR 0080), from sentences under
+/// `proposalBody.*`: every key the source names has a sentence, and no
+/// sentence is kept for a key the source no longer names.
+#[test]
+fn the_words_of_a_proposals_body_are_the_ones_the_source_names() {
+    let sources = backend();
+    let named: BTreeSet<String> = sources
+        .iter()
+        .flat_map(common::string_literals)
+        .map(|(_, text)| text)
+        .filter(|text| text.starts_with("proposalBody."))
+        .collect();
+    assert!(
+        named.len() >= 20,
+        "found only {} words of a proposal's body - the scan has stopped seeing them",
+        named.len()
+    );
+    let kept: BTreeSet<String> = locale("en")
+        .into_keys()
+        .filter(|key| key.starts_with("proposalBody."))
+        .collect();
+    assert_eq!(
+        named, kept,
+        "the source and en.json name different words for a proposal's body"
     );
 }

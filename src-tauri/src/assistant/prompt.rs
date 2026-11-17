@@ -722,7 +722,7 @@ pub fn for_work(
     Ok(rendered)
 }
 
-/// The board as a table — number, section, seconds, kind of shot,
+/// The board as a table — number, section, seconds, kind of shot, layer,
 /// description — for a prompt that reads `{scenes}`. The blocks stay out:
 /// a board of fifty scenes with three prompts each is not what an action
 /// about the board's shape needs to read. An empty board says so.
@@ -731,11 +731,17 @@ pub fn board_table(scenes: &[Scene], kind: &WorkKind) -> String {
         return "(the board is empty)".to_owned();
     }
     let has_shots = !kind.shot_types.is_empty();
+    let has_layers = !kind.layers.is_empty();
     let mut out = String::from(if has_shots {
-        "| # | Section | Time | Shot | Description |\n| --- | --- | --- | --- | --- |\n"
+        "| # | Section | Time | Shot |"
     } else {
-        "| # | Section | Time | Description |\n| --- | --- | --- | --- |\n"
+        "| # | Section | Time |"
     });
+    out.push_str(if has_layers { " Layer |" } else { "" });
+    out.push_str(" Description |\n| --- | --- | ---");
+    out.push_str(if has_shots { " | ---" } else { "" });
+    out.push_str(if has_layers { " | ---" } else { "" });
+    out.push_str(" | --- |\n");
     for scene in scenes {
         let cell = |text: &str| text.replace('|', "\\|").replace('\n', " ");
         let mut row = vec![
@@ -749,6 +755,14 @@ pub fn board_table(scenes: &[Scene], kind: &WorkKind) -> String {
                     .shot_type
                     .as_deref()
                     .map_or(String::new(), |key| shot_label(kind, key)),
+            ));
+        }
+        if has_layers {
+            row.push(cell(
+                &scene
+                    .layer
+                    .as_deref()
+                    .map_or(String::new(), |key| layer_label(kind, key)),
             ));
         }
         row.push(cell(&scene.description));
@@ -770,6 +784,9 @@ pub fn scene_sheet(scene: &Scene, kind: &WorkKind) -> String {
     }
     if let Some(shot) = scene.shot_type.as_deref() {
         out.push_str(&format!(" · {}", shot_label(kind, shot)));
+    }
+    if let Some(layer) = scene.layer.as_deref() {
+        out.push_str(&format!(" · {}", layer_label(kind, layer)));
     }
     out.push('\n');
     if !scene.description.trim().is_empty() {
@@ -1342,6 +1359,13 @@ fn shot_label(kind: &WorkKind, key: &str) -> String {
         .map_or(key.to_owned(), |s| s.label.as_str().to_owned())
 }
 
+fn layer_label(kind: &WorkKind, key: &str) -> String {
+    kind.layers
+        .iter()
+        .find(|l| l.key == key)
+        .map_or(key.to_owned(), |l| l.label.as_str().to_owned())
+}
+
 fn span(starts_at: Option<f64>, ends_at: Option<f64>) -> String {
     match (starts_at, ends_at) {
         (Some(from), Some(to)) => format!("{}–{}", scene::timecode(from), scene::timecode(to)),
@@ -1780,6 +1804,7 @@ mod tests {
                 starts_at: Some(0.0),
                 ends_at: Some(4.5),
                 shot_type: Some("wide".into()),
+                layer: Some("story".into()),
                 description: Some("the harbour at dawn".into()),
                 blocks: Some(blocks),
                 ..NewScene::default()
@@ -1799,11 +1824,11 @@ mod tests {
 
         let board = for_work(&conn, &video_id, "{scenes}", Context::default()).unwrap();
         assert!(
-            board.contains("| 1 | intro | 0:00–0:04.5 | Wide | the harbour at dawn |"),
+            board.contains("| 1 | intro | 0:00–0:04.5 | Wide | Story | the harbour at dawn |"),
             "{board}"
         );
         assert!(
-            board.contains("| 2 |  |  |  | a face \\| turned |"),
+            board.contains("| 2 |  |  |  |  | a face \\| turned |"),
             "{board}"
         );
         assert!(
@@ -1823,7 +1848,7 @@ mod tests {
         )
         .unwrap();
         assert!(
-            sheet.starts_with("Scene 1 · intro · 0:00–0:04.5 · Wide\n"),
+            sheet.starts_with("Scene 1 · intro · 0:00–0:04.5 · Wide · Story\n"),
             "{sheet}"
         );
         assert!(sheet.contains("the harbour at dawn"), "{sheet}");

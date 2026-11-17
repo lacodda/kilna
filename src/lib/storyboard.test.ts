@@ -18,6 +18,7 @@ const scene = (position: number, over: Partial<Scene> = {}): Scene => ({
   starts_at: null,
   ends_at: null,
   shot_type: null,
+  layer: null,
   description: 'a room at dusk',
   blocks: { still: 'a room', motion: 'slow push in' },
   framing: null,

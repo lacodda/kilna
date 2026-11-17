@@ -104,7 +104,8 @@ Each work's page includes:
 - A table of score history: date, total, tier, who gave it, and the axis
   values behind each snapshot.
 - The storyboard, for a work that has one: the scenes as a table — number,
-  section, seconds, kind of shot, description — then each scene's prompt
+  section, seconds, kind of shot, layer (for a kind that names layers),
+  description — then each scene's prompt
   blocks in full.
 - The cover, for a publication that has one: the idea, the scene and what it
   keeps out in words, what it is built from by name - the layout, the hero,

@@ -30,3 +30,41 @@ export function resolveLabel(label: Label | null | undefined, language: string):
   if (found !== undefined) return found
   return Object.values(label)[0] ?? ''
 }
+
+/** The language a word of a map is kept under: `ru` for a window in `ru-RU`. */
+function wordKey(label: Record<string, string>, language: string): string {
+  if (label[language] !== undefined) return language
+  return language.split('-')[0] ?? language
+}
+
+/**
+ * A word as the editor rewrites it in the window's language: a word kept in
+ * several languages changes in this one and keeps the rest, and a word that
+ * is one string stays one string.
+ *
+ * Until v0.112 the profile editor wrote the typed text over the whole label,
+ * so renaming "Песня" in a Russian window threw the English word away - and
+ * with it the way a carried-forward profile is told from one the owner
+ * reworded.
+ */
+export function relabel(label: Label | null | undefined, text: string, language: string): Label {
+  if (isLabelMap(label)) return { ...label, [wordKey(label, language)]: text }
+  return text
+}
+
+/**
+ * `relabel` for a word that may be absent - a description, a hint: emptied in
+ * this language it leaves the map, and a map left with nothing is no word.
+ */
+export function relabelOptional(
+  label: Label | null | undefined,
+  text: string,
+  language: string,
+): Label | undefined {
+  if (!isLabelMap(label)) return text === '' ? undefined : text
+  if (text !== '') return { ...label, [wordKey(label, language)]: text }
+  const rest = Object.fromEntries(
+    Object.entries(label).filter(([key]) => key !== wordKey(label, language)),
+  )
+  return Object.keys(rest).length === 0 ? undefined : rest
+}

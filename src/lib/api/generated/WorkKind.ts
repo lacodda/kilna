@@ -48,6 +48,16 @@ statuses?: Array<Status>,
  */
 shot_types?: Array<Kind>, 
 /**
+ * The layers a scene of this kind's storyboard can belong to - the
+ * story, the performance, the texture cut between them - each a visual
+ * style of its own: a second dictionary beside the kinds of shot, which
+ * say how a scene is framed, where a layer says which strand of the
+ * piece it is. A kind that names none has no layers, and its board
+ * draws no column for them. Added in v0.112 - a document without it is
+ * the same document.
+ */
+layers?: Array<Kind>, 
+/**
  * The prompt blocks a scene carries — a still frame, an animation, a
  * negative — each edited and copied on its own.
  */

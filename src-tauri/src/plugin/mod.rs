@@ -13,7 +13,7 @@ use process_wrap::std::{CreationFlags, JobObject};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::error::{Error, Result};
+use crate::error::{Error, Reason, Result};
 use manifest::{Manifest, PREFIX, PROTOCOL_VERSION, Plugin, Target};
 
 /// Where kilna looks for plugins, in order.
@@ -56,7 +56,7 @@ pub fn discover(app_data_dir: &Path) -> Vec<Plugin> {
                     path: path.display().to_string(),
                     manifest: None,
                     usable: false,
-                    reason: Some("asking it what it is failed".into()),
+                    reason: Some(Reason::of("plugins.why.askFailed")),
                     enabled: true,
                     settings: Map::new(),
                 })
@@ -132,7 +132,7 @@ fn describe_within(path: &Path, name: &str, limit: std::time::Duration) -> Plugi
         Ok(child) => child,
         Err(error) => {
             return Plugin {
-                reason: Some(format!("could not run it: {error}")),
+                reason: Some(Reason::of("plugins.why.notRun").param("cause", error.to_string())),
                 ..base
             };
         }
@@ -142,10 +142,7 @@ fn describe_within(path: &Path, name: &str, limit: std::time::Duration) -> Plugi
         Ok(output) => output,
         Err(_) => {
             return Plugin {
-                reason: Some(format!(
-                    "it did not say what it is within {} seconds",
-                    limit.as_secs()
-                )),
+                reason: Some(Reason::of("plugins.why.silent").param("seconds", limit.as_secs())),
                 ..base
             };
         }
@@ -154,10 +151,12 @@ fn describe_within(path: &Path, name: &str, limit: std::time::Duration) -> Plugi
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Plugin {
+            // What a plugin wrote as it refused is its own words, in its own
+            // language: passed on as said.
             reason: Some(if stderr.trim().is_empty() {
-                "it refused to describe itself".into()
+                Reason::of("plugins.why.refused")
             } else {
-                stderr.trim().to_owned()
+                Reason::of("plugins.why.said").param("said", stderr.trim())
             }),
             ..base
         };
@@ -167,7 +166,9 @@ fn describe_within(path: &Path, name: &str, limit: std::time::Duration) -> Plugi
         Ok(manifest) => manifest,
         Err(error) => {
             return Plugin {
-                reason: Some(format!("its manifest could not be read: {error}")),
+                reason: Some(
+                    Reason::of("plugins.why.badManifest").param("cause", error.to_string()),
+                ),
                 ..base
             };
         }
@@ -175,10 +176,11 @@ fn describe_within(path: &Path, name: &str, limit: std::time::Duration) -> Plugi
 
     if manifest.protocol_version != PROTOCOL_VERSION {
         return Plugin {
-            reason: Some(format!(
-                "it speaks protocol {} and this build speaks {PROTOCOL_VERSION}",
-                manifest.protocol_version
-            )),
+            reason: Some(
+                Reason::of("plugins.why.protocol")
+                    .param("theirs", manifest.protocol_version)
+                    .param("ours", PROTOCOL_VERSION),
+            ),
             manifest: Some(manifest),
             ..base
         };
@@ -868,7 +870,8 @@ mod tests {
             let busy = found.iter().any(|plugin| {
                 plugin
                     .reason
-                    .as_deref()
+                    .as_ref()
+                    .map(Reason::english)
                     .unwrap_or_default()
                     .contains("Text file busy")
             });
@@ -928,7 +931,12 @@ mod tests {
 
         assert!(!plugin.usable);
         assert!(
-            plugin.reason.as_deref().unwrap_or_default().contains("99"),
+            plugin
+                .reason
+                .as_ref()
+                .map(Reason::english)
+                .unwrap_or_default()
+                .contains("99"),
             "the mismatch must be shown, not hidden"
         );
     }
@@ -1106,8 +1114,9 @@ mod tests {
         assert!(
             plugin
                 .reason
-                .as_deref()
-                .is_some_and(|reason| reason.contains("did not say what it is")),
+                .as_ref()
+                .is_some_and(|reason| reason.key == "plugins.why.silent"
+                    && reason.english().contains("did not say what it is")),
             "{:?}",
             plugin.reason
         );
@@ -1199,8 +1208,8 @@ mod tests {
         assert!(
             plugin
                 .reason
-                .as_deref()
-                .is_some_and(|reason| reason.contains("nothing to choose")),
+                .as_ref()
+                .is_some_and(|reason| reason.english().contains("nothing to choose")),
             "{:?}",
             plugin.reason
         );

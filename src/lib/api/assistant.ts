@@ -45,8 +45,11 @@ export const createChat = (chat: { work_id?: string | null; title?: string | nul
   invoke<Chat>('create_chat', { chat })
 export const renameChat = (id: string, title: string | null) =>
   invoke<void>('rename_chat', { id, title })
-export const getTranscript = (chatId: string) =>
-  invoke<Transcript | null>('get_transcript', { chatId })
+/** A chat's messages. The language is the window's: what an agent proposed
+ *  over MCP is shown with a body written out again from the proposal itself,
+ *  in that language (v0.112). */
+export const getTranscript = (chatId: string, locale: string) =>
+  invoke<Transcript | null>('get_transcript', { chatId, locale })
 export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })
 /** Star an answer, or take the star away; the moment it was starred, or null. */
 export const starAnswer = (messageId: string, starred: boolean) =>

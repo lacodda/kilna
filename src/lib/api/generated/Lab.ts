@@ -17,7 +17,8 @@ export type Lab = {
  */
 harvest?: string | null, 
 /**
- * The field of the experiment that holds its anchors, one to a line:
+ * The field of the experiment that holds its anchors - a list, or a
+ * text read one to a line as every experiment's was before v0.112:
  * what every trial must keep, word for word. A trial whose text has
  * lost one is marked on the board. Absent: an experiment has none.
  */

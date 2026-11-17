@@ -1,5 +1,6 @@
 import i18n from '@/i18n'
 import type { Meta, MetaField } from '@/lib/api/types'
+import { listEntries } from '@/lib/metaSchema'
 import { say } from '@/lib/useProfile'
 
 /**
@@ -22,6 +23,10 @@ export function fieldText(field: MetaField, value: Meta[string] | undefined): st
   if (field.type === 'choice') {
     const option = (field.options ?? []).find((entry) => entry.key === value)
     return option === undefined ? String(value) : say(option.label)
+  }
+  if (field.type === 'list') {
+    const entries = listEntries(value)
+    return entries.length === 0 ? null : entries.join(', ')
   }
   return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }

@@ -3,6 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::error::Reason;
+
 /// The protocol version kilna speaks. A plugin declaring anything else is
 /// listed but refused, with the mismatch shown — silently ignoring it would
 /// look like the plugin was not installed.
@@ -39,35 +41,37 @@ impl Manifest {
     /// What is wrong with a manifest that parsed: the mistakes the shape alone
     /// cannot hold. Said once, in the plugin's place on the settings screen,
     /// rather than as a form that cannot be filled in.
-    pub fn fault(&self) -> Option<String> {
+    pub fn fault(&self) -> Option<Reason> {
         let mut commands = BTreeSet::new();
         if let Some(command) = self
             .commands
             .iter()
             .find(|command| !commands.insert(command.key.as_str()))
         {
-            return Some(format!("it names the command “{}” twice", command.key));
+            return Some(
+                Reason::of("plugins.why.commandTwice").param("command", command.key.as_str()),
+            );
         }
         let mut settings = BTreeSet::new();
         for setting in &self.settings {
             if !settings.insert(setting.key.as_str()) {
-                return Some(format!("it names the setting “{}” twice", setting.key));
+                return Some(
+                    Reason::of("plugins.why.settingTwice").param("setting", setting.key.as_str()),
+                );
             }
             if let Control::Choice { options } = &setting.control
                 && options.is_empty()
             {
-                return Some(format!(
-                    "its setting “{}” offers nothing to choose",
-                    setting.key
-                ));
+                return Some(
+                    Reason::of("plugins.why.emptyChoice").param("setting", setting.key.as_str()),
+                );
             }
             if let Some(default) = &setting.default
                 && !setting.accepts(default)
             {
-                return Some(format!(
-                    "the default of its setting “{}” is not one the setting takes",
-                    setting.key
-                ));
+                return Some(
+                    Reason::of("plugins.why.badDefault").param("setting", setting.key.as_str()),
+                );
             }
         }
         None
@@ -277,7 +281,9 @@ pub struct Plugin {
     /// `None` when the manifest could not be read; `reason` says why.
     pub manifest: Option<Manifest>,
     pub usable: bool,
-    pub reason: Option<String>,
+    /// Why it cannot run, as a key the window says in its own language
+    /// (v0.112): until then the sentence was built here, in English.
+    pub reason: Option<Reason>,
     /// Whether the person left it on: one turned off offers nothing and cannot
     /// be run, and stays listed so it can be turned back on.
     pub enabled: bool,
@@ -429,6 +435,7 @@ mod tests {
                 .unwrap()
                 .fault()
                 .expect("a fault to name")
+                .english()
         };
         assert!(
             fault(

@@ -20,6 +20,8 @@ import type { Label, Meta, MetaField } from '@/lib/api/types'
  *   language the window speaks. A key the field no longer offers stays as an
  *   answer of its own, titled by itself, rather than the picker pretending
  *   nothing was chosen.
+ * - `list` is an array of strings, drawn as entries added and taken out one
+ *   by one (v0.112): the anchors of an experiment.
  */
 export function metaSchema(
   fields: readonly MetaField[],
@@ -61,6 +63,9 @@ export function metaSchema(
         properties[field.key] = { title, oneOf: answers }
         break
       }
+      case 'list':
+        properties[field.key] = { type: 'array', items: { type: 'string' }, title }
+        break
     }
   }
   return { type: 'object', properties }
@@ -79,9 +84,37 @@ export function metaRecord(
   for (const field of fields) {
     const value = meta[field.key]
     if (value === undefined || value === null || value === '') continue
+    if (field.type === 'list') {
+      const entries = listEntries(value)
+      if (entries.length > 0) record[field.key] = entries
+      continue
+    }
     record[field.key] = value
   }
   return record
+}
+
+/**
+ * The entries of a list field's stored value: the strings of a list, or the
+ * lines of a text - what the field held while it was one, as the anchors of
+ * an experiment were until v0.112. The backend reads it the same way
+ * (`MetaFieldType::entries`).
+ */
+export function listEntries(value: unknown): string[] {
+  const kept = (text: string) => text.trim()
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map(kept)
+      .filter((entry) => entry !== '')
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(/\r?\n/)
+      .map(kept)
+      .filter((entry) => entry !== '')
+  }
+  return []
 }
 
 /**

@@ -5,4 +5,4 @@ export type NewScene = { work_id: string,
 /**
  * After the last scene when omitted.
  */
-position?: number, section?: string, starts_at?: number, ends_at?: number, shot_type?: string, description?: string, blocks?: { [key in string]: JsonValue }, };
+position?: number, section?: string, starts_at?: number, ends_at?: number, shot_type?: string, layer?: string, description?: string, blocks?: { [key in string]: JsonValue }, };

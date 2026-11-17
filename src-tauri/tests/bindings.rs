@@ -58,6 +58,9 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::space::SpaceLook,
         kilna_lib::commands::spaces::CurrentSpace,
         kilna_lib::commands::spaces::Opened,
+        // types.rs
+        kilna_lib::space::types::SpaceType,
+        kilna_lib::space::types::ProfileDocument,
         // works.rs
         kilna_lib::work::WorkFilter,
         kilna_lib::work::Work,

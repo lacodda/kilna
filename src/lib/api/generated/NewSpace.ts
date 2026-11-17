@@ -3,4 +3,10 @@
 /**
  * What a person gives a new space.
  */
-export type NewSpace = { name: string, kind: string, colour: string | null, mark: string | null, };
+export type NewSpace = { name: string, kind: string, colour: string | null, mark: string | null, 
+/**
+ * The type the space is made of (v0.112, ADR 0079), by its id: its
+ * vocabulary instead of the shipped one, and its kind instead of
+ * `kind`. None is a space of a shipped kind, as every space was.
+ */
+type_id?: string, };

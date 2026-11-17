@@ -236,6 +236,27 @@ export function SceneRow({
         </TableCell>
       )}
 
+      {vocabulary.layers.length > 0 && (
+        <TableCell className={CELL}>
+          {/* The same pick as the kind of shot, from the kind's layers. */}
+          <Select
+            className={cn(
+              'h-control-sm w-24 -ml-1.5 rounded-sm border-transparent px-1.5 py-0',
+              'hover:border-line-2 hover:bg-soft data-[popup-open]:border-accent',
+              scene.layer === null && 'text-faint',
+            )}
+            aria-label={t('scenes.layer')}
+            value={scene.layer ?? ''}
+            placeholder={t('scenes.noLayer')}
+            onChange={(value) => onPatch({ layer: value === '' ? null : value })}
+            options={vocabulary.layers.map((layer) => ({
+              value: layer.key,
+              label: sayLabel(layer.label),
+            }))}
+          />
+        </TableCell>
+      )}
+
       <TableCell className={CELL}>
         <span className="flex min-w-40 items-center gap-1">
           {/* The description's paragraphs, the prompt blocks and the

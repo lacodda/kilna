@@ -20,18 +20,42 @@ of songs are two registers of repeats and two calendars that never mix.
 ## Kinds
 
 A space is made of one of the profiles kilna ships - **Studio** (songs, clips,
-shorts), **Blog**, **Novel** or **Podcast** - and speaks that craft's words
-from then on. The kind is a starting point, not a cage: the profile inside the
-space is its own copy, and editing it in **Settings → Profile** changes that
-space alone. Two spaces of the same kind are as normal as two of different
-kinds.
+shorts), **Blog**, **Novel**, **Podcast** or **Empty** - and speaks that
+craft's words from then on. The kind is a starting point, not a cage: the
+profile inside the space is its own copy, and editing it in **Settings →
+Profile** changes that space alone. Two spaces of the same kind are as normal
+as two of different kinds.
+
+**Empty** is for a craft kilna does not ship: one kind of work with a text,
+and the rest - kinds, axes, statuses, fields, actions - named by you in the
+profile editor.
+
+## Types
+
+A **type** is a profile kept as what a new space is made of. When a space's
+vocabulary has grown into your own - axes reworded, statuses added, actions
+rewritten - **Settings → Profile → Save as a type…** keeps it under a name,
+and **New space…** offers it beside the shipped kinds. A second channel then
+starts with the first one's words instead of the shipped ones.
+
+A type lives on this machine, in kilna's own data, and is listed in
+**Settings → Spaces → Types**, where it can be renamed, written out to a file
+or deleted - and where **Import a type…** reads one from a file, so a
+vocabulary travels between machines as one document.
+
+A space made of a type holds its own copy from the moment it is made: editing
+the type's source space, or deleting the type, changes nothing in it. It stays
+a space of the kind the type grew from, so what a later version of kilna adds
+to that kind - a new action, a new field - reaches it as it reaches any space
+of that kind. Works are not part of a type: a space made of one is empty.
 
 ## Making one and switching
 
 The button at the foot of the menu shows the space that is open. Press it to
 see the others, newest first, and open one: the window swaps to it without a
-restart and starts on its dashboard. **New space…** asks for a name, a kind, a
-colour and a mark, makes the folder and opens it. **Manage spaces** opens
+restart and starts on its dashboard. **New space…** asks for a name, what the
+space is made of - a shipped kind or one of your types - a colour and a mark,
+makes the folder and opens it. **Manage spaces** opens
 **Settings → Spaces**, where each can be renamed, given another look, shown in
 its folder, or put in the trash.
 

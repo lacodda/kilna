@@ -297,7 +297,7 @@ impl BoardChange {
 }
 
 /// A scene inside a proposal: the fields of a row, already checked against
-/// the kind's words — the shot type and the block keys are the kind's, and
+/// the kind's words — the shot type, the layer and the block keys are the kind's, and
 /// the span is a span.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct PackagedScene {
@@ -313,6 +313,8 @@ pub struct PackagedScene {
     pub ends_at: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shot_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layer: Option<String>,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub description: String,
     /// Prompt blocks by the kind's `scene_blocks` key.
@@ -713,6 +715,20 @@ pub fn scenes_instruction(
                 .join("; ")
         )
     };
+    let layers = if kind.layers.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "
+Layers, by key - which strand of the piece a scene belongs to: {}.
+",
+            kind.layers
+                .iter()
+                .map(|layer| format!("`{}` = {}", layer.key, layer.label))
+                .collect::<Vec<_>>()
+                .join("; ")
+        )
+    };
     let blocks = if kind.scene_blocks.is_empty() {
         String::new()
     } else {
@@ -764,6 +780,13 @@ pub fn scenes_instruction(
     } else {
         "      \"shot_type\": \"<a key from the kinds of shot>\",\n".to_owned()
     };
+    let layer_line = if kind.layers.is_empty() {
+        String::new()
+    } else {
+        "      \"layer\": \"<a key from the layers>\",
+"
+        .to_owned()
+    };
     let block_lines = kind
         .scene_blocks
         .iter()
@@ -780,8 +803,8 @@ pub fn scenes_instruction(
         "\n\nEnd your reply with a fenced json block, exactly this shape and nothing else \
          inside it:\n\n```json\n{{\n  \"scenes\": [\n    {{\n      \"position\": <number from 1>,\n      \
          \"section\": \"<the part of the text it plays against>\",\n      \"starts_at\": <seconds>,\n      \
-         \"ends_at\": <seconds>,\n{shot_line}      \"description\": \"<what happens in the scene>\",\n{blocks_line}    }}\n  ]\n}}\n```\n\n\
-         {numbering}{only} Leave out a field you have nothing for rather than inventing it.\n{shots}{blocks}\
+         \"ends_at\": <seconds>,\n{shot_line}{layer_line}      \"description\": \"<what happens in the scene>\",\n{blocks_line}    }}\n  ]\n}}\n```\n\n\
+         {numbering}{only} Leave out a field you have nothing for rather than inventing it.\n{shots}{layers}{blocks}\
          Say whatever you like above the block. Use only the keys listed."
     )
 }
@@ -1092,6 +1115,23 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
                 ));
         }
 
+        let layer = text("layer");
+        if let Some(layer) = layer.as_deref()
+            && !kind.layers.iter().any(|l| l.key == layer)
+        {
+            return Err(Error::refused("proposal.unknownLayer")
+                .param("index", index + 1)
+                .param("layer", layer)
+                .param(
+                    "kind",
+                    serde_json::to_value(&kind.label).unwrap_or_default(),
+                )
+                .param(
+                    "known",
+                    names(&mut kind.layers.iter().map(|l| l.key.as_str())),
+                ));
+        }
+
         let mut blocks = Map::new();
         if let Some(given) = item.get("blocks") {
             let Some(given) = given.as_object() else {
@@ -1148,6 +1188,7 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
             starts_at,
             ends_at,
             shot_type,
+            layer,
             description: text("description").unwrap_or_default(),
             blocks,
         });
@@ -1543,7 +1584,7 @@ mod tests {
 
         let read = read_scenes(
             &block(
-                r#"{"scenes": [{"section": "intro", "shot_type": "wide", "description": "the harbour", "blocks": {"still": "cranes"}}]}"#,
+                r#"{"scenes": [{"section": "intro", "shot_type": "wide", "layer": "story", "description": "the harbour", "blocks": {"still": "cranes"}}]}"#,
             ),
             kind,
             BoardChange::Replace,
@@ -1558,6 +1599,7 @@ mod tests {
         };
         assert_eq!(change, BoardChange::Replace);
         assert_eq!(scenes[0].shot_type.as_deref(), Some("wide"));
+        assert_eq!(scenes[0].layer.as_deref(), Some("story"));
         assert_eq!(scenes[0].blocks["still"], "cranes");
 
         assert_eq!(
@@ -1574,6 +1616,16 @@ mod tests {
             panic!("a wrong word is refused with its reason");
         };
         assert!(why.contains("closeup"), "{why}");
+        let ReadScenes::Refused(why) = read_scenes(
+            &block(r#"{"scenes": [{"layer": "backdrop"}]}"#),
+            kind,
+            BoardChange::Replace,
+            None,
+            None,
+        ) else {
+            panic!("a wrong layer is refused with its reason");
+        };
+        assert!(why.contains("backdrop"), "{why}");
         let ReadScenes::Refused(why) = read_scenes(
             &block(r#"{"scenes": []}"#),
             kind,
@@ -1708,6 +1760,11 @@ mod tests {
         assert!(whole.contains("numbered from 1 in order"), "{whole}");
         assert!(
             whole.contains("\"shot_type\": \"<a key from the kinds of shot>\""),
+            "{whole}"
+        );
+        assert!(whole.contains("`story` = Story"), "{whole}");
+        assert!(
+            whole.contains("\"layer\": \"<a key from the layers>\""),
             "{whole}"
         );
 

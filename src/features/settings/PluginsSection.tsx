@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
+import { sayReason } from '@/lib/errors'
 import { setPluginEnabled, setPluginSetting } from '@/lib/api/plugins'
 import type { JsonValue, Plugin, PluginSetting } from '@/lib/api/types'
 import { openExternal } from '@/lib/link'
@@ -161,7 +162,11 @@ function PluginBlock({ plugin }: { plugin: Plugin }) {
       {description !== null && description !== '' && (
         <p className="text-sm text-dim">{description}</p>
       )}
-      {plugin.reason !== null && <p className="text-sm break-words text-bad">{plugin.reason}</p>}
+      {/* Why it cannot run, said from the key the backend names (v0.112):
+          until then the sentence came built, and in English. */}
+      {plugin.reason !== null && (
+        <p className="text-sm break-words text-bad">{sayReason(plugin.reason)}</p>
+      )}
 
       {manifest !== null && manifest.commands.length > 0 && (
         <dl className="grid grid-cols-[minmax(0,14rem)_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm">

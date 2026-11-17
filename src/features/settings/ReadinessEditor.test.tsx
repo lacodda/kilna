@@ -5,6 +5,7 @@ import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, NOW, studio, type Studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
+import { openProfilePart } from '@/test/profile'
 
 /*
  * What each door will not let a release out without (v0.97), ticked in the
@@ -54,6 +55,7 @@ describe('the checklist of a door', () => {
   it('shows what the shipped door asks for, and writes a box taken off as false', async () => {
     const { client } = renderApp('/settings/profile')
     await settled(client)
+    await openProfilePart('Audio')
 
     const streaming = await doorBlock('Streaming')
     const cover = within(streaming).getByRole('checkbox', { name: en.readiness.cover })
@@ -78,6 +80,7 @@ describe('the checklist of a door', () => {
   it('makes a field required, and a role a requirement of the door', async () => {
     const { client } = renderApp('/settings/profile')
     await settled(client)
+    await openProfilePart('Audio')
 
     const youtube = await doorBlock('YouTube')
     fireEvent.click(within(youtube).getByRole('checkbox', { name: 'Tags' }))

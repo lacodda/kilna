@@ -5,6 +5,7 @@ import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, NOW, studio, type Studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
+import { openProfilePart } from '@/test/profile'
 
 /*
  * The profile's draft outlives the section it is edited in.
@@ -70,6 +71,8 @@ const bar = () =>
 async function openProfile() {
   const view = renderApp('/settings/profile')
   await settled(view.client)
+  // The editor shows one part at a time (v0.112): the axes are the kind's.
+  await openProfilePart('Song')
   await vi.waitFor(() => firstAxis().box())
   return view
 }
@@ -121,9 +124,12 @@ describe('the profile draft', () => {
 
     const [saved] = backend.argsOf('update_profile_config')
     const config = saved!.config as ProfileConfig
-    expect(config.work_kinds[0]!.axes!.find((entry) => entry.key === axis.key)!.label).toBe(
-      'Stays with you',
-    )
+    // The word is rewritten in the window's language and keeps its other one
+    // (v0.112): until then the typed text replaced the whole label.
+    expect(config.work_kinds[0]!.axes!.find((entry) => entry.key === axis.key)!.label).toEqual({
+      ...(axis.label as Record<string, string>),
+      en: 'Stays with you',
+    })
     // The rest of the profile goes back as it was stored.
     expect(config.prompts).toEqual(prompts)
 

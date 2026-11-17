@@ -299,6 +299,7 @@ mod tests {
                 kind: "music".into(),
                 colour: None,
                 mark: None,
+                type_id: None,
             },
             None,
         )

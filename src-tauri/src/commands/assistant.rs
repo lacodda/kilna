@@ -113,8 +113,15 @@ pub fn rename_chat(state: State<'_, AppState>, id: String, title: Option<String>
 }
 
 #[tauri::command]
-pub fn get_transcript(state: State<'_, AppState>, chat_id: String) -> Result<Option<Transcript>> {
-    assistant::transcript(&state.conn(), &chat_id)
+pub fn get_transcript(
+    state: State<'_, AppState>,
+    chat_id: String,
+    locale: Option<String>,
+) -> Result<Option<Transcript>> {
+    let speech = locale
+        .as_deref()
+        .map_or(crate::speech::Speech::ENGLISH, crate::speech::Speech::of);
+    assistant::transcript_in(&state.conn(), &chat_id, speech)
 }
 
 #[tauri::command]

@@ -5,6 +5,7 @@ import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, NOW, studio, type Studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
+import { openProfilePart } from '@/test/profile'
 
 /*
  * What a kind says about the works made from others (v0.86), edited in the
@@ -45,6 +46,7 @@ const bar = () =>
 async function openProfile() {
   const view = renderApp('/settings/profile')
   await settled(view.client)
+  await openProfilePart('Audio')
   const madeTitle = await screen.findByRole('textbox', { name: en.editor.madeTitle })
   return { ...view, madeTitle }
 }

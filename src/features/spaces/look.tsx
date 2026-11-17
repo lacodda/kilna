@@ -61,7 +61,7 @@ export const SPACE_MARKS: Record<string, LucideIcon> = {
 }
 
 /** The kinds a space is made of, in the order they are offered. */
-export const SPACE_KINDS = ['music', 'blog', 'novel', 'podcast'] as const
+export const SPACE_KINDS = ['music', 'blog', 'novel', 'podcast', 'blank'] as const
 
 /** What a space of a kind looks like until its own colour and mark are chosen. */
 const KIND_LOOK: Record<string, { colour: string; mark: string }> = {
@@ -69,6 +69,8 @@ const KIND_LOOK: Record<string, { colour: string; mark: string }> = {
   blog: { colour: '#0B68CB', mark: 'feather' },
   novel: { colour: '#18794E', mark: 'book-open' },
   podcast: { colour: '#C2410C', mark: 'mic' },
+  // The empty kind (v0.112): a craft kilna does not ship, named by its owner.
+  blank: { colour: '#0D7477', mark: 'sparkles' },
 }
 
 const FALLBACK = { colour: '#6E56CF', mark: 'sparkles' }

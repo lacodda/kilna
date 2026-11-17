@@ -78,7 +78,10 @@ pub fn set_plugin_setting(
     let manifest = found.manifest.as_ref().ok_or_else(|| {
         Error::refused("plugin.unusable")
             .param("plugin", executable.as_str())
-            .param("reason", found.reason.clone().unwrap_or_default())
+            .param(
+                "reason",
+                found.reason.clone().map(Value::from).unwrap_or_default(),
+            )
     })?;
     plugin::settings::set_value(&state.conn(), &executable, manifest, &key, value)
 }
@@ -129,7 +132,7 @@ pub fn run_plugin(
     if !found.usable {
         return Err(Error::refused("plugin.unusable")
             .param("plugin", executable.as_str())
-            .param("reason", found.reason.unwrap_or_default()));
+            .param("reason", found.reason.map(Value::from).unwrap_or_default()));
     }
     let kept = plugin::settings::kept(&state.conn(), &executable)?;
     if !kept.enabled {

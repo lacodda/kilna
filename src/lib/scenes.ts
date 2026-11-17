@@ -119,7 +119,7 @@ export function movedTo(order: readonly string[], id: string, to: number): strin
 
 /**
  * A new scene carrying what another says: the part it plays against, the
- * kind of shot, the description and every prompt block.
+ * kind of shot, the layer, the description and every prompt block.
  *
  * Not its seconds. Two scenes cannot play the same stretch of the video, and
  * a copy that took the original's span would be an overlap the check reports
@@ -133,6 +133,7 @@ export function copyOf(scene: Scene): NewScene {
     work_id: scene.work_id,
     section: scene.section ?? undefined,
     shot_type: scene.shot_type ?? undefined,
+    layer: scene.layer ?? undefined,
     description: scene.description,
     blocks: { ...scene.blocks },
   }

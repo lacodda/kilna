@@ -140,6 +140,7 @@ describe("a row's menu", () => {
           work_id: IDS.video,
           section: 'Chorus',
           shot_type: undefined,
+          layer: undefined,
           description: 'The lantern drifts under the bridge.',
           blocks: {},
         },
@@ -259,5 +260,31 @@ describe('a board its kind names no words for', () => {
     expect(await screen.findByRole('textbox', { name: 'Still frame' })).toHaveValue(
       'close-up of hands lighting a paper lantern at dusk',
     )
+  })
+})
+
+describe('a layer', () => {
+  it('gets a column and a filter only where the kind names layers', async () => {
+    const video = workspace.profile.config.work_kinds.find((kind) => kind.key === 'video')!
+    video.layers = [
+      { key: 'story', label: { en: 'Story' } },
+      { key: 'texture', label: { en: 'Texture' } },
+    ]
+    workspace.scenes[0]!.layer = 'story'
+    try {
+      await openBoard()
+
+      expect(screen.getByRole('columnheader', { name: en.scenes.layer })).toBeInTheDocument()
+      expect(screen.getByRole('group', { name: en.scenes.layer })).toBeInTheDocument()
+    } finally {
+      // The fixture's profile is shared by every test of the file.
+      delete video.layers
+    }
+  })
+
+  it('has no column while the kind names none', async () => {
+    await openBoard()
+
+    expect(screen.queryByRole('columnheader', { name: en.scenes.layer })).toBeNull()
   })
 })

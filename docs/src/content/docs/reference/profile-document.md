@@ -61,7 +61,7 @@ The sections below describe each list; every one of them sits under a kind.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `key` | string | Stable identifier for the profile itself. |
-| `name` | string | Display name — "Music", "Novel". |
+| `name` | string | Display name — "Studio", "Novel". |
 | `description` | string | One sentence shown when choosing a profile. |
 | `config` | object | Everything below. |
 
@@ -77,7 +77,7 @@ collection can take:
 A **work kind** carries the five lists described on this page — its `axes`,
 `tiers`, `version_roles`, `release_kinds` and `statuses` — beside its key
 and label, and, for a kind whose works are made in scenes, the two lists of
-[its storyboard](#shot_types-scene_blocks-and-cover); `release_kinds` therefore sit inside the work kind whose works go
+[its storyboard](#shot_types-layers-scene_blocks-and-cover); `release_kinds` therefore sit inside the work kind whose works go
 out that way. A door belongs to the work that goes through it: the clip cut to
 a song is a `video` with doors of its own, its audio release an `audio` work,
 its shorts `short` works. `collection_kinds` stay on the profile.
@@ -94,7 +94,7 @@ A work kind may also say:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `cover` | boolean, optional | Its works go out under a cover built in the [constructor](/kilna/guides/the-cover/): a picture, a negative and a title written from what is chosen. The card draws a **Cover** tab. Absent is no cover. See [below](#shot_types-scene_blocks-and-cover). |
+| `cover` | boolean, optional | Its works go out under a cover built in the [constructor](/kilna/guides/the-cover/): a picture, a negative and a title written from what is chosen. The card draws a **Cover** tab. Absent is no cover. See [below](#shot_types-layers-scene_blocks-and-cover). |
 | `frame` | boolean, optional | Its works play under one picture for their whole length - an audio release on a video platform - and so have a [frame](/kilna/guides/files-and-covers/#the-frame): a still, a loop of what moves in it, and a negative. The card draws a **Frame** tab. Absent is no frame. |
 | `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the title of what it is all made from - the song, even for a short cut from its clip - and `{n}` its number among the works of this kind made from it. Studio's are one string for every language: `"{title} (video)"`, `"{title} (audio)"`, `"{title} (short)"`. A template without `{n}` numbers only the second and later ones, inside a closing bracket when it ends with one: *Tide (short)*, *Tide (short 2)*. A title one of them already has is skipped. A map per language is still read, in the window's language. Absent means the source's title as it is. |
 | `open_on` | string, optional | The tab a work of this kind opens on when the address names none - from the catalogue, the calendar, a search hit: `versions`, `score`, `scenes`, `cover`, `frame`, `files`, `links`, `notes`, `comments`, `assistant`, `history` or `overview`. Studio's song could open on `versions`, its short on `scenes`. kilna writes it when you choose in **Settings › The work card**. A tab the kind's works do not have, or a word this build does not know, opens the Overview; absent is the Overview. Added in v0.90.1 - before, one tab for every card was kept on the machine. |
@@ -169,11 +169,18 @@ a release kind's `fields`. The window shows the entry for the language it is
 in; it falls back to `en`, and then to whatever the map does hold, so a profile
 carrying only one language still shows a word rather than a blank.
 
-The profiles that ship with kilna carry English and Russian, because a window
-set to Russian reading *Scored · Song* was the interface translated around a
-hole in its own vocabulary. A label **you** write stays exactly as you write
-it: a plain string is never rewritten into a map on your behalf, and renaming
-a word in Settings replaces it with the one word you typed.
+The profiles that ship with kilna - all five - carry English and Russian,
+because a window set to Russian reading *Scored · Song* was the interface
+translated around a hole in its own vocabulary. A label **you** write stays
+exactly as you write it: a plain string is never rewritten into a map on your
+behalf. Renaming a word in Settings rewrites it in the language the window
+speaks: a word kept in two languages keeps the other one, and a word that is
+one string stays one string.
+
+A space made before a word spoke two languages holds it as the plain English
+string it shipped as. At start, a stored word that still reads exactly as the
+shipped one does in English takes the shipped pair (v0.112); a word you
+changed, in any language, differs from it and is left as you wrote it.
 
 `template` and `method` are deliberately **not** translated. They are
 instructions to a model rather than words on a screen, and translating one
@@ -484,7 +491,7 @@ any given work:
 | --- | --- | --- |
 | `key` | string | Key inside `work.meta`. |
 | `label` | string | Display name for the field's input. |
-| `type` | `"text"` \| `"multiline"` \| `"number"` \| `"date"` \| `"boolean"` \| `"choice"` | Validated in application code — SQLite doesn't type-check inside the JSON. |
+| `type` | `"text"` \| `"multiline"` \| `"number"` \| `"date"` \| `"boolean"` \| `"choice"` \| `"list"` | Validated in application code — SQLite doesn't type-check inside the JSON. |
 | `kinds` | string[], optional | The work kinds that have the field. Absent or empty is every kind. |
 | `options` | kind entries, for `choice` | The answers a choice offers, `{ "key", "label" }`, stored by key. Required for a choice and refused on any other type. |
 | `default` | value, optional | What a new work of a kind that has the field starts with: an option's key for a choice. |
@@ -519,6 +526,13 @@ the ones marked `own` - and the defaults of the rest.
 a piece came from. It gets a text area spanning the panel rather than a
 single-line box, and it is left out of the card header: the header is the line
 you glance at, and a paragraph printed there pushes the work off screen.
+
+`list` (v0.112) is several short texts, each an entry of its own, stored as a
+JSON array of strings in the order they were given - the anchors of a Studio
+experiment, the guests of an episode. It is written on the Overview an entry
+to a line, beside the paragraphs, and left out of the card header like them.
+A text a work held before its field became a list is read as its lines, so
+retyping a `multiline` field as a `list` rewrites nothing.
 
 ### Numbered fields
 
@@ -960,9 +974,9 @@ existed loads: the auto-layout then refuses with an explanation instead of
 inventing a pace. A workspace whose stored copy has no rhythm gains the
 shipped one at the next start; a pace you set yourself is left alone.
 
-## `shot_types`, `scene_blocks` and `cover`
+## `shot_types`, `layers`, `scene_blocks` and `cover`
 
-Two optional lists and a flag on a **work kind**. The lists are for a kind whose
+Three optional lists and a flag on a **work kind**. The lists are for a kind whose
 works are made in scenes — Studio's `video` and `short`. A kind that names
 neither has no storyboard, and its cards draw no [Scenes](/kilna/guides/scenes/)
 tab. A document without them is the same document: format 2 is not changed.
@@ -974,6 +988,10 @@ tab. A document without them is the same document: format 2 is not changed.
     { "key": "wide", "label": "Wide" },
     { "key": "close", "label": "Close-up" },
     { "key": "detail", "label": "Detail" }
+  ],
+  "layers": [
+    { "key": "story", "label": "Story" },
+    { "key": "performance", "label": "Performance" }
   ],
   "scene_blocks": [
     { "key": "still", "label": "Still frame", "hint": "The frame as a picture: subject, light, lens, mood.", "picture": true },
@@ -988,6 +1006,8 @@ tab. A document without them is the same document: format 2 is not changed.
 | --- | --- | --- |
 | `shot_types[].key` | string | Stored on the scene as its kind of shot. A scene can only take a key this list names — the board is narrowed by it, and a kind of shot typed freely would never be found. |
 | `shot_types[].label` | string | What the strip and the picker show. Renamable. |
+| `layers[].key` | string, optional list | Stored on the scene as its layer (v0.112): which strand of the piece it belongs to — the story, the performance, the texture. A second dictionary beside the kinds of shot, which say how a scene is framed. A scene can only take a key this list names. A kind that names no layers draws no Layer column or filter on its board. |
+| `layers[].label` | string | What the filter and the picker show. Renamable. |
 | `scene_blocks[].key` | string | The key a scene stores that block's text under, and the key a template (v0.62) will read. A block under a key this list does not name is refused on write. |
 | `scene_blocks[].label` | string | The caption over the box and on its copy button. |
 | `scene_blocks[].hint` | string, optional | A line under the box saying what goes in it. |
@@ -1145,7 +1165,7 @@ outside kilna, heard, and kept or dropped. See [The lab](/kilna/guides/the-lab/)
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `harvest` | string, optional | The version role a kept trial goes into, in a work of any other kind that has it - Studio's `style`, which a song has. It also says how a trial is read and written: the [composition](#compose) that writes that role reads a trial's text against the dictionary and writes one from it. Absent: a kept trial goes only into the dictionary. Refused on save when no other kind has the role. |
-| `anchors` | string, optional | The key of the experiment's [field](#work_meta_fields) that holds what every trial keeps, one phrase to a line - a text or multiline field the kind carries. A trial keeps an anchor when each of its words stands in its text, in any order, a plural or a longer form counting (the little words and anything in brackets do not); one that lost an anchor is marked on the board. |
+| `anchors` | string, optional | The key of the experiment's [field](#work_meta_fields) that holds what every trial keeps - a `list` field the kind carries, each entry a phrase; a `text` or `multiline` field is read one phrase to a line, as every experiment's was before v0.112. A trial keeps an anchor when each of its words stands in its text, in any order, a plural or a longer form counting (the little words and anything in brackets do not); one that lost an anchor is marked on the board. |
 
 A lab is a kind like any other: it names its own version roles and statuses.
 It is never scored, booked or released, so of the derived meanings only
@@ -1620,6 +1640,13 @@ proposes.
   many works it holds and is meant to, when it is due, its description, and
   its works in order with this one marked *- this work*. A work in no
   collection reads *(the work is in no collection)*.
+
+The shipped actions read these three since v0.112: every profile's `critique`
+reads `{previous_version}` and `{score}` - what the change lost and gained,
+and whether what the last score marked down still stands - and Studio's
+`album-place` reads `{collection}` to say where a song belongs among the
+album's tracks. A stored critique still worded as it shipped follows the new
+wording at start; one you reworded is yours.
 - `{week}` — the week so far, from the Monday of your day: works made,
   versions written, scores given and releases out, each work with how many
   times, then the notes and trials - what History's

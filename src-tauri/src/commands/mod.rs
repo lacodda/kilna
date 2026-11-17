@@ -34,6 +34,7 @@ pub mod styles;
 pub mod time_off;
 pub mod trash;
 pub mod trials;
+pub mod types;
 pub mod versions;
 pub mod works;
 pub mod workspace;

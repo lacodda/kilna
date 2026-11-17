@@ -332,12 +332,13 @@ export function previousOf(
  * - a number, a word, a date, a yes or no - in the fields widget's grid, and
  * the paragraphs - a premise, an idea - in the hook widget, where a paragraph
  * has the width to be read. In a grid cell a paragraph was a column of
- * two-word lines.
+ * two-word lines. A list stands with the paragraphs: its entries need the
+ * width as a paragraph does.
  */
 export function fieldsOf(fields: readonly MetaField[]): { short: MetaField[]; prose: MetaField[] } {
   return {
-    short: fields.filter((field) => field.type !== 'multiline'),
-    prose: fields.filter((field) => field.type === 'multiline'),
+    short: fields.filter((field) => field.type !== 'multiline' && field.type !== 'list'),
+    prose: fields.filter((field) => field.type === 'multiline' || field.type === 'list'),
   }
 }
 

@@ -37,6 +37,8 @@ pub struct Scene {
     pub ends_at: Option<f64>,
     /// A key of the kind's `shot_types`; unset when not yet decided.
     pub shot_type: Option<String>,
+    /// A key of the kind's `layers`; unset when not yet decided.
+    pub layer: Option<String>,
     pub description: String,
     /// Prompt blocks by the kind's `scene_blocks` key.
     pub blocks: Blocks,
@@ -63,6 +65,8 @@ pub struct NewScene {
     pub ends_at: Option<f64>,
     #[serde(default)]
     pub shot_type: Option<String>,
+    #[serde(default)]
+    pub layer: Option<String>,
     #[serde(default)]
     pub description: Option<String>,
     #[serde(default)]
@@ -100,6 +104,12 @@ pub struct ScenePatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub shot_type: Option<Option<String>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub layer: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -115,7 +125,7 @@ pub struct ScenePatch {
 }
 
 const SELECT_SCENE: &str = "SELECT id, profile_id, work_id, position, section, starts_at, ends_at, \
-     shot_type, description, blocks, created_at, updated_at, framing FROM scene";
+     shot_type, description, blocks, created_at, updated_at, framing, layer FROM scene";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewScene) -> Result<Scene> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -144,6 +154,8 @@ pub fn create_minted(
 
     let shot_type = clean(new.shot_type);
     check_shot_type(kind, shot_type.as_deref())?;
+    let layer = clean(new.layer);
+    check_layer(kind, layer.as_deref())?;
     let blocks = new.blocks.unwrap_or_default();
     check_blocks(kind, &blocks)?;
     let position = match new.position {
@@ -156,8 +168,8 @@ pub fn create_minted(
     let id = minted.id().to_owned();
     conn.execute(
         "INSERT INTO scene (id, profile_id, work_id, position, section, starts_at, ends_at, \
-         shot_type, description, blocks, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
+         shot_type, description, blocks, created_at, updated_at, layer)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12)",
         params![
             id,
             profile_id,
@@ -170,6 +182,7 @@ pub fn create_minted(
             new.description.unwrap_or_default(),
             serde_json::to_string(&blocks)?,
             minted.at(),
+            layer,
         ],
     )?;
 
@@ -276,6 +289,11 @@ pub fn update_at(conn: &Connection, id: &str, patch: ScenePatch, at: &str) -> Re
             Box::new(shot_type),
         );
     }
+    if let Some(layer) = patch.layer {
+        let layer = clean(layer);
+        check_layer(kind, layer.as_deref())?;
+        set(&mut assignments, &mut values, "layer", Box::new(layer));
+    }
     if let Some(description) = patch.description {
         set(
             &mut assignments,
@@ -363,6 +381,26 @@ fn check_shot_type(kind: &WorkKind, shot_type: Option<&str>) -> Result<()> {
         ))
 }
 
+/// A layer the kind names, or none.
+fn check_layer(kind: &WorkKind, layer: Option<&str>) -> Result<()> {
+    let Some(layer) = layer else {
+        return Ok(());
+    };
+    if kind.layers.iter().any(|known| known.key == layer) {
+        return Ok(());
+    }
+    Err(Error::refused("scene.unknownLayer")
+        .param("layer", layer)
+        .param(
+            "kind",
+            serde_json::to_value(&kind.label).unwrap_or_default(),
+        )
+        .param(
+            "known",
+            name_keys(kind.layers.iter().map(|known| known.key.as_str())),
+        ))
+}
+
 /// Blocks under keys the kind names, holding text.
 fn check_blocks(kind: &WorkKind, blocks: &Blocks) -> Result<()> {
     for (key, value) in blocks {
@@ -434,6 +472,7 @@ struct RawScene {
     created_at: String,
     updated_at: String,
     framing: Option<String>,
+    layer: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScene> {
@@ -451,6 +490,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScene> {
         created_at: row.get(10)?,
         updated_at: row.get(11)?,
         framing: row.get(12)?,
+        layer: row.get(13)?,
     })
 }
 
@@ -471,6 +511,7 @@ impl RawScene {
             starts_at: self.starts_at,
             ends_at: self.ends_at,
             shot_type: self.shot_type,
+            layer: self.layer,
             description: self.description,
             created_at: self.created_at,
             updated_at: self.updated_at,
@@ -1176,6 +1217,68 @@ with no markers
         )
         .unwrap_err();
         assert_eq!(err.refusal().map(|r| r.code), Some("scene.unknownShotType"));
+    }
+
+    #[test]
+    fn the_layer_is_a_word_of_the_kind_and_an_edit_may_clear_it() {
+        let (conn, profile_id) = fixtures::workspace();
+        let video = video(&conn, &profile_id);
+
+        let made = create(
+            &conn,
+            &profile_id,
+            NewScene {
+                layer: Some(" story ".into()),
+                ..scene(&video)
+            },
+        )
+        .unwrap();
+        assert_eq!(made.layer.as_deref(), Some("story"), "trimmed");
+        assert_eq!(get(&conn, &made.id).unwrap().unwrap().layer, made.layer);
+
+        let err = create(
+            &conn,
+            &profile_id,
+            NewScene {
+                layer: Some("backdrop".into()),
+                ..scene(&video)
+            },
+        )
+        .unwrap_err();
+        assert_eq!(err.refusal().map(|r| r.code), Some("scene.unknownLayer"));
+
+        let err = update(
+            &conn,
+            &made.id,
+            ScenePatch {
+                layer: Some(Some("nope".into())),
+                ..ScenePatch::default()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(err.refusal().map(|r| r.code), Some("scene.unknownLayer"));
+
+        let moved = update(
+            &conn,
+            &made.id,
+            ScenePatch {
+                layer: Some(Some("performance".into())),
+                ..ScenePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(moved.layer.as_deref(), Some("performance"));
+
+        let cleared = update(
+            &conn,
+            &made.id,
+            ScenePatch {
+                layer: Some(None),
+                ..ScenePatch::default()
+            },
+        )
+        .unwrap();
+        assert!(cleared.layer.is_none());
     }
 
     #[test]

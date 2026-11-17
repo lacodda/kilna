@@ -24,6 +24,7 @@
 pub mod legacy;
 pub mod lock;
 pub mod registry;
+pub mod types;
 
 use std::path::{Path, PathBuf};
 
@@ -151,6 +152,12 @@ pub struct NewSpace {
     pub colour: Option<String>,
     #[serde(default)]
     pub mark: Option<String>,
+    /// The type the space is made of (v0.112, ADR 0079), by its id: its
+    /// vocabulary instead of the shipped one, and its kind instead of
+    /// `kind`. None is a space of a shipped kind, as every space was.
+    #[serde(default)]
+    #[ts(optional)]
+    pub type_id: Option<String>,
 }
 
 /// What changes in how a space looks.
@@ -217,14 +224,26 @@ pub fn portable_dir() -> Option<PathBuf> {
 
 /// Make a new space: its folder under `parent` (the application's `spaces/`
 /// when none is given), its file, and its database seeded with the kind's
-/// profile. Registered, not opened.
+/// profile - or with the profile of the type it is made of. Registered, not
+/// opened.
 pub fn create(
     app: &rusqlite::Connection,
     app_dir: &Path,
     new: &NewSpace,
     parent: Option<&Path>,
 ) -> Result<Space> {
-    let mut manifest = Manifest::new(&new.name, &new.kind)?;
+    // A space made of a type is of the kind the type grew from, whatever
+    // the request named beside it.
+    let made_of = new
+        .type_id
+        .as_deref()
+        .map(|id| types::document(app, id))
+        .transpose()?;
+    let kind = match &made_of {
+        Some(document) => document.kind()?,
+        None => new.kind.clone(),
+    };
+    let mut manifest = Manifest::new(&new.name, &kind)?;
     manifest.colour = checked_colour(new.colour.as_deref())?;
     manifest.mark = checked_mark(new.mark.as_deref())?;
 
@@ -233,7 +252,16 @@ pub fn create(
     std::fs::create_dir_all(folder.path())?;
     manifest.write(folder.path())?;
     let conn = crate::db::open(&folder.database())?;
-    crate::profile::seed(&conn, &manifest.kind)?;
+    match &made_of {
+        Some(document) => crate::profile::seed_from(
+            &conn,
+            &manifest.kind,
+            &document.name,
+            document.description.as_deref(),
+            &document.config,
+        )?,
+        None => crate::profile::seed(&conn, &manifest.kind)?,
+    }
     crate::style_set::seed(&conn)?;
     drop(conn);
 
@@ -473,6 +501,7 @@ mod tests {
                 kind: "blog".into(),
                 colour: Some("#3fa36b".into()),
                 mark: Some("feather".into()),
+                type_id: None,
             },
             None,
         )
@@ -502,6 +531,7 @@ mod tests {
             kind: "music".into(),
             colour: None,
             mark: None,
+            type_id: None,
         };
 
         let first = create(&app, dir.path(), &new, None).unwrap();

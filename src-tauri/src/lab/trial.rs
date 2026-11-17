@@ -429,20 +429,16 @@ fn check_bricks(conn: &Connection, profile_id: &str, bricks: &[String]) -> Resul
 // ---------------------------------------------------------------------------
 // The anchors.
 
-/// The anchors of an experiment: the lines of the field its lab reads them
-/// from, each trimmed, the empty ones left out.
+/// The anchors of an experiment: the entries of the field its lab reads them
+/// from - a list, or the lines of a text.
 pub fn anchors_of(lab: &Lab, work: &Work) -> Vec<String> {
     let Some(field) = lab.anchors.as_deref() else {
         return Vec::new();
     };
-    let Some(serde_json::Value::String(text)) = work.meta.get(field) else {
-        return Vec::new();
-    };
-    text.lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty())
-        .map(str::to_owned)
-        .collect()
+    work.meta
+        .get(field)
+        .map(crate::profile::config::MetaFieldType::entries)
+        .unwrap_or_default()
 }
 
 /// The anchors a text has lost.

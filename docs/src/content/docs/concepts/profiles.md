@@ -1,6 +1,6 @@
 ---
 title: Profiles
-description: One fixed schema, configured by profile — how Music, Novel, Podcast and Blog speak the same structure with different vocabulary.
+description: One fixed schema, configured by profile — how Studio, Novel, Podcast and Blog speak the same structure with different vocabulary, and how a profile is edited, kept as a type and moved in a file.
 ---
 
 A song, a chapter, and a podcast episode differ in **vocabulary and evaluation
@@ -15,9 +15,10 @@ compute; a table per craft turns every new craft into a migration plus new
 code. The reasoning is in full in
 [ADR 0001](https://github.com/lacodda/kilna/blob/main/docs/adr/0001-one-schema-with-profile-configuration.md).
 
-## The four built-ins
+## The built-ins
 
-kilna ships with four profiles, each a JSON document rather than code:
+kilna ships with four crafts and an empty profile, each a JSON document rather
+than code:
 
 - **Studio** — songs with lyrics and style kept as separate version roles,
   judged on hook, lyrics, emotion, production, originality and visual
@@ -35,6 +36,12 @@ kilna ships with four profiles, each a JSON document rather than code:
 - **Blog** — posts, newsletter issues and guides with a draft and an angle
   kept separately, judged on hook, usefulness, clarity, angle and
   shareability, shipped as site publishes, newsletter sends or syndication.
+- **Empty** — one kind of work with a text, the statuses the automation keeps
+  up to date and one way out. The starting point for a craft kilna does not
+  ship: everything else is named in **Settings → Profile**.
+
+All of them carry their words in English and Russian, and the window shows the
+one it speaks.
 
 Each [space](/kilna/guides/spaces/) is made of one of them, and in a space of
 another kind the same screens relabel themselves — "chapters" and "pull"
@@ -79,8 +86,49 @@ than trying to reinterpret it.
 
 ## Editing a profile
 
-Profiles ship with the application and are editable — you pick and adjust
-rather than design a schema from a blank page. Existing works keep the status
-and kind they were given even if you later edit the vocabulary that named
-them: an old value stays visible rather than being silently rewritten when the
-profile changes underneath it.
+Profiles ship with the application and are edited in **Settings → Profile** —
+the whole document, laid out in parts:
+
+- **The craft** — the kinds of work and the order they are offered in, the
+  kinds of collection, the flags and the stops of the stage dial, the order of
+  the style dictionary's types, the pace, the cover ideas and the guard of
+  repeats.
+- **One part per kind of work** — its statuses and what each means to the
+  automation, its version roles, its axes (weight, scale, the kind of answer,
+  what the axis asks, the answers of a choice, the rubric), its tiers, its
+  kinds of release and how each weighs the axes, what a release needs before
+  it goes out, and the words of its storyboard.
+- **Fields** — what a work carries beside its text: each field's type, the
+  kinds that have it, the answers of a choice.
+- **Actions** — the assistant's actions: the message, the method, what the
+  answer becomes and what the action is about.
+
+Every list is added to under a new key, taken from, and put in order by
+dragging a row or pressing **Alt** with an arrow. A key is typed once and then
+stands — see above. A word is edited in the language the window speaks and
+keeps its other language.
+
+Edits are a draft until **Save**: the draft survives leaving the section and
+restarting kilna, and the bar at the foot of the pane saves or discards it.
+What would not save is said as you type, beside the row it is about — an axis
+with no scale, a message reading a placeholder nothing fills — and the part it
+is in carries a mark, so Save is never a surprise.
+
+Existing works keep the status and kind they were given even if you later
+edit the vocabulary that named them: an old value stays visible rather than
+being silently rewritten when the profile changes underneath it.
+
+## A profile as a file, and as a type
+
+At the head of the section:
+
+- **Export…** writes the profile to a file, `<name>.kilna-profile.json`: the
+  shape kilna's own profiles ship in.
+- **Import…** reads such a file and loads it as the draft — look it over, then
+  save it or discard it. A file with anything wrong in it is refused, with
+  every problem named.
+- **Save as a type…** keeps the profile, under a name, as something a new
+  [space](/kilna/guides/spaces/#types) can be made of.
+
+All three take the profile as it is saved, not the changes still waiting in
+the draft.

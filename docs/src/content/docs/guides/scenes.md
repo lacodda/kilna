@@ -19,7 +19,7 @@ second attempt at a video is a second video
 A work whose kind has a storyboard — in Studio, a *Video* or a *Short* —
 opens a **Scenes** tab on its card. A song has none: the tab is for kinds
 whose profile names kinds of shot or prompt blocks (see
-[the profile document](/kilna/reference/profile-document/#shot_types-scene_blocks-and-cover)).
+[the profile document](/kilna/reference/profile-document/#shot_types-layers-scene_blocks-and-cover)).
 
 From top to bottom:
 
@@ -34,9 +34,13 @@ From top to bottom:
 - **A strip of kinds of shot** with counts — *All · Wide · Close-up ·
   Detail…* Click one to see only those scenes: "show me every detail" is
   one click, and the chip that is on turns off.
+- **A strip of layers**, when the kind names any — *All · Story ·
+  Performance…* — works the same way and combines with the kind of shot.
+  A scene's layer says which strand of the piece it belongs to; a kind that
+  names no layers has no such strip and no column.
 - **The board as a table**, one row per scene: the number, the section
   (*intro*, *verse 1*, *chorus*), the seconds it runs from and to, the kind
-  of shot, the first line of the description, how far the scene is filled
+  of shot, its layer (when the kind names layers), the first line of the description, how far the scene is filled
   in, and the profile's scene actions as icons — *Prompts for the scene* in
   Studio. Fifty scenes read as fifty rows you can compare, not fifty cards
   you scroll past.
@@ -393,8 +397,8 @@ button, and the answer is still there to read.
   second attempt.
 - **The export** writes a *Scenes* section on the work's page: the board
   as a table, then each scene's blocks.
-- An agent over [MCP](/kilna/reference/mcp/) sees the kinds of shot
-  and blocks in `workspace`, how many scenes a work has in `work`, and the
+- An agent over [MCP](/kilna/reference/mcp/) sees the kinds of shot,
+  the layers and blocks in `workspace`, how many scenes a work has in `work`, and the
   whole board with `scenes`; it proposes a board with `propose_scenes`, or
   a new video with its board in one `propose_work` package. A replaced
   board rewrites a scene with the same number in place — it keeps its id —

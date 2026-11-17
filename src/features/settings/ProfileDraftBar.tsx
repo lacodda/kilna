@@ -10,6 +10,7 @@ import { ActionBar, ActionBarButton, ActionBarSpacer } from '@/components/ui/act
 import { Button } from '@/components/ui/button'
 import { StatusDot } from '@/components/ui/status-dot'
 import type { ProfileDraftState } from '@/features/settings/useProfileDraft'
+import { useProfileProblems } from '@/features/settings/useProfileProblems'
 
 /**
  * "There are unsaved changes", with Save and Discard - at the foot of the
@@ -24,6 +25,10 @@ export function ProfileDraftBar({ draft }: { draft: ProfileDraftState }) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const profile = useProfile()
+  // The same check the editor shows beside its rows (v0.112): a draft with
+  // something wrong in it is said to be so here, where it would be saved,
+  // rather than refused in a toast as long as the list of what is wrong.
+  const problems = useProfileProblems(draft.config, draft.dirty)
 
   const save = useAppMutation({
     mutationFn: (config: ProfileConfig) => updateProfileConfig(profile.id, config),
@@ -53,7 +58,16 @@ export function ProfileDraftBar({ draft }: { draft: ProfileDraftState }) {
 
   return (
     <ActionBar aria-label={t('settings.unsaved')} className="flex-1">
-      <StatusDot status="warn" size="sm" label={t('settings.unsaved')} showLabel />
+      {problems.length === 0 ? (
+        <StatusDot status="warn" size="sm" label={t('settings.unsaved')} showLabel />
+      ) : (
+        <StatusDot
+          status="bad"
+          size="sm"
+          label={t('settings.unsavedWrong', { count: problems.length })}
+          showLabel
+        />
+      )}
       <ActionBarSpacer />
       <ActionBarButton
         render={<Button variant="ghost" size="sm" />}
@@ -64,7 +78,7 @@ export function ProfileDraftBar({ draft }: { draft: ProfileDraftState }) {
       </ActionBarButton>
       <ActionBarButton
         render={<Button variant="primary" size="sm" />}
-        disabled={save.isPending}
+        disabled={save.isPending || problems.length > 0}
         onClick={() => save.mutate(draft.config)}
       >
         {t('editor.save')}

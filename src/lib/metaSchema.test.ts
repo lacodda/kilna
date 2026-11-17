@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MetaField } from '@/lib/api/types'
-import { editedField, metaRecord, metaSchema } from './metaSchema'
+import { editedField, listEntries, metaRecord, metaSchema } from './metaSchema'
 
 const say = (label: unknown) => (typeof label === 'string' ? label : JSON.stringify(label))
 
@@ -61,5 +61,28 @@ describe('a work’s fields as a schema', () => {
       value: undefined,
     })
     expect(editedField({ bpm: 120 }, { bpm: 120 })).toBeUndefined()
+  })
+})
+
+describe('a list field', () => {
+  const ANCHORS: MetaField[] = [{ key: 'anchors', label: 'Anchors', type: 'list' }]
+
+  it('is an array of strings to the schema', () => {
+    const schema = metaSchema(ANCHORS, {}, say) as { properties: Record<string, object> }
+    expect(schema.properties.anchors).toEqual({
+      type: 'array',
+      items: { type: 'string' },
+      title: 'Anchors',
+    })
+  })
+
+  it('reads a text kept before it was a list as its lines', () => {
+    expect(listEntries('fuzz bass\n\n  amen break \r\n')).toEqual(['fuzz bass', 'amen break'])
+    expect(listEntries(['fuzz bass', ' ', 3, 'amen break'])).toEqual(['fuzz bass', 'amen break'])
+    expect(listEntries(null)).toEqual([])
+    expect(metaRecord(ANCHORS, { anchors: 'fuzz bass\namen break' })).toEqual({
+      anchors: ['fuzz bass', 'amen break'],
+    })
+    expect(metaRecord(ANCHORS, { anchors: [] })).toEqual({})
   })
 })

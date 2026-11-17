@@ -57,6 +57,7 @@ export function ScenesTab({ work }: Props) {
   const profile = useProfile()
   const vocabulary = boardVocabularyOf(profile.config, work.kind)
   const [shotType, setShotType] = useState<string | undefined>(undefined)
+  const [layer, setLayer] = useState<string | undefined>(undefined)
   // Which note the board is narrowed to: "every scene with her in it".
   const [withNote, setWithNote] = useState<string | undefined>(undefined)
   // Which frame the viewer is showing, if it is open.
@@ -112,6 +113,10 @@ export function ScenesTab({ work }: Props) {
     if (scene.shot_type !== null)
       counts.set(scene.shot_type, (counts.get(scene.shot_type) ?? 0) + 1)
   }
+  const layerCounts = new Map<string, number>()
+  for (const scene of all) {
+    if (scene.layer !== null) layerCounts.set(scene.layer, (layerCounts.get(scene.layer) ?? 0) + 1)
+  }
 
   const aboutByScene = new Map<string, SceneNote[]>()
   for (const link of about.data ?? []) {
@@ -127,10 +132,11 @@ export function ScenesTab({ work }: Props) {
   }
 
   const byShot = shotType === undefined ? all : all.filter((scene) => scene.shot_type === shotType)
+  const byLayer = layer === undefined ? byShot : byShot.filter((scene) => scene.layer === layer)
   const shown =
     withNote === undefined
-      ? byShot
-      : byShot.filter((scene) =>
+      ? byLayer
+      : byLayer.filter((scene) =>
           (aboutByScene.get(scene.id) ?? []).some((link) => link.note_id === withNote),
         )
 
@@ -161,6 +167,7 @@ export function ScenesTab({ work }: Props) {
   const go = (sceneId: string) => {
     if (!shown.some((scene) => scene.id === sceneId)) {
       setShotType(undefined)
+      setLayer(undefined)
       setWithNote(undefined)
     }
     // Opening the row is the whole gesture: the description and the prompts
@@ -221,6 +228,7 @@ export function ScenesTab({ work }: Props) {
   // there are none.
   const hasActions = actionsFor(profile.config.prompts, work.kind, 'work').length > 0
   const shots = vocabulary.shot_types.length > 0
+  const layers = vocabulary.layers.length > 0
 
   return (
     <Frame
@@ -242,6 +250,9 @@ export function ScenesTab({ work }: Props) {
             counts={counts}
             shotType={shotType}
             onShotType={setShotType}
+            layerCounts={layerCounts}
+            layer={layer}
+            onLayer={setLayer}
             named={[...named.values()]}
             withNote={withNote}
             onWithNote={setWithNote}
@@ -274,6 +285,7 @@ export function ScenesTab({ work }: Props) {
       ) : (
         <SceneTable
           shots={shots}
+          layers={layers}
           about={aboutShown}
           none={shown.length === 0 ? t('scenes.noneOfShot') : null}
         >
@@ -311,7 +323,7 @@ export function ScenesTab({ work }: Props) {
                     scene={scene}
                     workId={work.id}
                     vocabulary={vocabulary}
-                    columns={columnsOf({ shots, about: aboutShown })}
+                    columns={columnsOf({ shots, layers, about: aboutShown })}
                     paneWidth={paneWidth}
                     frames={framesForScene.get(scene.id) ?? []}
                     cast={cast}
@@ -358,6 +370,7 @@ function boardVocabularyOf(config: ProfileConfig, kind: string): Vocabulary {
   return {
     ...own,
     shot_types: allOf(config, 'shot_types'),
+    layers: allOf(config, 'layers'),
     scene_blocks: allOf(config, 'scene_blocks'),
   }
 }

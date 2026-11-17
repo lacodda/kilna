@@ -59,7 +59,10 @@ export const pasteCardPicture = (picture: NewAsset, bytes: number[], name: strin
 export const setPictureRole = (id: string, role: string) =>
   invoke<Asset>('set_picture_role', { id, role })
 /** Every proposal for the canon nobody has answered, with the cards each touches. */
-export const pendingCanonProposals = () => invoke<CanonProposal[]>('pending_canon_proposals')
+/** The proposals for the canon nobody has answered. The language is the
+ *  window's: what an agent sent is written out in it (v0.112). */
+export const pendingCanonProposals = (locale: string) =>
+  invoke<CanonProposal[]>('pending_canon_proposals', { locale })
 /** A proposal for the canon read against the canon as it stands now. */
 export const reviewCanonProposal = (messageId: string) =>
   invoke<FactReview[]>('review_canon_proposal', { messageId })

@@ -11,6 +11,8 @@ export const keys = {
   /** The spaces this machine knows, and the one open (ADR 0077). */
   spaces: ['spaces'] as const,
   currentSpace: ['spaces', 'current'] as const,
+  /** The types a space can be made of on this machine (ADR 0079). */
+  spaceTypes: ['spaceTypes'] as const,
 
   works: ['works'] as const,
   work: (id: string) => ['works', 'item', id] as const,

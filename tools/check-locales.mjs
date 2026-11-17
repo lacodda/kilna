@@ -169,7 +169,14 @@ const namedByBackend = (key) =>
   /^journal\.\w+\.\w+/.test(key) ||
   key.startsWith('undo.') ||
   key.startsWith('refusal.') ||
-  key.startsWith('skip.')
+  key.startsWith('skip.') ||
+  key.startsWith('problem.') ||
+  key.startsWith('place.') ||
+  // Why a plugin cannot run (v0.112): reasons the backend names.
+  key.startsWith('plugins.why.') ||
+  // The words of a proposal's body, which the backend writes out whole in
+  // the window's language (`speech.rs`).
+  key.startsWith('proposalBody.')
 for (const key of sourceStems) {
   if (namedByBackend(key) || whole.has(key)) continue
   if (built.some((prefix) => key.startsWith(prefix))) continue

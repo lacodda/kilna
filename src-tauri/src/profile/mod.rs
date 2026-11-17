@@ -53,12 +53,14 @@ pub fn builtin() -> Result<Vec<BuiltinProfile>> {
 
 fn read_builtin() -> Result<Vec<BuiltinProfile>> {
     // Four crafts against one schema. If a craft needed a schema change to fit,
-    // the premise of ADR 0001 would be wrong — so far none has.
+    // the premise of ADR 0001 would be wrong — so far none has. And the empty
+    // one last: a craft kilna does not ship starts from it (v0.112).
     const SOURCES: &[&str] = &[
         include_str!("../../profiles/music.json"),
         include_str!("../../profiles/novel.json"),
         include_str!("../../profiles/podcast.json"),
         include_str!("../../profiles/blog.json"),
+        include_str!("../../profiles/blank.json"),
     ];
     SOURCES
         .iter()
@@ -69,6 +71,60 @@ fn read_builtin() -> Result<Vec<BuiltinProfile>> {
 /// The kind a space is made of when nothing says otherwise: Studio, the
 /// first profile kilna ships.
 pub const DEFAULT_KIND: &str = "music";
+
+/// The empty profile (v0.112, ADR 0079): one kind of work, a text, four
+/// statuses and one way out. What a space of a craft kilna does not ship is
+/// made of, the rest named in Settings; and what a profile document of an
+/// unknown craft grows from.
+pub const BLANK_KIND: &str = "blank";
+
+/// Refuse a document with anything wrong in it, whole, with every problem
+/// named: a document edited by hand is fixed by reading the list, not by
+/// guessing which line the app minded. The problems travel as reasons, so
+/// the window says each in its own language.
+pub fn check(config: &ProfileConfig) -> Result<()> {
+    let problems = config.problems();
+    if problems.is_empty() {
+        return Ok(());
+    }
+    Err(Error::refused("profile.invalid").param(
+        "problems",
+        serde_json::Value::Array(problems.into_iter().map(Into::into).collect()),
+    ))
+}
+
+/// Give a new space the profile of a type (v0.112, ADR 0079): the type's
+/// document under the type's name, stored as the profile of the kind it grew
+/// from - and so carried forward as that kind's is, at once and at every
+/// start after, which is how an action shipped since the type was saved
+/// reaches the space. Only an empty database is seeded; one that holds a
+/// profile keeps it.
+pub fn seed_from(
+    conn: &Connection,
+    kind: &str,
+    name: &str,
+    description: Option<&str>,
+    config: &ProfileConfig,
+) -> Result<()> {
+    let stored: i64 = conn.query_row("SELECT count(*) FROM profile", [], |row| row.get(0))?;
+    if stored == 0 {
+        check(config)?;
+        let timestamp = now();
+        conn.execute(
+            "INSERT INTO profile (id, key, name, description, config, is_active, is_builtin, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, 1, 1, ?6, ?6)",
+            params![
+                uuid::Uuid::new_v4().to_string(),
+                kind,
+                name,
+                description,
+                serde_json::to_string(config)?,
+                timestamp,
+            ],
+        )?;
+    }
+    seed(conn, kind)
+}
 
 /// Give a space its profile, and make sure exactly one profile is active.
 ///
@@ -385,6 +441,16 @@ const UPGRADE: &[Step] = &[
         name: "the tab a kind opens on, where it was renamed",
         carry: renamed_tabs,
     },
+    Step {
+        name: "a field's type still as it shipped before: the anchors, a text until they became a list",
+        carry: retyped_fields,
+    },
+    // Last: every word the steps above brought in is already there to be
+    // read against its shipped self.
+    Step {
+        name: "the second language of a word still reading as it shipped in English",
+        carry: second_language,
+    },
 ];
 
 /// Prompt templates whose key is missing. A user who reworded an action keeps
@@ -444,6 +510,14 @@ fn prompt_details(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
             changed = true;
         }
         if TEMPLATES_BEFORE_THE_REGISTER
+            .iter()
+            .any(|(key, before)| *key == prompt.key && *before == prompt.template)
+            && prompt.template != shipped.template
+        {
+            prompt.template = shipped.template.clone();
+            changed = true;
+        }
+        if TEMPLATES_BEFORE_THE_CONTEXT
             .iter()
             .any(|(key, before)| *key == prompt.key && *before == prompt.template)
             && prompt.template != shipped.template
@@ -577,7 +651,7 @@ fn going_out_needs(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool 
 fn version_roles(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     let mut changed = false;
     for (kind, shipped_kind) in shared_kinds(config, shipped) {
-        changed |= add_new_keys(
+        changed |= insert_new_keys(
             &mut kind.version_roles,
             &shipped_kind.version_roles,
             |role| &role.key,
@@ -620,8 +694,8 @@ fn version_roles(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     changed
 }
 
-/// The storyboard's kinds of shot and prompt blocks, where the stored kind
-/// names none: the video kind reached the owner's workspace before scenes
+/// The storyboard's kinds of shot, layers and prompt blocks, where the stored
+/// kind names none: the video kind reached the owner's workspace before scenes
 /// existed, and without this it would have no Scenes tab. A list the owner
 /// narrowed or renamed is left alone. Which block says what the picture
 /// shows (v0.88) follows the shipped block of the same key, where no stored
@@ -635,6 +709,15 @@ fn board_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
         }
         if kind.scene_blocks.is_empty() && !shipped_kind.scene_blocks.is_empty() {
             kind.scene_blocks = shipped_kind.scene_blocks.clone();
+            changed = true;
+        }
+        // The layers (v0.112) arrive only beside a storyboard: a kind whose
+        // owner took the board off has no scene for a layer to be of.
+        if kind.layers.is_empty()
+            && !shipped_kind.layers.is_empty()
+            && (!kind.shot_types.is_empty() || !kind.scene_blocks.is_empty())
+        {
+            kind.layers = shipped_kind.layers.clone();
             changed = true;
         }
         if !kind.scene_blocks.iter().any(|block| block.picture)
@@ -798,7 +881,7 @@ fn conceptions(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
         .filter(|board| !board.links_the_library() || config.library().is_some())
         .cloned()
         .collect();
-    let mut changed = add_new_keys(&mut config.boards, &arriving, |board| &board.key);
+    let mut changed = insert_new_keys(&mut config.boards, &arriving, |board| &board.key);
     let boards: Vec<String> = config.boards.iter().map(|b| b.key.clone()).collect();
     let fields: Vec<(String, Vec<String>)> = config
         .work_meta_fields
@@ -932,7 +1015,7 @@ fn library_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bo
         kind.library = true;
         changed = true;
     }
-    changed |= add_new_keys(&mut kind.media, &shipped_library.media, |medium| {
+    changed |= insert_new_keys(&mut kind.media, &shipped_library.media, |medium| {
         &medium.key
     });
     changed
@@ -974,6 +1057,142 @@ fn relabel_untouched_fields(config: &mut ProfileConfig, shipped: &ProfileConfig)
     changed
 }
 
+/// The types a field shipped under before, by key. The anchors of an
+/// experiment were a text read line by line until a field could be a list
+/// (v0.112).
+const FIELD_TYPES_BEFORE: [(&str, config::MetaFieldType); 1] =
+    [("anchors", config::MetaFieldType::Multiline)];
+
+/// A field still of the type it shipped under before follows the shipped
+/// type; one the owner retyped is theirs. What works hold is left as it is:
+/// a list reads a text stored before it as its lines
+/// ([`config::MetaFieldType::entries`]), so nothing is rewritten here.
+fn retyped_fields(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for field in &mut config.work_meta_fields {
+        let Some(now) = shipped.work_meta_fields.iter().find(|s| s.key == field.key) else {
+            continue;
+        };
+        if field.field_type != now.field_type
+            && FIELD_TYPES_BEFORE
+                .iter()
+                .any(|(key, before)| *key == field.key && *before == field.field_type)
+        {
+            field.field_type = now.field_type;
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// The second language of a word, where the stored word still reads exactly
+/// as the shipped one does in English (v0.112).
+///
+/// A profile stored before its words spoke two languages holds "Song",
+/// "Released", "Draft" as plain strings, and a kind that arrived later came
+/// with both - so a Russian window read "Released" beside a Russian word. A
+/// stored word that is the shipped English, letter for letter, was never the
+/// owner's own: it takes the shipped pair. A word they wrote - in any
+/// language - differs from it and stays one string, said as typed whatever
+/// the window speaks.
+///
+/// Read off the documents as JSON rather than field by field: a word is a
+/// label wherever the shipped document holds a map of languages, so a label
+/// added to the format tomorrow is covered the day it ships. Entries of a
+/// list meet by `key` - or by `at`, a rubric's marks - and never by place.
+fn second_language(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let (Ok(mut stored), Ok(shipped)) = (
+        serde_json::to_value(&*config),
+        serde_json::to_value(shipped),
+    ) else {
+        return false;
+    };
+    if !pair_words(&mut stored, &shipped) {
+        return false;
+    }
+    match serde_json::from_value(stored) {
+        Ok(paired) => {
+            *config = paired;
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// Whether a value is a word in several languages: a map of strings that
+/// has the source language.
+fn is_word_map(value: &serde_json::Value) -> bool {
+    value.as_object().is_some_and(|map| {
+        map.contains_key(config::SOURCE_LOCALE) && map.values().all(serde_json::Value::is_string)
+    })
+}
+
+/// What two entries of a list are met by.
+fn entry_name(entry: &serde_json::Value) -> Option<String> {
+    let entry = entry.as_object()?;
+    entry
+        .get("key")
+        .or_else(|| entry.get("at"))
+        .map(serde_json::Value::to_string)
+}
+
+/// Walk `stored` beside `shipped`, giving each stored word that is the
+/// shipped English the shipped languages it lacks. See [`second_language`].
+fn pair_words(stored: &mut serde_json::Value, shipped: &serde_json::Value) -> bool {
+    use serde_json::Value;
+    if is_word_map(shipped) {
+        let english = shipped.get(config::SOURCE_LOCALE);
+        return match stored {
+            Value::String(word) if Some(word.as_str()) == english.and_then(Value::as_str) => {
+                *stored = shipped.clone();
+                true
+            }
+            // A word stored in some languages already gains the rest.
+            Value::Object(map)
+                if map.values().all(Value::is_string)
+                    && map.get(config::SOURCE_LOCALE) == english =>
+            {
+                let mut changed = false;
+                for (locale, word) in shipped.as_object().into_iter().flatten() {
+                    if !map.contains_key(locale) {
+                        map.insert(locale.clone(), word.clone());
+                        changed = true;
+                    }
+                }
+                changed
+            }
+            _ => false,
+        };
+    }
+    match (stored, shipped) {
+        (Value::Object(stored), Value::Object(shipped)) => {
+            let mut changed = false;
+            for (name, value) in stored.iter_mut() {
+                if let Some(shipped) = shipped.get(name) {
+                    changed |= pair_words(value, shipped);
+                }
+            }
+            changed
+        }
+        (Value::Array(stored), Value::Array(shipped)) => {
+            let mut changed = false;
+            for entry in stored.iter_mut() {
+                let Some(name) = entry_name(entry) else {
+                    continue;
+                };
+                if let Some(shipped) = shipped
+                    .iter()
+                    .find(|candidate| entry_name(candidate).as_deref() == Some(name.as_str()))
+                {
+                    changed |= pair_words(entry, shipped);
+                }
+            }
+            changed
+        }
+        _ => false,
+    }
+}
+
 /// Tabs of the work's card that were renamed, old id to new. The Notes tab
 /// became the Conception tab in v0.99: it holds what is attached to the work
 /// and, for a kind that names one, the conception.
@@ -997,16 +1216,16 @@ fn renamed_tabs(config: &mut ProfileConfig, _shipped: &ProfileConfig) -> bool {
 
 /// Everything else the owner keys by name - overview fields, marks, the kinds
 /// a note can take (0.65): an entry they renamed or retyped stays theirs, and
-/// anything newly shipped is appended after it, so an order they arranged is
-/// not rewritten.
+/// anything newly shipped takes its place after the entry it follows in the
+/// shipped list, so an order they arranged is not rewritten.
 fn keyed_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let mut changed = add_new_keys(
+    let mut changed = insert_new_keys(
         &mut config.work_meta_fields,
         &shipped.work_meta_fields,
         |field| &field.key,
     );
-    changed |= add_new_keys(&mut config.marks, &shipped.marks, |mark| &mark.key);
-    changed |= add_new_keys(&mut config.note_kinds, &shipped.note_kinds, |kind| {
+    changed |= insert_new_keys(&mut config.marks, &shipped.marks, |mark| &mark.key);
+    changed |= insert_new_keys(&mut config.note_kinds, &shipped.note_kinds, |kind| {
         &kind.key
     });
     changed
@@ -1059,7 +1278,7 @@ fn retired_note_kinds(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bo
 /// line's generic stops in every real workspace - and stops still at their
 /// shipped percentages follow a regrade.
 fn stages(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let changed = add_new_keys(&mut config.stages, &shipped.stages, |stage| &stage.key);
+    let changed = insert_new_keys(&mut config.stages, &shipped.stages, |stage| &stage.key);
     changed | regrade_stages(&mut config.stages, &shipped.stages)
 }
 
@@ -1169,7 +1388,7 @@ fn mark_icons(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
 /// "Looks" on one card. The kinds of relation arrive by key, as every keyed
 /// word does.
 fn canon_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let mut changed = add_new_keys(
+    let mut changed = insert_new_keys(
         &mut config.relation_kinds,
         &shipped.relation_kinds,
         |kind| &kind.key,
@@ -1553,6 +1772,30 @@ const TEMPLATES_BEFORE_THE_REGISTER: [(&str, &str); 2] = [
     ),
 ];
 
+/// The critiques as they shipped before they read the context of v0.106
+/// (v0.112), by the action they belong to: the version before the one read
+/// and the score that speaks for it. A stored copy still reading exactly like
+/// one of these follows the shipped wording, which reads `{previous_version}`
+/// and `{score}`; a reworded one stays the owner's.
+const TEMPLATES_BEFORE_THE_CONTEXT: [(&str, &str); 4] = [
+    (
+        "critique",
+        "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\n{register}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? A word the register bans, or leans on past its limit, is a finding. Do not rewrite it — say what is wrong.",
+    ),
+    (
+        "critique",
+        "Here is a chapter called \"{title}\".\n\n{role:text}\n\nWhere would a reader put this down? Be specific about paragraphs. Name what is limp, what is explained twice, and what the chapter is avoiding. Do not rewrite it.",
+    ),
+    (
+        "critique",
+        "Here is the script for an episode called \"{title}\".\n\n{role:script}\n\nWhere would a listener stop listening? Be specific about timestamps or sections. Name what rambles, what over-explains, and what the episode is avoiding. Do not rewrite it — say what is wrong.",
+    ),
+    (
+        "critique",
+        "Here is a post called \"{title}\".\n\n{role:draft}\n\nWhere would a stranger stop reading? Be specific about paragraphs. Name what is padded, what is obvious, and what the post is avoiding saying. Do not rewrite it — say what is wrong.",
+    ),
+];
+
 /// The scenarios' templates as they shipped before the research (v0.99), by
 /// the action they belong to: they did not read what is starred on the board
 /// of research. A copy still reading exactly like one follows the shipped
@@ -1701,14 +1944,10 @@ impl<'de> Deserialize<'de> for DeclaredFormat {
     }
 }
 
-/// Append entries whose key the stored list does not have yet.
-///
-/// Returns whether anything was added, so the caller can tell a config that
-/// needs writing from one that does not.
 /// Move a stop that kept a shipped key onto the number the shipped list now
 /// gives it.
 ///
-/// [`add_new_keys`] adds a stop nobody has, which is the whole of what a new
+/// [`insert_new_keys`] adds a stop nobody has, which is the whole of what a new
 /// vocabulary word needs — but a stage is not only a word. It is a word at a
 /// number, and the numbers are a scale that has to stay in order: when
 /// "Final" arrived at 100, the six stops before it moved down to make room,
@@ -1789,28 +2028,17 @@ fn reword_untouched_tiers(stored: &mut ProfileConfig, shipped: &ProfileConfig) -
     changed
 }
 
-fn add_new_keys<T: Clone>(stored: &mut Vec<T>, shipped: &[T], key: impl Fn(&T) -> &String) -> bool {
-    let new: Vec<T> = shipped
-        .iter()
-        .filter(|candidate| {
-            stored
-                .iter()
-                .all(|existing| key(existing) != key(candidate))
-        })
-        .cloned()
-        .collect();
-
-    if new.is_empty() {
-        return false;
-    }
-    stored.extend(new);
-    true
-}
-
-/// [`add_new_keys`], each newcomer put where the shipped list puts it: after
-/// the nearest entry before it there that the stored list has, and at the end
-/// when it has none - so a dictionary read in its list's order does not grow
-/// a tail of whatever shipped last.
+/// Entries whose key the stored list does not have yet, each put where the
+/// shipped list puts it: after the nearest entry before it there that the
+/// stored list has, and at the end when it has none - so a dictionary read in
+/// its list's order does not grow a tail of whatever shipped last. The one
+/// rule for every keyed list since v0.112: until then most lists appended,
+/// and a type shipped later stood after every type the owner had, not after
+/// the one the shipped dictionary reads it beside. An order the owner
+/// arranged is not rewritten: only the newcomer is placed.
+///
+/// Returns whether anything was added, so the caller can tell a config that
+/// needs writing from one that does not.
 fn insert_new_keys<T: Clone>(
     stored: &mut Vec<T>,
     shipped: &[T],
@@ -1954,12 +2182,7 @@ pub fn update_config_at(
     config: &ProfileConfig,
     at: &str,
 ) -> Result<Profile> {
-    // Refused whole, with every problem named: a document edited by hand is
-    // fixed by reading the list, not by guessing which line the app minded.
-    let problems = config.validate();
-    if !problems.is_empty() {
-        return Err(Error::refused("profile.invalid").param("problems", problems));
-    }
+    check(config)?;
 
     let changed = conn.execute(
         "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
@@ -2074,6 +2297,12 @@ mod tests {
         let profiles = builtin().unwrap();
         assert!(!profiles.is_empty());
         for profile in profiles {
+            // The empty profile is judged on nothing until its owner says on
+            // what: axes are the craft's own words (v0.112).
+            if profile.key == BLANK_KIND {
+                assert!(profile.config.work_kinds[0].axes.is_empty());
+                continue;
+            }
             assert!(
                 !profile.config.work_kinds[0].axes.is_empty(),
                 "{} has no axes",
@@ -3386,10 +3615,21 @@ mod tests {
             .into_iter()
             .map(|kind| kind.key)
             .collect();
+        // The plain kinds take the shipped order in the places they held -
+        // the phrase first, where the Notes screen opens - and the cards
+        // stand where they stood. The library, which this copy never had,
+        // arrived beside the note it follows in the shipped list (v0.112:
+        // a newcomer stands after its neighbour, not at the end).
+        let plain: Vec<&str> = kinds
+            .iter()
+            .map(String::as_str)
+            .filter(|key| ["phrase", "note", "source"].contains(key))
+            .collect();
+        assert_eq!(plain, ["phrase", "note", "source"]);
+        assert_eq!(kinds[0], "phrase");
         assert_eq!(
             kinds[..3],
-            ["phrase".to_string(), card.key, "note".to_string()],
-            "the plain kinds take the shipped order in the places they held"
+            ["phrase".to_string(), "note".to_string(), card.key]
         );
         assert!(!kinds.contains(&"idea".to_string()));
     }
@@ -3782,8 +4022,8 @@ mod tests {
         let refusal = refused.refusal().expect("a refusal");
         assert_eq!(refusal.code, "profile.invalid");
         let problems = refusal.params["problems"].to_string();
-        assert!(problems.contains("has the scale 0"), "{problems}");
-        assert!(problems.contains("repeats the key"), "{problems}");
+        assert!(problems.contains("problem.axisScale"), "{problems}");
+        assert!(problems.contains("problem.repeatedKey"), "{problems}");
 
         let stored = config_for(&conn, &profile.id).unwrap();
         assert!(
@@ -4740,5 +4980,407 @@ mod tests {
         let mine = reshaped.compose[0].clone();
         assert!(!compositions(&mut reshaped, &shipped));
         assert_eq!(reshaped.compose[0], mine);
+    }
+
+    /// A copy stored before its words spoke two languages (v0.112): the
+    /// shipped English as plain strings. Each takes the shipped pair; a word
+    /// the owner wrote, in any language, stays as written - and so does a
+    /// word of an entry kilna does not ship.
+    #[test]
+    fn a_word_still_as_it_shipped_in_english_gains_its_second_language() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == DEFAULT_KIND)
+            .unwrap()
+            .config;
+        let english = |label: &config::Label| config::Label::from(label.in_locale("en"));
+        let mut stored = shipped.clone();
+        for kind in &mut stored.work_kinds {
+            kind.label = english(&kind.label);
+            for status in &mut kind.statuses {
+                status.label = english(&status.label);
+            }
+            for axis in &mut kind.axes {
+                axis.label = english(&axis.label);
+                axis.description = axis.description.as_ref().map(english);
+                for mark in &mut axis.rubric {
+                    mark.label = english(&mark.label);
+                }
+            }
+        }
+        for prompt in &mut stored.prompts {
+            prompt.label = english(&prompt.label);
+        }
+        // The owner's own words: a kind renamed in Russian, a status reworded
+        // in English, a kind of their own.
+        stored.work_kinds[0].label = "Трек".into();
+        stored.work_kinds[0].statuses[0].label = "Rough".into();
+        let mut own = config::WorkKind::new("demo", "Demo");
+        own.statuses = vec![config::Status::new("draft", "Draft", Derive::Draft)];
+        stored.work_kinds.push(own);
+
+        assert!(second_language(&mut stored, &shipped));
+
+        assert_eq!(stored.work_kinds[0].label, "Трек");
+        assert_eq!(stored.work_kinds[0].statuses[0].label, "Rough");
+        assert_eq!(
+            stored.work_kinds[0].statuses[1].label,
+            shipped.work_kinds[0].statuses[1].label
+        );
+        assert_eq!(stored.work_kinds[1].label, shipped.work_kinds[1].label);
+        assert_eq!(stored.work_kinds[1].label.in_locale("ru"), "Видео");
+        let judged = shipped
+            .work_kinds
+            .iter()
+            .position(|kind| kind.axes.iter().any(|axis| !axis.rubric.is_empty()))
+            .expect("a shipped kind with a rubric");
+        assert_eq!(
+            serde_json::to_value(&stored.work_kinds[judged].axes).unwrap(),
+            serde_json::to_value(&shipped.work_kinds[judged].axes).unwrap(),
+            "an axis's word, what it asks and its rubric's marks, met by key and by mark"
+        );
+        assert_eq!(stored.prompts[0].label, shipped.prompts[0].label);
+        // "Draft" of a kind kilna does not ship is the owner's word, however
+        // much it looks like a shipped one.
+        let demo = stored.kind("demo").unwrap();
+        assert_eq!(demo.label, "Demo");
+        assert_eq!(demo.statuses[0].label, config::Label::from("Draft"));
+        assert!(
+            stored.validate().is_empty(),
+            "the copy still validates: {:?}",
+            stored.validate()
+        );
+        assert!(
+            !second_language(&mut stored, &shipped),
+            "and nothing is left to pair the second time"
+        );
+    }
+
+    /// A word stored in English alone, as a map, gains the languages it
+    /// lacks; one whose English the owner changed is left with what it has.
+    #[test]
+    fn a_word_kept_in_one_language_gains_the_rest_only_while_its_english_stands() {
+        let shipped = serde_json::json!({ "label": { "en": "Song", "ru": "Песня" } });
+        let mut same = serde_json::json!({ "label": { "en": "Song" } });
+        let mut other = serde_json::json!({ "label": { "en": "Track" } });
+        let mut russian = serde_json::json!({ "label": "Песня" });
+
+        assert!(pair_words(&mut same, &shipped));
+        assert!(!pair_words(&mut other, &shipped));
+        assert!(!pair_words(&mut russian, &shipped));
+
+        assert_eq!(same, shipped);
+        assert_eq!(other["label"], serde_json::json!({ "en": "Track" }));
+        assert_eq!(russian["label"], "Песня");
+    }
+
+    /// The critique of each craft reads what came before and how it was
+    /// judged (v0.112). A stored copy still worded as it shipped follows; a
+    /// reworded one is the owner's.
+    #[test]
+    fn a_critique_still_as_it_shipped_comes_to_read_the_context() {
+        for profile in builtin().unwrap() {
+            let Some(shipped) = profile
+                .config
+                .prompts
+                .iter()
+                .find(|prompt| prompt.key == "critique")
+            else {
+                continue;
+            };
+            for name in ["previous_version", "score"] {
+                assert!(
+                    shipped.placeholders().iter().any(|found| found == name),
+                    "{}: the shipped critique reads {{{name}}}",
+                    profile.key
+                );
+            }
+            let before = TEMPLATES_BEFORE_THE_CONTEXT
+                .iter()
+                .map(|(_, before)| *before)
+                .find(|before| {
+                    // The one this craft shipped: it reads the craft's own role.
+                    crate::assistant::prompt::placeholders(before)
+                        .iter()
+                        .filter(|name| name.starts_with("role:"))
+                        .all(|name| shipped.placeholders().contains(name))
+                })
+                .unwrap_or_else(|| panic!("{}: no earlier critique is kept", profile.key));
+
+            let mut untouched = profile.config.clone();
+            let mut reworded = profile.config.clone();
+            for (config, template) in [
+                (&mut untouched, before.to_owned()),
+                (&mut reworded, format!("{before} Be brief.")),
+            ] {
+                config
+                    .prompts
+                    .iter_mut()
+                    .find(|prompt| prompt.key == "critique")
+                    .unwrap()
+                    .template = template;
+            }
+
+            assert!(prompt_details(&mut untouched, &profile.config));
+            prompt_details(&mut reworded, &profile.config);
+
+            let template = |config: &ProfileConfig| {
+                config
+                    .prompts
+                    .iter()
+                    .find(|prompt| prompt.key == "critique")
+                    .unwrap()
+                    .template
+                    .clone()
+            };
+            assert_eq!(template(&untouched), shipped.template, "{}", profile.key);
+            assert!(
+                template(&reworded).ends_with("Be brief."),
+                "{}",
+                profile.key
+            );
+            assert!(
+                untouched.validate().is_empty(),
+                "{:?}",
+                untouched.validate()
+            );
+        }
+    }
+
+    /// Studio's action about a song's place in its album reads the collection
+    /// (v0.112), and reaches a stored copy as any new action does.
+    #[test]
+    fn the_album_action_reads_the_collection_and_arrives_in_a_stored_copy() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == DEFAULT_KIND)
+            .unwrap()
+            .config;
+        let place = shipped
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == "album-place")
+            .expect("the shipped action");
+        assert!(place.placeholders().iter().any(|name| name == "collection"));
+
+        let mut stored = shipped.clone();
+        stored.prompts.retain(|prompt| prompt.key != "album-place");
+        assert!(missing_prompts(&mut stored, &shipped));
+        assert!(
+            stored
+                .prompts
+                .iter()
+                .any(|prompt| prompt.key == "album-place")
+        );
+    }
+
+    /// The anchors of an experiment are a list (v0.112). A stored field still
+    /// the text it shipped as follows; one the owner retyped is theirs.
+    #[test]
+    fn the_anchors_become_a_list_where_they_are_still_the_text_they_shipped_as() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == DEFAULT_KIND)
+            .unwrap()
+            .config;
+        let field = |config: &ProfileConfig, key: &str| {
+            config
+                .work_meta_fields
+                .iter()
+                .find(|field| field.key == key)
+                .unwrap()
+                .field_type
+        };
+        assert_eq!(field(&shipped, "anchors"), config::MetaFieldType::List);
+
+        let retype = |config: &mut ProfileConfig, to: config::MetaFieldType| {
+            config
+                .work_meta_fields
+                .iter_mut()
+                .find(|field| field.key == "anchors")
+                .unwrap()
+                .field_type = to;
+        };
+        let mut stored = shipped.clone();
+        retype(&mut stored, config::MetaFieldType::Multiline);
+        let mut owners = shipped.clone();
+        retype(&mut owners, config::MetaFieldType::Text);
+
+        assert!(retyped_fields(&mut stored, &shipped));
+        assert!(!retyped_fields(&mut owners, &shipped));
+
+        assert_eq!(field(&stored, "anchors"), config::MetaFieldType::List);
+        assert_eq!(field(&owners, "anchors"), config::MetaFieldType::Text);
+        assert!(stored.validate().is_empty(), "{:?}", stored.validate());
+        assert!(owners.validate().is_empty(), "{:?}", owners.validate());
+    }
+
+    /// A list reads what a text field held before it became one.
+    #[test]
+    fn a_list_reads_a_text_stored_before_it_as_its_lines() {
+        use config::MetaFieldType;
+        assert_eq!(
+            MetaFieldType::entries(&serde_json::json!("fuzz bass\n\n  amen break \r\n")),
+            ["fuzz bass", "amen break"]
+        );
+        assert_eq!(
+            MetaFieldType::entries(&serde_json::json!(["fuzz bass", " ", 3, "amen break"])),
+            ["fuzz bass", "amen break"]
+        );
+        assert!(MetaFieldType::entries(&serde_json::json!(null)).is_empty());
+    }
+
+    /// The layers of a scene (v0.112) reach a stored kind that has a
+    /// storyboard, and not one whose board the owner took off.
+    #[test]
+    fn the_layers_arrive_beside_a_storyboard_and_nowhere_else() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == DEFAULT_KIND)
+            .unwrap()
+            .config;
+        let video = shipped.kind("video").unwrap();
+        assert!(!video.layers.is_empty(), "Studio's clip names its layers");
+
+        let mut stored = shipped.clone();
+        for kind in &mut stored.work_kinds {
+            kind.layers.clear();
+        }
+        let short = stored
+            .work_kinds
+            .iter_mut()
+            .find(|kind| kind.key == "short")
+            .unwrap();
+        short.shot_types.clear();
+        short.scene_blocks.clear();
+        // Without a board the kind names none again either way: the step
+        // that fills an empty board runs first, so it is asked alone here.
+        let mut boardless = stored.clone();
+        boardless.work_kinds.retain(|kind| kind.key == "short");
+        let mut only_short = shipped.clone();
+        only_short.work_kinds.retain(|kind| kind.key == "short");
+        for kind in &mut only_short.work_kinds {
+            kind.shot_types.clear();
+            kind.scene_blocks.clear();
+        }
+
+        assert!(board_vocabulary(&mut stored, &shipped));
+        assert_eq!(
+            stored.kind("video").unwrap().layers.len(),
+            video.layers.len()
+        );
+        assert!(!board_vocabulary(&mut boardless, &only_short));
+        assert!(boardless.work_kinds[0].layers.is_empty());
+    }
+
+    /// A key shipped later takes its place after the entry it follows in the
+    /// shipped list, in every keyed list, and an order the owner arranged is
+    /// left as arranged.
+    #[test]
+    fn a_newly_shipped_entry_stands_after_its_shipped_neighbour() {
+        let words = |keys: &[&str]| -> Vec<config::Kind> {
+            keys.iter().map(|key| config::Kind::new(key, key)).collect()
+        };
+        let keys = |list: &[config::Kind]| -> Vec<String> {
+            list.iter().map(|word| word.key.clone()).collect()
+        };
+        let shipped = words(&["a", "b", "c", "d"]);
+
+        // The owner put `d` first and never had `b`: it arrives after `a`.
+        let mut stored = words(&["d", "a", "c"]);
+        assert!(insert_new_keys(&mut stored, &shipped, |word| &word.key));
+        assert_eq!(keys(&stored), ["d", "a", "b", "c"]);
+
+        // Nothing before it is stored: it goes to the end rather than first.
+        let mut tail = words(&["c"]);
+        assert!(insert_new_keys(&mut tail, &words(&["a", "c"]), |word| {
+            &word.key
+        }));
+        assert_eq!(keys(&tail), ["c", "a"]);
+
+        assert!(!insert_new_keys(&mut stored, &shipped, |word| &word.key));
+    }
+
+    /// The empty profile (v0.112): the least a craft can start from, sound,
+    /// and what a space of a craft kilna does not ship is seeded with.
+    #[test]
+    fn the_empty_profile_is_one_kind_with_a_text_and_seeds_a_space() {
+        let blank = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == BLANK_KIND)
+            .expect("the empty profile ships");
+        assert_eq!(blank.config.work_kinds.len(), 1);
+        assert!(blank.config.prompts.is_empty());
+        assert!(
+            blank.config.validate().is_empty(),
+            "{:?}",
+            blank.config.validate()
+        );
+
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn, BLANK_KIND).unwrap();
+        let active = active(&conn).unwrap().unwrap();
+        assert_eq!(active.key, BLANK_KIND);
+        assert_eq!(active.config.work_kinds[0].key, "work");
+    }
+
+    /// A type's document seeds an empty space under the type's name, as the
+    /// profile of the kind it grew from - and is brought up to what ships at
+    /// once. A space that already has a profile keeps it.
+    #[test]
+    fn a_document_seeds_an_empty_space_and_is_carried_forward_as_its_kind() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == DEFAULT_KIND)
+            .unwrap();
+        let mut document = shipped.config.clone();
+        document.work_kinds[0].label = "Track".into();
+        document.prompts.retain(|prompt| prompt.key != "titles");
+
+        let conn = db::open_in_memory().unwrap();
+        seed_from(
+            &conn,
+            DEFAULT_KIND,
+            "Night Shift",
+            Some("The second channel."),
+            &document,
+        )
+        .unwrap();
+
+        let profiles = list(&conn).unwrap();
+        assert_eq!(profiles.len(), 1);
+        assert_eq!(profiles[0].key, DEFAULT_KIND);
+        assert_eq!(profiles[0].name, "Night Shift");
+        assert_eq!(
+            profiles[0].description.as_deref(),
+            Some("The second channel.")
+        );
+        assert!(profiles[0].is_active);
+        assert_eq!(profiles[0].config.work_kinds[0].label, "Track");
+        assert!(
+            profiles[0]
+                .config
+                .prompts
+                .iter()
+                .any(|prompt| prompt.key == "titles")
+        );
+
+        // Asked again of a space that has its profile: nothing changes.
+        seed_from(&conn, DEFAULT_KIND, "Another", None, &shipped.config).unwrap();
+        assert_eq!(list(&conn).unwrap()[0].name, "Night Shift");
+
+        // A document with something wrong in it seeds nothing.
+        let empty = db::open_in_memory().unwrap();
+        let mut broken = shipped.config.clone();
+        broken.work_kinds[0].statuses.clear();
+        let refused = seed_from(&empty, DEFAULT_KIND, "Broken", None, &broken).unwrap_err();
+        assert_eq!(refused.refusal().unwrap().code, "profile.invalid");
+        assert!(list(&empty).unwrap().is_empty());
     }
 }

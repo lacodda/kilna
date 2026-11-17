@@ -12,6 +12,7 @@ const scene = (position: number, startsAt: number | null, endsAt: number | null)
   starts_at: startsAt,
   ends_at: endsAt,
   shot_type: null,
+  layer: null,
   description: '',
   blocks: {},
   framing: null,

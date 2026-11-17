@@ -34,6 +34,7 @@ const scene = (description: string, blocks: Record<string, string>): Scene =>
     starts_at: null,
     ends_at: null,
     shot_type: null,
+    layer: null,
     description,
     blocks,
     created_at: '',
@@ -253,6 +254,7 @@ describe('a copy of a scene', () => {
       ...scene('the bridge at night', { still: 'a bridge', motion: 'slow pan' }),
       section: 'Chorus',
       shot_type: 'wide',
+      layer: 'story',
       starts_at: 12,
       ends_at: 30,
     }
@@ -261,6 +263,7 @@ describe('a copy of a scene', () => {
       work_id: 'w',
       section: 'Chorus',
       shot_type: 'wide',
+      layer: 'story',
       description: 'the bridge at night',
       blocks: { still: 'a bridge', motion: 'slow pan' },
     })

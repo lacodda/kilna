@@ -834,6 +834,7 @@ fn a_scene_is_taken_back_both_ways() {
     // Edited the way the command edits it: the blocks as a set, and a section.
     let patch = kilna_lib::scene::ScenePatch {
         section: Some(Some("chorus".into())),
+        layer: Some(Some("performance".into())),
         blocks: Some(
             serde_json::json!({ "still": "a lighthouse, warm light" })
                 .as_object()
@@ -862,6 +863,7 @@ fn a_scene_is_taken_back_both_ways() {
     take_back(&mut conn, &offer);
     let back = kilna_lib::scene::get(&conn, &scene_id).unwrap().unwrap();
     assert!(back.section.is_none(), "the section is back to none");
+    assert!(back.layer.is_none(), "the layer is back to none");
     assert!(
         back.blocks.is_empty(),
         "the blocks are back to the empty set"

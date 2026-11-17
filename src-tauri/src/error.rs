@@ -209,6 +209,12 @@ impl Reason {
         self.params.insert(key.to_owned(), value.into());
         self
     }
+
+    /// This reason said in English from the locale, or its key when the
+    /// locale has no sentence for it.
+    pub fn english(&self) -> String {
+        said(&self.key, &self.params).unwrap_or_else(|| self.key.clone())
+    }
 }
 
 impl From<Reason> for Value {
@@ -217,15 +223,41 @@ impl From<Reason> for Value {
     }
 }
 
-/// The English sentences of every refusal, read once from the window's own
-/// locale.
-static ENGLISH: LazyLock<Map<String, Value>> = LazyLock::new(|| {
-    let locale: Value =
-        serde_json::from_str(include_str!("../../src/i18n/locales/en.json")).unwrap_or_default();
-    let mut sentences = Map::new();
-    flatten(&locale, "", &mut sentences);
-    sentences
+/// The language the backend's own sentences are written in, and the one a
+/// sentence falls back to: the log's, the tests', an agent's on `kilna --mcp`.
+pub const SOURCE_LOCALE: &str = "en";
+
+/// The sentences of the window's locales, each read once from the window's
+/// own file: English for the log, the tests and an agent, and the others for
+/// what the backend writes out for a person to read in the window's language
+/// (v0.112) - the body a proposal is shown with.
+static LOCALES: LazyLock<Vec<(&'static str, Map<String, Value>)>> = LazyLock::new(|| {
+    [
+        (
+            SOURCE_LOCALE,
+            include_str!("../../src/i18n/locales/en.json"),
+        ),
+        ("ru", include_str!("../../src/i18n/locales/ru.json")),
+    ]
+    .into_iter()
+    .map(|(name, source)| {
+        let locale: Value = serde_json::from_str(source).unwrap_or_default();
+        let mut sentences = Map::new();
+        flatten(&locale, "", &mut sentences);
+        (name, sentences)
+    })
+    .collect()
 });
+
+/// The sentences of a locale: `ru` for `ru-RU`, and none for a language the
+/// window does not speak.
+fn sentences(locale: &str) -> Option<&'static Map<String, Value>> {
+    let language = locale.split(['-', '_']).next().unwrap_or(locale);
+    LOCALES
+        .iter()
+        .find(|(name, _)| *name == language)
+        .map(|(_, sentences)| sentences)
+}
 
 fn flatten(value: &Value, prefix: &str, out: &mut Map<String, Value>) {
     if let Value::Object(object) = value {
@@ -256,18 +288,30 @@ pub fn english(code: &str, params: &Map<String, Value>) -> String {
 
 /// A locale key said in English with its values put in, when the locale has it.
 fn said(key: &str, params: &Map<String, Value>) -> Option<String> {
-    let Some(Value::String(sentence)) = ENGLISH.get(key) else {
-        return None;
+    said_in(SOURCE_LOCALE, key, params)
+}
+
+/// A locale key said in a language with its values put in. A language the
+/// window does not speak, or a key its locale lacks, is said in English; none
+/// when English has no sentence for the key either.
+pub fn said_in(locale: &str, key: &str, params: &Map<String, Value>) -> Option<String> {
+    let own = sentences(locale).and_then(|sentences| sentences.get(key));
+    let (locale, sentence) = match own {
+        Some(Value::String(sentence)) => (locale, sentence),
+        _ => match sentences(SOURCE_LOCALE).and_then(|sentences| sentences.get(key)) {
+            Some(Value::String(sentence)) => (SOURCE_LOCALE, sentence),
+            _ => return None,
+        },
     };
     let mut out = sentence.clone();
     for (name, value) in params {
-        out = out.replace(&format!("{{{{{name}}}}}"), &say_value(value));
+        out = out.replace(&format!("{{{{{name}}}}}"), &say_value(locale, value));
     }
     Some(out)
 }
 
-/// One interpolated value, in English.
-fn say_value(value: &Value) -> String {
+/// One interpolated value, in the language of the sentence it stands in.
+fn say_value(locale: &str, value: &Value) -> String {
     match value {
         Value::String(text) => text.clone(),
         // A reason inside a reason: said in its own words.
@@ -278,15 +322,20 @@ fn say_value(value: &Value) -> String {
                 .and_then(Value::as_object)
                 .cloned()
                 .unwrap_or_default();
-            said(key, &params).unwrap_or_else(|| key.to_owned())
+            said_in(locale, key, &params).unwrap_or_else(|| key.to_owned())
         }
-        // A word of the profile carried in two languages.
+        // A word of the profile carried in several languages.
         Value::Object(map) => map
-            .get("en")
+            .get(locale.split(['-', '_']).next().unwrap_or(locale))
+            .or_else(|| map.get(SOURCE_LOCALE))
             .and_then(Value::as_str)
             .map_or_else(|| value.to_string(), str::to_owned),
         // A list of reasons, one after another.
-        Value::Array(items) => items.iter().map(say_value).collect::<Vec<_>>().join("; "),
+        Value::Array(items) => items
+            .iter()
+            .map(|item| say_value(locale, item))
+            .collect::<Vec<_>>()
+            .join("; "),
         other => other.to_string(),
     }
 }

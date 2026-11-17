@@ -3,7 +3,7 @@ import type { JsonValue } from "./serde_json/JsonValue";
 
 /**
  * A scene inside a proposal: the fields of a row, already checked against
- * the kind's words — the shot type and the block keys are the kind's, and
+ * the kind's words — the shot type, the layer and the block keys are the kind's, and
  * the span is a span.
  */
 export type PackagedScene = { 
@@ -11,7 +11,7 @@ export type PackagedScene = {
  * The number on the board; after the last when omitted on an added
  * scene, and in order from 1 on a replaced board.
  */
-position?: number | null, section?: string | null, starts_at?: number | null, ends_at?: number | null, shot_type?: string | null, description?: string, 
+position?: number | null, section?: string | null, starts_at?: number | null, ends_at?: number | null, shot_type?: string | null, layer?: string | null, description?: string, 
 /**
  * Prompt blocks by the kind's `scene_blocks` key.
  */

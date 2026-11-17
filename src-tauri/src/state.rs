@@ -391,6 +391,7 @@ pub(crate) fn first_space(app: &Connection, app_dir: &Path) -> Result<String> {
             kind: profile::DEFAULT_KIND.into(),
             colour: None,
             mark: None,
+            type_id: None,
         },
         None,
     )?;
@@ -539,6 +540,7 @@ mod tests {
             kind: kind.into(),
             colour: None,
             mark: None,
+            type_id: None,
         }
     }
 

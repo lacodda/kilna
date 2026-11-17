@@ -1,0 +1,107 @@
+{
+  "key": "blank",
+  "name": "Empty",
+  "description": "One kind of work with a text, four statuses and one way out: the rest is yours to name in Settings.",
+  "config": {
+    "format": 3,
+    "work_kinds": [
+      {
+        "key": "work",
+        "label": {
+          "en": "Work",
+          "ru": "Произведение"
+        },
+        "version_roles": [
+          {
+            "key": "text",
+            "label": {
+              "en": "Text",
+              "ru": "Текст"
+            },
+            "body": "markdown"
+          }
+        ],
+        "release_kinds": [
+          {
+            "key": "release",
+            "label": {
+              "en": "Release",
+              "ru": "Выпуск"
+            },
+            "requires": [
+              "text"
+            ]
+          }
+        ],
+        "statuses": [
+          {
+            "key": "draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            },
+            "derive": "draft"
+          },
+          {
+            "key": "scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            },
+            "derive": "scored",
+            "colour": "accent"
+          },
+          {
+            "key": "scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            },
+            "derive": "scheduled",
+            "colour": "warn"
+          },
+          {
+            "key": "released",
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            },
+            "derive": "released",
+            "colour": "good"
+          },
+          {
+            "key": "shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            },
+            "derive": "manual",
+            "colour": "plain"
+          }
+        ]
+      }
+    ],
+    "collection_kinds": [
+      {
+        "key": "collection",
+        "label": {
+          "en": "Collection",
+          "ru": "Сборник"
+        }
+      }
+    ],
+    "work_meta_fields": [],
+    "rhythm": {
+      "every_days": 7
+    },
+    "note_kinds": [
+      {
+        "key": "note",
+        "label": {
+          "en": "Note",
+          "ru": "Заметка"
+        }
+      }
+    ]
+  }
+}
