@@ -4,8 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [0.113.0] - 2026-11-17
 
-Out and in. A work leaves by itself: its card's menu saves or copies its page
-- the page the export writes - and packs it into a `.kilna.zip` with its
+Out and in. A work leaves by itself: its card's menu saves or copies its
+page, the one the export writes, and packs it into a `.kilna.zip` with its
 files. And works arrive: New, Settings and the palette open one dialog that
 takes files, a folder or a pasted text, lists what it found and where each
 stands, and writes nothing until it is told to. A page kilna wrote and a
