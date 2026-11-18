@@ -212,7 +212,7 @@ function First({ onMade, onSkip }: { onMade: (id: string) => void; onSkip: () =>
   const make = useAppMutation({
     mutationFn: async () => {
       const workspace = await getWorkspace()
-      const kind = workspace.profile.config.work_kinds[0]?.key ?? 'song'
+      const kind = workspace.profile?.config.work_kinds[0]?.key ?? 'song'
       return createWork({ kind, title: title.trim() })
     },
     failure: 'welcome.failed',
