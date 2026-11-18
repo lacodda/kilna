@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.128.0] - 2026-11-18
+
+The box without an author. Every skill of Studio, Novel, Podcast and Blog now
+says when to reach for it, in both languages, and has a method - sixteen got
+theirs written. Each craft ships the playbook of its whole cycle as a method
+an agent follows: song-workflow and ai-video-pipeline in Studio,
+novel-workflow, podcast-workflow and blog-workflow. Studio's methods no longer
+carry one author's examples or conventions: the critique judges against the
+channel's card in the canon, the singer's stresses follow the register, and
+the audio's titles ship with no tail. Spaces that changed any of it keep
+their words; untouched skills take the new ones.
+
+### Features
+- The box without an author - a method and a trigger for every skill
+
 ## [0.127.0] - 2026-11-18
 
 Methods over MCP. An agent outside the window now reads the craft from kilna
