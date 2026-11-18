@@ -905,7 +905,7 @@ mod tests {
             seed_in(&conn, "ru").unwrap();
             let title: String = conn
                 .query_row(
-                    "SELECT title FROM work ORDER BY created_at LIMIT 1",
+                    "SELECT title FROM work ORDER BY created_at, rowid LIMIT 1",
                     [],
                     |row| row.get(0),
                 )
