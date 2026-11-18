@@ -488,10 +488,6 @@ export function plansDue(
     })
 }
 
-/** Whole days from one day to another, `YYYY-MM-DD`. */
-function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
-}
 
 /**
  * The board's lines whose day has come (v0.105): due today or before, said
