@@ -2524,7 +2524,8 @@
       "at": "{{column}}, {{row}}",
       "size": "Size",
       "crop": "Of the hero",
-      "place": "Title"
+      "place": "Title",
+      "noSubject": "No subject"
     },
     "layout": {
       "emblemRight": "Emblem right",

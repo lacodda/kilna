@@ -6,12 +6,14 @@ import type {
   CoverPlace,
   CoverRow,
   CoverSize,
+  CoverSubject,
   Framing,
 } from '@/lib/api/types'
 import { cn } from '@/lib/utils'
 import { TileButton } from '@/components/ui/tile-button'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SchemeView } from '@/features/cover/SchemeView'
+import { DiscreteScalePicker } from '@/components/DiscreteScalePicker'
 
 const COLUMNS: readonly CoverColumn[] = ['left', 'centre', 'right']
 const ROWS: readonly CoverRow[] = ['top', 'middle', 'bottom']
@@ -35,9 +37,16 @@ interface Props {
   layouts: CoverLayoutOption[]
   /** Whether the picture carries words, and so a place for its title. */
   lettering: boolean
+  /** What the picture is of: with it, the shot scale starts at "no
+   *  subject", which makes a picture of the scene alone (v0.135). */
+  subject?: CoverSubject
+  onSubject?: (subject: CoverSubject) => void
   disabled?: boolean
   onChange: (framing: Framing) => void
 }
+
+/** The shot scale's stops: no subject at all, then how much of it shows. */
+type Shot = 'none' | CoverCrop
 
 /**
  * The built frame (v0.88): eight layouts drawn small, then where the hero
@@ -49,7 +58,15 @@ interface Props {
  * thumbnails are the layouts' starting frames as the backend draws them, so
  * a layout looks here the way it will look on the stage beside the prompt.
  */
-export function FramingPicker({ framing, layouts, lettering, disabled, onChange }: Props) {
+export function FramingPicker({
+  framing,
+  layouts,
+  lettering,
+  subject,
+  onSubject,
+  disabled,
+  onChange,
+}: Props) {
   const { t } = useTranslation()
   const set = (patch: Partial<Framing>) => {
     if (framing !== null) onChange({ ...framing, ...patch })
@@ -112,35 +129,38 @@ export function FramingPicker({ framing, layouts, lettering, disabled, onChange 
             )}
           </SegmentedControl>
 
+          {/* Two scales of stops rather than rows of words (v0.135): how
+              big the subject is, and how much of it shows - the second
+              starting at no subject at all. */}
           <span className="caption">{t('cover.framing.size')}</span>
-          <SegmentedControl
-            aria-label={t('cover.framing.size')}
+          <DiscreteScalePicker<CoverSize>
+            label={t('cover.framing.size')}
             value={framing.size}
             disabled={disabled}
-            onValueChange={(size) => set({ size: size as CoverSize })}
-            className="h-auto flex-wrap"
-          >
-            {SIZES.map((size) => (
-              <Segment key={size} value={size} className="px-2 py-0.5 text-xs">
-                {t(`cover.size.${size}`)}
-              </Segment>
-            ))}
-          </SegmentedControl>
+            onChange={(size) => set({ size })}
+            steps={SIZES.map((size) => ({ value: size, label: t(`cover.size.${size}`) }))}
+          />
 
           <span className="caption">{t('cover.framing.crop')}</span>
-          <SegmentedControl
-            aria-label={t('cover.framing.crop')}
-            value={framing.crop}
+          <DiscreteScalePicker<Shot>
+            label={t('cover.framing.crop')}
+            value={subject === 'none' && onSubject !== undefined ? 'none' : framing.crop}
             disabled={disabled}
-            onValueChange={(crop) => set({ crop: crop as CoverCrop })}
-            className="h-auto flex-wrap"
-          >
-            {CROPS.map((crop) => (
-              <Segment key={crop} value={crop} className="px-2 py-0.5 text-xs">
-                {t(`cover.crop.${crop}`)}
-              </Segment>
-            ))}
-          </SegmentedControl>
+            onChange={(shot) => {
+              if (shot === 'none') {
+                onSubject?.('none')
+                return
+              }
+              if (subject === 'none') onSubject?.('object')
+              set({ crop: shot })
+            }}
+            steps={[
+              ...(onSubject === undefined
+                ? []
+                : [{ value: 'none' as const, label: t('cover.framing.noSubject') }]),
+              ...CROPS.map((crop) => ({ value: crop, label: t(`cover.crop.${crop}`) })),
+            ]}
+          />
 
           {lettering && (
             <>
