@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.133.0] - 2026-11-18
+
+Motion and heroes. The dictionary has a third branch beside the picture and
+the sound: Motion, the movements of an animated frame - the atmosphere, the
+subject, the world around and the camera - twenty of them shipped, each
+saying what moves and what stays still. The heroes of the canon are shown
+where the Character type is, with their portraits and layers, without a copy
+in the dictionary; the cover's hero picker can show every layer, and a hero
+picked by hand brings its bans to the cover whatever its layer.
+
+### Features
+- A Motion branch of the dictionary, and heroes mirrored from the canon
+
 ## [0.132.0] - 2026-11-18
 
 Sets, stars and the switch. Every style kilna ships is now filed under a set
