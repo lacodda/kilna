@@ -137,7 +137,7 @@ function Summary({
       // would be a sentence that is not true.
       ...(queue.data === undefined
         ? []
-        : rhythmGaps(slots, queue.data.length, profile.config.rhythm?.every_days, day)),
+        : rhythmGaps(slots, queue.data.length, profile.config.rhythm, day)),
       // What a month is short of by tier or by kind, beside how many it is
       // short of altogether.
       ...rhythmGoals(slots, profile.config, day),

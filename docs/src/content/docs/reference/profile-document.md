@@ -1010,6 +1010,11 @@ The pace releases go out at:
 | `every_days` | number | Days the [auto-layout](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout) keeps between releases. `1` is daily. |
 | `default_time` | string, optional | Time of day (`HH:MM`) a release usually ships, shown beside the date when editing a release. |
 | `monthly` | list, optional | What a month should hold (v0.111): each entry counts releases of one `tier`, or of works of one `kind`, and asks for `count` of them a month. |
+| `weekdays` | list, optional | The days of the week a release goes out on (v0.150): `mon` to `sun`, each once. When any are named, the auto-layout keeps to the month's grid of those days, one release a day, and `every_days` is not read. |
+| `monthly_target` | number, optional | How many releases a month of the grid is meant to hold - thirteen; at least one. |
+| `overflow` | string, optional | A month with more grid days than the target: `keep_all` (every day, the default) or `skip_weakest` - the surplus left out, each time the day closest to the slot before it. |
+| `shortage` | string, optional | A month with fewer: `keep_grid` (the default) or `add_floating_peak` - a floating slot for each one short, in the middle of the widest gap, where the month's peak can go. |
+| `timezone` | string, optional | The channel's time zone by its IANA name - `America/Asuncion`, `Europe/Berlin`: the hour a release goes out is that zone's, summer time and all. A name the zone database does not know is refused. |
 
 A monthly goal names a tier **or** a kind, never both: a tier some kind of
 work has, or a kind the profile has, and a `count` of at least one. A month

@@ -81,10 +81,40 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     let Some(rhythm) = config.rhythm else {
         return Err(Error::refused("layout.noRhythm"));
     };
-    if rhythm.every_days == 0 {
+    if rhythm.every_days == 0 && !rhythm.by_weekdays() {
         return Err(Error::refused("layout.rhythmTooShort"));
     }
-    let spacing = Duration::days(i64::from(rhythm.every_days) - 1);
+    // A rhythm of weekdays (v0.150, FR-20) keeps to the days of its months'
+    // grid - one release a day, on those days alone; a rhythm of spacing keeps
+    // its days apart.
+    let spacing = if rhythm.by_weekdays() {
+        Duration::ZERO
+    } else {
+        Duration::days(i64::from(rhythm.every_days) - 1)
+    };
+    let mut grids: BTreeMap<(i32, time::Month), BTreeSet<Date>> = BTreeMap::new();
+    let mut on_grid = |date: Date| -> bool {
+        if !rhythm.by_weekdays() {
+            return true;
+        }
+        grids
+            .entry((date.year(), date.month()))
+            .or_insert_with(|| {
+                rhythm
+                    .month_slots(date.year(), date.month())
+                    .into_iter()
+                    .map(|slot| slot.date)
+                    .collect()
+            })
+            .contains(&date)
+    };
+    // How far one placement can push the scan: a spacing's days, or a week
+    // for a grid of weekdays.
+    let stride = if rhythm.by_weekdays() {
+        7
+    } else {
+        i64::from(rhythm.every_days)
+    };
     let today = parse_date(today)?;
     let closed = crate::time_off::spans(conn, profile_id)?;
 
@@ -173,8 +203,8 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     // the worst case a placement can push the scan is what it already was.
     // A closed day pushes it by one day at most, so every closed day counts
     // once more.
-    let mut scans_left = (remaining.len() as i64 + 2) * (i64::from(rhythm.every_days) + 2)
-        + taken.len() as i64 * 2 * i64::from(rhythm.every_days)
+    let mut scans_left = (remaining.len() as i64 + 2) * (stride + 2)
+        + taken.len() as i64 * 2 * stride
         + closed.iter().map(crate::time_off::Span::days).sum::<i64>()
         + 366;
 
@@ -190,7 +220,7 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
             .range(date - spacing..=date + spacing)
             .next()
             .is_none();
-        if spaced && !crate::time_off::closes(&closed, date) {
+        if spaced && !crate::time_off::closes(&closed, date) && on_grid(date) {
             // The strongest release whose work — and whose donors — keep clear
             // of the neighbouring days. When everything remaining is too
             // close, the day stays empty and the scan moves on: scatter is a
@@ -520,6 +550,7 @@ mod tests {
             monthly: Vec::new(),
             plan_lead_days: 7,
             plan_match_window_days: 7,
+            ..Default::default()
         });
         profile::update_config(conn, profile_id, &config).unwrap();
     }
@@ -621,6 +652,34 @@ mod tests {
             .find(|entry| entry.work_title == "Best")
             .unwrap();
         assert_eq!(plan[0].release_id, best.release.id);
+    }
+
+    /// A rhythm of weekdays lays the queue on those days alone, one a day,
+    /// whatever its spacing says (v0.150, FR-20).
+    #[test]
+    fn a_rhythm_of_weekdays_keeps_to_its_days() {
+        let (conn, profile_id) = workspace(5);
+        let mut config = profile::config_for(&conn, &profile_id).unwrap();
+        if let Some(rhythm) = config.rhythm.as_mut() {
+            rhythm.weekdays = vec![
+                crate::profile::config::Weekday::Tue,
+                crate::profile::config::Weekday::Thu,
+                crate::profile::config::Weekday::Sat,
+            ];
+        }
+        profile::update_config(&conn, &profile_id, &config).unwrap();
+        queued(&conn, &profile_id, "One", 9.0, 1);
+        queued(&conn, &profile_id, "Two", 8.0, 1);
+        queued(&conn, &profile_id, "Three", 7.0, 1);
+        queued(&conn, &profile_id, "Four", 6.0, 1);
+
+        // 2026-09-07 is a Monday.
+        let plan = plan(&conn, &profile_id, "2026-09-07").unwrap();
+
+        assert_eq!(
+            dates(&plan),
+            ["2026-09-08", "2026-09-10", "2026-09-12", "2026-09-15"]
+        );
     }
 
     /// A song of an album due by a day goes before stronger work nobody

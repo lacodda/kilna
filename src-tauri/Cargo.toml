@@ -72,6 +72,10 @@ trash = "5"
 # manifests are checked against their SHA-256.
 ureq = "2.12"
 sha2 = "0.10"
+# A channel's time zone, with its summer time, from the zone database built
+# into the binary rather than the system's (v0.150, FR-20): a release goes
+# out at noon in Asuncion whatever machine planned it.
+jiff = { version = "1.0.1", default-features = false, features = ["std", "tzdb-bundle-always"] }
 
 [target.'cfg(windows)'.dependencies]
 # The flags a plugin is started with, kept beside its job object.

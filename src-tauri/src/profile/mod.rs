@@ -68,6 +68,7 @@ fn read_builtin() -> Result<Vec<BuiltinProfile>> {
         include_str!("../../profiles/blog.json"),
         include_str!("../../profiles/poetry.json"),
         include_str!("../../profiles/newsletter.json"),
+        include_str!("../../profiles/track-channel.json"),
         include_str!("../../profiles/blank.json"),
     ];
     SOURCES

@@ -20,9 +20,10 @@ of songs are two registers of repeats and two calendars that never mix.
 ## Kinds
 
 A space is made of one of the profiles kilna ships - **Studio** (songs, clips,
-shorts), **Blog**, **Novel**, **Podcast**, **Poetry** (poems, translations and
-reading sets, since v0.129), **Newsletter** (issues, special editions and
-sequence emails, since v0.129) or **Empty** - and speaks that
+shorts), **Music channel** (tracks made with a generator and published on a
+rhythm, since v0.150), **Blog**, **Novel**, **Podcast**, **Poetry** (poems,
+translations and reading sets, since v0.129), **Newsletter** (issues, special
+editions and sequence emails, since v0.129) or **Empty** - and speaks that
 craft's words from then on. The kind is a starting point, not a cage: the
 profile inside the space is its own copy, and editing it in **Settings →
 Profile** changes that space alone. Two spaces of the same kind are as normal

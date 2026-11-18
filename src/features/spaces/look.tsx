@@ -63,6 +63,7 @@ export const SPACE_MARKS: Record<string, LucideIcon> = {
 /** The kinds a space is made of, in the order they are offered. */
 export const SPACE_KINDS = [
   'music',
+  'track-channel',
   'blog',
   'novel',
   'podcast',
@@ -74,6 +75,8 @@ export const SPACE_KINDS = [
 /** What a space of a kind looks like until its own colour and mark are chosen. */
 const KIND_LOOK: Record<string, { colour: string; mark: string }> = {
   music: { colour: '#6E56CF', mark: 'music' },
+  // A channel of generated tracks (v0.150): the radio of a stream.
+  'track-channel': { colour: '#C2298A', mark: 'radio' },
   blog: { colour: '#0B68CB', mark: 'feather' },
   novel: { colour: '#18794E', mark: 'book-open' },
   podcast: { colour: '#C2410C', mark: 'mic' },

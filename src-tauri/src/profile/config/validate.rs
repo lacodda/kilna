@@ -220,8 +220,24 @@ impl ProfileConfig {
         }
 
         if let Some(rhythm) = &self.rhythm {
-            if rhythm.every_days == 0 {
+            if rhythm.every_days == 0 && !rhythm.by_weekdays() {
                 problems.push(Reason::of("problem.rhythmDays"));
+            }
+            // A day named twice is a typo; a target of none is no target; a
+            // zone the database does not know cannot give an hour (v0.150).
+            let mut days = rhythm.weekdays.clone();
+            days.sort();
+            days.dedup();
+            if days.len() != rhythm.weekdays.len() {
+                problems.push(Reason::of("problem.rhythmWeekdayTwice"));
+            }
+            if rhythm.monthly_target == Some(0) {
+                problems.push(Reason::of("problem.rhythmTarget"));
+            }
+            if let Some(zone) = &rhythm.timezone
+                && !super::rhythm::is_time_zone(zone)
+            {
+                problems.push(Reason::of("problem.rhythmZone").param("zone", zone.as_str()));
             }
             if let Some(time) = &rhythm.default_time
                 && !crate::time::is_clock_time(time)

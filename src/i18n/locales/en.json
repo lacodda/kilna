@@ -1956,7 +1956,27 @@
       }
     },
     "producesCardNote": "The card’s summary",
-    "fieldProtected": "Kept by every action"
+    "fieldProtected": "Kept by every action",
+    "rhythmWeekdays": "On days of the week",
+    "rhythmWeekdaysHint": "Days of the week releases go out on. When any are picked, the layout keeps to them rather than to the days apart above.",
+    "weekday": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "rhythmTarget": "Releases a month",
+    "rhythmTargetUnit": "a month",
+    "rhythmOverflow": "A month with more of those days",
+    "rhythmOverflowKeep": "Every day of the grid",
+    "rhythmOverflowSkip": "Leave out the weakest day",
+    "rhythmShortage": "A month with fewer of those days",
+    "rhythmShortageKeep": "The grid as it falls",
+    "rhythmShortageFloat": "Add a floating slot for the peak",
+    "rhythmZone": "Time zone"
   },
   "fields": {
     "choiceNone": "Not set",
@@ -4102,7 +4122,10 @@
     "vibeColour": "mood `{{key}}` has the colour `{{colour}}`, which is not written as #RRGGBB",
     "vibeStrokes": "complexity `{{key}}` is drawn with {{strokes}} strokes: one, two or three",
     "playbookNoMethod": "{{place}} is not a button and has no method: a skill only an agent reads needs its method",
-    "actionCategory": "{{place}} is in the group “{{category}}”, which kilna does not know - the groups are {{known}}"
+    "actionCategory": "{{place}} is in the group “{{category}}”, which kilna does not know - the groups are {{known}}",
+    "rhythmWeekdayTwice": "the rhythm names a day of the week twice",
+    "rhythmTarget": "a month of the rhythm is meant to hold at least one release",
+    "rhythmZone": "the rhythm's time zone `{{zone}}` is not one the zone database knows"
   },
   "place": {
     "workKind": "work kind {{n}} (`{{key}}`)",
@@ -5305,7 +5328,8 @@
       "podcast": "Episodes, segments and trailers.",
       "poetry": "Poems, translations and reading sets, gathered into cycles and books.",
       "newsletter": "Issues, special editions and sequence emails, sent on a schedule.",
-      "blank": "One kind of work with a text: name the rest of the craft yourself in Settings."
+      "blank": "One kind of work with a text: name the rest of the craft yourself in Settings.",
+      "track-channel": "Tracks made with a generator and published on a rhythm: each track one card from its sketch to its release, the months gathered into packs."
     },
     "typeHint": "Your type, grown from {{kind}}: a space made of it starts with its words.",
     "types": "Types",
@@ -5343,7 +5367,8 @@
       "podcast": "Podcast",
       "poetry": "Poetry",
       "newsletter": "Newsletter",
-      "blank": "Empty"
+      "blank": "Empty",
+      "track-channel": "Music channel"
     },
     "colour": "Colour",
     "mark": "Mark",

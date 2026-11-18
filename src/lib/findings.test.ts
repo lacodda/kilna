@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import type { Weekday } from '@/lib/api/generated/Weekday'
 import {
   NO_LINK_AFTER_DAYS,
   STALE_DRAFT_DAYS,
@@ -472,7 +473,7 @@ describe('a month short of the rhythm (v0.104)', () => {
       release({ id: 'c', scheduled_at: '2026-08-20', status: 'released' }),
     ]
 
-    const found = rhythmGaps(calendar, 7, 3, TODAY)
+    const found = rhythmGaps(calendar, 7, { every_days: 3 }, TODAY)
 
     expect(found.map((f) => [f.complaint, f.params?.count, f.params?.queued])).toEqual([
       ['rhythm-gap:2026-08:1', 1, 7],
@@ -489,11 +490,25 @@ describe('a month short of the rhythm (v0.104)', () => {
     const gaps = rhythmGaps(
       [...full, release({ id: 'aug', scheduled_at: '2026-08-30' })],
       0,
-      3,
+      { every_days: 3 },
       TODAY,
     )
     expect(gaps).toEqual([])
     expect(rhythmGaps([], 3, null, TODAY)).toEqual([])
+  })
+
+  // v0.150, FR-20: a rhythm of weekdays makes room for its grid's days, held
+  // to the month's target by its rules.
+  it('counts the days of a grid of weekdays, held to the target', () => {
+    // October 2026: five Thursdays and Saturdays, four Tuesdays - 14 days.
+    const grid = { every_days: 1, weekdays: ['tue', 'thu', 'sat'] as Weekday[] }
+    const october = (rules: Partial<Parameters<typeof rhythmGaps>[2] & object>) =>
+      rhythmGaps([], 0, { ...grid, ...rules }, '2026-09-30').find((gap) =>
+        gap.complaint.startsWith('rhythm-gap:2026-10:'),
+      )?.params.count
+    expect(october({})).toBe(14)
+    expect(october({ monthly_target: 13, overflow: 'skip_weakest' })).toBe(13)
+    expect(october({ monthly_target: 13 })).toBe(14)
   })
 })
 

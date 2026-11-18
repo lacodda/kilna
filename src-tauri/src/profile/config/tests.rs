@@ -294,6 +294,7 @@ fn a_monthly_goal_counts_a_tier_or_a_kind_the_profile_has() {
         ],
         plan_lead_days: 7,
         plan_match_window_days: 7,
+        ..Default::default()
     });
     assert_eq!(config.validate(), Vec::<String>::new());
 
@@ -308,6 +309,7 @@ fn a_monthly_goal_counts_a_tier_or_a_kind_the_profile_has() {
         ],
         plan_lead_days: 7,
         plan_match_window_days: 7,
+        ..Default::default()
     });
     let problems = config.validate();
     for needle in [
@@ -528,6 +530,7 @@ fn every_problem_names_its_place() {
         monthly: Vec::new(),
         plan_lead_days: 7,
         plan_match_window_days: 7,
+        ..Default::default()
     });
 
     let problems = config.validate();
@@ -1950,4 +1953,34 @@ fn a_shown_action_is_written_as_before_and_a_hidden_one_says_so() {
         read.template, "",
         "a playbook may be stored without a message"
     );
+}
+
+/// A rhythm of weekdays names each day once, a target of at least one, and
+/// a time zone the zone database knows (v0.150).
+#[test]
+fn a_rhythm_of_weekdays_is_held_to_its_days_target_and_zone() {
+    let mut config = config();
+    config.rhythm = Some(Rhythm {
+        every_days: 0,
+        weekdays: vec![super::rhythm::Weekday::Tue, super::rhythm::Weekday::Tue],
+        monthly_target: Some(0),
+        timezone: Some("Mars/Olympus".into()),
+        ..Default::default()
+    });
+    let keys: Vec<String> = config
+        .problems()
+        .into_iter()
+        .map(|problem| problem.key)
+        .collect();
+    assert!(
+        !keys.contains(&"problem.rhythmDays".to_owned()),
+        "no spacing is asked of a grid"
+    );
+    for key in [
+        "problem.rhythmWeekdayTwice",
+        "problem.rhythmTarget",
+        "problem.rhythmZone",
+    ] {
+        assert!(keys.contains(&key.to_owned()), "{key}: {keys:?}");
+    }
 }

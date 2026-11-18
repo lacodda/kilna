@@ -1,4 +1,5 @@
-import type { WorkPlan } from '@/lib/api/types'
+import type { Rhythm, WorkPlan } from '@/lib/api/types'
+import type { Weekday } from '@/lib/api/generated/Weekday'
 import type {
   Dismissal,
   FocusNote,
@@ -350,6 +351,37 @@ export function answeredOn(kind: FindingKind): 'score' | 'overview' | undefined 
   }
 }
 
+/** The weekday of a `YYYY-MM-DD`, as a rhythm names it. */
+const WEEKDAY_OF: readonly Weekday[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+
+/**
+ * The room a month's grid of weekdays makes from `from` to `last` (v0.150,
+ * FR-20): its days of those weekdays, held to the month's target by the
+ * rhythm's rules - a month of too many leaves the surplus out, a month of
+ * too few gains its floating slots while it is still whole.
+ */
+function gridRoom(
+  rhythm: Pick<Rhythm, 'monthly_target' | 'overflow' | 'shortage'>,
+  weekdays: readonly Weekday[],
+  from: string,
+  first: string,
+  last: string,
+): number {
+  let whole = 0
+  let ahead = 0
+  for (let day = first; day <= last; day = addDays(day, 1)) {
+    const at = WEEKDAY_OF[new Date(`${day}T12:00:00Z`).getUTCDay()]
+    if (at === undefined || !weekdays.includes(at)) continue
+    whole += 1
+    if (day >= from) ahead += 1
+  }
+  const target = rhythm.monthly_target
+  if (target === undefined) return ahead
+  if (whole > target && rhythm.overflow === 'skip_weakest') return Math.min(ahead, target)
+  if (whole < target && rhythm.shortage === 'add_floating_peak' && from === first) return target
+  return ahead
+}
+
 /**
  * The months that hold fewer releases than the profile's rhythm makes room
  * for (v0.104): what is left of this one, from tomorrow, and all of the next.
@@ -365,10 +397,15 @@ export function answeredOn(kind: FindingKind): 'score' | 'overview' | undefined 
 export function rhythmGaps(
   calendar: readonly ScheduledRelease[],
   queued: number,
-  everyDays: number | null | undefined,
+  rhythm:
+    | Pick<Rhythm, 'every_days' | 'weekdays' | 'monthly_target' | 'overflow' | 'shortage'>
+    | null
+    | undefined,
   today: string,
 ): Finding[] {
-  if (everyDays === null || everyDays === undefined || everyDays < 1) return []
+  if (rhythm === null || rhythm === undefined) return []
+  const weekdays = rhythm.weekdays ?? []
+  if (weekdays.length === 0 && rhythm.every_days < 1) return []
   const now = monthOf(today)
   const found: Finding[] = []
   for (const real of [now, shiftMonth(now, 1)]) {
@@ -379,7 +416,10 @@ export function rhythmGaps(
     const from = real === now ? addDays(today, 1) : first
     if (from > last) continue
     const days = daysBetween(from, last) + 1
-    const room = Math.ceil(days / everyDays)
+    const room =
+      weekdays.length === 0
+        ? Math.ceil(days / rhythm.every_days)
+        : gridRoom(rhythm, weekdays, from, first, last)
     const booked = calendar.filter(
       (entry) =>
         entry.scheduled_at !== null && entry.scheduled_at >= from && entry.scheduled_at <= last,

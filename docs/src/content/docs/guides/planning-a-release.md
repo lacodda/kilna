@@ -93,6 +93,15 @@ of day, which is shown beside the date when editing a release. With a rhythm
 set, **Lay out the queue** plans a date for everything waiting, in one click;
 without one, the button explains what to set first.
 
+A rhythm can also keep to **days of the week** (v0.150): Tuesday, Thursday
+and Saturday, say, with **Releases a month** set to thirteen. Each month is
+then a grid of those days; a month with more of them than the target can
+**leave out the weakest day** - the one closest to the slot before it - and a
+month with fewer can **add a floating slot for the peak**, in the middle of
+its widest gap. The layout keeps to the grid, one release a day, and the
+dashboard counts a month's room by it. The **time zone** says whose noon a
+release goes out at, summer time and all.
+
 The plan is a **preview, not a booking**. Ghost chips — dashed, in each
 work's own colour — show where every queued release would land, and a bar
 above the grid says how many and between which dates. Nothing is written

@@ -173,6 +173,110 @@ const PODCAST: Corpus = Corpus {
     )),
 };
 
+/// A music channel's month (v0.150): tracks from a sketch to one gone out,
+/// each written as the prompt a generator is given.
+const TRACKS: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Salt Road",
+            stage: 100,
+            versions: &[
+                "Slow desert blues, oud and frame drum, a dry electric guitar answering the oud, 78 BPM in D minor, wordless humming in the second half.",
+                "Slow desert blues: a fretless oud carries the melody over a frame drum played with the fingers, a dry, slightly overdriven electric guitar answers each phrase. 78 BPM, D minor. Wordless low humming enters in the second half and fades with the drum.",
+            ],
+        },
+        Piece {
+            title: "Harbour at Five",
+            stage: 75,
+            versions: &[
+                "Calm lo-fi, a felt piano and brushed drums, distant gulls, tape hiss, 70 BPM in F major, no vocals.",
+            ],
+        },
+        Piece {
+            title: "Northern Lights Waltz",
+            stage: 50,
+            versions: &[
+                "A waltz for accordion and nyckelharpa, a soft upright bass, 3/4 at 96 BPM in A minor (bridge still to decide).",
+            ],
+        },
+        Piece {
+            title: "Monsoon Window",
+            stage: 25,
+            versions: &[],
+        },
+        Piece {
+            title: "A track for the long night",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## What it is about\nThe last hour before a monsoon: heavy air, a window open, a radio in the next room.\n\n## Sound\nTabla and a rhodes piano, rain later.",
+    notes: &[
+        ("phrase", "a radio in the next room"),
+        ("phrase", "the drum played with the fingers"),
+        (
+            "note",
+            "This month leans warm and slow: keep one track fast, maybe the monsoon one.",
+        ),
+    ],
+    card: Some((
+        "channel",
+        "The demo channel",
+        "A made-up channel that publishes instrumental tracks from the world's traditions three times a week, gathered into monthly packs.",
+    )),
+};
+
+const TRACKS_RU: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Соляная дорога",
+            stage: 100,
+            versions: &[
+                "Slow desert blues, oud and frame drum, a dry electric guitar answering the oud, 78 BPM in D minor, wordless humming in the second half.",
+                "Slow desert blues: a fretless oud carries the melody over a frame drum played with the fingers, a dry, slightly overdriven electric guitar answers each phrase. 78 BPM, D minor. Wordless low humming enters in the second half and fades with the drum.",
+            ],
+        },
+        Piece {
+            title: "Гавань в пять",
+            stage: 75,
+            versions: &[
+                "Calm lo-fi, a felt piano and brushed drums, distant gulls, tape hiss, 70 BPM in F major, no vocals.",
+            ],
+        },
+        Piece {
+            title: "Вальс северного сияния",
+            stage: 50,
+            versions: &[
+                "A waltz for accordion and nyckelharpa, a soft upright bass, 3/4 at 96 BPM in A minor (bridge still to decide).",
+            ],
+        },
+        Piece {
+            title: "Окно в муссон",
+            stage: 25,
+            versions: &[],
+        },
+        Piece {
+            title: "Трек для долгой ночи",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## О чём\nПоследний час перед муссоном: тяжёлый воздух, открытое окно, радио в соседней комнате.\n\n## Звук\nТабла и родес, позже дождь.",
+    notes: &[
+        ("phrase", "радио в соседней комнате"),
+        ("phrase", "барабан, на котором играют пальцами"),
+        (
+            "note",
+            "Этот месяц тёплый и медленный: оставить один трек быстрым, может, муссонный.",
+        ),
+    ],
+    card: Some((
+        "channel",
+        "Демо-канал",
+        "Выдуманный канал, который трижды в неделю выпускает инструментальные треки из традиций мира и собирает их в месячные подборки.",
+    )),
+};
+
 const BLOG: Corpus = Corpus {
     pieces: &[
         Piece {
@@ -524,6 +628,8 @@ pub fn seed_in(conn: &Connection, language: &str) -> Result<DemoReport> {
         ("poetry", true) => &POETRY_RU,
         ("newsletter", false) => &NEWSLETTER,
         ("newsletter", true) => &NEWSLETTER_RU,
+        ("track-channel", false) => &TRACKS,
+        ("track-channel", true) => &TRACKS_RU,
         (_, false) => &BLOG,
         (_, true) => &BLOG_RU,
     };
@@ -844,7 +950,15 @@ mod tests {
 
     #[test]
     fn every_shipped_craft_gets_a_demo_with_something_on_each_screen() {
-        for kind in ["music", "novel", "podcast", "blog", "poetry", "newsletter"] {
+        for kind in [
+            "music",
+            "novel",
+            "podcast",
+            "blog",
+            "poetry",
+            "newsletter",
+            "track-channel",
+        ] {
             let conn = space(kind);
             let report = seed(&conn).unwrap();
             assert!(report.works >= 3, "{kind}: {report:?}");
@@ -921,7 +1035,15 @@ mod tests {
 
     #[test]
     fn a_demo_comes_in_russian_for_the_window_s_second_language() {
-        for kind in ["music", "novel", "podcast", "blog", "poetry", "newsletter"] {
+        for kind in [
+            "music",
+            "novel",
+            "podcast",
+            "blog",
+            "poetry",
+            "newsletter",
+            "track-channel",
+        ] {
             let conn = space(kind);
             seed_in(&conn, "ru").unwrap();
             let title: String = conn

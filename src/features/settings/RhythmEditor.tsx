@@ -1,12 +1,17 @@
 import { useTranslation } from 'react-i18next'
 import { Plus, X } from 'lucide-react'
 import type { MonthlyGoal, ProfileConfig, Rhythm } from '@/lib/api/types'
+import type { Weekday } from '@/lib/api/generated/Weekday'
 import { goalChoices, goalKey, goalOf } from '@/lib/rhythm'
 import { Select } from '@/components/AppSelect'
 import { Button } from '@/components/ui/button'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import { FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NumberField } from '@/components/ui/number-field'
+
+/** The days of the week, in a week's order. */
+const WEEKDAYS: readonly Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
 /**
  * How often releases go out, at what time of day by default, and what a
@@ -55,13 +60,14 @@ export function RhythmEditor({
             onValueChange={(days) => {
               // Clearing the field removes the rhythm entirely — "no pace"
               // is a valid answer, and the layout button explains it.
+              // The rest of the rhythm stays as it is: a new spacing is not a
+              // new rhythm.
               onChange(
                 days === null
                   ? null
                   : {
+                      ...(rhythm ?? { default_time: null, monthly: [] }),
                       every_days: Math.max(1, Math.trunc(days)),
-                      default_time: rhythm?.default_time ?? null,
-                      monthly: rhythm?.monthly ?? [],
                     },
               )
             }}
@@ -85,6 +91,91 @@ export function RhythmEditor({
           </label>
         </div>
       </FieldGroup>
+
+      {/* A grid of weekdays (v0.150, FR-20): the days of the week a release
+          goes out on, a month's target, what a month of too many or too few
+          does, and the channel's time zone. */}
+      {rhythm != null && (
+        <FieldGroup label={t('editor.rhythmWeekdays')} help={t('editor.rhythmWeekdaysHint')}>
+          <div className="flex flex-col items-start gap-2">
+            <ChipGroup
+              multiple
+              aria-label={t('editor.rhythmWeekdays')}
+              value={rhythm.weekdays ?? []}
+              onValueChange={(next) =>
+                onChange({
+                  ...rhythm,
+                  weekdays: WEEKDAYS.filter((day) => next.includes(day)),
+                })
+              }
+            >
+              {WEEKDAYS.map((day) => (
+                <Chip key={day} value={day}>
+                  {t(`editor.weekday.${day}`)}
+                </Chip>
+              ))}
+            </ChipGroup>
+            {(rhythm.weekdays ?? []).length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <NumberField
+                  className="w-40"
+                  min={1}
+                  step={1}
+                  value={rhythm.monthly_target ?? null}
+                  unit={t('editor.rhythmTargetUnit')}
+                  aria-label={t('editor.rhythmTarget')}
+                  onValueChange={(count) =>
+                    onChange({
+                      ...rhythm,
+                      monthly_target: count === null ? undefined : Math.max(1, Math.trunc(count)),
+                    })
+                  }
+                />
+                <Select
+                  className="w-56"
+                  value={rhythm.overflow ?? 'keep_all'}
+                  aria-label={t('editor.rhythmOverflow')}
+                  onChange={(next) =>
+                    onChange({ ...rhythm, overflow: next as NonNullable<Rhythm['overflow']> })
+                  }
+                  options={[
+                    { value: 'keep_all', label: t('editor.rhythmOverflowKeep') },
+                    { value: 'skip_weakest', label: t('editor.rhythmOverflowSkip') },
+                  ]}
+                />
+                <Select
+                  className="w-60"
+                  value={rhythm.shortage ?? 'keep_grid'}
+                  aria-label={t('editor.rhythmShortage')}
+                  onChange={(next) =>
+                    onChange({ ...rhythm, shortage: next as NonNullable<Rhythm['shortage']> })
+                  }
+                  options={[
+                    { value: 'keep_grid', label: t('editor.rhythmShortageKeep') },
+                    { value: 'add_floating_peak', label: t('editor.rhythmShortageFloat') },
+                  ]}
+                />
+              </div>
+            )}
+            <label className="flex items-center gap-2 text-sm">
+              {t('editor.rhythmZone')}
+              <Input
+                className="w-56"
+                value={rhythm.timezone ?? ''}
+                placeholder="Europe/Berlin"
+                aria-label={t('editor.rhythmZone')}
+                onChange={(event) =>
+                  onChange({
+                    ...rhythm,
+                    timezone:
+                      event.target.value.trim() === '' ? undefined : event.target.value.trim(),
+                  })
+                }
+              />
+            </label>
+          </div>
+        </FieldGroup>
+      )}
 
       {rhythm != null && (
         <FieldGroup label={t('editor.rhythmMonthly')} help={t('editor.rhythmMonthlyHint')}>
