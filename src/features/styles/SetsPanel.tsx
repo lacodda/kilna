@@ -7,8 +7,8 @@ import { withFamilyOff } from '@/lib/styleBrick'
 import { styleIconOf } from '@/lib/styleIcon'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { TileButton } from '@/components/ui/tile-button'
 
 /** The family filter that means "filed under none": the owner's own. */
 export const NO_SET = ''
@@ -73,18 +73,21 @@ export function SetsPanel({ types, bricks, typeKey, family, onPick }: Props) {
               const chosen = typeKey === type.key && family === one.key
               return (
                 <div key={one.key} className="flex items-center gap-1.5">
-                  <TileButton
-                    selected={chosen}
+                  <Button
+                    size="sm"
+                    variant={chosen ? 'soft' : 'icon'}
                     aria-pressed={chosen}
                     onClick={() => onPick(type.key, chosen ? undefined : one.key)}
                     className={cn(
-                      'flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-sm',
+                      'min-w-0 flex-1 justify-start gap-2 text-sm',
                       !on && 'text-faint',
                     )}
                   >
-                    <span className="min-w-0 flex-1 truncate">{sayLabel(one.label)}</span>
+                    <span className="min-w-0 flex-1 truncate text-start">
+                      {sayLabel(one.label)}
+                    </span>
                     <span className="font-mono text-xs text-faint">{count}</span>
-                  </TileButton>
+                  </Button>
                   <Switch
                     aria-label={t('styles.setOn', { set: sayLabel(one.label) })}
                     checked={on}
@@ -97,17 +100,20 @@ export function SetsPanel({ types, bricks, typeKey, family, onPick }: Props) {
               )
             })}
             {unfiled > 0 && (
-              <TileButton
-                selected={typeKey === type.key && family === NO_SET}
+              <Button
+                size="sm"
+                variant={typeKey === type.key && family === NO_SET ? 'soft' : 'icon'}
                 aria-pressed={typeKey === type.key && family === NO_SET}
                 onClick={() =>
                   onPick(type.key, typeKey === type.key && family === NO_SET ? undefined : NO_SET)
                 }
-                className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm"
+                className="mr-10.5 justify-start gap-2 text-sm"
               >
-                <span className="min-w-0 flex-1 truncate italic">{t('styles.noSet')}</span>
+                <span className="min-w-0 flex-1 truncate text-start italic">
+                  {t('styles.noSet')}
+                </span>
                 <span className="font-mono text-xs text-faint">{unfiled}</span>
-              </TileButton>
+              </Button>
             )}
           </section>
         )
