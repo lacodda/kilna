@@ -198,8 +198,13 @@ pub(crate) fn welcome(state: &AppState, choice: WelcomeChoice) -> Result<bool> {
 fn discard_untouched(state: &AppState, id: &str, folder: &Folder) {
     let untouched = rusqlite::Connection::open(folder.database())
         .and_then(|conn| {
+            // The passport kilna made with the space (v0.141) is nothing a
+            // person wrote while it holds no word and no fact.
             conn.query_row(
-                "SELECT (SELECT count(*) FROM work) + (SELECT count(*) FROM note)",
+                "SELECT (SELECT count(*) FROM work)
+                      + (SELECT count(*) FROM note
+                          WHERE trim(body) <> ''
+                             OR EXISTS (SELECT 1 FROM canon_fact f WHERE f.note_id = note.id))",
                 [],
                 |row| row.get::<_, i64>(0),
             )
