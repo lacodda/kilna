@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Cover, WorkFrame } from '@/lib/api/types'
+import type { Cover, Frame as WorkFrame } from '@/lib/api/types'
 import { fixCover, fixFrame } from '@/lib/coverFix'
 
 /*

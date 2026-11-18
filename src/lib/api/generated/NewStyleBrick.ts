@@ -26,4 +26,4 @@ source?: string | null,
 /**
  * When it can go into a picture and what it brings (v0.134).
  */
-contract?: BrickContract | null, };
+contract?: BrickContract, };

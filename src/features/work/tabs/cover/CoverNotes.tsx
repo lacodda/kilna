@@ -31,7 +31,10 @@ export function CoverProblems({
         <li key={index} className="flex items-start gap-1.5 text-xs text-warn">
           <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
           <span className="min-w-0 flex-1">
-            {t(`cover.problem.${problem.kind}`, { ...problem, by: problem.by ?? '' })}
+            {t(`cover.problem.${problem.kind}`, {
+              ...problem,
+              by: 'by' in problem ? (problem.by ?? '') : '',
+            })}
           </span>
           {onFix !== undefined && 'fix' in problem && (
             <Button size="xs" variant="soft" onClick={() => onFix(problem.fix)}>

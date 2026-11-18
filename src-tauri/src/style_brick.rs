@@ -270,7 +270,7 @@ pub struct NewStyleBrick {
     pub source: Option<String>,
     /// When it can go into a picture and what it brings (v0.134).
     #[serde(default)]
-    #[ts(optional = nullable)]
+    #[ts(optional)]
     pub contract: Option<Contract>,
 }
 

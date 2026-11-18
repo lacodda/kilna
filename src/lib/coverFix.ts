@@ -1,4 +1,4 @@
-import type { ContractFix, Cover, CoverBricks, WorkFrame } from '@/lib/api/types'
+import type { ContractFix, Cover, CoverBricks, Frame as WorkFrame } from '@/lib/api/types'
 
 /*
  * The one change that lets a brick its contract left out into the picture
