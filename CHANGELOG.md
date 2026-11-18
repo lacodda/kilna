@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.145.0] - 2026-11-18
+
+Documents and links. Every shipped profile now has a Document kind beside
+its notes: a long page read with its headings as an outline, set at a
+reading size. A tag of a kind can be pinned as a selection at the top of the
+list. A note can link to another note, a work or a card of the canon, and
+the window follows the link; Obsidian's [[links]] in notes brought from a
+vault turn into these in one press, with a list of the ones not found. A
+phrase remembers the work it arose at apart from the one it was spent in -
+said on its row, a filter on the shelf, and readable by agents. And
+`kilna --import-ideas` brings a bank of phrases kept as markdown into a
+space, marking notes as documents by their tags: a plan and a report first,
+`--apply` to write, a copy of the space kept and one undo.
+
+### Bug Fixes
+- The document reader's missing import
+
+### Features
+- Documents, kilna links, the work a phrase arose at, and a bank brought in
+
 ## [0.144.0] - 2026-11-18
 
 The canon over MCP. An agent reading the canon now learns whether the space
