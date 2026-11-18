@@ -2,7 +2,15 @@ import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight, Pencil, Plus } from 'lucide-react'
+import {
+  ArrowUpRight,
+  ChevronDown,
+  ChevronRight,
+  ListPlus,
+  Pencil,
+  Plus,
+  Sparkles,
+} from 'lucide-react'
 import { startCardTask } from '@/lib/api/canon'
 import { deleteNote, updateNote } from '@/lib/api/notes'
 import type { CardView, Layer, NotePatch } from '@/lib/api/types'
@@ -16,6 +24,8 @@ import { useAssistant } from '@/lib/useAssistant'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { Chip, ChipGroup } from '@/components/ui/chip'
+import { useFoldedAll } from '@/lib/folded'
 import { Input } from '@/components/ui/input'
 import { SaveState } from '@/components/ui/save-state'
 import { Select } from '@/components/AppSelect'
@@ -39,6 +49,9 @@ interface Props {
   onGone: () => void
 }
 
+/** A card holding this many facts offers a search inside it (v0.142). */
+const SEARCHABLE = 10
+
 /**
  * One card, open: its face and names along the top, a row of its sections to
  * jump to, and the sections themselves - facts with their layer, state,
@@ -58,6 +71,10 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
   const kind = cardKindOf(config, card.kind)
   // Sections opened from "+ Add section" (v0.141), shown though still empty.
   const [opened, setOpened] = useState<string[]>([])
+  const [needle, setNeedle] = useState('')
+  const [stateFilter, setStateFilter] = useState<'all' | 'canon' | 'draft' | 'open'>('all')
+  const [folds, setFolds] = useFoldedAll()
+  const [summaryFolded, setSummaryFolded] = useState(false)
   const [title, setTitle] = useState(card.title ?? '')
   const [aliases, setAliases] = useState(card.aliases.join(', '))
   const [editingNote, setEditingNote] = useState(false)
@@ -98,6 +115,7 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
   })
   const gatherAction = cardAction(config.prompts ?? [], 'canon')
   const describeAction = cardAction(config.prompts ?? [], 'card-prompt')
+  const summarizeAction = cardAction(config.prompts ?? [], 'card-note')
 
   const portrait = useMemo(
     () => [...view.pictures].reverse().find((picture) => picture.kind === 'portrait')?.path ?? null,
@@ -125,7 +143,25 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
     countOf(one.key, one.shape) > 0 ||
     opened.includes(one.key) ||
     (one.key === describedUnder && (card.prompt ?? '') !== '')
-  const shown = sections.filter(holds)
+  // A search inside the card and a filter by state, once it holds ten facts
+  // (v0.142, FR-18 18.3): the facts that match, in the sections that hold
+  // them, opened whatever their fold.
+  const searching = needle.trim() !== '' || stateFilter !== 'all'
+  const matching = (one: (typeof view.facts)[number]) =>
+    (stateFilter === 'all' || one.fact.status === stateFilter) &&
+    one.fact.body.toLowerCase().includes(needle.trim().toLowerCase())
+  const factsOf = (key: string) =>
+    searching ? factsIn(view.facts, key).filter(matching) : undefined
+  const shown = sections.filter((one) =>
+    searching
+      ? (one.shape ?? 'facts') !== 'relations' &&
+        one.shape !== 'appearances' &&
+        (factsOf(one.key) ?? []).length > 0
+      : holds(one),
+  )
+  // Folds are remembered by the kind of card, so the next card of the kind
+  // opens as this one was left.
+  const foldId = (key: string) => `canon:${card.kind}:${key}`
   const addable = sections.filter((one) => !holds(one) && one.off !== true)
   const detailed = isDetailed(view, lens)
   // Facts under a section the profile no longer names still read, at the end.
@@ -259,9 +295,143 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
             </p>
           )}
           <ProposalsBanner view={view} />
+          {view.facts.length >= SEARCHABLE && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={needle}
+                onChange={(event) => setNeedle(event.target.value)}
+                placeholder={t('canon.searchCard')}
+                aria-label={t('canon.searchCard')}
+                className="min-w-48 flex-1"
+              />
+              <ChipGroup
+                aria-label={t('canon.filter')}
+                value={[stateFilter]}
+                onValueChange={(next) =>
+                  setStateFilter((next[0] ?? 'all') as 'all' | 'canon' | 'draft' | 'open')
+                }
+              >
+                {(['all', 'canon', 'draft', 'open'] as const).map((one) => (
+                  <Chip key={one} value={one}>
+                    {t(`canon.filterName.${one}`)}
+                  </Chip>
+                ))}
+              </ChipGroup>
+            </div>
+          )}
+          {!searching && shown.length > 1 && (
+            <div className="flex gap-1.5">
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() =>
+                  setFolds(
+                    shown.map((one) => foldId(one.key)),
+                    true,
+                  )
+                }
+              >
+                {t('canon.foldAll')}
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() =>
+                  setFolds(
+                    shown.map((one) => foldId(one.key)),
+                    false,
+                  )
+                }
+              >
+                {t('canon.unfoldAll')}
+              </Button>
+            </div>
+          )}
         </div>
       }
     >
+      {/* The summary first, under the name (v0.142, FR-18 18.3): what the
+          card is, read before its facts - written by hand, or gathered from
+          the facts by the assistant; and the facts gathered out of it. */}
+      <section className="pt-2" aria-label={t('canon.summary')}>
+        <header className="mb-1 flex flex-wrap items-center gap-2">
+          <Button
+            variant="icon"
+            size="icon-xs"
+            aria-expanded={!summaryFolded}
+            aria-label={t(summaryFolded ? 'canon.unfoldSection' : 'canon.foldSection', {
+              section: t('canon.summary'),
+            })}
+            onClick={() => setSummaryFolded(!summaryFolded)}
+          >
+            {summaryFolded ? <ChevronRight aria-hidden /> : <ChevronDown aria-hidden />}
+          </Button>
+          <b className="text-sm font-semibold">{t('canon.summary')}</b>
+          <span className="text-xs text-faint">{t('canon.noteHint')}</span>
+          <span className="ml-auto flex flex-wrap gap-1.5">
+            {summarizeAction !== undefined && (
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={task.isPending}
+                onClick={() => void body.flush().then(() => task.mutate(summarizeAction.key))}
+              >
+                <Sparkles aria-hidden />
+                {t('canon.summarize')}
+              </Button>
+            )}
+            {gatherAction !== undefined && body.text.trim() !== '' && (
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={task.isPending}
+                onClick={() => void body.flush().then(() => task.mutate(gatherAction.key))}
+              >
+                <ListPlus aria-hidden />
+                {t('canon.extractFacts')}
+              </Button>
+            )}
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-pressed={editingNote}
+              onClick={() => {
+                if (editingNote) void body.flush()
+                setEditingNote(!editingNote)
+              }}
+            >
+              <Pencil aria-hidden />
+              {editingNote ? t('notes.done') : t('notes.edit')}
+            </Button>
+          </span>
+        </header>
+        {!summaryFolded &&
+          (editingNote ? (
+            <NoteBodyEditor
+              noteId={card.id}
+              autoFocus
+              autoResize
+              rows={4}
+              value={body.text}
+              onText={(text) => body.setText(text)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  void body.flush()
+                  setEditingNote(false)
+                }
+              }}
+              aria-label={t('canon.summary')}
+              className="font-mono text-sm leading-relaxed"
+            />
+          ) : body.text.trim() === '' ? (
+            <p className="px-2 text-xs text-faint">{t('canon.noteEmpty')}</p>
+          ) : (
+            <div className="selectable px-2" onDoubleClick={() => setEditingNote(true)}>
+              <Markdown body={body.text} className="text-sm" />
+            </div>
+          ))}
+      </section>
+
       <Detailed.Provider value={detailed}>
         {shown.map((one) => (
           <div key={one.key}>
@@ -270,7 +440,10 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
               section={one}
               lens={lens}
               onOpen={onOpen}
+              facts={factsOf(one.key)}
               startAdding={opened.includes(one.key) && countOf(one.key, one.shape) === 0}
+              folded={!searching && folds.has(foldId(one.key))}
+              onFold={searching ? undefined : (fold) => setFolds([foldId(one.key)], fold)}
             />
             {one.key === describedUnder && (
               <PromptBox
@@ -309,52 +482,6 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
           />
         )}
       </Detailed.Provider>
-
-      {/* The card's free note: what it was before it had facts, and whatever
-          is still not worth a fact. The assistant gathers facts out of it. */}
-      <section className="pt-4">
-        <header className="mb-1 flex items-center gap-2">
-          <b className="text-sm font-semibold">{t('canon.note')}</b>
-          <span className="text-xs text-faint">{t('canon.noteHint')}</span>
-          <Button
-            size="xs"
-            variant="ghost"
-            className="ml-auto"
-            aria-pressed={editingNote}
-            onClick={() => {
-              if (editingNote) void body.flush()
-              setEditingNote(!editingNote)
-            }}
-          >
-            <Pencil aria-hidden />
-            {editingNote ? t('notes.done') : t('notes.edit')}
-          </Button>
-        </header>
-        {editingNote ? (
-          <NoteBodyEditor
-            noteId={card.id}
-            autoFocus
-            autoResize
-            rows={4}
-            value={body.text}
-            onText={(text) => body.setText(text)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                void body.flush()
-                setEditingNote(false)
-              }
-            }}
-            aria-label={t('canon.note')}
-            className="font-mono text-sm leading-relaxed"
-          />
-        ) : body.text.trim() === '' ? (
-          <p className="px-2 text-xs text-faint">{t('canon.noteEmpty')}</p>
-        ) : (
-          <div className="selectable px-2" onDoubleClick={() => setEditingNote(true)}>
-            <Markdown body={body.text} className="text-sm" />
-          </div>
-        )}
-      </section>
     </Pane>
   )
 }

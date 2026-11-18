@@ -1477,6 +1477,42 @@ fn a_fact(conn: &Connection, card: &str, section: &str, body: &str) -> kilna_lib
     .unwrap()
 }
 
+/// A list of facts added at once is one gesture: one undo takes the whole
+/// list back (v0.142).
+#[test]
+fn a_list_of_facts_comes_off_with_one_undo() {
+    use kilna_lib::canon::{self, NewFact};
+
+    let (conn, _, _) = workspace();
+    let card = a_card(&conn, "Wren");
+    let fact = |body: &str| NewFact {
+        note_id: card.clone(),
+        section: "looks".into(),
+        body: body.into(),
+        ..NewFact::default()
+    };
+    let added = actions::canon::add_facts(
+        &conn,
+        vec![
+            fact("Gradient hair."),
+            fact("Freckles."),
+            fact("A grey coat."),
+        ],
+    )
+    .unwrap();
+    assert_eq!(added.len(), 3);
+
+    let offer = undo::last(&conn).unwrap().expect("the list can be undone");
+    assert_eq!(offer.also, 2, "the other two go back with it");
+    // Each fact taken back leaves its own line, as each was added by one.
+    let before = operation::count(&conn).unwrap();
+    undo::undo(&conn, &offer.operation_id).unwrap();
+    assert_eq!(operation::count(&conn).unwrap(), before + 3);
+    for one in &added {
+        assert!(canon::fact::get(&conn, &one.id).unwrap().is_none());
+    }
+}
+
 #[test]
 fn a_fact_added_goes_to_the_trash_and_an_edit_comes_back_to_where_it_stood() {
     use kilna_lib::canon::{self, FactPatch};

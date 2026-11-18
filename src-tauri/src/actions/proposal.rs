@@ -477,7 +477,7 @@ pub fn check(
                 problems.push(problem);
             }
         }
-        Proposal::CardPrompt { note_id, .. } => {
+        Proposal::CardPrompt { note_id, .. } | Proposal::CardNote { note_id } => {
             note(crate::canon::fact::card_of(conn, config, note_id).map(|_| ()));
         }
         Proposal::Release {
@@ -897,6 +897,19 @@ fn keep(
 
         Proposal::CardPrompt { note_id, basis } => {
             super::canon::describe(conn, &note_id, Some(body.to_owned()), basis)?;
+            outcome.cards.push(note_id);
+        }
+
+        // The summary becomes the card's free note (v0.142).
+        Proposal::CardNote { note_id } => {
+            super::note::update(
+                conn,
+                &note_id,
+                crate::note::NotePatch {
+                    body: Some(body.trim().to_owned()),
+                    ..crate::note::NotePatch::default()
+                },
+            )?;
             outcome.cards.push(note_id);
         }
 
@@ -3359,6 +3372,29 @@ mod tests {
         let card = note::get(&conn, &wren).unwrap().unwrap();
         assert_eq!(card.prompt.as_deref(), Some("a young woman with freckles"));
         assert!(!crate::canon::view::card(&conn, &wren).unwrap().prompt_stale);
+    }
+
+    /// A summary gathered from the facts is kept as the card's note (v0.142).
+    #[test]
+    fn a_summary_is_kept_as_the_cards_note() {
+        let (conn, profile_id, _) = workspace();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren").id;
+        fixtures::fact(&conn, &wren, "looks", "Freckles.");
+        let chat = chat_on(&conn, &profile_id, None);
+        let message = propose(
+            &conn,
+            &chat,
+            "  A freckled girl who counts the pauses.  ",
+            Proposal::CardNote {
+                note_id: wren.clone(),
+            },
+        );
+
+        let outcome = apply(&conn, &message, Overrides::default()).unwrap();
+
+        assert_eq!(outcome.cards, std::slice::from_ref(&wren));
+        let card = note::get(&conn, &wren).unwrap().unwrap();
+        assert_eq!(card.body, "A freckled girl who counts the pauses.");
     }
 }
 

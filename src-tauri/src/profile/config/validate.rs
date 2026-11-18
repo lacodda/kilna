@@ -882,7 +882,7 @@ impl ProfileConfig {
                     problems
                         .push(Reason::of("problem.descriptionScope").param("place", place.clone()));
                 }
-                Produces::CardPrompt if prompt.scope() != Scope::Canon => {
+                Produces::CardPrompt | Produces::CardNote if prompt.scope() != Scope::Canon => {
                     problems
                         .push(Reason::of("problem.cardPromptScope").param("place", place.clone()));
                 }
@@ -966,6 +966,7 @@ impl ProfileConfig {
                 | Produces::Description
                 | Produces::Canon
                 | Produces::CardPrompt
+                | Produces::CardNote
                 | Produces::Release
                 | Produces::CoverIdeas
                 | Produces::Words
@@ -1117,10 +1118,13 @@ impl ProfileConfig {
                 problems
                     .push(Reason::of("problem.trialsNotAboutLab").param("place", place.clone()));
             }
-            // An action about a card gathers facts or describes it; anything
-            // else it answered would have nowhere to go.
+            // An action about a card gathers facts, describes it or sums it
+            // up; anything else it answered would have nowhere to go.
             if prompt.scope() == Scope::Canon
-                && !matches!(prompt.produces(), Produces::Canon | Produces::CardPrompt)
+                && !matches!(
+                    prompt.produces(),
+                    Produces::Canon | Produces::CardPrompt | Produces::CardNote
+                )
             {
                 problems.push(Reason::of("problem.canonMustProduce").param("place", place.clone()));
             }

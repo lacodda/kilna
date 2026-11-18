@@ -5,6 +5,9 @@ import { groupCards } from '@/lib/canon'
 import { canonIconOf } from '@/lib/canonIcon'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Chip, ChipGroup } from '@/components/ui/chip'
+import { Button } from '@/components/ui/button'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useFoldedAll } from '@/lib/folded'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { RowButton } from '@/components/ui/list-row'
@@ -40,6 +43,10 @@ export function CardList({ query, total, text, onText, status, onStatus, openId,
   const { config } = useProfile()
   const filter: Filter = status === undefined ? 'all' : (status as Filter)
   const filtered = status !== undefined || text.trim() !== ''
+  // A group of the list folds, remembered; a search opens every group.
+  const [remembered, setFolds] = useFoldedAll()
+  const folds = filtered ? new Set<string>() : remembered
+  const listFold = (key: string) => `canon-list:${key}`
 
   return (
     <Pane
@@ -97,55 +104,77 @@ export function CardList({ query, total, text, onText, status, onStatus, openId,
               return (
                 <section key={group.key} aria-label={caption}>
                   <h2 className="flex items-center gap-1.5 px-2 pt-2.5 pb-1 text-2xs font-semibold tracking-caption text-faint uppercase">
+                    <Button
+                      variant="icon"
+                      size="icon-xs"
+                      aria-expanded={!folds.has(listFold(group.key))}
+                      aria-label={t(
+                        folds.has(listFold(group.key))
+                          ? 'canon.unfoldSection'
+                          : 'canon.foldSection',
+                        { section: caption },
+                      )}
+                      onClick={() =>
+                        setFolds([listFold(group.key)], !folds.has(listFold(group.key)))
+                      }
+                    >
+                      {folds.has(listFold(group.key)) ? (
+                        <ChevronRight aria-hidden />
+                      ) : (
+                        <ChevronDown aria-hidden />
+                      )}
+                    </Button>
                     <Icon aria-hidden className="size-3" />
                     {caption}
                     <span className="ml-auto font-mono">{group.cards.length}</span>
                   </h2>
-                  <ul className="flex flex-col gap-0.5">
-                    {group.cards.map((card) => (
-                      <li key={card.id}>
-                        <RowButton
-                          selected={card.id === openId}
-                          onClick={() => onOpen(card.id)}
-                          className="gap-2 px-2 py-1"
-                          start={
-                            <CardAvatar
-                              title={card.title}
-                              portrait={card.portrait ?? null}
-                              size="sm"
-                            />
-                          }
-                          end={
-                            <>
-                              {card.layer !== 'public' && (
-                                <span
-                                  className="font-mono text-2xs"
-                                  title={t(`canon.layer.long.${card.layer}`)}
-                                >
-                                  {t(`canon.layer.short.${card.layer}`)}
-                                </span>
-                              )}
-                              {card.work_title !== null && (
-                                <span className="font-mono text-2xs" title={card.work_title}>
-                                  {t('canon.ofWork')}
-                                </span>
-                              )}
-                              {card.drafts > 0 && (
-                                <span
-                                  className="rounded-sm bg-info-soft px-1 font-mono text-2xs text-info"
-                                  title={t('canon.draftsWaiting', { count: card.drafts })}
-                                >
-                                  {card.drafts}
-                                </span>
-                              )}
-                            </>
-                          }
-                        >
-                          {card.title ?? t('canon.untitled')}
-                        </RowButton>
-                      </li>
-                    ))}
-                  </ul>
+                  {!folds.has(listFold(group.key)) && (
+                    <ul className="flex flex-col gap-0.5">
+                      {group.cards.map((card) => (
+                        <li key={card.id}>
+                          <RowButton
+                            selected={card.id === openId}
+                            onClick={() => onOpen(card.id)}
+                            className="gap-2 px-2 py-1"
+                            start={
+                              <CardAvatar
+                                title={card.title}
+                                portrait={card.portrait ?? null}
+                                size="sm"
+                              />
+                            }
+                            end={
+                              <>
+                                {card.layer !== 'public' && (
+                                  <span
+                                    className="font-mono text-2xs"
+                                    title={t(`canon.layer.long.${card.layer}`)}
+                                  >
+                                    {t(`canon.layer.short.${card.layer}`)}
+                                  </span>
+                                )}
+                                {card.work_title !== null && (
+                                  <span className="font-mono text-2xs" title={card.work_title}>
+                                    {t('canon.ofWork')}
+                                  </span>
+                                )}
+                                {card.drafts > 0 && (
+                                  <span
+                                    className="rounded-sm bg-info-soft px-1 font-mono text-2xs text-info"
+                                    title={t('canon.draftsWaiting', { count: card.drafts })}
+                                  >
+                                    {card.drafts}
+                                  </span>
+                                )}
+                              </>
+                            }
+                          >
+                            {card.title ?? t('canon.untitled')}
+                          </RowButton>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </section>
               )
             })}

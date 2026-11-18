@@ -77,10 +77,11 @@ export function commentAction(
 }
 
 /** The action about a card of the canon that produces this, if the profile
- *  has one: `canon` gathers the card's facts, `card-prompt` describes it. */
+ *  has one: `canon` gathers the card's facts, `card-prompt` describes it,
+ *  `card-note` sums it up (v0.142). */
 export function cardAction(
   actions: PromptTemplate[],
-  produces: 'canon' | 'card-prompt',
+  produces: 'canon' | 'card-prompt' | 'card-note',
 ): PromptTemplate | undefined {
   return actionsOfScope(actions, 'canon').find((action) => action.produces?.trim() === produces)
 }

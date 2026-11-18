@@ -62,6 +62,12 @@ pub fn describe_card(state: State<'_, AppState>, id: String, text: Option<String
     actions::canon::describe(&state.conn(), &id, text, None)
 }
 
+/// Several facts at once, one gesture (v0.142).
+#[tauri::command]
+pub fn add_facts(state: State<'_, AppState>, facts: Vec<NewFact>) -> Result<Vec<Fact>> {
+    actions::canon::add_facts(&state.conn(), facts)
+}
+
 #[tauri::command]
 pub fn add_fact(state: State<'_, AppState>, fact: NewFact) -> Result<Fact> {
     actions::canon::add_fact(&state.conn(), fact)

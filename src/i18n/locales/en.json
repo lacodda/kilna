@@ -1076,7 +1076,8 @@
       "inWorks": "only inside the works"
     },
     "vibeIfNone": "kept only if you have not said one",
-    "proposedStyles": "Styles for the dictionary"
+    "proposedStyles": "Styles for the dictionary",
+    "proposedCardNote": "A summary of the card"
   },
   "links": {
     "sources": "Made from",
@@ -1922,7 +1923,8 @@
         "edgy": "Broken line",
         "drive": "Chevron"
       }
-    }
+    },
+    "producesCardNote": "The card’s summary"
   },
   "fields": {
     "choiceNone": "Not set",
@@ -4157,7 +4159,6 @@
     "drawn_one": "a prompt reads {{count}} at random",
     "drawn_other": "a prompt reads {{count}} at random",
     "otherSection": "Other",
-    "note": "Note",
     "noteHint": "the card's free note; facts are gathered out of it",
     "noteEmpty": "Nothing written.",
     "nothingHere": "Empty",
@@ -4386,7 +4387,25 @@
     "acceptProposals": "Accept all",
     "advancedTemplates_one": "Advanced publication templates ({{count}})",
     "advancedTemplates_other": "Advanced publication templates ({{count}})",
-    "moreOptions": "More options"
+    "moreOptions": "More options",
+    "summary": "Summary",
+    "summarize": "Summarize from the facts",
+    "extractFacts": "Gather facts from the summary",
+    "searchCard": "Search the card",
+    "foldAll": "Fold all",
+    "unfoldAll": "Unfold all",
+    "foldSection": "Fold {{section}}",
+    "unfoldSection": "Unfold {{section}}",
+    "showAllFacts": "Show all ({{count}})",
+    "entryMode": "One fact or a list",
+    "oneLine": "One line",
+    "asList": "As a list",
+    "listPlaceholder": "One fact a line; bullets and numbers are taken off",
+    "listedFacts_one": "{{count}} fact",
+    "listedFacts_other": "{{count}} facts",
+    "summaryKept": "The summary is kept.",
+    "keepSummary": "Keep as the summary",
+    "summaryKeptMark": "Kept as the summary"
   },
   "register": {
     "new": "Term",

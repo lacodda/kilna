@@ -51,3 +51,26 @@ export function useFolded(id: string): [boolean, (fold: boolean) => void] {
   }
   return [isFolded, setFolded]
 }
+
+/**
+ * Every folded id at once, and the switch that folds or unfolds several -
+ * "fold all" over a card's sections (v0.142, FR-18 18.3). The same memory
+ * as `useFolded`.
+ */
+export function useFoldedAll(): [
+  ReadonlySet<string>,
+  (ids: readonly string[], fold: boolean) => void,
+] {
+  const raw = useSyncExternalStore(subscribe, read, () => '[]')
+  const setFolded = (ids: readonly string[], fold: boolean) => {
+    const rest = folded(read()).filter((one) => !ids.includes(one))
+    const next = fold ? [...rest, ...ids] : rest
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    } catch {
+      // Not remembered: the sections still fold for as long as they show.
+    }
+    window.dispatchEvent(new Event(CHANGED))
+  }
+  return [new Set(folded(raw)), setFolded]
+}

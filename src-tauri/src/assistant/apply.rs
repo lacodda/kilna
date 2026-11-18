@@ -1052,7 +1052,7 @@ pub fn pending_canon(
                     touch(&description.card);
                 }
             }
-            Proposal::CardPrompt { note_id, .. } => touch(note_id),
+            Proposal::CardPrompt { note_id, .. } | Proposal::CardNote { note_id } => touch(note_id),
             _ => {}
         }
         // What kilna wrote out itself from an agent's package is written

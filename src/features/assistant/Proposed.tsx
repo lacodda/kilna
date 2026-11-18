@@ -119,6 +119,16 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
           dismissed={dismissed}
         />
       )
+    case 'cardNote':
+      return (
+        <ProposedCardPrompt
+          messageId={messageId}
+          noteId={proposal.note_id}
+          applied={applied}
+          dismissed={dismissed}
+          summary
+        />
+      )
     case 'coverIdeas':
       return (
         <ProposedCoverIdeas

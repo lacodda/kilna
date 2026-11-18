@@ -1960,6 +1960,27 @@
         }
       },
       {
+        "category": "canon",
+        "description": {
+          "en": "A short summary of the card written from its facts, kept as its note at the top of the card.",
+          "ru": "Короткое резюме карточки по её фактам - становится заметкой наверху карточки."
+        },
+        "icon": "list",
+        "key": "summarize-card",
+        "label": {
+          "en": "Summarize from the facts",
+          "ru": "Собрать резюме из фактов"
+        },
+        "method": "# Card summarizer\n\n## Role\n\nYou write the summary at the top of a card of the canon: what the card is, in a few sentences a person reads before the facts.\n\n## What to write\n\n- In the language the card's facts are written in.\n- Three to six sentences of plain prose: who or what it is, what matters most about it, how it stands to the rest of the world.\n- Only what the facts say. No inventing, and no mood the facts do not carry.\n- The summary is the author's own note: it may read every fact, whatever its layer.\n\n## Output\n\nThe summary alone. No preamble, no heading, nothing after it.\n",
+        "produces": "card-note",
+        "scope": "canon",
+        "template": "Write the summary of this card from its facts.",
+        "when": {
+          "en": "When a card has grown facts and its summary at the top no longer says what it is: a few sentences written from the facts.",
+          "ru": "Когда у карточки накопились факты, а резюме наверху уже не говорит, что это: несколько предложений по фактам."
+        }
+      },
+      {
         "category": "release",
         "description": {
           "en": "The title, description, tags and pinned comment of this release, in the channel’s voice and unlike the last ones.",

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { settleSection, unrelateCards } from '@/lib/api/canon'
 import type { CanonSection, CardView, ReadFact, Relation } from '@/lib/api/types'
@@ -31,7 +31,15 @@ interface Props {
   panel?: boolean
   /** Opened from "+ Add section": the way to its first fact is open. */
   startAdding?: boolean
+  /** Folded to its heading (v0.142), and the switch that folds it; a
+   *  section given none never folds. */
+  folded?: boolean
+  onFold?: (fold: boolean) => void
 }
+
+/** A section longer than this shows its first few until asked (v0.142). */
+const LONG_SECTION = 8
+const SHOWN_OF_LONG = 5
 
 /**
  * One section of a card, drawn by its shape: statements with the way to add
@@ -46,10 +54,14 @@ export function SectionBlock({
   facts,
   panel = false,
   startAdding = false,
+  folded = false,
+  onFold,
 }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [adding, setAdding] = useState(startAdding)
+  // A long section shows its first five until asked for the rest (v0.142).
+  const [all, setAll] = useState(false)
   const [relating, setRelating] = useState(false)
   const [changing, setChanging] = useState<Relation | null>(null)
   const client = useQueryClient()
@@ -79,11 +91,33 @@ export function SectionBlock({
       : (facts ?? factsIn(view.facts, section.key)).filter((read) => read.fact.status === 'draft')
           .length
 
+  const held =
+    shape === 'relations'
+      ? view.relations.filter((relation) => relation.section === section.key).length
+      : shape === 'appearances'
+        ? view.appearances.length
+        : (facts ?? factsIn(view.facts, section.key)).length
   const head = (
     <header className="mb-1 flex flex-wrap items-center gap-2">
+      {onFold !== undefined && (
+        <Button
+          variant="icon"
+          size="icon-xs"
+          aria-expanded={!folded}
+          aria-label={t(folded ? 'canon.unfoldSection' : 'canon.foldSection', {
+            section: sayLabel(section.label),
+          })}
+          onClick={() => onFold(!folded)}
+        >
+          {folded ? <ChevronRight aria-hidden /> : <ChevronDown aria-hidden />}
+        </Button>
+      )}
       <b className={cn('font-semibold', panel ? 'text-base' : 'text-sm')}>
         {sayLabel(section.label)}
       </b>
+      {onFold !== undefined && held > 0 && (
+        <span className="font-mono text-2xs text-faint">{held}</span>
+      )}
       {hint !== null && (
         <span
           className={cn(
@@ -227,11 +261,22 @@ export function SectionBlock({
     )
   } else {
     const own = facts ?? factsIn(view.facts, section.key)
+    const cut = own.length > LONG_SECTION && !all
     inner = (
       <>
-        {own.map((read) => (
+        {(cut ? own.slice(0, SHOWN_OF_LONG) : own).map((read) => (
           <FactRow key={read.fact.id} read={read} view={view} shape={shape} lens={lens} />
         ))}
+        {cut && (
+          <Button
+            size="xs"
+            variant="ghost"
+            className="mt-1 self-start"
+            onClick={() => setAll(true)}
+          >
+            {t('canon.showAllFacts', { count: own.length })}
+          </Button>
+        )}
         {own.length === 0 && !adding && (
           <p className="px-2 text-xs text-faint">{t('canon.nothingHere')}</p>
         )}
@@ -267,7 +312,7 @@ export function SectionBlock({
       )}
     >
       {head}
-      {inner}
+      {!folded && inner}
     </section>
   )
 }

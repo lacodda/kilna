@@ -46,6 +46,12 @@ name, its **other names** — the forms the texts use, comma separated, which
 is how kilna finds where it appears — and **who may know it exists**:
 known to all, internal only, or only in the works.
 
+**The summary comes first**, under the name (v0.142): what the card is, in
+a few sentences read before its facts - the card's free note. Write it by
+hand, or press **Summarize from the facts** for the assistant to propose one
+(kept with one press), and **Gather facts from the summary** to have what
+it says proposed as facts under the sections.
+
 **A card shows the sections that hold something.** The rest wait under
 **+ Add section**, which opens the one you pick ready for its first fact; a
 section turned off in the profile is not offered there, though one that
@@ -53,8 +59,18 @@ holds facts still shows them. When the assistant has proposed facts nobody
 has settled, a line over the card says how many, with **Review** - to the
 first of them - and **Accept all**.
 
-Every section is a list. **+ fact** opens the editor: the statement, and
-under **More options** the layer, the state, the source and when it
+Every section folds by the arrow beside its name, which also says how many
+entries it holds; **Fold all** and **Unfold all** do it for the whole card,
+and the folds are remembered for the kind of card - the next character opens
+as the last was left. A section of more than eight facts shows its first
+five and **Show all**. A card of ten facts or more has a **search** of its
+own and the state chips: only the matching facts show, in the sections that
+hold them, opened. The groups of the list on the left fold too.
+
+Every section is a list. **+ fact** opens the editor - **One line** or
+**As a list**: a pasted list becomes one fact a line, its bullets and
+numbers taken off, all of them added as one change an undo takes back. The
+editor holds the statement, and under **More options** the layer, the state, the source and when it
 happened - a new fact is public and settled unless you say otherwise, and a
 fact that already says otherwise opens with them on show. `Ctrl+Enter`
 saves, `Esc` leaves.

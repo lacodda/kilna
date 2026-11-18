@@ -95,6 +95,28 @@ describe('a card of the canon', () => {
     expect(within(tastes).getByRole('textbox', { name: en.canon.factWords })).toBeInTheDocument()
   })
 
+  it('writes a pasted list as facts in one call (v0.142)', async () => {
+    backend.answer('add_facts', ({ facts }) => facts)
+    const { client, main } = await keeper()
+    const looks = within(main).getByRole('region', { name: 'Appearance' })
+
+    fireEvent.click(within(looks).getByRole('button', { name: en.canon.add.facts }))
+    fireEvent.click(within(looks).getByRole('radio', { name: en.canon.asList }))
+    fireEvent.change(within(looks).getByRole('textbox', { name: en.canon.factWords }), {
+      target: { value: '- A scar.\n- Freckles.' },
+    })
+    await act(async () => {
+      fireEvent.click(within(looks).getByRole('button', { name: en.canon.addFact }))
+    })
+    await settled(client)
+
+    const [asked] = backend.argsOf('add_facts') as { facts: NewFact[] }[]
+    expect(asked?.facts.map((one) => [one.section, one.body])).toEqual([
+      ['looks', 'A scar.'],
+      ['looks', 'Freckles.'],
+    ])
+  })
+
   it('writes a fact into the section it was added under', async () => {
     const { client, main } = await keeper()
     const looks = within(main).getByRole('region', { name: 'Appearance' })

@@ -851,6 +851,13 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
             }),
             None => Read::Nothing,
         },
+        // The whole answer is the card's summary (v0.142).
+        super::prompt::Produces::CardNote => match super::task::card_of_key(task_key) {
+            Some(note_id) => value(super::proposal::Proposal::CardNote {
+                note_id: note_id.to_owned(),
+            }),
+            None => Read::Nothing,
+        },
         // What a release goes out under, held to the fields its kind names,
         // read out of the key the release's own action was started with.
         super::prompt::Produces::Release => {

@@ -81,29 +81,32 @@ export function ProposedCardPrompt({
   noteId,
   applied,
   dismissed,
+  summary = false,
 }: {
   messageId: string
   noteId: string
   applied: Applied | null
   dismissed: boolean
+  /** The card's summary rather than its description (v0.142). */
+  summary?: boolean
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const keep = useApplyProposal({
     messageId,
-    message: t('canon.descriptionKept'),
+    message: t(summary ? 'canon.summaryKept' : 'canon.descriptionKept'),
     refresh: [...refresh.canon, keys.canonProposals, keys.pendingProposals],
   })
   return (
     <ProposalCard
       messageId={messageId}
-      title={t('assistant.proposedCardPrompt')}
+      title={t(summary ? 'assistant.proposedCardNote' : 'assistant.proposedCardPrompt')}
       applied={applied}
       dismissed={dismissed}
-      applyLabel={t('canon.keepDescription')}
+      applyLabel={t(summary ? 'canon.keepSummary' : 'canon.keepDescription')}
       onApply={() => keep.mutate(undefined)}
       applying={keep.isPending}
-      appliedLabel={t('canon.descriptionKeptMark')}
+      appliedLabel={t(summary ? 'canon.summaryKeptMark' : 'canon.descriptionKeptMark')}
       afterApplied={
         <Button size="sm" variant="link" onClick={() => void navigate(`/canon/${noteId}`)}>
           {t('canon.openCard')}

@@ -270,6 +270,9 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         basis: Option<String>,
     },
+    /// The summary of a card, gathered from its facts (v0.142); the text is
+    /// the message body, kept as the card's free note.
+    CardNote { note_id: String },
     /// What a release goes out under - its title, description, tags, the
     /// comment pinned under it - by the release kind's field keys, already
     /// held to the fields the kind names and tidied to their shape (v0.86).

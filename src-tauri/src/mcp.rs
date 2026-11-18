@@ -1290,6 +1290,7 @@ fn answer_with(prompt: &crate::assistant::prompt::PromptTemplate) -> String {
         | Produces::Reply
         | Produces::Description
         | Produces::CardPrompt
+        | Produces::CardNote
         | Produces::Bricks => "prose: kilna applies this answer only from the window".into(),
     }
 }
@@ -3697,7 +3698,7 @@ fn deliver(
         // A card's description alone is the action on the card, which knows
         // the facts it answers to; an agent proposes one inside a package for
         // the canon (`propose_canon` descriptions), read with the card.
-        (Proposal::CardPrompt { .. }, _) => {
+        (Proposal::CardPrompt { .. } | Proposal::CardNote { .. }, _) => {
             return Err(Error::refused("mcp.cardPromptNotProposable"));
         }
         // Bricks are proposed by the dictionary's own "Explain", which read

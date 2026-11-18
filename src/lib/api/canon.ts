@@ -38,6 +38,8 @@ export const createCard = (card: NewNote) => invoke<Note>('create_card', { card 
 export const describeCard = (id: string, text: string | null) =>
   invoke<Note>('describe_card', { id, text })
 export const addFact = (fact: NewFact) => invoke<Fact>('add_fact', { fact })
+/** Several facts at once, one gesture and one undo (v0.142). */
+export const addFacts = (facts: NewFact[]) => invoke<Fact[]>('add_facts', { facts })
 export const updateFact = (id: string, patch: FactPatch) =>
   invoke<Fact>('update_fact', { id, patch })
 export const retireFact = (id: string, reason: string) =>

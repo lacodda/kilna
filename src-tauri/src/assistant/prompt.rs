@@ -147,6 +147,10 @@ pub enum Produces {
     /// The whole answer, kept as the description a picture generator is
     /// given for the card the action was started on.
     CardPrompt,
+    /// The whole answer, kept as the summary of the card the action was
+    /// started on - its free note, read at the top of the card (v0.142,
+    /// FR-18 18.3).
+    CardNote,
     /// What a release goes out under - its title, its description, its
     /// tags - field by field, in a block the application reads (v0.86).
     Release,
@@ -266,6 +270,7 @@ impl PromptTemplate {
             Some("description") => Produces::Description,
             Some("canon") => Produces::Canon,
             Some("card-prompt") => Produces::CardPrompt,
+            Some("card-note") => Produces::CardNote,
             Some("release") => Produces::Release,
             Some(COVER_IDEAS) => Produces::CoverIdeas,
             Some("words") => Produces::Words,

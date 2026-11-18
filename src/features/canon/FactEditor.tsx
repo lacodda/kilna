@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronRight, Link2, X } from 'lucide-react'
-import { addFact, updateFact } from '@/lib/api/canon'
+import { addFact, addFacts, updateFact } from '@/lib/api/canon'
 import type {
   CardView,
   Fact,
@@ -76,6 +76,7 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
     fact?.source?.kind === 'work' ? '' : (fact?.source?.label ?? ''),
   )
   const [picking, setPicking] = useState(false)
+  const [asList, setAsList] = useState(false)
   // The layer, the state, the time in the world and the source wait under
   // "More options" (v0.141, FR-18 18.2): a fact is public and settled unless
   // someone says otherwise, and a fact that already says otherwise opens
@@ -150,10 +151,29 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
     return body.trim()
   }
 
+  // Several statements at once (v0.142, FR-18 18.3): a pasted list, one
+  // fact a line - its bullets and numbers taken off - with the layer, the
+  // state, the time and the source the editor holds, in one gesture.
+  const listed = asList ? linesOf(body) : []
   const save = useAppMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      if (fact === undefined && asList) {
+        await addFacts(
+          listed.map((line) => ({
+            note_id: view.card.id,
+            section: inSection,
+            body: line,
+            layer,
+            status,
+            when: when() ?? undefined,
+            source: source() ?? undefined,
+            data: {},
+          })),
+        )
+        return
+      }
       if (fact === undefined) {
-        return addFact({
+        await addFact({
           note_id: view.card.id,
           section: inSection,
           body: words(),
@@ -163,6 +183,7 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
           source: source() ?? undefined,
           data: data(),
         })
+        return
       }
       const patch: FactPatch = {
         body: words(),
@@ -173,7 +194,7 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
         data: data(),
       }
       if (inSection !== fact.section) patch.section = inSection
-      return updateFact(fact.id, patch)
+      await updateFact(fact.id, patch)
     },
     failure: 'toast.factSaveFailed',
     refresh: refresh.canon,
@@ -181,7 +202,7 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
   })
 
   const ready =
-    words() !== '' &&
+    (asList ? listed.length > 0 : words() !== '') &&
     (shape !== 'slots' || slot.trim() !== '') &&
     (shape !== 'details' || template.trim() !== '') &&
     (shape !== 'styles' || styleId !== '') &&
@@ -210,13 +231,30 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
           aria-label={t('canon.pickStyle')}
         />
       ) : null}
+      {fact === undefined && shape === 'facts' && (
+        <div className="flex items-center gap-2">
+          <SegmentedControl
+            aria-label={t('canon.entryMode')}
+            value={asList ? 'list' : 'one'}
+            onValueChange={(next) => setAsList(next === 'list')}
+          >
+            <Segment value="one">{t('canon.oneLine')}</Segment>
+            <Segment value="list">{t('canon.asList')}</Segment>
+          </SegmentedControl>
+          {asList && (
+            <span className="text-xs text-faint">
+              {t('canon.listedFacts', { count: listed.length })}
+            </span>
+          )}
+        </div>
+      )}
       <Textarea
         autoFocus
         autoResize
-        rows={shape === 'facts' ? 2 : 1}
+        rows={asList ? 5 : shape === 'facts' ? 2 : 1}
         value={body}
         onChange={(event) => setBody(event.target.value)}
-        placeholder={t(`canon.placeholder.${shape}`)}
+        placeholder={asList ? t('canon.listPlaceholder') : t(`canon.placeholder.${shape}`)}
         aria-label={t('canon.factWords')}
         className="text-sm leading-relaxed"
       />
@@ -433,4 +471,16 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
       )}
     </div>
   )
+}
+
+/**
+ * The statements of a pasted list, one a line: blank lines dropped, and the
+ * bullets and numbers a list is written with taken off - "- ", "* ", "• ",
+ * "1. ", "2) ".
+ */
+export function linesOf(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:[-*•–]|\d+[.)])\s+/, '').trim())
+    .filter((line) => line !== '')
 }

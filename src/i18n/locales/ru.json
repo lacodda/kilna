@@ -1199,7 +1199,8 @@
       "inWorks": "только внутри произведений"
     },
     "vibeIfNone": "запишется, только если вы своё не задали",
-    "proposedStyles": "Стили для словаря"
+    "proposedStyles": "Стили для словаря",
+    "proposedCardNote": "Резюме карточки"
   },
   "links": {
     "sources": "Сделано из",
@@ -2072,7 +2073,8 @@
         "edgy": "Ломаная",
         "drive": "Шеврон"
       }
-    }
+    },
+    "producesCardNote": "Резюме карточки"
   },
   "fields": {
     "choiceNone": "Не задано",
@@ -4404,7 +4406,6 @@
     "drawn_many": "в промпт - {{count}} наугад",
     "drawn_other": "в промпт - {{count}} наугад",
     "otherSection": "Прочее",
-    "note": "Заметка",
     "noteHint": "свободная заметка карточки; из неё собираются факты",
     "noteEmpty": "Ничего не записано.",
     "nothingHere": "Пусто",
@@ -4647,7 +4648,27 @@
     "advancedTemplates_few": "Продвинутые шаблоны публикаций ({{count}})",
     "advancedTemplates_many": "Продвинутые шаблоны публикаций ({{count}})",
     "advancedTemplates_other": "Продвинутые шаблоны публикаций ({{count}})",
-    "moreOptions": "Дополнительные параметры"
+    "moreOptions": "Дополнительные параметры",
+    "summary": "Резюме",
+    "summarize": "Собрать резюме из фактов",
+    "extractFacts": "Извлечь факты из резюме",
+    "searchCard": "Поиск в карточке",
+    "foldAll": "Свернуть все",
+    "unfoldAll": "Развернуть все",
+    "foldSection": "Свернуть: {{section}}",
+    "unfoldSection": "Развернуть: {{section}}",
+    "showAllFacts": "Показать все ({{count}})",
+    "entryMode": "Один факт или списком",
+    "oneLine": "Одна строка",
+    "asList": "Списком",
+    "listPlaceholder": "Один факт на строку; маркеры и номера снимаются",
+    "listedFacts_one": "{{count}} факт",
+    "listedFacts_few": "{{count}} факта",
+    "listedFacts_many": "{{count}} фактов",
+    "listedFacts_other": "{{count}} факта",
+    "summaryKept": "Резюме сохранено.",
+    "keepSummary": "Сохранить как резюме",
+    "summaryKeptMark": "Сохранено как резюме"
   },
   "register": {
     "new": "Термин",

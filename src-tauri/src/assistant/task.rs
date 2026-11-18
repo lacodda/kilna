@@ -422,8 +422,8 @@ pub fn compose(
         }
         Produces::Canon => prompt.push_str(&crate::canon::proposal::instruction(&profile.config)),
         Produces::Words => prompt.push_str(crate::register::proposal::INSTRUCTION),
-        // Only an action about a card describes one.
-        Produces::CardPrompt => {
+        // Only an action about a card describes one, or sums it up.
+        Produces::CardPrompt | Produces::CardNote => {
             return Err(
                 Error::refused("task.actionAnswersCard").param("action", template.label.as_str())
             );
@@ -796,6 +796,20 @@ pub fn compose_for_card(
                     prompt.push_str(&format!("{}\n", path.display()));
                 }
             }
+        }
+        // The summary is written from every fact the work may read, and
+        // rewrites what the note says today (v0.142, FR-18 18.3).
+        Produces::CardNote => {
+            let seen =
+                crate::canon::view::render(conn, &card.id, crate::profile::config::Lens::Work)?;
+            prompt.push_str(&format!("What the card holds now:\n\n{seen}\n\n"));
+            let note = card.body.trim();
+            if !note.is_empty() {
+                prompt.push_str(&format!(
+                    "What its summary says today, which you are rewriting:\n\n{note}\n\n"
+                ));
+            }
+            prompt.push_str(&template.template);
         }
         Produces::Canon => {
             let seen =
@@ -3170,6 +3184,17 @@ mod version_tests {
             gathering.prompt.contains("```json"),
             "the block to answer in is not asked for"
         );
+
+        // The summary reads every fact the work may, the biography too
+        // (v0.142).
+        let (summing, _) = compose_for_card(&conn, &card.id, "summarize-card").unwrap();
+        assert!(summing.prompt.contains("Born in Petersburg."));
+        assert!(
+            summing
+                .prompt
+                .contains("Write the summary of this card from its facts.")
+        );
+        assert!(!summing.prompt.contains("```json"));
 
         assert!(
             compose(

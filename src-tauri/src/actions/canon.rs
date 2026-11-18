@@ -110,6 +110,15 @@ pub fn add_fact(conn: &Connection, new: NewFact) -> Result<Fact> {
     })
 }
 
+/// Add several facts at once - a list pasted into a section (v0.142, FR-18
+/// 18.3): each its own `fact.create`, all in one unit, so they land together
+/// and one undo takes the whole list back.
+pub fn add_facts(conn: &Connection, facts: Vec<NewFact>) -> Result<Vec<Fact>> {
+    crate::db::unit::atomically(conn, |tx| {
+        facts.into_iter().map(|new| add_fact(tx, new)).collect()
+    })
+}
+
 /// Change a fact.
 ///
 /// A fact moved to another section carries the place it lands in, so that a

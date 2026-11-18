@@ -61,6 +61,7 @@ export function SkillEditor({
     { value: 'description', label: t('editor.producesDescription') },
     { value: 'canon', label: t('editor.producesCanon') },
     { value: 'card-prompt', label: t('editor.producesCardPrompt') },
+    { value: 'card-note', label: t('editor.producesCardNote') },
     { value: 'release', label: t('editor.producesRelease') },
     { value: 'cover-ideas', label: t('editor.producesCoverIdeas') },
     { value: 'words', label: t('editor.producesWords') },
