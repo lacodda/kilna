@@ -4,7 +4,7 @@ import { Lightbulb } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 /** The screens a first visit is told about, by their key in `app/screens`. */
-export const COACHED = [
+const COACHED = [
   'dashboard',
   'catalogue',
   'works',
