@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.138.0] - 2026-11-18
+
+Planned slots. A song goes out nowhere itself, so putting it on a day used to
+be refused; now it is planned there - a dashed line on the calendar, warmer
+once its time comes. Opening the slot makes it real in one press: an audio, a
+video or a short made from the song with its release booked on the slot's
+day, or the work's own release - one change an undo takes back. A slot is no
+release: it counts toward no rhythm and asks nobody whether it went out, but
+the guard of repeats reads its day. The Dashboard says a slot from the
+profile's lead days, the bell warns once on its way and once when it is late,
+and the slot closes by itself once something made from the work is booked
+near its day. The assistant reads the slots through MCP.
+
+### Bug Fixes
+- The planned slot's types - the release queue's key and one day count
+- A planned slot's lines belong to the calendar
+
+### Features
+- A planned slot of a work - one per work, moved, noted, made real, closed by one rule
+- Planned slots on the calendar, made real in one press, reminded once
+
+### Testing
+- The planned slot is the space's forty-third table
+
 ## [0.137.0] - 2026-11-18
 
 Starter packs. The snapshot of the style registry that ships with kilna now
