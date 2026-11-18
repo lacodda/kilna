@@ -2073,7 +2073,7 @@ dependencies = [
 
 [[package]]
 name = "kilna"
-version = "0.126.0"
+version = "0.127.0"
 dependencies = [
  "fst",
  "process-wrap",

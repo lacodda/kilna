@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.127.0] - 2026-11-18
+
+Methods over MCP. An agent outside the window now reads the craft from kilna
+rather than from its own files: `workspace` gives each kind's axes whole,
+rubrics included, and the index of the profile's skills; the new `guide`
+tool opens a skill - its method, its message, the tool its answer goes
+through and the live context of the space. Every skill is also an MCP
+prompt, a slash command in the clients that offer them, filled from a work
+when one is named. Settings -> Agents writes a short trigger for Claude
+Code, Codex CLI, Gemini CLI or a Cursor project that sends the agent to
+kilna, with no method inside it.
+
+### Bug Fixes
+- Prompts are answered from the space, as tools are
+
+### Features
+- Methods over MCP - guide, prompts and a thin trigger for agents
+
 ## [0.126.0] - 2026-11-18
 
 Skills. The profile's actions get a section of their own, Settings -> Skills:
