@@ -1051,6 +1051,9 @@ function viewOf(studio: Studio, note: Note): CardView {
 export function answersFor(studio: Studio): Record<string, Handler> {
   const noAssets: Asset[] = []
   return {
+    // Nothing of what kilna ships waits beside the profile (ADR 0087).
+    shipped_offers: () => [],
+    shipped_standing: () => [],
     get_workspace: () => ({
       schema_version: 30,
       profile: studio.profile,
