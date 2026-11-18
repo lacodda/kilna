@@ -97,6 +97,7 @@ describe('applies', () => {
     cover: false,
     findings: false,
     repeats: false,
+    reviews: false,
   }
 
   it('draws only what the work always has when the kind names nothing', () => {
@@ -129,6 +130,11 @@ describe('applies', () => {
   it("draws the guard's findings only while the song has one", () => {
     expect(applies('repeats', none)).toBe(false)
     expect(applies('repeats', { ...none, repeats: true })).toBe(true)
+  })
+
+  it('draws the reviews only on a work that holds a document (v0.147)', () => {
+    expect(applies('reviews', none)).toBe(false)
+    expect(applies('reviews', { ...none, reviews: true })).toBe(true)
   })
 
   it("draws a song's publications where a clip draws its release", () => {
