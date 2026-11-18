@@ -2736,7 +2736,7 @@
     "hint": {
       "general": "How the window looks and speaks.",
       "card": "What a card opens on and what it draws.",
-      "profile": "The words of your craft: kinds, statuses, axes, tiers, actions.",
+      "profile": "The words of your craft: kinds, statuses, axes, tiers, fields.",
       "data": "Out, in and aside: export, backup, import.",
       "agents": "Agents outside the window, over MCP.",
       "assistant": "Claude Code, the model, runs at once, what a run reads, the budget.",
@@ -2829,7 +2829,8 @@
         "vibe_complexities": "Complexity"
       },
       "waiting_one": "One newer version waits beside your entries",
-      "waiting_other": "{{count}} newer versions wait beside your entries"
+      "waiting_other": "{{count}} newer versions wait beside your entries",
+      "show": "Show what differs ({{count}})"
     }
   },
   "skills": {

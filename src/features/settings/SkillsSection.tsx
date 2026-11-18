@@ -163,7 +163,7 @@ export function SkillsSection() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <ShippedOffers only="prompts" />
+      <ShippedOffers only="prompts" folded />
 
       <FieldGroup label={t('skills.title')} help={t('skills.hint')}>
         <div className="flex flex-col gap-2">

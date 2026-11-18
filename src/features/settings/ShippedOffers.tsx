@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { OfferRef, ShippedOffer } from '@/lib/api/types'
@@ -26,7 +27,11 @@ import { FieldGroup } from '@/components/ui/field'
 export function ShippedOffers({
   only,
   except,
+  folded = false,
 }: {
+  /** Shown as a line with the count until asked for: Skills keeps its own
+   *  list in view. */
+  folded?: boolean
   /** The one list shown: Skills shows the actions. */
   only?: string
   /** A list left out: the profile leaves the actions to Skills. */
@@ -34,6 +39,7 @@ export function ShippedOffers({
 } = {}) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const [open, setOpen] = useState(!folded)
   const offers = (useQuery(queries.shippedOffers(profile.id)).data ?? []).filter(
     (offer) =>
       (only === undefined || offer.collection === only) &&
@@ -67,9 +73,14 @@ export function ShippedOffers({
           <Button onClick={() => keep.mutate(offers.map(refOf))} disabled={busy}>
             {t('settings.shipped.keepAll', { count: offers.length })}
           </Button>
+          {!open && (
+            <Button variant="ghost" className="ml-2" onClick={() => setOpen(true)}>
+              {t('settings.shipped.show', { count: offers.length })}
+            </Button>
+          )}
         </div>
       </FieldGroup>
-      <ul className="flex flex-col gap-3">
+      <ul className={open ? 'flex flex-col gap-3' : 'hidden'}>
         {offers.map((offer) => {
           const list = listOf(offer.collection, profile.config)
           const listWord = t(`settings.shipped.list.${list.word}`, { defaultValue: list.word })
