@@ -46,7 +46,7 @@ fn rules() -> Rules {
             "about": ["Idea"],
             "skip": ["README"]
         },
-        "documents": [{ "title_prefix": "Analytics · Video review · ", "kind": "review" }],
+        "documents": [{ "title_prefix": "Analytics · Video review · ", "kind": "review", "title": "Review" }],
         "splits": [{
             "title": "Analytics · Edits",
             "kind": "review",
@@ -284,9 +284,10 @@ fn reviews_edits_and_covers_to_redraw_land_on_their_works() {
 
     let done = apply(&conn, &profile_id, &planned, false).unwrap();
     assert_eq!((done.documents, done.notes, done.marks), (1, 3, 1));
+    let reviewed = crate::note::get(&conn, &review.id).unwrap().unwrap();
     assert_eq!(
-        crate::note::get(&conn, &review.id).unwrap().unwrap().kind,
-        "review"
+        (reviewed.kind.as_str(), reviewed.title.as_deref()),
+        ("review", Some("Review"))
     );
     let low = crate::work::get(&conn, &other.id).unwrap().unwrap();
     assert!(low.marks.contains(&"redraw-cover".to_owned()));

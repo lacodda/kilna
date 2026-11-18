@@ -109,6 +109,10 @@ pub struct KitRule {
 pub struct DocumentRule {
     pub title_prefix: String,
     pub kind: String,
+    /// The title it takes: a review of a video shown on the video needs no
+    /// "Analytics · Video review · " in front of it. Kept when not said.
+    #[serde(default)]
+    pub title: Option<String>,
 }
 
 /// The note titled `title`, a `## N. Title` section a work: each section
@@ -356,6 +360,8 @@ pub struct PlannedDocument {
     pub note_id: String,
     pub title: String,
     pub kind: String,
+    /// The title it takes, when the rule gives one.
+    pub retitled: Option<String>,
 }
 
 /// A note to make on a work, from a section of another.
@@ -422,6 +428,7 @@ pub fn plan(conn: &Connection, profile_id: &str, rules: &Rules) -> Result<Plan> 
                 note_id: note.id.clone(),
                 title: note.title.clone().unwrap_or_default(),
                 kind: rule.kind.clone(),
+                retitled: rule.title.clone(),
             });
         }
     }
@@ -969,7 +976,12 @@ pub fn apply(conn: &Connection, profile_id: &str, plan: &Plan, remove: bool) -> 
         }
         if !plan.kits.is_empty() {
             let (root, section) = dressing(tx, profile_id, &config)?;
-            for kit in &plan.kits {
+            // The look in use first, by kind and name; the archive after it.
+            let mut kits: Vec<&PlannedKit> = plan.kits.iter().collect();
+            kits.sort_by(|a, b| {
+                (a.archived, &a.kind, &a.name).cmp(&(b.archived, &b.kind, &b.name))
+            });
+            for kit in kits {
                 let mut data = Map::new();
                 data.insert("kind".into(), json!(kit.kind));
                 for (key, value) in [
@@ -1003,6 +1015,7 @@ pub fn apply(conn: &Connection, profile_id: &str, plan: &Plan, remove: bool) -> 
                 &document.note_id,
                 NotePatch {
                     kind: Some(document.kind.clone()),
+                    title: document.retitled.clone().map(Some),
                     ..NotePatch::default()
                 },
             )?;

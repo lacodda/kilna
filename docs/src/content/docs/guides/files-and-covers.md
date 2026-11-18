@@ -331,7 +331,7 @@ kilna is the engine:
     "about": ["Idea"],
     "skip": ["README"]
   },
-  "documents": [{ "title_prefix": "Analytics · Video review · ", "kind": "review" }],
+  "documents": [{ "title_prefix": "Analytics · Video review · ", "kind": "review", "title": "Review" }],
   "splits": [{ "title": "Analytics · Edits", "kind": "review", "note_title": "Edits", "work_kind": "video" }],
   "marks": [{ "title": "Analytics · Covers to redraw", "mark": "redraw-cover", "kind": "review", "note_title": "Cover to redraw" }]
 }
@@ -350,7 +350,8 @@ kilna is the engine:
   a word of the title, the old look by the archive word, its prompt, what
   it keeps out and its idea from the headings or bold labels named.
 - **documents** - notes made notes of another kind where they stand: the
-  reviews of the videos, attached to their works, made reviews.
+  reviews of the videos, attached to their works, made reviews - retitled,
+  when `title` is given, since on its work a review needs no prefix.
 - **splits** - one note, a `## N. Title` section a work: each section
   becomes a note on the work it names. A work titled with a word in
   brackets - "Harbour lights (video)" - answers to its title without it.

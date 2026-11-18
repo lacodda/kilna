@@ -214,6 +214,8 @@ export function FactRow({ read, view, shape, lens }: Props) {
         detailed ? 'grid-cols-[24px_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]',
         !seenThrough(read.lenses, lens) && 'opacity-25',
         fact.status === 'draft' && 'bg-info-soft/60',
+        // A kit of the look before the rebranding stands back (v0.147).
+        shape === 'branding' && fact.data.archived === true && 'opacity-60',
       )}
     >
       <LayerMark layer={fact.layer} />
@@ -411,14 +413,17 @@ function FactWords({ fact, shape }: { fact: ReadFact['fact']; shape: SectionShap
               </span>
             )}
           </span>
-          {text('about') !== '' && <span className="block text-xs text-dim">{text('about')}</span>}
+          {/* A kit reads at a glance; the whole of it is in its editor. */}
+          {text('about') !== '' && (
+            <span className="line-clamp-2 text-xs text-dim">{text('about')}</span>
+          )}
           {text('prompt') !== '' && (
-            <span className="block line-clamp-3 font-mono text-2xs leading-normal text-dim">
+            <span className="line-clamp-3 font-mono text-2xs leading-normal text-dim">
               {text('prompt')}
             </span>
           )}
           {text('negative') !== '' && (
-            <span className="block line-clamp-2 font-mono text-2xs leading-normal text-faint">
+            <span className="line-clamp-2 font-mono text-2xs leading-normal text-faint">
               {t('canon.kitNegativeSaid', { text: text('negative') })}
             </span>
           )}
