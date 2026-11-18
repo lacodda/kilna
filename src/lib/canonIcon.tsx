@@ -1,3 +1,4 @@
+import { createElement, type SVGProps } from 'react'
 import {
   Briefcase,
   Globe,
@@ -56,4 +57,18 @@ export const CANON_ICON_NAMES = Object.keys(CANON_ICONS)
 export function canonIconOf(kind: Pick<NoteKind, 'icon'> | undefined): LucideIcon {
   const name = kind?.icon
   return (name !== undefined && name !== null ? CANON_ICONS[name] : undefined) ?? StickyNote
+}
+
+/**
+ * A kind of card's glyph, ready to draw - in a list or inside a graph's
+ * drawing, where `x`, `y` and the size place it (v0.143). The choosing
+ * happens in a component declared once, as `KindGlyph` does it for a door.
+ */
+export function CanonGlyph({
+  kind,
+  ...props
+}: { kind: Pick<NoteKind, 'icon'> | undefined } & SVGProps<SVGSVGElement>) {
+  // Made by `createElement`: the set is fixed and each glyph's identity
+  // stable, which the lint cannot see through a lookup.
+  return createElement(canonIconOf(kind), { 'aria-hidden': true, ...props })
 }

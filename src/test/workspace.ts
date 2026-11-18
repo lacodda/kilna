@@ -1238,6 +1238,8 @@ export function answersFor(studio: Studio): Record<string, Handler> {
       return note === undefined ? Promise.reject(new Error('no such card')) : viewOf(studio, note)
     },
     card_as_seen: () => '## The lantern keeper',
+    // The canon's relations, for its graph (v0.143): none until a test says.
+    canon_links: () => [],
     canon_timeline: () =>
       studio.facts
         .filter((fact) => fact.when?.sort !== undefined)

@@ -4189,7 +4189,7 @@
       "retired": "retired"
     },
     "statusLabel": "State",
-    "addRelation": "Draw a relation",
+    "addRelation": "Add a relation",
     "appearsNowhere": "Nowhere yet.",
     "appearsHint": "Counted by itself: from scenes, texts, covers and sources.",
     "appears": {
@@ -4405,7 +4405,16 @@
     "listedFacts_other": "{{count}} facts",
     "summaryKept": "The summary is kept.",
     "keepSummary": "Keep as the summary",
-    "summaryKeptMark": "Kept as the summary"
+    "summaryKeptMark": "Kept as the summary",
+    "graph": "Graph of the canon",
+    "graphOf": "The cards around {{title}}",
+    "graphKinds": "Kinds of card shown",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fitGraph": "Back to the whole map",
+    "allRelations_one": "The relation ({{count}})",
+    "allRelations_other": "All relations ({{count}})",
+    "graphMap": "Every card and how they relate"
   },
   "register": {
     "new": "Term",

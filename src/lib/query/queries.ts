@@ -22,6 +22,7 @@ import {
   waitingChats,
 } from '@/lib/api/assistant'
 import {
+  canonLinks,
   canonTimeline,
   cardAsSeen,
   listCards,
@@ -319,6 +320,7 @@ export const queries = {
 
   cardsMatching: (filter: CardFilter) =>
     queryOptions({ queryKey: keys.cardsMatching(filter), queryFn: () => listCards(filter) }),
+  canonLinks: () => queryOptions({ queryKey: keys.canonLinks, queryFn: canonLinks }),
   card: (id: string) => queryOptions({ queryKey: keys.card(id), queryFn: () => readCard(id) }),
   cardAsSeen: (id: string, lens: Lens) =>
     queryOptions({ queryKey: keys.cardAsSeen(id, lens), queryFn: () => cardAsSeen(id, lens) }),

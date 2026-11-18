@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { open as openFile } from '@tauri-apps/plugin-dialog'
-import { Eye, ImagePlus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, ImagePlus, Plus } from 'lucide-react'
 import { attachAsset, detachAsset } from '@/lib/api/assets'
 import { pasteCardPicture, setPictureRole } from '@/lib/api/canon'
 import type { CardView } from '@/lib/api/types'
@@ -20,6 +20,8 @@ import { CardAvatar } from '@/features/canon/CardAvatar'
 import { CardPicture } from '@/features/canon/CardPicture'
 import { CanonProposals } from '@/features/canon/CanonProposals'
 import { SeenDialog } from '@/features/canon/SeenDialog'
+import { MiniGraph } from '@/features/canon/MiniGraph'
+import { RelationDialog } from '@/features/canon/RelationDialog'
 import { pictureIn, readPicture, type PastedPicture } from '@/features/styles/pastedPicture'
 import { useWindowDrop } from '@/features/styles/useWindowDrop'
 
@@ -38,6 +40,8 @@ export function CardSide({ view, lens, onOpen }: Props) {
   const { t } = useTranslation()
   const zone = useRef<HTMLDivElement>(null)
   const [seeing, setSeeing] = useState(false)
+  const [listed, setListed] = useState(false)
+  const [relating, setRelating] = useState(false)
   const card = view.card
   const own = view.pictures.filter((picture) => picture.canon_fact_id === null)
 
@@ -138,29 +142,55 @@ export function CardSide({ view, lens, onOpen }: Props) {
         </Button>
       </section>
 
-      {view.relations.length > 0 && (
-        <section className="flex flex-col gap-1">
-          <header className="flex items-center gap-2">
-            <b className="text-sm font-semibold">{t('canon.around')}</b>
-            <span className="text-2xs text-faint">{t('canon.aroundHint')}</span>
-          </header>
-          {view.relations.slice(0, 8).map((relation) => (
-            <RowButton
-              key={relation.link.id}
-              onClick={() => onOpen(relation.other_id)}
-              className="gap-2 px-1 py-0.5"
-              start={<CardAvatar title={relation.other_title} portrait={null} size="sm" />}
-              end={
-                relation.label !== null ? (
-                  <span className="truncate text-2xs">{relation.label}</span>
-                ) : undefined
-              }
+      {/* The card among its neighbours, drawn, and every relation listed
+          under the drawing - until v0.143 the list stopped at eight. */}
+      <section className="flex flex-col gap-1">
+        <header className="flex items-center gap-2">
+          <b className="text-sm font-semibold">{t('canon.around')}</b>
+          <span className="text-2xs text-faint">{t('canon.aroundHint')}</span>
+        </header>
+        {view.relations.length > 0 && <MiniGraph view={view} onOpen={onOpen} />}
+        {view.relations.length > 0 && (
+          <>
+            <Button
+              size="xs"
+              variant="ghost"
+              className="self-start"
+              aria-expanded={listed}
+              onClick={() => setListed(!listed)}
             >
-              {relation.other_title ?? t('canon.untitled')}
-            </RowButton>
-          ))}
-        </section>
-      )}
+              {listed ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
+              {t('canon.allRelations', { count: view.relations.length })}
+            </Button>
+            {listed &&
+              view.relations.map((relation) => (
+                <RowButton
+                  key={relation.link.id}
+                  onClick={() => onOpen(relation.other_id)}
+                  className="gap-2 px-1 py-0.5"
+                  start={<CardAvatar title={relation.other_title} portrait={null} size="sm" />}
+                  end={
+                    relation.label !== null ? (
+                      <span className="truncate text-2xs">{relation.label}</span>
+                    ) : undefined
+                  }
+                >
+                  {relation.other_title ?? t('canon.untitled')}
+                </RowButton>
+              ))}
+          </>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setRelating(true)}
+          className="justify-start border border-dashed border-line-2 text-faint"
+        >
+          <Plus aria-hidden />
+          {t('canon.addRelation')}
+        </Button>
+        {relating && <RelationDialog open onOpenChange={setRelating} card={view.card} kinds={[]} />}
+      </section>
 
       {mine.length > 0 && <CanonProposals proposals={mine} />}
 

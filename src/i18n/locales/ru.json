@@ -4668,7 +4668,18 @@
     "listedFacts_other": "{{count}} факта",
     "summaryKept": "Резюме сохранено.",
     "keepSummary": "Сохранить как резюме",
-    "summaryKeptMark": "Сохранено как резюме"
+    "summaryKeptMark": "Сохранено как резюме",
+    "graph": "Граф Канона",
+    "graphOf": "Карточки вокруг: {{title}}",
+    "graphKinds": "Какие виды карточек показаны",
+    "zoomIn": "Приблизить",
+    "zoomOut": "Отдалить",
+    "fitGraph": "Вся карта",
+    "allRelations_one": "Все связи ({{count}})",
+    "allRelations_few": "Все связи ({{count}})",
+    "allRelations_many": "Все связи ({{count}})",
+    "allRelations_other": "Все связи ({{count}})",
+    "graphMap": "Все карточки и их связи"
   },
   "register": {
     "new": "Термин",

@@ -183,6 +183,8 @@ export const keys = {
   canon: ['canon'] as const,
   /** The list of cards, under the filter it is read through. */
   cardsMatching: (filter: object) => ['canon', 'cards', filter] as const,
+  /** Every relation of the canon, for its graph (v0.143). */
+  canonLinks: ['canon', 'links'] as const,
   card: (id: string) => ['canon', 'card', id] as const,
   /** A card read through a task's eyes, as the prompt receives it. */
   cardAsSeen: (id: string, lens: string) => ['canon', 'seen', id, lens] as const,

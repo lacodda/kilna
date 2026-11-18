@@ -25,6 +25,8 @@ import type {
 // assistant's proposals for them (ADR 0043).
 
 export const listCards = (filter?: CardFilter) => invoke<CardSummary[]>('list_cards', { filter })
+/** Every relation between the cards - the graph (v0.143). */
+export const canonLinks = () => invoke<CanonLink[]>('canon_links')
 export const readCard = (id: string) => invoke<CardView>('read_card', { id })
 /** A card as a task's prompt receives it - the text the assistant is handed. */
 export const cardAsSeen = (id: string, lens: Lens) => invoke<string>('card_as_seen', { id, lens })

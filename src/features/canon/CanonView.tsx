@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { BookPlus, CalendarRange, Eye, IdCard, Plus, Sparkles } from 'lucide-react'
+import { BookPlus, CalendarRange, Eye, IdCard, Network, Plus, Sparkles } from 'lucide-react'
 import { createChat, startTask } from '@/lib/api/assistant'
 import { createCard } from '@/lib/api/canon'
 import { refresh } from '@/lib/query/refresh'
@@ -24,6 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Frame } from '@/components/ui/frame'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { CanonTimeline } from '@/features/canon/CanonTimeline'
+import { CanonGraph } from '@/features/canon/CanonGraph'
 import { CardDetail } from '@/features/canon/CardDetail'
 import { CardList } from '@/features/canon/CardList'
 import { CardSide } from '@/features/canon/CardSide'
@@ -53,6 +54,8 @@ export function CanonView() {
   const { cardId } = useParams()
   const [params] = useSearchParams()
   const timeline = cardId === undefined && params.has('timeline')
+  // The whole canon as a map (v0.143), in the address like the timeline.
+  const graph = cardId === undefined && params.has('graph')
   const { config } = useProfile()
 
   const [lens, setLens] = useState<LensChoice>('all')
@@ -156,6 +159,16 @@ export function CanonView() {
           <Button
             variant="icon"
             size="icon-sm"
+            aria-pressed={graph}
+            aria-label={t('canon.graph')}
+            title={t('canon.graph')}
+            onClick={() => void navigate(graph ? '/canon' : '/canon?graph')}
+          >
+            <Network aria-hidden />
+          </Button>
+          <Button
+            variant="icon"
+            size="icon-sm"
             aria-pressed={timeline}
             aria-label={t('canon.timeline')}
             title={t('canon.timeline')}
@@ -187,7 +200,11 @@ export function CanonView() {
           openId={cardId ?? null}
           onOpen={open}
         />
-        {timeline ? (
+        {graph ? (
+          <div className="col-span-2 flex min-h-0 flex-col max-[1100px]:col-span-1">
+            <CanonGraph cards={everything.data ?? []} onOpen={open} />
+          </div>
+        ) : timeline ? (
           <CanonTimeline lens={lens} onOpen={open} />
         ) : cardId === undefined ? (
           // The quick start (v0.141, FR-18 18.1) while the canon holds no
@@ -242,7 +259,7 @@ export function CanonView() {
         ) : (
           <Skeleton className="flex-1 rounded-lg" />
         )}
-        {card.data !== undefined && cardId !== undefined ? (
+        {graph ? null : card.data !== undefined && cardId !== undefined ? (
           <div className="flex min-h-0 flex-col max-[1100px]:hidden">
             <CardSide view={card.data} lens={lens} onOpen={open} />
           </div>

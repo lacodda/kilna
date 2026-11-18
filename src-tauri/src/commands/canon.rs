@@ -24,6 +24,14 @@ pub fn list_cards(
     view::cards(&conn, &active(&conn)?, &filter.unwrap_or_default())
 }
 
+/// Every relation between the cards of the profile - the graph of the canon
+/// (v0.143, FR-18 18.4).
+#[tauri::command]
+pub fn canon_links(state: State<'_, AppState>) -> Result<Vec<crate::canon::CanonLink>> {
+    let conn = state.conn();
+    crate::canon::link::for_profile(&conn, &active(&conn)?)
+}
+
 /// One card whole: facts by section with the tasks that read each, relations,
 /// pictures, where it appears, whether its description is stale.
 #[tauri::command]

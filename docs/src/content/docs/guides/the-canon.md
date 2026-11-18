@@ -164,6 +164,17 @@ column.
 *neighbour and first listener* the other — and a layer of its own. A
 relation is one line between two cards; it shows on both, from each side.
 
+**The graph** (v0.143). On the right of an open card, under **Around it**,
+the card is drawn among the cards it is related to: itself in the middle,
+the others on a ring in their kinds' glyphs and colours, each line with the
+first words of its relation. Hover a card for the whole relation and who may
+know of it; press it to open it. **All relations** lists them under the
+drawing, every one of them, and **Add a relation** draws another. The
+**graph** button over the cards opens the whole canon as a map: every card,
+every relation; the wheel or the buttons zoom, dragging the ground moves the
+map, the chips hide kinds of card, and pressing a card opens it. The cards
+land in the same places every time the map is opened.
+
 **Where it appears** is counted, never typed: the works it is the hero of,
 the scenes that point at it, the texts that name it or one of its other
 names as a whole word, the covers that picture it, the works its facts

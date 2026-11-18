@@ -117,6 +117,70 @@ describe('a card of the canon', () => {
     ])
   })
 
+  it('draws the card among its neighbours, and a press opens one (v0.143)', async () => {
+    const workspace = studio()
+    const keeperCard = workspace.notes.find((note) => note.id === IDS.character)!
+    backend.answer('read_card', ({ id }) =>
+      id === IDS.character
+        ? {
+            card: keeperCard,
+            work_title: null,
+            facts: [],
+            relations: [
+              {
+                card: keeperCard,
+                link: {
+                  id: 'l-river',
+                  profile_id: IDS.profile,
+                  from_id: IDS.character,
+                  to_id: 'n-river',
+                  kind: 'place',
+                  label: 'sells by it',
+                  back_label: null,
+                  layer: 'public',
+                  created_at: NOW,
+                  updated_at: NOW,
+                },
+                other_id: 'n-river',
+                other_title: 'The river',
+                other_kind: 'location',
+                other_layer: 'public',
+                label: 'sells by it',
+                section: 'circle',
+                lenses: ['work'],
+              },
+            ],
+            pictures: [],
+            appearances: [],
+            basis: null,
+            prompt_stale: false,
+            lenses: ['work'],
+          }
+        : Promise.reject(new Error('no such card')),
+    )
+    const { client } = renderApp(`/canon/${IDS.character}`)
+    await settled(client)
+    const drawing = await screen.findByRole('group', {
+      name: en.canon.graphOf.replace('{{title}}', 'The lantern keeper'),
+    })
+    await act(async () => {
+      fireEvent.click(within(drawing).getByRole('link', { name: /The river/ }))
+    })
+    await settled(client)
+    expect(backend.argsOf('read_card')).toContainEqual({ id: 'n-river' })
+  })
+
+  it('maps the whole canon, and a press on a node opens its card (v0.143)', async () => {
+    const { client } = renderApp('/canon?graph')
+    await settled(client)
+    const map = await screen.findByRole('group', { name: en.canon.graphMap })
+    await act(async () => {
+      fireEvent.click(within(map).getByRole('link', { name: 'The lantern keeper' }))
+    })
+    await settled(client)
+    expect(backend.argsOf('read_card')).toContainEqual({ id: IDS.character })
+  })
+
   it('writes a fact into the section it was added under', async () => {
     const { client, main } = await keeper()
     const looks = within(main).getByRole('region', { name: 'Appearance' })
