@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.129.0] - 2026-11-18
+
+Onboarding. The first start of a new machine welcomes you in: whether
+Claude Code is here, what your space is made of, its name and look, a demo
+to look around in, then your first work, opened on its card. The demo - a
+handful of made-up works at every stage with a score, notes and releases
+on the coming days - is there for every craft and for any new space. Each
+screen says what it is for on its first visit. Two new crafts ship:
+Poetry and Newsletter, each with its own skills and playbook. And the
+profile editor gains the canon's structure and the vibe's lines.
+
+### Bug Fixes
+- The list of coached screens stays inside the hint
+- The first work reads the kind of a space that may have no profile yet
+- A reading goes out under a glyph the window draws
+- A demo books the piece itself where its kind goes out, and the welcome answers at its foot
+
+### Features
+- A welcome on the first start, and a demo to look around in
+- A hint on each screen's first visit
+- Poetry and Newsletter, two crafts of their own
+- The canon's structure and the vibe's lines edited in the profile
+
 ## [0.128.0] - 2026-11-18
 
 The box without an author. Every skill of Studio, Novel, Podcast and Blog now
