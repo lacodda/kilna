@@ -1,40 +1,46 @@
 import { describe, expect, it } from 'vitest'
 import {
   ALL_COLUMNS,
+  andBlocked,
+  clearedColumn,
+  columnsFor,
+  columnsForKind,
   countGaps,
   countRepeats,
   DEFAULT_COLUMNS,
   DEFAULT_SORT,
+  EMPTY_TICK,
   groupRows,
   isNarrowed,
-  columnsFor,
-  columnsForKind,
-  withColumns,
-  sanitizeColumns,
-  loadFilter,
-  loadSort,
-  narrow,
-  moveColumn,
-  loadWidths,
-  saveWidths,
-  MIN_COLUMN_WIDTH,
-  narrowByColumns,
   isNarrowedByColumns,
   loadColumnFilters,
+  loadColumnsChosen,
+  loadFilter,
+  loadSort,
+  loadWidths,
+  logicOf,
+  MIN_COLUMN_WIDTH,
+  moveColumn,
+  narrow,
+  narrowByColumns,
+  sanitizeColumns,
   saveColumnFilters,
+  saveColumnsChosen,
+  saveFilter,
   saveSort,
+  saveWidths,
   sortRows,
   toggleColumn,
   toggleSort,
-  withNextReleases,
+  withColumns,
   withIntroduced,
-  loadColumnsChosen,
-  saveColumnsChosen,
+  withLogic,
+  withNextReleases,
+  withTicks,
+  type CatalogueFilter,
   type CatalogueRow,
   type ColumnId,
   type Sort,
-  saveFilter,
-  type CatalogueFilter,
   type SortStore,
 } from './catalogue'
 import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
@@ -751,6 +757,57 @@ describe('the header funnels', () => {
 
     expect(countRepeats(rows, repeats)).toEqual({ any: 2, red: 1 })
     expect(isNarrowed({ repeats: 'red' })).toBe(true)
+  })
+
+  // v0.139, FR-12 12.2: with or without, any or all, and the empty tick.
+  it('reads the ticks of a column of many values all four ways', () => {
+    const marks = (combine: 'or' | 'and', polarity: 'include' | 'exclude') =>
+      ids(
+        narrowByColumns(rows, {
+          marks: ['hook', 'bridge'],
+          logic: { marks: { combine, polarity } },
+        }),
+      )
+    expect(marks('or', 'include')).toEqual(['a', 'b'])
+    expect(marks('and', 'include')).toEqual(['b'])
+    expect(marks('or', 'exclude')).toEqual(['c'])
+    expect(marks('and', 'exclude')).toEqual(['a', 'c'])
+  })
+
+  it('finds the works with nothing in the column, and the rest without', () => {
+    expect(ids(narrowByColumns(rows, { marks: [EMPTY_TICK] }))).toEqual(['c'])
+    expect(ids(narrowByColumns(rows, { tiers: [EMPTY_TICK, 'pic'] }))).toEqual(['b', 'c'])
+    const without = { tiers: [EMPTY_TICK], logic: { tiers: { polarity: 'exclude' as const } } }
+    expect(ids(narrowByColumns(rows, without))).toEqual(['a', 'b'])
+  })
+
+  it('reads the title by its words, any of them or all', () => {
+    expect(ids(narrowByColumns(rows, { title: 'paper winter' }))).toEqual(['b', 'c'])
+    const all = { title: 'paper boats', logic: { title: { combine: 'and' as const } } }
+    expect(ids(narrowByColumns(rows, all))).toEqual(['b'])
+    const none = { title: 'paper winter', logic: { title: { polarity: 'exclude' as const } } }
+    expect(ids(narrowByColumns(rows, none))).toEqual(['a'])
+  })
+
+  it('reads "and" over two ticks of one value as "or", and drops the ticked without', () => {
+    expect(andBlocked('stages', 2)).toBe(true)
+    expect(andBlocked('stages', 1)).toBe(false)
+    expect(andBlocked('marks', 2)).toBe(false)
+    const both = { stages: [25, 75], logic: { stages: { combine: 'and' as const } } }
+    expect(ids(narrowByColumns(rows, both))).toEqual(['a', 'b'])
+    const not = { stages: [25, 75], logic: { stages: { polarity: 'exclude' as const } } }
+    expect(ids(narrowByColumns(rows, not))).toEqual(['c'])
+  })
+
+  it('lets go of "and" at a second tick of one value, and clears back to the start', () => {
+    const anded = withLogic({ stages: [25] }, 'stages', { combine: 'and' })
+    expect(logicOf(anded, 'stages').combine).toBe('and')
+    expect(logicOf(withTicks(anded, 'stages', [25, 75]), 'stages').combine).toBe('or')
+    const without = withLogic({ marks: ['hook'] }, 'marks', { polarity: 'exclude', combine: 'and' })
+    const cleared = clearedColumn(without, 'marks')
+    expect(cleared.marks).toBeUndefined()
+    expect(cleared.logic).toBeUndefined()
+    expect(logicOf(cleared, 'marks')).toEqual({ polarity: 'include', combine: 'or' })
   })
 
   it('keeps the works in any of the ticked tiers', () => {

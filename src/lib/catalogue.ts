@@ -297,13 +297,105 @@ export interface ColumnFilters {
   stages?: number[]
   /** Tier keys. */
   tiers?: string[]
-  /** Mark keys: works carrying any of them. */
+  /** Mark keys: works carrying any of them - or, with `EMPTY_TICK`, works
+   *  carrying none. */
   marks?: string[]
   /** What the works feel like (FR-02), as ticks: `mood:dark`,
    *  `character:edgy`, `complexity:simple`, and `none` for works nobody has
    *  said anything of. Ticks on one line ask for any of them; ticks on two
    *  lines ask for both; `none` is beside the rest, not against them. */
   vibe?: string[]
+  /** How each funnel reads its ticks (v0.139, FR-12 12.2), only where it
+   *  is not the plain "with any of them". */
+  logic?: Partial<Record<FilterableColumn, ColumnLogic>>
+}
+
+/** Whether a funnel keeps the works its ticks match, or drops them. */
+export type Polarity = 'include' | 'exclude'
+/** Whether a work must match any of the ticks, or every one. */
+export type Combine = 'or' | 'and'
+
+/** How a funnel reads its ticks: "with any of them" unless it says else. */
+export interface ColumnLogic {
+  polarity?: Polarity
+  combine?: Combine
+}
+
+/** The tick for works with nothing in the column: no mark, no tier. */
+export const EMPTY_TICK = '(empty)'
+
+/**
+ * The columns a work holds one value of - one status, one stop, one tier.
+ * "With all of" two ticks of one would ask a work to stand in two places, so
+ * the funnel does not offer it for two ticks or more (`andBlocked`).
+ */
+const SINGLE_VALUED: ReadonlySet<FilterableColumn> = new Set(['statuses', 'stages', 'tiers'])
+
+/** Whether "and" is closed to a funnel holding this many ticks. */
+export function andBlocked(column: FilterableColumn, ticks: number): boolean {
+  return SINGLE_VALUED.has(column) && ticks >= 2
+}
+
+/** Whether a funnel reads "and" at all: the vibe has its own rule - any
+ *  word on a line, every line ticked - and offers only with or without. */
+export function combines(column: FilterableColumn): boolean {
+  return column !== 'vibe'
+}
+
+/** How a funnel reads its ticks, the defaults filled in. */
+export function logicOf(filters: ColumnFilters, column: FilterableColumn): Required<ColumnLogic> {
+  const held = filters.logic?.[column]
+  return { polarity: held?.polarity ?? 'include', combine: held?.combine ?? 'or' }
+}
+
+/** The filters with a funnel's reading changed, a default kept as absence. */
+export function withLogic(
+  filters: ColumnFilters,
+  column: FilterableColumn,
+  change: ColumnLogic,
+): ColumnFilters {
+  const next = { ...logicOf(filters, column), ...change }
+  const kept: ColumnLogic = {
+    ...(next.polarity === 'exclude' ? { polarity: next.polarity } : {}),
+    ...(next.combine === 'and' ? { combine: next.combine } : {}),
+  }
+  const logic = { ...filters.logic }
+  if (kept.polarity === undefined && kept.combine === undefined) delete logic[column]
+  else logic[column] = kept
+  return { ...filters, logic: Object.keys(logic).length === 0 ? undefined : logic }
+}
+
+/** The filters with a funnel's ticks changed: a second tick in a column of
+ *  one value lets go of "and", which it can no longer mean. */
+export function withTicks<K extends Exclude<FilterableColumn, 'title'>>(
+  filters: ColumnFilters,
+  column: K,
+  ticks: ColumnFilters[K],
+): ColumnFilters {
+  const next = { ...filters, [column]: ticks }
+  const count = Array.isArray(ticks) ? ticks.length : 0
+  return andBlocked(column, count) && logicOf(next, column).combine === 'and'
+    ? withLogic(next, column, { combine: 'or' })
+    : next
+}
+
+/** A funnel emptied: its ticks and its reading both back to the start. */
+export function clearedColumn(filters: ColumnFilters, column: FilterableColumn): ColumnFilters {
+  return withLogic({ ...filters, [column]: undefined }, column, {
+    polarity: 'include',
+    combine: 'or',
+  })
+}
+
+/** Whether a row passes a funnel: its ticks matched by any or every one,
+ *  kept or dropped. */
+function passes<T>(
+  ticks: readonly T[],
+  matches: (tick: T) => boolean,
+  logic: Required<ColumnLogic>,
+): boolean {
+  const hit = logic.combine === 'and' ? ticks.every(matches) : ticks.some(matches)
+  return logic.polarity === 'exclude' ? !hit : hit
 }
 
 /** The tick for works that show no vibe at all. */
@@ -315,7 +407,7 @@ export function vibeTick(line: 'mood' | 'character' | 'complexity', key: string)
 }
 
 /** The column filters, as the header funnels tell them apart. */
-export type FilterableColumn = keyof ColumnFilters
+export type FilterableColumn = Exclude<keyof ColumnFilters, 'logic'>
 
 /** Whether one funnel is holding anything. An empty list and an empty string
  * both mean "no filter", so a person who unticks the last box is back to
@@ -343,32 +435,51 @@ const FILTERABLE_COLUMNS: FilterableColumn[] = [
 /**
  * Narrow by the header funnels. Applied after `narrow`, on what it left.
  *
- * A work stands at one of the five stops and matches its own; a work with
- * no tier still matches none of the ticked tiers, since a tier is earned rather than set and "not yet" is what the
- * empty cell already says. Marks match on any ticked key, not all — a person
- * ticking two marks is asking "which works carry either", and two ticked
- * statuses ask the same of where the works stand.
+ * Each funnel reads its ticks as it says (v0.139, FR-12 12.2): with any of
+ * them by default - a person ticking two marks asks "which works carry
+ * either" - or with all of them, or without any, or without all. The title's
+ * ticks are its words. A work stands at one of the five stops and matches
+ * its own; a work with no tier matches no tier, and the empty tick, since a
+ * tier is earned rather than set. In a column of one value "and" over two
+ * ticks is read as "or": the funnel does not offer it (`andBlocked`).
  */
 export function narrowByColumns<Row extends ScoredWork>(
   rows: Row[],
   filters: ColumnFilters,
 ): Row[] {
-  const needle = filters.title?.trim().toLowerCase() ?? ''
-  const statuses = isColumnFiltered(filters, 'statuses') ? new Set(filters.statuses) : undefined
-  const stages = isColumnFiltered(filters, 'stages')
-    ? new Set((filters.stages ?? []).map(stopOf))
-    : undefined
-  const tiers = isColumnFiltered(filters, 'tiers') ? new Set(filters.tiers) : undefined
-  const marks = isColumnFiltered(filters, 'marks') ? new Set(filters.marks) : undefined
-  const vibe = isColumnFiltered(filters, 'vibe') ? new Set(filters.vibe) : undefined
+  const words = (filters.title ?? '').toLowerCase().split(/\s+/).filter(Boolean)
+  const held = <T>(column: FilterableColumn, ticks: readonly T[] | undefined) => {
+    if (ticks === undefined || ticks.length === 0) return undefined
+    const logic = logicOf(filters, column)
+    const combine = andBlocked(column, ticks.length) ? 'or' : logic.combine
+    return { ticks, logic: { ...logic, combine } }
+  }
+  const title = held('title', words)
+  const statuses = held('statuses', filters.statuses)
+  const stages = held('stages', filters.stages?.map(stopOf))
+  const tiers = held('tiers', filters.tiers)
+  const marks = held('marks', filters.marks)
+  const vibe = held('vibe', filters.vibe)
 
   return rows.filter((row) => {
-    if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
-    if (statuses !== undefined && !statuses.has(row.status)) return false
-    if (stages !== undefined && !standsAt(row.stage, stages)) return false
-    if (tiers !== undefined && (row.tier === null || !tiers.has(row.tier))) return false
-    if (marks !== undefined && !row.marks.some((key) => marks.has(key))) return false
-    if (vibe !== undefined && !feelsLike(row, vibe)) return false
+    const lower = row.title.toLowerCase()
+    if (title && !passes(title.ticks, (word) => lower.includes(word), title.logic)) return false
+    if (statuses && !passes(statuses.ticks, (key) => row.status === key, statuses.logic))
+      return false
+    if (
+      stages &&
+      !passes(stages.ticks, (stop) => standsAt(row.stage, new Set([stop])), stages.logic)
+    )
+      return false
+    const tierIs = (key: string) => (key === EMPTY_TICK ? row.tier === null : row.tier === key)
+    if (tiers && !passes(tiers.ticks, tierIs, tiers.logic)) return false
+    const carries = (key: string) =>
+      key === EMPTY_TICK ? row.marks.length === 0 : row.marks.includes(key)
+    if (marks && !passes(marks.ticks, carries, marks.logic)) return false
+    if (vibe) {
+      const feels = feelsLike(row, new Set(vibe.ticks))
+      if (vibe.logic.polarity === 'exclude' ? feels : !feels) return false
+    }
     return true
   })
 }
@@ -426,7 +537,21 @@ function isColumnFilters(value: unknown): value is ColumnFilters {
   if (!isListOf(candidate.stages, 'number')) return false
   if (!isListOf(candidate.tiers, 'string')) return false
   if (!isListOf(candidate.vibe, 'string')) return false
+  if (!isLogic(candidate.logic)) return false
   return isListOf(candidate.marks, 'string')
+}
+
+function isLogic(value: unknown): boolean {
+  if (value === undefined) return true
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  return Object.values(value as Record<string, unknown>).every((one) => {
+    if (typeof one !== 'object' || one === null) return false
+    const { polarity, combine } = one as Record<string, unknown>
+    return (
+      (polarity === undefined || polarity === 'include' || polarity === 'exclude') &&
+      (combine === undefined || combine === 'or' || combine === 'and')
+    )
+  })
 }
 
 function isListOf(value: unknown, type: 'string' | 'number'): boolean {

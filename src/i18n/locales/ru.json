@@ -926,7 +926,17 @@
     "filterColumn": "Фильтр по столбцу «{{column}}»",
     "filterTitlePlaceholder": "Часть названия",
     "groupCollection": "По коллекции",
-    "groupLoose": "Вне коллекций"
+    "groupLoose": "Вне коллекций",
+    "logic": {
+      "polarity": "Работы с этим или без",
+      "include": "Есть",
+      "exclude": "Нет",
+      "combine": "Любая из галочек или все",
+      "or": "Или",
+      "and": "И",
+      "andBlocked": "У работы здесь одно значение: две галочки значат только «любая из них».",
+      "empty": "(пусто)"
+    }
   },
   "assistant": {
     "title": "Ассистент",

@@ -170,7 +170,9 @@ until the catalogue is narrowed to a kind. The colours are the profile's
 ([`statuses[].colour`](/kilna/reference/profile-document/#statuses)); a
 status without one reads in outline. Marks in their column are small round
 tiles, as on the card: each its glyph in its colour, its name on hover. Two
-marks take the width of two icons rather than of two phrases.
+marks take the width of two icons rather than of two phrases. Pressing the cell - its tiles, or the dash
+of a work with none - opens the card's menu of marks over it, and a mark is
+raised or taken off without opening the work (v0.139).
 
 ### Narrowing from the box
 
@@ -230,10 +232,10 @@ and staying on, filled, while that column is narrowing the list:
 
 | Column | The funnel asks for |
 | --- | --- |
-| Work | Part of the title, matched anywhere in it and in any case |
+| Work | Words of the title, each matched anywhere in it and in any case |
 | Stage | One or more of your profile's stops — works standing at any of them |
-| Tier | One or more tiers |
-| Marks | One or more marks — works carrying any of them |
+| Tier | One or more tiers, and **(empty)** for works with none |
+| Marks | One or more marks — works carrying any of them — and **(empty)** for works carrying none |
 | Vibe | Words of each line, and **Nobody has said** - ticks on one line ask for any of them, ticks on two lines for both |
 
 Ticking two stops means *either*, the way the status dropdown means one
@@ -241,8 +243,24 @@ status; the funnels on different columns combine as *and*, with each other
 and with everything in the box. The Stage funnel is the five dials in a row,
 each a tick: `winter` in the box with the last two pressed is "winter songs
 that are nearly done", and the first dial alone is what nobody has touched
-yet. A work with no tier is left out once tiers are ticked. **Clear** inside the panel empties that
-funnel; unticking the last box does the same.
+yet. A work with no tier is left out once tiers are ticked, unless
+**(empty)** is ticked with them. **Clear** inside the panel empties that
+funnel and puts its switches back; unticking the last box empties it too.
+
+At the top of each funnel two switches say how its ticks are read (v0.139):
+
+- **With | Without** - keep the works the ticks match, or drop them and keep
+  the rest. *Without* "Working on it" is every work not being fought with.
+- **Or | And** - a work matches if it has any of the ticks, or only if it has
+  all of them. Two marks with *And* are the works carrying both; the Work
+  funnel's words with *And* are titles holding every word.
+
+Together they make four questions: with any, with all, without any (none of
+the ticked), without all (not every one of them). A work holds one status,
+one stop and one tier, so *And* over two ticks of those would ask for a work
+in two places at once: the switch is closed while two are ticked, and says
+why. The Vibe funnel has only *With | Without* - its ticks already read as
+any word on a line, every line ticked.
 
 Column filters are not written into the query line: a set of ticked stops
 has no place in it. They have the query's lifetime — kept while kilna is
@@ -320,6 +338,10 @@ one moves nothing you were aiming at. Each act is its own button:
 - **Move to status** — a menu of your statuses; sends the whole selection to
   the one you pick. Chosen by hand, so each one holds there: the automation
   leaves a hand-set status alone until you unpin it.
+- **Marks** — your profile's marks, ticked where every chosen work carries
+  one and dashed where only some do. Pressing a mark raises it on all of
+  them, or takes it off all of them if they all carry it; a work already that
+  way is passed over. One undo puts each work's marks back as they were.
 - **Fill "Code"** — for a profile with a
   [numbered field](/kilna/reference/profile-document/#numbered-fields), one
   button per such field: the chosen works that have no code are given the next

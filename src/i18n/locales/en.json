@@ -832,7 +832,17 @@
     "filterColumn": "Filter by {{column}}",
     "filterTitlePlaceholder": "Part of the title",
     "groupCollection": "Collection",
-    "groupLoose": "In no collection"
+    "groupLoose": "In no collection",
+    "logic": {
+      "polarity": "Works with these or without",
+      "include": "With",
+      "exclude": "Without",
+      "combine": "Any of the ticks or all",
+      "or": "Or",
+      "and": "And",
+      "andBlocked": "A work holds one value here: two ticks can only mean either of them.",
+      "empty": "(empty)"
+    }
   },
   "assistant": {
     "title": "Assistant",

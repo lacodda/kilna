@@ -23,6 +23,8 @@ import en from '@/i18n/locales/en.json'
 let backend: Backend
 
 beforeEach(() => {
+  // The funnels live for the session: one test's ticks are not the next one's.
+  sessionStorage.clear()
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(NOW))
   backend = mockBackend({
@@ -73,6 +75,27 @@ describe('the catalogue', () => {
         en.catalogue.column.ready,
       ]),
     )
+  })
+
+  it('drops the works carrying a mark when its funnel says without (v0.139)', async () => {
+    const { main } = await open()
+    await act(async () => {
+      fireEvent.click(
+        within(main).getByRole('button', {
+          name: en.catalogue.filterColumn.replace('{{column}}', en.catalogue.column.marks),
+        }),
+      )
+    })
+    const popup = await screen.findByRole('dialog')
+    await act(async () => {
+      fireEvent.click(within(popup).getByRole('checkbox', { name: 'Working on it' }))
+    })
+    expect(within(main).queryByText('Harbour Lights', { exact: true })).toBeNull()
+    await act(async () => {
+      fireEvent.click(within(popup).getByRole('radio', { name: en.catalogue.logic.exclude }))
+    })
+    expect(within(main).getByText('Harbour Lights', { exact: true })).toBeInTheDocument()
+    expect(within(main).queryByText('Paper Lanterns', { exact: true })).toBeNull()
   })
 
   it('reads each work down to its next release and whether it can go out', async () => {
