@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.139.0] - 2026-11-18
+
+Marks and filters. A mark is raised where it is shown: the catalogue's cell
+opens the card's menu over itself, and the bulk bar raises a mark on the
+chosen works or takes it off them in one undoable change, with a dash where
+only some carry it. Every shipped profile but the blank one now carries the
+same eleven marks in both languages - in focus, next to go out, needs polish,
+experiment, redo, on hold, calling card, for shorts among them - with
+fourteen more glyphs, and a space made before gains them. Each column funnel
+reads its ticks With or Without and Or or And; And is closed, and says why,
+where a work holds one value; marks and tiers can be filtered by (empty).
+
+### Features
+- Marks raised from the cell and in a batch, eleven shipped marks
+- Funnels read their ticks with or without, any or all
+
 ## [0.138.0] - 2026-11-18
 
 Planned slots. A song goes out nowhere itself, so putting it on a day used to
