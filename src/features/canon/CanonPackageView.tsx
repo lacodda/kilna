@@ -26,6 +26,7 @@ export function itemsOf(pack: CanonPackage): string[] {
     ...pack.links.map((_, index) => `relation:${String(index)}`),
     ...pack.pictures.map((_, index) => `picture:${String(index)}`),
     ...pack.descriptions.map((_, index) => `description:${String(index)}`),
+    ...(pack.card_updates ?? []).map((_, index) => `update:${String(index)}`),
   ]
 }
 
@@ -105,10 +106,17 @@ export function CanonPackageView({ messageId, pack, chosen, onChosen, answered }
                       : ''}
                     {fact.change !== 'add' && ` · ${t(`canon.change.${fact.change ?? 'add'}`)}`}
                   </div>
-                  {fact.change === 'retire' ? (
+                  {fact.change === 'retire' || fact.change === 'delete' ? (
                     <div>
                       <span className="text-faint line-through">{seen?.target?.body}</span>
-                      <span className="text-dim"> — {fact.reason}</span>
+                      {fact.reason !== undefined && fact.reason !== null && (
+                        <span className="text-dim"> — {fact.reason}</span>
+                      )}
+                    </div>
+                  ) : fact.change === 'move' ? (
+                    <div className="text-sm text-text">
+                      {seen?.target?.body}
+                      <span className="text-faint"> → {fact.section}</span>
                     </div>
                   ) : (
                     <div className="text-sm text-text">
@@ -128,6 +136,13 @@ export function CanonPackageView({ messageId, pack, chosen, onChosen, answered }
                       {t('canon.alreadyInCanon')}
                     </span>
                   )}
+                  {seen?.duplicate !== true &&
+                    fact.similar_to !== undefined &&
+                    fact.similar_to !== null && (
+                      <div className="mt-0.5 rounded-md bg-soft px-1.5 py-0.5 text-faint">
+                        {t('canon.similarTo', { fact: fact.similar_to.text })}
+                      </div>
+                    )}
                   {(fact.contradicts ?? []).map((clash) => {
                     const held = seen?.contradicted.find((one) => one.id === clash.fact_id)
                     return (
@@ -153,12 +168,15 @@ export function CanonPackageView({ messageId, pack, chosen, onChosen, answered }
           {pack.links.map((link, index) => (
             <label key={`${link.from}-${link.to}`} className="flex items-start gap-2">
               {box(`relation:${String(index)}`)}
-              <span>
+              <span className={cn(link.delete === true && 'text-faint line-through')}>
                 {nameOf(link.from)} — {nameOf(link.to)}
                 {link.label !== undefined && link.label !== null && (
                   <span className="text-faint">: {link.label}</span>
                 )}
               </span>
+              {link.delete === true && (
+                <span className="text-2xs text-warn">{t('canon.relationTakenAway')}</span>
+              )}
             </label>
           ))}
         </section>
@@ -194,6 +212,45 @@ export function CanonPackageView({ messageId, pack, chosen, onChosen, answered }
               <span className="min-w-0">
                 <b className="font-semibold text-text">{description.card_title}</b>
                 <span className="block text-dim">{description.text}</span>
+              </span>
+            </label>
+          ))}
+        </section>
+      )}
+
+      {(pack.card_updates ?? []).length > 0 && (
+        <section className="flex flex-col gap-1">
+          <b className="text-2xs tracking-caption text-faint uppercase">{t('canon.cardUpdates')}</b>
+          {(pack.card_updates ?? []).map((update, index) => (
+            <label key={`${update.card}-${String(index)}`} className="flex items-start gap-2">
+              {box(`update:${String(index)}`)}
+              <span className="min-w-0">
+                <b className="font-semibold text-text">{update.card_title}</b>
+                {update.title !== undefined && update.title !== null && (
+                  <span className="block">
+                    <span className="text-faint line-through">{update.card_title}</span>
+                    {' → '}
+                    {update.title}
+                  </span>
+                )}
+                {update.aliases !== undefined && update.aliases !== null && (
+                  <span className="block text-dim">
+                    {t('canon.aliases')}: {update.aliases.join(', ')}
+                  </span>
+                )}
+                {update.layer !== undefined && update.layer !== null && (
+                  <span className="block text-dim">{t(`canon.cardLayer.${update.layer}`)}</span>
+                )}
+                {update.note !== undefined && update.note !== null && (
+                  <span className="block text-dim">
+                    {t('canon.summary')}: {update.note}
+                  </span>
+                )}
+                {update.work_id !== undefined && (
+                  <span className="block text-faint">
+                    {update.work_id === null ? t('canon.raise') : t('canon.livesAtWork')}
+                  </span>
+                )}
               </span>
             </label>
           ))}

@@ -49,6 +49,10 @@ pub enum FactChange {
     Refine,
     /// A fact that is no longer true, and why.
     Retire,
+    /// A fact moved to another section of its card (v0.144).
+    Move,
+    /// A fact taken away - to the trash, an undo away (v0.144).
+    Delete,
 }
 
 /// A fact the canon already holds that a proposed one contradicts, and why -
@@ -93,6 +97,43 @@ pub struct ProposedFact {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[ts(optional = nullable)]
     pub contradicts: Vec<Contradiction>,
+    /// A fact the card already holds that a new one says nearly the same as
+    /// (v0.144): shown beside it, so a duplicate is noticed before it lands.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub similar_to: Option<Similar>,
+}
+
+/// A fact of the card a proposed one nearly repeats.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Similar {
+    pub fact_id: String,
+    pub text: String,
+    pub section: String,
+}
+
+/// A card of the canon the proposal would change (v0.144): its name, other
+/// names, layer, summary or the work it lives at - only what it says.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
+pub struct ProposedCardUpdate {
+    /// The card, by id.
+    pub card: String,
+    /// Its name as it stands, for the person reading the proposal.
+    #[serde(default)]
+    pub card_title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aliases: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layer: Option<Layer>,
+    /// Its summary - the card's free note.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    /// The work it lives at, or `null` to let it go of one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
+    pub work_id: Option<Option<String>>,
 }
 
 /// A relation the proposal would draw, or redraw when the two cards already
@@ -111,6 +152,10 @@ pub struct ProposedLink {
     pub back_label: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub layer: Option<Layer>,
+    /// The relation between the two is taken away rather than drawn (v0.144).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub delete: bool,
 }
 
 /// A picture the proposal would attach to a card, or to one fact of it - a
@@ -156,6 +201,11 @@ pub struct Package {
     pub pictures: Vec<ProposedPicture>,
     #[serde(default)]
     pub descriptions: Vec<ProposedDescription>,
+    /// Cards of the canon changed: renamed, summed up, moved to a layer
+    /// (v0.144).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[ts(as = "Option<Vec<ProposedCardUpdate>>", optional)]
+    pub card_updates: Vec<ProposedCardUpdate>,
     /// What the answer said that the canon has no place for, and why - shown
     /// rather than applied, and rather than silently dropped.
     pub dropped: Vec<Reason>,
@@ -168,6 +218,7 @@ impl Package {
             && self.links.is_empty()
             && self.pictures.is_empty()
             && self.descriptions.is_empty()
+            && self.card_updates.is_empty()
     }
 }
 
@@ -223,6 +274,10 @@ pub fn read(
     // The kind of every card a fact may name: those of the canon, and those
     // this proposal makes, by handle.
     let mut kinds_by_handle: BTreeMap<String, String> = BTreeMap::new();
+    let cards = CardIndex::of(conn, profile_id)?;
+    // A handle that names a card of the canon after all: a second passport
+    // proposed is the one standing, updated (v0.144).
+    let mut standing: BTreeMap<String, String> = BTreeMap::new();
 
     for (index, item) in list(object, "cards").iter().enumerate() {
         let place = format!("card {}", index + 1);
@@ -243,6 +298,21 @@ pub fn read(
             continue;
         };
         let handle = text(&item, "handle").unwrap_or_else(|| format!("new-{}", index + 1));
+        if config.card_kind(&kind).is_some_and(|k| k.root)
+            && let Some(root) = cards.root(&config)
+        {
+            standing.insert(handle, root.id.clone());
+            package.card_updates.push(ProposedCardUpdate {
+                card: root.id.clone(),
+                card_title: root.title.clone().unwrap_or_default(),
+                title: Some(title),
+                aliases: Some(strings(&item, "aliases")).filter(|list| !list.is_empty()),
+                layer: text(&item, "layer").and_then(|l| Layer::from_word(&l)),
+                note: text(&item, "note"),
+                work_id: None,
+            });
+            continue;
+        }
         let on_work = item
             .get("on_work")
             .and_then(Value::as_bool)
@@ -263,10 +333,75 @@ pub fn read(
         });
     }
 
-    let cards = CardIndex::of(conn, profile_id)?;
+    // Cards of the canon changed - by id, name, alias, or `root` / `project`
+    // for the passport (v0.144).
+    for (index, item) in list(object, "card_updates").iter().enumerate() {
+        let place = format!("card update {}", index + 1);
+        let item = item.as_object().cloned().unwrap_or_default();
+        let Some(card) = text(&item, "card").and_then(|named| cards.find_or_root(&named, &config))
+        else {
+            package
+                .dropped
+                .push(Reason::of("refusal.canon.unknownCard").param("item", place));
+            continue;
+        };
+        let layer = match text(&item, "layer") {
+            Some(word) => match Layer::from_word(&word) {
+                Some(layer) => Some(layer),
+                None => {
+                    package.dropped.push(
+                        Reason::of("refusal.canon.unknownLayer")
+                            .param("layer", word)
+                            .param("item", place),
+                    );
+                    continue;
+                }
+            },
+            None => None,
+        };
+        let work_id = match item.get("on_work") {
+            Some(Value::Bool(true)) => defaults.work_id.clone().map(Some),
+            Some(Value::Bool(false)) => Some(None),
+            _ => None,
+        };
+        let update = ProposedCardUpdate {
+            card: card.id.clone(),
+            card_title: card.title.clone().unwrap_or_default(),
+            title: text(&item, "title").or_else(|| text(&item, "name")),
+            aliases: item.get("aliases").map(|_| strings(&item, "aliases")),
+            layer,
+            note: text(&item, "note").or_else(|| text(&item, "summary")),
+            work_id,
+        };
+        if update.title.is_none()
+            && update.aliases.is_none()
+            && update.layer.is_none()
+            && update.note.is_none()
+            && update.work_id.is_none()
+        {
+            package
+                .dropped
+                .push(Reason::of("refusal.canon.updateSaysNothing").param("item", place));
+            continue;
+        }
+        package.card_updates.push(update);
+    }
+
     for (index, item) in list(object, "facts").iter().enumerate() {
         let place = format!("fact {}", index + 1);
-        let item = item.as_object().cloned().unwrap_or_default();
+        let mut item = item.as_object().cloned().unwrap_or_default();
+        // A fact on the passport proposed as a new one, or on `root`.
+        if let Some(named) = text(&item, "card") {
+            let resolved = standing.get(&named).cloned().or_else(|| {
+                ["root", "project"]
+                    .contains(&named.to_lowercase().as_str())
+                    .then(|| cards.root(&config).map(|root| root.id.clone()))
+                    .flatten()
+            });
+            if let Some(id) = resolved {
+                item.insert("card".into(), Value::String(id));
+            }
+        }
         match read_fact(conn, &config, &cards, &kinds_by_handle, &item, defaults) {
             Ok(fact) => package.facts.push(fact),
             Err(error) => package.dropped.push(error.reason().param("item", place)),
@@ -282,10 +417,14 @@ pub fn read(
         let item = item.as_object().cloned().unwrap_or_default();
         let resolve = |key: &str| {
             text(&item, key).and_then(|named| {
-                if kinds_by_handle.contains_key(&named) {
+                if let Some(id) = standing.get(&named) {
+                    Some(id.clone())
+                } else if kinds_by_handle.contains_key(&named) {
                     Some(named)
                 } else {
-                    cards.find(&named).map(|card| card.id.clone())
+                    cards
+                        .find_or_root(&named, &config)
+                        .map(|card| card.id.clone())
                 }
             })
         };
@@ -301,6 +440,15 @@ pub fn read(
                 .push(Reason::of("refusal.canon.relationToItself").param("item", place));
             continue;
         }
+        // A relation taken away must stand between the two (v0.144).
+        let delete = matches!(text(&item, "action").as_deref(), Some("delete" | "remove"))
+            || item.get("delete").and_then(Value::as_bool) == Some(true);
+        if delete && super::link::between(conn, &from, &to)?.is_none() {
+            package
+                .dropped
+                .push(Reason::of("refusal.canon.noSuchRelation").param("item", place));
+            continue;
+        }
         package.links.push(ProposedLink {
             from,
             to,
@@ -308,6 +456,7 @@ pub fn read(
             label: text(&item, "label"),
             back_label: text(&item, "back_label"),
             layer: text(&item, "layer").and_then(|l| Layer::from_word(&l)),
+            delete,
         });
     }
 
@@ -425,6 +574,8 @@ fn read_fact(
         None | Some("add") => FactChange::Add,
         Some("refine") => FactChange::Refine,
         Some("retire") => FactChange::Retire,
+        Some("move") => FactChange::Move,
+        Some("delete" | "remove") => FactChange::Delete,
         Some(other) => return Err(Error::refused("canon.unknownChange").param("change", other)),
     };
     let layer = match text(item, "layer") {
@@ -503,8 +654,14 @@ fn read_fact(
                 return Err(Error::refused("canon.sectionHoldsNoFacts").param("section", section));
             }
             let body = body.ok_or_else(|| Error::refused("canon.factNeedsWords"))?;
+            let similar_to = if handles.contains_key(&card) {
+                None
+            } else {
+                similar_on(conn, &card, &body)?
+            };
             Ok(ProposedFact {
                 change,
+                similar_to,
                 card: Some(card),
                 section: Some(section),
                 body: Some(body),
@@ -517,12 +674,53 @@ fn read_fact(
                 ..ProposedFact::default()
             })
         }
-        FactChange::Refine | FactChange::Retire => {
+        FactChange::Refine | FactChange::Retire | FactChange::Move | FactChange::Delete => {
             let fact_id = text(item, "fact")
                 .or_else(|| text(item, "id"))
                 .ok_or_else(|| Error::refused("canon.changeNamesNoFact"))?;
             let found =
                 fact::get(conn, &fact_id)?.ok_or_else(|| Error::not_found("fact", &fact_id))?;
+            // A section it moves to - by a move, or by a refinement that
+            // files it elsewhere (v0.144) - is one of its own card's.
+            let section = match text(item, "section") {
+                Some(section) if section != found.section => {
+                    let card = crate::note::get(conn, &found.note_id)?
+                        .ok_or_else(|| Error::not_found("note", &found.note_id))?;
+                    let kind = config.require_card_kind(&card.kind)?;
+                    let holds = kind
+                        .section(&section)
+                        .is_some_and(|known| known.shape.holds_facts());
+                    if !holds {
+                        return Err(Error::refused("canon.unknownSection")
+                            .param("section", section)
+                            .param(
+                                "kind",
+                                serde_json::to_value(&kind.label).unwrap_or_default(),
+                            ));
+                    }
+                    Some(section)
+                }
+                _ => None,
+            };
+            if change == FactChange::Move {
+                let section = section.ok_or_else(|| Error::refused("canon.moveNeedsSection"))?;
+                return Ok(ProposedFact {
+                    change,
+                    fact_id: Some(found.id),
+                    card: Some(found.note_id),
+                    section: Some(section),
+                    ..ProposedFact::default()
+                });
+            }
+            if change == FactChange::Delete {
+                return Ok(ProposedFact {
+                    change,
+                    fact_id: Some(found.id),
+                    card: Some(found.note_id),
+                    reason: text(item, "reason"),
+                    ..ProposedFact::default()
+                });
+            }
             if change == FactChange::Retire {
                 let reason = text(item, "reason")
                     .ok_or_else(|| Error::refused("canon.retireNeedsReason"))?;
@@ -539,6 +737,7 @@ fn read_fact(
                 change,
                 fact_id: Some(found.id),
                 card: Some(found.note_id),
+                section,
                 body,
                 layer,
                 status,
@@ -619,6 +818,53 @@ impl CardIndex {
         let first = matching.next()?;
         matching.next().is_none().then_some(first)
     }
+
+    /// The passport: the card of the profile's root kind (v0.144).
+    pub fn root(&self, config: &ProfileConfig) -> Option<&Note> {
+        self.cards
+            .iter()
+            .find(|card| config.card_kind(&card.kind).is_some_and(|kind| kind.root))
+    }
+
+    /// The card `named` means, or the passport for `root` and `project`.
+    pub fn find_or_root(&self, named: &str, config: &ProfileConfig) -> Option<&Note> {
+        match named.trim().to_lowercase().as_str() {
+            "root" | "project" => self.root(config),
+            _ => self.find(named),
+        }
+    }
+}
+
+/// The fact of a card a new one nearly repeats (v0.144): the same words, or
+/// most of the same words of four letters and more - four in five of the
+/// longer one's - in any order. The small words do not count: "her nose"
+/// and "the nose" say the same.
+fn similar_on(conn: &Connection, card: &str, body: &str) -> Result<Option<Similar>> {
+    let words = |text: &str| -> std::collections::BTreeSet<String> {
+        text.split(|c: char| !c.is_alphanumeric())
+            .filter(|word| word.chars().count() > 3)
+            .map(str::to_lowercase)
+            .collect()
+    };
+    let proposed = words(body);
+    let exact = normalised(body);
+    for held in fact::for_card(conn, card)? {
+        if held.status == FactStatus::Retired {
+            continue;
+        }
+        let theirs = words(&held.body);
+        let shared = proposed.intersection(&theirs).count();
+        let longer = proposed.len().max(theirs.len());
+        let near = longer >= 3 && shared * 5 >= longer * 4;
+        if normalised(&held.body) == exact || near {
+            return Ok(Some(Similar {
+                fact_id: held.id,
+                text: held.body,
+                section: held.section,
+            }));
+        }
+    }
+    Ok(None)
 }
 
 /// What a person reads about one proposed fact before applying it: the card

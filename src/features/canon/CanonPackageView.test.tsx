@@ -66,3 +66,50 @@ describe('a proposal for the canon with pictures and descriptions', () => {
     expect(chosen).toHaveBeenCalledWith(['description:0'])
   })
 })
+
+// v0.144, FR-18 18.5: what an agent may now propose - a card changed, a fact
+// moved or taken away, a near-duplicate marked, a relation taken away.
+describe('a proposal that changes the canon', () => {
+  const CHANGES: CanonPackage = {
+    cards: [],
+    facts: [
+      { change: 'move', fact_id: 'f-coat', card: 'card-wren', section: 'outfits' },
+      { change: 'delete', fact_id: 'f-old', card: 'card-wren' },
+      {
+        change: 'add',
+        card: 'card-wren',
+        section: 'looks',
+        body: 'freckles across her nose',
+        similar_to: { fact_id: 'f-freckles', text: 'Freckles across the nose.', section: 'looks' },
+      },
+    ],
+    links: [{ from: 'card-wren', to: 'card-mill', delete: true }],
+    pictures: [],
+    descriptions: [],
+    card_updates: [{ card: 'card-wren', card_title: 'Wren', title: 'Wren Hale', note: 'A girl.' }],
+    dropped: [],
+  }
+
+  it('names every change as an item, and shows what each does', async () => {
+    expect(itemsOf(CHANGES)).toEqual(['fact:0', 'fact:1', 'fact:2', 'relation:0', 'update:0'])
+    mockBackend({ canon_review: () => [] })
+    render(
+      <Providers client={createQueryClient()}>
+        <CanonPackageView
+          messageId="m-2"
+          pack={CHANGES}
+          chosen={itemsOf(CHANGES)}
+          onChosen={vi.fn()}
+          answered={false}
+        />
+      </Providers>,
+    )
+    expect(await screen.findByText(en.canon.cardUpdates)).toBeInTheDocument()
+    expect(screen.getByText(/→ Wren Hale/)).toBeInTheDocument()
+    expect(screen.getByText(/→ outfits/)).toBeInTheDocument()
+    expect(
+      screen.getByText(en.canon.similarTo.replace('{{fact}}', 'Freckles across the nose.')),
+    ).toBeInTheDocument()
+    expect(screen.getByText(en.canon.relationTakenAway)).toBeInTheDocument()
+  })
+})

@@ -9,4 +9,8 @@ export type ProposedLink = {
 /**
  * A card id or a handle.
  */
-from: string, to: string, kind?: string, label?: string, back_label?: string, layer?: Layer, };
+from: string, to: string, kind?: string, label?: string, back_label?: string, layer?: Layer, 
+/**
+ * The relation between the two is taken away rather than drawn (v0.144).
+ */
+delete?: boolean, };

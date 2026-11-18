@@ -3,4 +3,4 @@
 /**
  * What a proposed fact does.
  */
-export type FactChange = "add" | "refine" | "retire";
+export type FactChange = "add" | "refine" | "retire" | "move" | "delete";

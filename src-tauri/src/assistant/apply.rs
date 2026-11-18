@@ -1139,7 +1139,39 @@ pub fn render_canon(
                         ]
                     )
                 )),
+                FactChange::Move => out.push_str(&format!(
+                    "- {}\n",
+                    speech.say_with(
+                        "proposalBody.moved",
+                        &[
+                            ("card", json!(card)),
+                            (
+                                "section",
+                                json!(fact.section.as_deref().unwrap_or_default())
+                            ),
+                        ]
+                    )
+                )),
+                FactChange::Delete => out.push_str(&format!(
+                    "- {}\n",
+                    speech.say_with("proposalBody.deleted", &[("card", json!(card))])
+                )),
             }
+        }
+        out.push('\n');
+    }
+    if !package.card_updates.is_empty() {
+        out.push_str(&speech.say("proposalBody.cardUpdates"));
+        out.push('\n');
+        for update in &package.card_updates {
+            let mut said = Vec::new();
+            if let Some(title) = &update.title {
+                said.push(format!("→ {title}"));
+            }
+            if let Some(note) = &update.note {
+                said.push(note.clone());
+            }
+            out.push_str(&format!("- {}: {}\n", update.card_title, said.join(" · ")));
         }
         out.push('\n');
     }
@@ -1147,6 +1179,19 @@ pub fn render_canon(
         out.push_str(&speech.say("proposalBody.relations"));
         out.push('\n');
         for link in &package.links {
+            if link.delete {
+                out.push_str(&format!(
+                    "- {}\n",
+                    speech.say_with(
+                        "proposalBody.relationDeleted",
+                        &[
+                            ("from", json!(name(&link.from))),
+                            ("to", json!(name(&link.to)))
+                        ]
+                    )
+                ));
+                continue;
+            }
             out.push_str(&format!("- {} — {}", name(&link.from), name(&link.to)));
             if let Some(label) = &link.label {
                 out.push_str(&format!(": {label}"));

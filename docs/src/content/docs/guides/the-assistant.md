@@ -189,6 +189,11 @@ order: Studio's `song-workflow` (idea, lyrics, judgement, sound, singing,
 going out) and `ai-video-pipeline` (plot, board, prompts, cover, release),
 and `novel-workflow`, `podcast-workflow` and `blog-workflow`. An agent asked
 to take a work all the way opens the playbook with `guide` and follows it.
+Since v0.144 every craft with a canon also ships two playbooks of the canon:
+`canon-onboarding` - an interview, or a pasted description, turned into the
+passport and the first cards as one proposal - and `canon-curate`, which
+reads the canon card by card in parts and proposes the merges, moves,
+retirements and summaries it needs.
 None of the shipped methods names an author, a project or a path: what is a
 channel's own - who sings, the world, the words already spent - is read from
 the canon and the register of the space.

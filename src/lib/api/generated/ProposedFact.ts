@@ -3,6 +3,7 @@ import type { Contradiction } from "./Contradiction";
 import type { FactChange } from "./FactChange";
 import type { FactStatus } from "./FactStatus";
 import type { Layer } from "./Layer";
+import type { Similar } from "./Similar";
 import type { Source } from "./Source";
 import type { When } from "./When";
 import type { JsonValue } from "./serde_json/JsonValue";
@@ -23,4 +24,9 @@ card?: string, section?: string, body?: string, layer?: Layer, status?: FactStat
 /**
  * Why a fact is retired.
  */
-reason?: string, data?: { [key in string]: JsonValue }, contradicts?: Array<Contradiction>, };
+reason?: string, data?: { [key in string]: JsonValue }, contradicts?: Array<Contradiction>, 
+/**
+ * A fact the card already holds that a new one says nearly the same as
+ * (v0.144): shown beside it, so a duplicate is noticed before it lands.
+ */
+similar_to?: Similar, };

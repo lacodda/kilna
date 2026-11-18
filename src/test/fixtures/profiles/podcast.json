@@ -901,6 +901,44 @@
         }
       },
       {
+        "category": "canon",
+        "description": {
+          "en": "Builds the passport and the first cards of the canon from an interview or a pasted description, as one package to apply.",
+          "ru": "Собирает паспорт и первые карточки Канона из интервью или вставленного описания - одним пакетом."
+        },
+        "key": "canon-onboarding",
+        "label": {
+          "en": "Set up the canon",
+          "ru": "Настроить Канон"
+        },
+        "method": "# Canon onboarding\n\n## Role\n\nYou help a person set up the canon of their space: the passport of the project and the first cards of its world. You propose; the person applies.\n\n## Steps\n\n1. Read the canon (`canon` with no arguments): whether it has its passport (`has_root_card`, `root_card_id`), the kinds of card with their sections, and `section_schemas` - what an entry of each shape carries.\n2. If the person pasted a description, read it whole. Otherwise ask, a few questions at a time: what the project is and who it is for; how it sounds or reads; its colours and marks; what it never does; then the people, places and things that recur.\n3. Draft the passport first: its sections as the kind names them, one short statement a fact, in the person's language. A passport already standing is updated with `card_updates` (`card: \"root\"`), never proposed twice.\n4. Then the first cards - only those the material clearly holds - each with a few facts under its sections, and the relations between them.\n5. Send it all as one `propose_canon` call. Mark nothing as settled: what you propose lands as drafts the person settles.\n\n## Rules\n\n- Only what the person said or plainly meant. No inventing a biography to fill a section.\n- The layer is chosen conservatively: what a stranger could check is `public`; names, dates and addresses are `internal`.\n- Fewer, true facts beat many vague ones.\n\n## Output\n\nA few lines on what you understood, then the proposal. Afterwards, say what is still empty and worth filling.\n",
+        "show_in_ui": false,
+        "template": "Set up the canon of this space with me.",
+        "when": {
+          "en": "When the canon is empty or holds only its passport: an interview, or a description the person pastes, turned into the passport and the first cards in one proposal.",
+          "ru": "Когда Канон пуст или в нём только паспорт: интервью или вставленное описание - в паспорт и первые карточки одним предложением."
+        }
+      },
+      {
+        "category": "canon",
+        "description": {
+          "en": "Reviews the canon card by card and proposes the merges, moves, retirements and summaries it needs.",
+          "ru": "Проходит Канон карточка за карточкой и предлагает слияния, переносы, снятия и резюме."
+        },
+        "key": "canon-curate",
+        "label": {
+          "en": "Tidy the canon",
+          "ru": "Прибрать Канон"
+        },
+        "method": "# Canon curator\n\n## Role\n\nYou keep a canon in order: one card per person, place or thing, each fact once, in its section, and a summary on every card. You propose; the person applies.\n\n## Steps\n\n1. Read the canon (`canon`), then each card in parts: `summary: true` first, then `section` by `section`, paging long ones with `limit` and `offset`.\n2. For each card, find what needs doing:\n   - two facts that say the same: keep the better wording (`refine`), `delete` the other;\n   - a fact under the wrong section: `move` it, or `refine` it with the right `section`;\n   - a fact no longer true: `retire` it with a reason;\n   - a card with no summary, or one that no longer says what the card is: a `card_updates` entry with its `note`.\n   - two cards for one person or place: say so, and move the facts of one onto the other; the person deletes the empty card.\n3. Propose card by card - one `propose_canon` call a card, or a few small cards together - so the person can read each.\n\n## Rules\n\n- Change wording only to make it shorter and truer, never to make it grander.\n- Never settle a fact and never change its layer unless the person asked.\n- A proposed fact that comes back marked `similar_to` is a duplicate: drop it or merge it.\n\n## Output\n\nFor each call, one line on what it tidies. At the end, what you left alone and why.\n",
+        "show_in_ui": false,
+        "template": "Tidy the canon of this space.",
+        "when": {
+          "en": "When the canon has grown: duplicates merged, facts filed in the right sections, stale ones retired, and every card given a summary.",
+          "ru": "Когда Канон разросся: слить дубли, разложить факты по разделам, снять устаревшее, дать каждой карточке резюме."
+        }
+      },
+      {
         "category": "workflow",
         "description": {
           "en": "The brief and what is starred, worked into one idea - and the brief set straight.",

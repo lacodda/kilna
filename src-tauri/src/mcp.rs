@@ -29,6 +29,7 @@ use crate::error::{Error, Result};
 use crate::journal::{self, Record};
 use crate::link;
 use crate::note::{self, NoteFilter};
+use crate::profile::config::SectionShape;
 use crate::scene;
 use crate::speech::Speech;
 use crate::work::version;
@@ -1135,9 +1136,19 @@ fn tools() -> Vec<Value> {
              pictures; where it appears; its description for a picture generator and whether \
              it is stale. `lens` narrows the card to what a task may read: `cover`, `work` or \
              `public`. `query` searches the facts; `timeline` lists the facts dated in the world, \
-             earliest first.",
+             earliest first. Without arguments it also says whether the space has its passport \
+             (`has_root_card`, `root_card_id`) and `section_schemas`: what an entry of each \
+             shape of section carries beside its words. A long card is read in parts: \
+             `summary: true` gives its head, its summary and how many facts each section \
+             holds; `section` and `status` narrow the facts; `limit` and `offset` page them \
+             (`total_facts`, `has_more`). `card: \"root\"` is the passport.",
             json!({
-                "card": text_arg("A card: its id, or its exact name or alias"),
+                "card": text_arg("A card: its id, its exact name or alias, or root for the passport"),
+                "summary": { "type": "boolean", "description": "With `card`: its head, summary and counts by section, no facts" },
+                "section": text_arg("With `card`: only the facts of this section key"),
+                "status": text_arg("With `card`: only facts in this state - canon, draft, open or retired"),
+                "limit": { "type": "integer", "description": "With `card`: at most this many facts" },
+                "offset": { "type": "integer", "description": "With `card`: skip this many facts first" },
                 "kind": text_arg("Only cards of this kind, as the list names them"),
                 "lens": { "type": "string", "enum": ["cover", "work", "public"], "description": "Read the card as this task may: cover, work or public" },
                 "query": text_arg("Search the facts for these words"),
@@ -1158,7 +1169,13 @@ fn tools() -> Vec<Value> {
              the canon has no place for is named and left out. `pictures` attach files on this \
              machine to a card - or to one fact of it, an outfit - with a role; `descriptions` \
              write what a generator is told about a card, in English, from the facts it \
-             holds (read the card first). Nothing is written until the person applies it.",
+             holds (read the card first). `card_updates` rename a card, give it other names, a \
+             layer or a summary (`note`) - `card: \"root\"` is the passport, and a second \
+             passport proposed in `cards` updates the one standing. A fact can also be `move`d \
+             to another section or `delete`d, and a `refine` with a `section` files it \
+             elsewhere; a new fact the card nearly holds already comes back marked \
+             `similar_to`. A relation with `action: \"delete\"` is taken away. Nothing is \
+             written until the person applies it.",
             json!({
                 "work": text_arg("The work the facts were read from: its id or exact title, optional"),
                 "cards": {
@@ -1178,10 +1195,10 @@ fn tools() -> Vec<Value> {
                     "type": "array",
                     "description": "Facts to add, refine or retire",
                     "items": { "type": "object", "properties": {
-                        "change": { "type": "string", "enum": ["add", "refine", "retire"] },
-                        "card": text_arg("For `add`: a card id, name or handle"),
-                        "fact": text_arg("For `refine` and `retire`: the fact's id"),
-                        "section": text_arg("For `add`: a section key of the card's kind"),
+                        "change": { "type": "string", "enum": ["add", "refine", "retire", "move", "delete"] },
+                        "card": text_arg("For `add`: a card id, name, handle, or root"),
+                        "fact": text_arg("For `refine`, `retire`, `move` and `delete`: the fact's id"),
+                        "section": text_arg("For `add` and `move`: a section key of the card's kind; for `refine`, where it is filed now"),
                         "text": text_arg("The fact, one short statement"),
                         "layer": text_arg("public, internal or inWorks"),
                         "status": text_arg("open for a live zone, left open on purpose; anything else is kept as a draft until the person settles it"),
@@ -1208,7 +1225,20 @@ fn tools() -> Vec<Value> {
                         "label": text_arg("What `to` is to `from`"),
                         "back_label": text_arg("What `from` is to `to`"),
                         "layer": text_arg("public, internal or inWorks"),
+                        "action": { "type": "string", "enum": ["upsert", "delete"], "description": "delete takes the relation between the two away; upsert (the default) draws or redraws it" },
                     }, "required": ["from", "to"] },
+                },
+                "card_updates": {
+                    "type": "array",
+                    "description": "Cards of the canon changed",
+                    "items": { "type": "object", "properties": {
+                        "card": text_arg("A card id, name or alias, or root for the passport"),
+                        "title": text_arg("Its new name"),
+                        "aliases": { "type": "array", "items": { "type": "string" }, "description": "Its other names, the whole list" },
+                        "layer": text_arg("public, internal or inWorks"),
+                        "note": text_arg("Its summary, the card's free note, whole"),
+                        "on_work": { "type": "boolean", "description": "true: it lives at `work`; false: it lives at no work" },
+                    }, "required": ["card"] },
                 },
                 "pictures": {
                     "type": "array",
@@ -2293,13 +2323,32 @@ pub fn run_tool(
             )?;
             let body = apply::render_canon(conn, &package, Speech::ENGLISH);
             let summary = format!(
-                "{} card(s), {} fact(s), {} relation(s), {} picture(s), {} description(s)",
+                "{} card(s), {} card update(s), {} fact(s), {} relation(s), {} picture(s), {} description(s)",
                 package.cards.len(),
+                package.card_updates.len(),
                 package.facts.len(),
                 package.links.len(),
                 package.pictures.len(),
                 package.descriptions.len()
             );
+            // A new fact the card nearly holds is said back to the agent
+            // (v0.144), beside what it proposed.
+            let similar: Vec<String> = package
+                .facts
+                .iter()
+                .enumerate()
+                .filter_map(|(index, fact)| {
+                    fact.similar_to.as_ref().map(|held| {
+                        format!(
+                            "fact {} is similar_to {} ({}): {}",
+                            index + 1,
+                            held.fact_id,
+                            held.section,
+                            held.text
+                        )
+                    })
+                })
+                .collect();
             let dropped: Vec<String> = package
                 .dropped
                 .iter()
@@ -2327,6 +2376,9 @@ pub fn run_tool(
             );
             if !dropped.is_empty() {
                 answer.push_str(&format!(" Left out: {}.", dropped.join("; ")));
+            }
+            if !similar.is_empty() {
+                answer.push_str(&format!(" Marked: {}.", similar.join("; ")));
             }
             Ok(answer)
         }
@@ -3514,10 +3566,11 @@ fn read_canon(
         ),
         None => None,
     };
+    let index = CardIndex::of(conn, profile_id)?;
     let card = match arg(args, "card") {
         Some(named) => Some(
-            CardIndex::of(conn, profile_id)?
-                .find(named)
+            index
+                .find_or_root(named, config)
                 .cloned()
                 .ok_or_else(|| Error::refused("canon.unknownCard").param("card", named))?,
         ),
@@ -3560,10 +3613,61 @@ fn read_canon(
     if let Some(card) = card {
         let seen = view::card(conn, &card.id)?;
         let kind = config.card_kind(&seen.card.kind);
-        let facts: Vec<Value> = seen
+        // A long card is read in parts (v0.144, FR-18 18.5): its head and
+        // counts alone, one section, one state, a page of facts.
+        if args.get("summary").and_then(Value::as_bool) == Some(true) {
+            let counts: Vec<Value> = kind
+                .map(|k| {
+                    k.sections
+                        .iter()
+                        .map(|s| {
+                            let held = seen.facts.iter().filter(|r| r.fact.section == s.key);
+                            json!({
+                                "key": s.key, "label": s.label, "shape": s.shape,
+                                "facts": held.clone().count(),
+                                "drafts": held.filter(|r| r.fact.status == crate::canon::FactStatus::Draft).count(),
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            return pretty(&json!({
+                "id": seen.card.id, "kind": seen.card.kind, "title": seen.card.title,
+                "aliases": seen.card.aliases, "layer": seen.card.layer,
+                "lives_at_work": seen.card.work_id, "note": seen.card.body,
+                "total_facts": seen.facts.len(), "relations": seen.relations.len(),
+                "sections": counts,
+            }));
+        }
+        let wanted_section = arg(args, "section");
+        let wanted_status = match arg(args, "status") {
+            Some(word) => Some(
+                crate::canon::FactStatus::from_word(word)
+                    .ok_or_else(|| Error::refused("canon.unknownStatus").param("status", word))?,
+            ),
+            None => None,
+        };
+        let narrowed: Vec<&view::ReadFact> = seen
             .facts
             .iter()
             .filter(|read| lens.is_none_or(|lens| read.lenses.contains(&lens)))
+            .filter(|read| wanted_section.is_none_or(|key| read.fact.section == key))
+            .filter(|read| wanted_status.is_none_or(|status| read.fact.status == status))
+            .collect();
+        let total_facts = narrowed.len();
+        let offset = args.get("offset").and_then(Value::as_u64).unwrap_or(0) as usize;
+        let limit = args
+            .get("limit")
+            .and_then(Value::as_u64)
+            .map(|n| n as usize);
+        let page: Vec<&&view::ReadFact> = narrowed
+            .iter()
+            .skip(offset)
+            .take(limit.unwrap_or(usize::MAX))
+            .collect();
+        let has_more = offset + page.len() < total_facts;
+        let facts: Vec<Value> = page
+            .into_iter()
             .map(|read| {
                 let one = &read.fact;
                 json!({
@@ -3600,6 +3704,8 @@ fn read_canon(
                 "key": s.key, "label": s.label, "shape": s.shape, "read_by": s.lenses,
             })).collect::<Vec<_>>()),
             "facts": facts,
+            "total_facts": total_facts,
+            "has_more": has_more,
             "relations": relations,
             "pictures": seen.pictures.iter().map(|p| json!({
                 "role": p.kind, "path": p.path, "of_fact": p.canon_fact_id,
@@ -3616,7 +3722,29 @@ fn read_canon(
             ..view::CardFilter::default()
         },
     )?;
+    // Whether the space has its passport, and what each shape of section
+    // carries beside an entry's words (v0.144).
+    let root = index.root(config);
+    let schemas: Map<String, Value> = [
+        SectionShape::Facts,
+        SectionShape::Slots,
+        SectionShape::Details,
+        SectionShape::Palette,
+        SectionShape::Marks,
+        SectionShape::Styles,
+        SectionShape::Bans,
+    ]
+    .into_iter()
+    .map(|shape| {
+        let said = serde_json::to_value(shape).unwrap_or_default();
+        let key = said.as_str().unwrap_or_default().to_owned();
+        (key, section_schema(shape))
+    })
+    .collect();
     pretty(&json!({
+        "has_root_card": root.is_some(),
+        "root_card_id": root.map(|card| card.id.clone()),
+        "section_schemas": schemas,
         "kinds": config.note_kinds.iter().filter(|k| k.is_card()).map(|k| json!({
             "key": k.key, "label": k.label, "root": k.root,
             "sections": k.sections.iter().map(|s| json!({
@@ -3629,6 +3757,47 @@ fn read_canon(
             "lives_at_work": c.work_title, "facts": c.facts, "drafts": c.drafts, "open": c.open,
         })).collect::<Vec<_>>(),
     }))
+}
+
+/// What an entry of a section of `shape` carries beside its words, as an
+/// agent writes it in `propose_canon` (v0.144): the `data` keys the shape
+/// reads, each said in a line.
+fn section_schema(shape: SectionShape) -> Value {
+    let (text, data): (&str, Vec<(&str, &str)>) = match shape {
+        SectionShape::Facts => ("one short statement", vec![]),
+        SectionShape::Slots => ("the words of the slot", vec![("slot", "the slot's name")]),
+        SectionShape::Details => (
+            "the detail's name",
+            vec![
+                ("template", "how it is said on a cover or a frame"),
+                ("places", "where it goes: a list of cover, frame"),
+                ("on", "true when it is on by default"),
+            ],
+        ),
+        SectionShape::Palette => ("what the colour is for", vec![("color", "#RRGGBB")]),
+        SectionShape::Marks => (
+            "the variant of the mark and what it means",
+            vec![
+                ("code", "its short code"),
+                ("prompt", "how a generator is told to draw it"),
+            ],
+        ),
+        SectionShape::Styles => (
+            "optional: the style's name",
+            vec![("styleId", "the id of a brick of the style dictionary")],
+        ),
+        SectionShape::Bans => ("what is never done or said", vec![]),
+        SectionShape::Relations | SectionShape::Appearances => ("", vec![]),
+    };
+    debug_assert!(
+        data.iter()
+            .all(|(key, _)| crate::canon::fact::data_keys(shape).contains(key)),
+        "a schema names a key the shape does not read"
+    );
+    json!({
+        "text": text,
+        "data": data.into_iter().map(|(key, said)| (key.to_owned(), json!(said))).collect::<Map<String, Value>>(),
+    })
 }
 
 /// Put a proposal where a person will see it: an assistant message in the
@@ -3871,6 +4040,19 @@ mod tests {
         let chats = assistant::summaries(conn, &profile_id, Some(work_id)).unwrap();
         assert_eq!(chats.len(), 1, "one chat, the client's");
         assistant::transcript(conn, &chats[0].id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0)
+    }
+
+    /// The first message of the one chat not on a work - where a proposal of
+    /// an agent that named no work waits.
+    fn first_message_anywhere(conn: &Connection) -> assistant::Message {
+        let profile_id = profile::active(conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(conn, &profile_id, None).unwrap();
+        let chat = chats.first().expect("a chat");
+        assistant::transcript(conn, &chat.id)
             .unwrap()
             .unwrap()
             .messages
@@ -5936,6 +6118,186 @@ mod tests {
         )
         .unwrap();
         assert!(found.contains("Freckles across the nose."), "{found}");
+    }
+
+    /// A long card is read in parts, the passport by `root`, and the list
+    /// says whether there is one and what each shape carries (v0.144).
+    #[test]
+    fn the_canon_is_read_in_parts_and_says_its_passport_and_schemas() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        for body in ["Freckles.", "A grey coat.", "Gradient hair."] {
+            fixtures::fact(&conn, &wren.id, "looks", body);
+        }
+        fixtures::fact(&conn, &wren.id, "bio", "Born in June.");
+
+        let list: Value =
+            serde_json::from_str(&run_tool(&conn, &claude(), "canon", &args(json!({}))).unwrap())
+                .unwrap();
+        assert_eq!(list["has_root_card"], false);
+        assert_eq!(
+            list["section_schemas"]["palette"]["data"]["color"],
+            "#RRGGBB"
+        );
+        assert!(
+            list["section_schemas"]["bans"]["data"]
+                .as_object()
+                .unwrap()
+                .is_empty()
+        );
+
+        let summed: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "canon",
+                &args(json!({ "card": "Wren", "summary": true })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(summed["total_facts"], 4);
+        assert!(summed.get("facts").is_none(), "a summary lists no facts");
+        let looks = summed["sections"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|one| one["key"] == "looks")
+            .unwrap()
+            .clone();
+        assert_eq!(looks["facts"], 3);
+
+        let page: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "canon",
+                &args(json!({ "card": "Wren", "section": "looks", "limit": 2, "offset": 1 })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(page["total_facts"], 3);
+        assert_eq!(page["facts"].as_array().unwrap().len(), 2);
+        assert_eq!(page["has_more"], false);
+
+        let channel = fixtures::card(&conn, &profile_id, "channel", "Night Shift");
+        let root: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "canon",
+                &args(json!({ "card": "root", "summary": true })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(root["id"], json!(channel.id));
+    }
+
+    /// What `propose_canon` learned in v0.144: card updates, the passport by
+    /// `root` and a second one turned into an update, a fact moved and one
+    /// deleted, a near-duplicate marked, a relation taken away.
+    #[test]
+    fn a_canon_proposal_updates_cards_moves_and_deletes_and_marks_the_similar() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        let mill = fixtures::card(&conn, &profile_id, "character", "Mill");
+        let channel = fixtures::card(&conn, &profile_id, "channel", "Night Shift");
+        let freckles = fixtures::fact(&conn, &wren.id, "looks", "Freckles across the nose.");
+        let coat = fixtures::fact(&conn, &wren.id, "looks", "A grey coat.");
+        crate::actions::canon::relate(
+            &conn,
+            crate::canon::NewCanonLink {
+                from_id: wren.id.clone(),
+                to_id: mill.id.clone(),
+                kind: None,
+                label: Some("neighbour".into()),
+                back_label: None,
+                layer: None,
+            },
+        )
+        .unwrap();
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_canon",
+            &args(json!({
+                "cards": [{ "kind": "channel", "title": "Night Shift FM", "note": "A late radio." }],
+                "card_updates": [
+                    { "card": "Wren", "aliases": ["the girl"], "note": "A freckled girl." },
+                    { "card": "Mill" }
+                ],
+                "facts": [
+                    { "change": "move", "fact": coat.id, "section": "outfits" },
+                    { "change": "delete", "fact": freckles.id },
+                    { "card": "Wren", "section": "looks", "text": "freckles across her nose" },
+                    { "card": "root", "section": "voice", "text": "Calm, late, close." }
+                ],
+                "relations": [{ "from": "Wren", "to": "Mill", "action": "delete" }]
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("2 card update(s)"), "{answer}");
+        assert!(answer.contains("similar_to"), "{answer}");
+        assert!(answer.contains("changes nothing"), "{answer}");
+
+        let message = first_message_anywhere(&conn);
+        let Proposal::Canon { package } =
+            serde_json::from_value(message.meta["proposal"].clone()).unwrap()
+        else {
+            panic!("not a canon proposal");
+        };
+        assert!(package.cards.is_empty(), "a second passport made a card");
+        assert_eq!(package.card_updates[0].card, channel.id);
+        assert_eq!(
+            package.card_updates[1].note.as_deref(),
+            Some("A freckled girl.")
+        );
+        assert_eq!(
+            package.facts[2].similar_to.as_ref().unwrap().fact_id,
+            freckles.id
+        );
+        assert_eq!(package.facts[3].card.as_deref(), Some(channel.id.as_str()));
+        assert!(package.links[0].delete);
+
+        crate::actions::proposal::apply(
+            &conn,
+            &message.id,
+            crate::actions::proposal::Overrides::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            crate::canon::fact::get(&conn, &coat.id)
+                .unwrap()
+                .unwrap()
+                .section,
+            "outfits"
+        );
+        assert!(
+            crate::canon::fact::get(&conn, &freckles.id)
+                .unwrap()
+                .is_none()
+        );
+        let card = crate::note::get(&conn, &wren.id).unwrap().unwrap();
+        assert_eq!(card.body, "A freckled girl.");
+        assert_eq!(card.aliases, ["the girl"]);
+        assert_eq!(
+            crate::note::get(&conn, &channel.id)
+                .unwrap()
+                .unwrap()
+                .title
+                .as_deref(),
+            Some("Night Shift FM")
+        );
+        assert!(
+            crate::canon::link::between(&conn, &wren.id, &mill.id)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]

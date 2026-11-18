@@ -3643,7 +3643,10 @@
       "unknownPlace": "A signature detail acts on a cover, a frame or a scene, not «{{place}}».",
       "unknownRelationKind": "«{{kind}}» is not a kind of relation the profile names: {{known}}.",
       "unknownSection": "A card of «{{kind}}» has no section «{{section}}».",
-      "unknownStatus": "A fact is canon, open or draft, not «{{status}}»."
+      "unknownStatus": "A fact is canon, open or draft, not «{{status}}».",
+      "updateSaysNothing": "{{item}} changes nothing of the card.",
+      "noSuchRelation": "{{item}} takes away a relation the two cards do not have.",
+      "moveNeedsSection": "A fact is moved to a section: name it."
     },
     "term": {
       "exists": "“{{word}}” is in the register already.",
@@ -3876,7 +3879,11 @@
     "pictures": "Pictures:",
     "reference": "reference",
     "descriptions": "Descriptions for pictures:",
-    "vibe": "What it feels like"
+    "vibe": "What it feels like",
+    "moved": "“{{card}}”: a fact moved to {{section}}",
+    "deleted": "“{{card}}”: a fact taken away",
+    "cardUpdates": "Cards changed:",
+    "relationDeleted": "{{from}} — {{to}}: the relation taken away"
   },
   "skip": {
     "alreadyThere": "already that way",
@@ -4354,7 +4361,9 @@
     "change": {
       "add": "new",
       "refine": "refined",
-      "retire": "retired"
+      "retire": "retired",
+      "move": "moved",
+      "delete": "taken away"
     },
     "toCanonHint": "Hand the selected lines to the canon: facts are proposed with this version as their source",
     "selectFirst": "Select the lines first",
@@ -4414,7 +4423,10 @@
     "fitGraph": "Back to the whole map",
     "allRelations_one": "The relation ({{count}})",
     "allRelations_other": "All relations ({{count}})",
-    "graphMap": "Every card and how they relate"
+    "graphMap": "Every card and how they relate",
+    "similarTo": "Nearly the same as: {{fact}}",
+    "relationTakenAway": "taken away",
+    "cardUpdates": "Cards changed"
   },
   "register": {
     "new": "Term",

@@ -3880,7 +3880,10 @@
       "unknownPlace": "Фирменная деталь действует на обложке, кадре или сцене, а не «{{place}}».",
       "unknownRelationKind": "«{{kind}}» — не вид связи из профиля: {{known}}.",
       "unknownSection": "У карточки «{{kind}}» нет раздела «{{section}}».",
-      "unknownStatus": "Факт бывает canon, open или draft, а не «{{status}}»."
+      "unknownStatus": "Факт бывает canon, open или draft, а не «{{status}}».",
+      "updateSaysNothing": "{{item}} ничего не меняет в карточке.",
+      "noSuchRelation": "{{item}} удаляет связь, которой между карточками нет.",
+      "moveNeedsSection": "Факт переносят в раздел: назовите его."
     },
     "term": {
       "exists": "«{{word}}» уже в реестре.",
@@ -4113,7 +4116,11 @@
     "pictures": "Картинки:",
     "reference": "референс",
     "descriptions": "Описания к картинкам:",
-    "vibe": "Настроение"
+    "vibe": "Настроение",
+    "moved": "«{{card}}»: факт перенесён в {{section}}",
+    "deleted": "«{{card}}»: факт удалён",
+    "cardUpdates": "Изменённые карточки:",
+    "relationDeleted": "{{from}} — {{to}}: связь удалена"
   },
   "skip": {
     "alreadyThere": "уже так",
@@ -4611,7 +4618,9 @@
     "change": {
       "add": "новый",
       "refine": "уточнение",
-      "retire": "отмена"
+      "retire": "отмена",
+      "move": "перенос",
+      "delete": "удаление"
     },
     "toCanonHint": "Отдать выделенные строки в канон: факты предлагаются с этой версией как источником",
     "selectFirst": "Сначала выделите строки",
@@ -4679,7 +4688,10 @@
     "allRelations_few": "Все связи ({{count}})",
     "allRelations_many": "Все связи ({{count}})",
     "allRelations_other": "Все связи ({{count}})",
-    "graphMap": "Все карточки и их связи"
+    "graphMap": "Все карточки и их связи",
+    "similarTo": "Почти то же, что: {{fact}}",
+    "relationTakenAway": "удаляется",
+    "cardUpdates": "Изменённые карточки"
   },
   "register": {
     "new": "Термин",

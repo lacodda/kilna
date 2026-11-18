@@ -419,12 +419,27 @@ pub fn check_package(
                     Err(cause) => note(Err(cause)),
                 }
             }
-            canon::proposal::FactChange::Refine | canon::proposal::FactChange::Retire => {
+            canon::proposal::FactChange::Refine
+            | canon::proposal::FactChange::Retire
+            | canon::proposal::FactChange::Move
+            | canon::proposal::FactChange::Delete => {
                 let id = fact.fact_id.as_deref().unwrap_or_default();
                 if canon::fact::get(conn, id)?.is_none() {
                     note(Err(Error::not_found("fact", id)));
                 }
             }
+        }
+    }
+
+    for (index, update) in package.card_updates.iter().enumerate() {
+        if !kept(items, "update", index) {
+            continue;
+        }
+        note(canon::fact::card_of(conn, config, &update.card).map(|_| ()));
+        if let Some(Some(work_id)) = &update.work_id
+            && crate::work::get(conn, work_id)?.is_none()
+        {
+            note(Err(Error::not_found("work", work_id)));
         }
     }
 
@@ -543,8 +558,44 @@ pub fn keep_package(
                 fact.fact_id.as_deref().unwrap_or_default(),
                 fact.reason.as_deref().unwrap_or_default(),
             )?,
+            // Moved to another section of its card, at its end (v0.144).
+            canon::proposal::FactChange::Move => update_fact(
+                conn,
+                fact.fact_id.as_deref().unwrap_or_default(),
+                FactPatch {
+                    section: fact.section,
+                    ..FactPatch::default()
+                },
+            )?,
+            // Taken to the trash, an undo away (v0.144).
+            canon::proposal::FactChange::Delete => {
+                let id = fact.fact_id.clone().unwrap_or_default();
+                super::trash::discard(conn, crate::trash::Entity::Fact, &id)?;
+                outcome.facts.push(id);
+                continue;
+            }
         };
         outcome.facts.push(kept_fact.id);
+    }
+
+    // Cards of the canon changed, each by the card's own gesture (v0.144).
+    for (index, update) in package.card_updates.into_iter().enumerate() {
+        if !kept(items, "update", index) {
+            continue;
+        }
+        let changed = super::note::update(
+            conn,
+            &update.card,
+            crate::note::NotePatch {
+                title: update.title.map(Some),
+                body: update.note,
+                aliases: update.aliases,
+                layer: update.layer,
+                work_id: update.work_id,
+                ..crate::note::NotePatch::default()
+            },
+        )?;
+        outcome.cards.push(changed.id);
     }
 
     for (index, link) in package.links.into_iter().enumerate() {
@@ -553,6 +604,14 @@ pub fn keep_package(
         }
         let from = resolve(&link.from);
         let to = resolve(&link.to);
+        // A relation taken away (v0.144).
+        if link.delete {
+            if let Some(standing) = canon::link::between(conn, &from, &to)? {
+                unrelate(conn, &standing.id)?;
+                outcome.relations.push(standing.id);
+            }
+            continue;
+        }
         let kept_link = match canon::link::between(conn, &from, &to)? {
             // The pair already stands in a relation: it is redrawn in the
             // words proposed, each on the side it belongs to.
