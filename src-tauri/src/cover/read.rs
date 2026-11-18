@@ -488,7 +488,12 @@ impl Channel {
                             channel.slots.entry(slot).or_default().push(body);
                         }
                     }
-                    SectionShape::Facts | SectionShape::Relations | SectionShape::Appearances => {}
+                    // The channel's kits are drawn on their own, not into a
+                    // cover (v0.147).
+                    SectionShape::Facts
+                    | SectionShape::Relations
+                    | SectionShape::Appearances
+                    | SectionShape::Branding => {}
                 }
             }
         }

@@ -13,6 +13,7 @@ const SHAPES: SectionShape[] = [
   'details',
   'palette',
   'marks',
+  'branding',
   'styles',
   'bans',
   'relations',

@@ -417,6 +417,15 @@
           "en": "For shorts",
           "ru": "Для шортсов"
         }
+      },
+      {
+        "colour": "warn",
+        "icon": "paintbrush",
+        "key": "redraw-cover",
+        "label": {
+          "en": "Cover to redraw",
+          "ru": "Перерисовать обложку"
+        }
       }
     ],
     "note_kinds": [
@@ -443,6 +452,18 @@
               "cover",
               "public"
             ]
+          },
+          {
+            "hint": {
+              "en": "Avatar, banner, watermark: the prompt, the pictures drawn, the one in use; the look before a rebranding kept in the archive",
+              "ru": "Аватар, баннер, водяной знак: промпт, нарисованные варианты, действующий; облик до ребрендинга - в архиве"
+            },
+            "key": "branding",
+            "label": {
+              "en": "Dressing",
+              "ru": "Оформление"
+            },
+            "shape": "branding"
           },
           {
             "hint": {

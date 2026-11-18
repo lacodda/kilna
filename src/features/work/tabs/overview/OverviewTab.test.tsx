@@ -150,3 +150,26 @@ describe('an axis bar', () => {
     expect(axisBar(axis, scored(9)).shown).toBe('9')
   })
 })
+
+// v0.147, FR-10 10.4: what was written about a work at length - a review of
+// a video, its list of edits - stands on its Overview, and nowhere else.
+describe('the reviews of a work', () => {
+  it('stand on the board of the work they are attached to, and only there', async () => {
+    workspace.notes.push({
+      ...workspace.notes[0]!,
+      id: 'n-review',
+      work_id: IDS.video,
+      kind: 'review',
+      title: 'Review of the clip',
+      body: '# Review\n\n## The cover\nReads at a glance.',
+      tags: [],
+    })
+    const { main, unmount } = await openOverview(IDS.video)
+    const widget = within(main).getByRole('group', { name: en.overview.reviews })
+    expect(within(widget).getByText('Review of the clip')).toBeInTheDocument()
+    unmount()
+
+    const song = await openOverview(IDS.song)
+    expect(widgetsIn(song.main)).not.toContain(en.overview.reviews)
+  })
+})

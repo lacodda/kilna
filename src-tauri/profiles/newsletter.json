@@ -421,7 +421,15 @@
           "ru": "Заметка"
         }
       },
-      { "key": "document", "label": { "en": "Document", "ru": "Документ" }, "icon": "book", "document": true }
+      {
+        "key": "document",
+        "label": {
+          "en": "Document",
+          "ru": "Документ"
+        },
+        "icon": "book",
+        "document": true
+      }
     ],
     "collection_kinds": [
       {
@@ -770,6 +778,15 @@
         },
         "colour": "info",
         "icon": "scissors"
+      },
+      {
+        "key": "redraw-cover",
+        "label": {
+          "en": "Cover to redraw",
+          "ru": "Перерисовать обложку"
+        },
+        "colour": "warn",
+        "icon": "paintbrush"
       }
     ],
     "rhythm": {

@@ -14,10 +14,15 @@ import en from '@/i18n/locales/en.json'
  * first, every layer on asking, each inner one with its layer said.
  */
 
-function card(id: string, title: string, layer: CardSummary['layer']): CardSummary {
+function card(
+  id: string,
+  title: string,
+  layer: CardSummary['layer'],
+  kind = 'character',
+): CardSummary {
   return {
     id,
-    kind: 'character',
+    kind,
     title,
     aliases: [],
     layer,
@@ -30,7 +35,12 @@ function mounted(onChange: (hero: CoverHero | null) => void = () => {}) {
   const workspace = studio()
   mockBackend({
     ...answersFor(workspace),
-    list_cards: () => [card('c-open', 'Wren', 'public'), card('c-inner', 'The Warden', 'internal')],
+    list_cards: () => [
+      card('c-open', 'Wren', 'public'),
+      card('c-inner', 'The Warden', 'internal'),
+      // A competing channel is read, never drawn (v0.147).
+      card('c-rival', 'A rival channel', 'public', 'competitor'),
+    ],
   })
   render(
     <Providers client={createQueryClient()}>
@@ -49,6 +59,7 @@ describe('the hero picker', () => {
     const list = await screen.findByRole('list', { name: en.cover.hero.cards })
     await within(list).findByText('Wren')
     expect(within(list).queryByText('The Warden')).toBeNull()
+    expect(within(list).queryByText('A rival channel')).toBeNull()
 
     fireEvent.click(screen.getByRole('switch', { name: en.cover.hero.everyLayer }))
     const inner = (await within(list).findByText('The Warden')).closest('button')!

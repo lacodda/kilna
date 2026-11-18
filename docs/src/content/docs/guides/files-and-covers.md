@@ -302,6 +302,65 @@ work instead, and every page of the four folders a note named after its
 folder and file. What the work or the space holds already is passed over. A
 plan and a report first, `--apply` to write, a copy of the space kept first.
 
+`kilna --convert-notes <rules.json>` (v0.147) turns notes brought in from a
+vault into what kilna keeps them as. Which notes and headings go where is a
+file of rules in your own words - a vault's titles are its owner's - and
+kilna is the engine:
+
+```json
+{
+  "cards": [{
+    "title_prefix": "Place · ",
+    "kind": "location",
+    "headings": {
+      "Look": "looks",
+      "Palette": "passport:palette",
+      "Prompt": "prompt:description",
+      "Negative": "picture_bans",
+      "Ref-Wide": "angles:wide"
+    },
+    "fallback": "identity",
+    "variants": true
+  }],
+  "kits": {
+    "title_prefix": "Banners · ",
+    "archive_marker": "Archive",
+    "kinds": { "Avatar": "avatar", "Watermark": "watermark" },
+    "prompt": ["Prompt"],
+    "negative": ["Negative"],
+    "about": ["Idea"],
+    "skip": ["README"]
+  },
+  "documents": [{ "title_prefix": "Analytics · Video review · ", "kind": "review" }],
+  "splits": [{ "title": "Analytics · Edits", "kind": "review", "note_title": "Edits", "work_kind": "video" }],
+  "marks": [{ "title": "Analytics · Covers to redraw", "mark": "redraw-cover", "kind": "review", "note_title": "Cover to redraw" }]
+}
+```
+
+- **cards** - every note whose title starts with the prefix becomes a card
+  of the kind, heading by heading: a heading that starts with a key sends
+  its text to that section (`section:slot` for named values), the rest to
+  the fallback with the heading kept beside the words. A card the canon
+  holds by that name already - its title or one of its other names - is
+  added to, and what it says already is not said twice. With `variants`,
+  "Cape-1960s" beside "Cape" is drawn as its variant. `name_from_heading:
+  false` names the card by its title rather than by the heading it opens
+  with.
+- **kits** - each note becomes a kit of the channel's dressing; its kind by
+  a word of the title, the old look by the archive word, its prompt, what
+  it keeps out and its idea from the headings or bold labels named.
+- **documents** - notes made notes of another kind where they stand: the
+  reviews of the videos, attached to their works, made reviews.
+- **splits** - one note, a `## N. Title` section a work: each section
+  becomes a note on the work it names. A work titled with a word in
+  brackets - "Harbour lights (video)" - answers to its title without it.
+- **marks** - one note naming works a section each: the works are marked,
+  and each section can be kept as a note on its work.
+
+A plan and a report first; `--apply` writes it as one gesture, a copy of
+the space kept beside the report; `--remove-notes` with it puts the notes
+that were converted in the trash, from where they come back.
+
 `kilna --rehome-media` moves the files and switches the templates together,
 to the layout the shipped profile names:
 

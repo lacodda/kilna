@@ -32,6 +32,9 @@ import { PickWorkDialog } from '@/components/PickWorkDialog'
 /** Where a signature detail may act; the backend holds the same three. */
 const PLACES = ['cover', 'frame', 'scene'] as const
 
+/** What a kit of the dressing is (v0.147); the backend holds the same three. */
+const KIT_KINDS = ['avatar', 'banner', 'watermark'] as const
+
 interface Props {
   view: CardView
   /** The section a new fact goes under; for an edit, the one it stands in. */
@@ -98,6 +101,11 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
   const [code, setCode] = useState(text('code'))
   const [prompt, setPrompt] = useState(text('prompt'))
   const [styleId, setStyleId] = useState(text('styleId'))
+  // A kit of the channel's dressing (v0.147).
+  const [kitKind, setKitKind] = useState(text('kind') || 'banner')
+  const [negative, setNegative] = useState(text('negative'))
+  const [about, setAbout] = useState(text('about'))
+  const [archived, setArchived] = useState(fact?.data.archived === true)
   const bricks = useQuery({ ...queries.styleBricksMatching(null, ''), enabled: shape === 'styles' })
 
   const source = (): FactSource | null => {
@@ -140,6 +148,21 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
         }
       case 'styles':
         return { styleId }
+      case 'branding': {
+        const kept: Record<string, JsonValue> = { kind: kitKind }
+        for (const [key, value] of [
+          ['prompt', prompt],
+          ['negative', negative],
+          ['about', about],
+        ] as const) {
+          if (value.trim() !== '') kept[key] = value.trim()
+        }
+        if (archived) kept.archived = true
+        // The picture in use is chosen on the kit's row, and kept here.
+        const active = text('active')
+        if (active !== '') kept.active = active
+        return kept
+      }
       default:
         return {}
     }
@@ -210,6 +233,13 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
     ((sourceKind !== 'decision' && sourceKind !== 'document') || sourceLabel.trim() !== '')
 
   const sections = kind === undefined ? [] : writableSections(kind)
+  // The names the section offers for a slot (v0.147): a place's angles,
+  // its passport. Those its entries already hold are not offered again.
+  const offered = (sections.find((one) => one.key === inSection)?.slots ?? []).filter(
+    (name) =>
+      name === text('slot') ||
+      !view.facts.some((one) => one.fact.section === inSection && one.fact.data.slot === name),
+  )
 
   return (
     <div
@@ -260,13 +290,77 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
       />
 
       {shape === 'slots' && (
-        <Input
-          value={slot}
-          onChange={(event) => setSlot(event.target.value)}
-          placeholder={t('canon.slotPlaceholder')}
-          aria-label={t('canon.slot')}
-          className="font-mono"
-        />
+        <div className="flex flex-col gap-1.5">
+          <Input
+            value={slot}
+            onChange={(event) => setSlot(event.target.value)}
+            placeholder={t('canon.slotPlaceholder')}
+            aria-label={t('canon.slot')}
+            className="font-mono"
+          />
+          {offered.length > 0 && (
+            <ChipGroup
+              aria-label={t('canon.slotsOffered')}
+              value={offered.includes(slot.trim()) ? [slot.trim()] : []}
+              onValueChange={(next) => {
+                const picked = next.at(-1)
+                if (picked !== undefined) setSlot(picked)
+              }}
+            >
+              {offered.map((name) => (
+                <Chip key={name} value={name} className="font-mono">
+                  {name}
+                </Chip>
+              ))}
+            </ChipGroup>
+          )}
+        </div>
+      )}
+      {shape === 'branding' && (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <SegmentedControl
+              aria-label={t('canon.kitKind')}
+              value={kitKind}
+              onValueChange={setKitKind}
+            >
+              {KIT_KINDS.map((one) => (
+                <Segment key={one} value={one}>
+                  {t(`canon.kit.${one}`)}
+                </Segment>
+              ))}
+            </SegmentedControl>
+            <Switch checked={archived} onCheckedChange={setArchived}>
+              {t('canon.kitArchived')}
+            </Switch>
+          </div>
+          <Textarea
+            autoResize
+            rows={2}
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder={t('canon.kitPromptPlaceholder')}
+            aria-label={t('canon.kitPrompt')}
+            className="font-mono text-xs"
+          />
+          <Textarea
+            autoResize
+            rows={1}
+            value={negative}
+            onChange={(event) => setNegative(event.target.value)}
+            placeholder={t('canon.kitNegativePlaceholder')}
+            aria-label={t('canon.kitNegative')}
+            className="font-mono text-xs"
+          />
+          <Textarea
+            autoResize
+            rows={1}
+            value={about}
+            onChange={(event) => setAbout(event.target.value)}
+            placeholder={t('canon.kitAboutPlaceholder')}
+            aria-label={t('canon.kitAbout')}
+          />
+        </div>
       )}
       {shape === 'details' && (
         <>

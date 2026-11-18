@@ -767,14 +767,42 @@ pub fn compose_for_card(
     let mut attachments: Vec<PathBuf> = Vec::new();
     match template.produces() {
         Produces::CardPrompt => {
-            let mut facts = String::new();
-            for key in &kind.describe_from {
-                for one in crate::canon::fact::in_section(conn, &card.id, key)? {
-                    if one.status == crate::canon::FactStatus::Canon
-                        && one.layer == crate::canon::Layer::Public
-                    {
-                        facts.push_str(&format!("- {}\n", one.body));
+            // A kind that is never drawn has no description for a picture
+            // (v0.147): a competing channel is read, not shown.
+            if kind.pictureless {
+                return Err(Error::refused("canon.pictureless").param("title", title.clone()));
+            }
+            let settled = |note_id: &str| -> Result<String> {
+                let mut facts = String::new();
+                for key in &kind.describe_from {
+                    for one in crate::canon::fact::in_section(conn, note_id, key)? {
+                        if one.status == crate::canon::FactStatus::Canon
+                            && one.layer == crate::canon::Layer::Public
+                        {
+                            // A slot says what it is: "palette: rust and fog".
+                            match one.data.get("slot").and_then(serde_json::Value::as_str) {
+                                Some(slot) => facts.push_str(&format!("- {slot}: {}\n", one.body)),
+                                None => facts.push_str(&format!("- {}\n", one.body)),
+                            }
+                        }
                     }
+                }
+                Ok(facts)
+            };
+            let mut facts = settled(&card.id)?;
+            // A variant of a place is drawn over its base (v0.147, FR-10
+            // 10.2): what the base settles holds, unless the variant says
+            // otherwise.
+            for base in crate::canon::view::bases_of(conn, &card.id)? {
+                let Some(found) = crate::note::get(conn, &base)? else {
+                    continue;
+                };
+                let held = settled(&base)?;
+                if !held.is_empty() {
+                    facts.push_str(&format!(
+                        "It is a variant of “{}”; what is settled about the base holds unless said above:\n{held}",
+                        found.title.unwrap_or_default()
+                    ));
                 }
             }
             if facts.is_empty() {

@@ -3753,6 +3753,7 @@ fn read_canon(
         SectionShape::Marks,
         SectionShape::Styles,
         SectionShape::Bans,
+        SectionShape::Branding,
     ]
     .into_iter()
     .map(|shape| {
@@ -3807,6 +3808,20 @@ fn section_schema(shape: SectionShape) -> Value {
             vec![("styleId", "the id of a brick of the style dictionary")],
         ),
         SectionShape::Bans => ("what is never done or said", vec![]),
+        SectionShape::Branding => (
+            "the kit's name",
+            vec![
+                ("kind", "avatar, banner or watermark"),
+                ("prompt", "how a generator is told to draw it, in English"),
+                ("negative", "what the picture must not show, in English"),
+                ("about", "the idea of it, in a line or two"),
+                ("archived", "true for a kit of the look before a rebranding"),
+                (
+                    "active",
+                    "the id of the picture in use, among the kit's own",
+                ),
+            ],
+        ),
         SectionShape::Relations | SectionShape::Appearances => ("", vec![]),
     };
     debug_assert!(

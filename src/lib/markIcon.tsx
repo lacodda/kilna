@@ -15,6 +15,7 @@ import {
   Lightbulb,
   MessageCircle,
   Mic,
+  Paintbrush,
   Music,
   Pin,
   RefreshCw,
@@ -71,6 +72,7 @@ const MARK_ICONS: Record<string, LucideIcon> = {
   'message-circle': MessageCircle,
   archive: Archive,
   layers: Layers,
+  paintbrush: Paintbrush,
 }
 
 /** The names a mark's glyph may take, as the profile editor offers them. */

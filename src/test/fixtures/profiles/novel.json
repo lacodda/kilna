@@ -417,6 +417,15 @@
           "en": "For shorts",
           "ru": "Для шортсов"
         }
+      },
+      {
+        "colour": "warn",
+        "icon": "paintbrush",
+        "key": "redraw-cover",
+        "label": {
+          "en": "Cover to redraw",
+          "ru": "Перерисовать обложку"
+        }
       }
     ],
     "note_kinds": [
@@ -671,6 +680,8 @@
       },
       {
         "describe_from": [
+          "passport",
+          "prompt",
           "looks"
         ],
         "icon": "map-pin",
@@ -691,6 +702,28 @@
             ]
           },
           {
+            "hint": {
+              "en": "Type (interior, exterior, landscape), scale, palette, textures, key objects",
+              "ru": "Тип (интерьер, экстерьер, ландшафт), масштаб, палитра, фактуры, ключевые объекты"
+            },
+            "key": "passport",
+            "label": {
+              "en": "Passport",
+              "ru": "Паспорт"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "slots",
+            "slots": [
+              "type",
+              "scale",
+              "palette",
+              "textures",
+              "key objects"
+            ]
+          },
+          {
             "key": "looks",
             "label": {
               "en": "Appearance",
@@ -699,6 +732,59 @@
             "lenses": [
               "cover"
             ]
+          },
+          {
+            "hint": {
+              "en": "The place in English, the way a picture generator reads it: a description, and one per light or epoch",
+              "ru": "Место по-английски, как его читает генератор картинок: описание, и по одному на свет или эпоху"
+            },
+            "key": "prompt",
+            "label": {
+              "en": "For a generator",
+              "ru": "Для генератора"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "slots",
+            "slots": [
+              "description"
+            ]
+          },
+          {
+            "hint": {
+              "en": "wide, medium, detail - what each shows, with its reference pictures",
+              "ru": "wide, medium, detail - что видно в каждом, с референсами"
+            },
+            "key": "angles",
+            "label": {
+              "en": "Angles",
+              "ru": "Ракурсы"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "slots",
+            "slots": [
+              "wide",
+              "medium",
+              "detail"
+            ]
+          },
+          {
+            "hint": {
+              "en": "→ the negative of a picture it is in, in English",
+              "ru": "→ в негатив картинки, где оно есть, по-английски"
+            },
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "bans"
           },
           {
             "key": "history",
@@ -1596,6 +1682,13 @@
         "label": {
           "en": "Took part",
           "ru": "Участие"
+        }
+      },
+      {
+        "key": "variant_of",
+        "label": {
+          "en": "Variant of",
+          "ru": "Вариант"
         }
       },
       {

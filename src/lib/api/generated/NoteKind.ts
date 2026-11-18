@@ -71,6 +71,12 @@ media?: Array<Medium>,
  */
 document?: boolean, 
 /**
+ * A card of this kind is never drawn (v0.147, FR-10 10.4): a competing
+ * channel, a reference that is read rather than shown. It is not offered
+ * as a cover's hero, and no description for a picture is written of it.
+ */
+pictureless?: boolean, 
+/**
  * Turned off in the profile editor (v0.141, FR-18): a kind of card not
  * offered for a new card, and no passport made of it with a space.
  * Cards of it already made stay, and read as they did.

@@ -47,6 +47,7 @@ export const WIDGETS = [
   'trend',
   'publications',
   'repeats',
+  'reviews',
 ] as const
 
 export type WidgetId = (typeof WIDGETS)[number]
@@ -114,6 +115,7 @@ export const DEFAULT_PLACEMENT: readonly WidgetPlacement[] = (
     ['storyboard', 'm'],
     ['trend', 's'],
     ['cover', 's'],
+    ['reviews', 'm'],
   ] as const
 ).map(([id, size], position) => ({ id, size, position }))
 
@@ -185,6 +187,8 @@ export interface WidgetFacts {
    *  (ADR 0054): a song held against the songs out or booked, or the song a
    *  publication is made from. */
   repeats: boolean
+  /** The work holds a long document - a review, a list of edits (v0.147). */
+  reviews: boolean
 }
 
 /**
@@ -218,6 +222,8 @@ export function applies(id: WidgetId, facts: WidgetFacts): boolean {
       return facts.findings
     case 'repeats':
       return facts.repeats
+    case 'reviews':
+      return facts.reviews
     case 'cover':
       return facts.cover
     case 'stage':

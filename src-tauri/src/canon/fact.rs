@@ -181,7 +181,18 @@ pub struct FactPatch {
 pub const DETAIL_PLACES: [&str; 3] = ["cover", "frame", "scene"];
 
 /// The roles a picture of a card can have.
-pub const PICTURE_ROLES: [&str; 6] = ["portrait", "reference", "outfit", "mood", "still", "mark"];
+pub const PICTURE_ROLES: [&str; 7] = [
+    "portrait",
+    "reference",
+    "outfit",
+    "mood",
+    "still",
+    "mark",
+    "brand",
+];
+
+/// What a kit of a channel's dressing is (v0.147).
+pub const BRANDING_KINDS: [&str; 3] = ["avatar", "banner", "watermark"];
 
 const SELECT: &str = "SELECT id, profile_id, note_id, section, body, layer, status, retired_reason, \
      source_kind, source_work_id, source_version_id, source_line, source_label, when_label, \
@@ -609,6 +620,7 @@ pub fn data_keys(shape: SectionShape) -> &'static [&'static str] {
         SectionShape::Palette => &["color"],
         SectionShape::Marks => &["code", "prompt"],
         SectionShape::Styles => &["styleId"],
+        SectionShape::Branding => &["kind", "prompt", "negative", "about", "archived", "active"],
     }
 }
 
@@ -679,6 +691,21 @@ pub fn checked_data(
                 if let Some(value) = text(key) {
                     out.insert(key.into(), Value::String(value));
                 }
+            }
+        }
+        SectionShape::Branding => {
+            let kind = text("kind").ok_or_else(|| Error::refused("canon.brandingNeedsKind"))?;
+            if !BRANDING_KINDS.contains(&kind.as_str()) {
+                return Err(Error::refused("canon.brandingNeedsKind").param("kind", kind));
+            }
+            out.insert("kind".into(), Value::String(kind));
+            for key in ["prompt", "negative", "about", "active"] {
+                if let Some(value) = text(key) {
+                    out.insert(key.into(), Value::String(value));
+                }
+            }
+            if data.get("archived").and_then(Value::as_bool) == Some(true) {
+                out.insert("archived".into(), Value::Bool(true));
             }
         }
         SectionShape::Styles => {

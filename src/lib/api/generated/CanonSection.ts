@@ -38,6 +38,13 @@ kinds?: Array<string>,
  */
 draw?: number | null, 
 /**
+ * For a section of named values: the names it offers when an entry is
+ * written (v0.147) - a place's angles, wide, medium and detail, or its
+ * passport's type and scale. Offered, not required: a slot of another
+ * name is kept as written.
+ */
+slots?: Array<string>, 
+/**
  * A section an automation reads rather than a person (v0.141, FR-18):
  * the templates a release's text is written from. The card gathers such
  * sections under one folded group, out of the way of the passport.

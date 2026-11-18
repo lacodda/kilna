@@ -198,6 +198,12 @@ shortlist is searched. Every section folds by its title, and a folded
 section says in one line what is chosen in it; which sections are folded is
 remembered for the whole application, not per work.
 
+**A cover to redraw** (v0.147). The brush beside the switch marks the
+work's cover as one to redraw - the mark **Cover to redraw** every shipped
+profile has, which the [Catalogue](/kilna/guides/the-catalogue/) filters
+by. While it is raised the tab says **To redraw**; its cross takes the mark
+off once the cover is new.
+
 The shortlist folds the same way (v0.146): folded, it is one line - how many
 are starred and the one the cover is built from. The button at the end of
 the Ideas and Constructor switch gives the constructor the whole window, as

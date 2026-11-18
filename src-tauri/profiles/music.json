@@ -1345,6 +1345,18 @@
             ]
           },
           {
+            "key": "branding",
+            "label": {
+              "en": "Dressing",
+              "ru": "Оформление"
+            },
+            "hint": {
+              "en": "Avatar, banner, watermark: the prompt, the pictures drawn, the one in use; the look before a rebranding kept in the archive",
+              "ru": "Аватар, баннер, водяной знак: промпт, нарисованные варианты, действующий; облик до ребрендинга - в архиве"
+            },
+            "shape": "branding"
+          },
+          {
             "key": "captions",
             "label": {
               "en": "Captions",
@@ -1707,6 +1719,8 @@
         },
         "icon": "map-pin",
         "describe_from": [
+          "passport",
+          "prompt",
           "looks"
         ],
         "sections": [
@@ -1721,11 +1735,86 @@
             ]
           },
           {
+            "key": "passport",
+            "label": {
+              "en": "Passport",
+              "ru": "Паспорт"
+            },
+            "hint": {
+              "en": "Type (interior, exterior, landscape), scale, palette, textures, key objects",
+              "ru": "Тип (интерьер, экстерьер, ландшафт), масштаб, палитра, фактуры, ключевые объекты"
+            },
+            "shape": "slots",
+            "lenses": [
+              "cover"
+            ],
+            "slots": [
+              "type",
+              "scale",
+              "palette",
+              "textures",
+              "key objects"
+            ]
+          },
+          {
             "key": "looks",
             "label": {
               "en": "Appearance",
               "ru": "Внешность"
             },
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "prompt",
+            "label": {
+              "en": "For a generator",
+              "ru": "Для генератора"
+            },
+            "hint": {
+              "en": "The place in English, the way a picture generator reads it: a description, and one per light or epoch",
+              "ru": "Место по-английски, как его читает генератор картинок: описание, и по одному на свет или эпоху"
+            },
+            "shape": "slots",
+            "lenses": [
+              "cover"
+            ],
+            "slots": [
+              "description"
+            ]
+          },
+          {
+            "key": "angles",
+            "label": {
+              "en": "Angles",
+              "ru": "Ракурсы"
+            },
+            "hint": {
+              "en": "wide, medium, detail - what each shows, with its reference pictures",
+              "ru": "wide, medium, detail - что видно в каждом, с референсами"
+            },
+            "shape": "slots",
+            "lenses": [
+              "cover"
+            ],
+            "slots": [
+              "wide",
+              "medium",
+              "detail"
+            ]
+          },
+          {
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "hint": {
+              "en": "→ the negative of a picture it is in, in English",
+              "ru": "→ в негатив картинки, где оно есть, по-английски"
+            },
+            "shape": "bans",
             "lenses": [
               "cover"
             ]
@@ -2139,6 +2228,84 @@
         ]
       },
       {
+        "key": "competitor",
+        "label": {
+          "en": "Competitor",
+          "ru": "Конкурент"
+        },
+        "icon": "target",
+        "pictureless": true,
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "General",
+              "ru": "Общее"
+            },
+            "hint": {
+              "en": "Channel, link, audience, genre, size",
+              "ru": "Канал, ссылка, аудитория, жанр, размер"
+            },
+            "shape": "slots",
+            "slots": [
+              "channel",
+              "link",
+              "audience",
+              "genre",
+              "size"
+            ]
+          },
+          {
+            "key": "analysis",
+            "label": {
+              "en": "Analysis",
+              "ru": "Разбор"
+            },
+            "hint": {
+              "en": "What we saw: positioning, packaging, audience, the algorithm",
+              "ru": "Что увидели: позиционирование, упаковка, аудитория, алгоритм"
+            }
+          },
+          {
+            "key": "strengths",
+            "label": {
+              "en": "What works for them",
+              "ru": "Что у них работает"
+            }
+          },
+          {
+            "key": "weaknesses",
+            "label": {
+              "en": "What does not",
+              "ru": "Что не работает"
+            }
+          },
+          {
+            "key": "takeaways",
+            "label": {
+              "en": "What we take",
+              "ru": "Что берём"
+            },
+            "hint": {
+              "en": "What our channel does with it",
+              "ru": "Что из этого делает наш канал"
+            }
+          },
+          {
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается по сценам, текстам, обложкам и источникам"
+            },
+            "shape": "appearances"
+          }
+        ]
+      },
+      {
         "key": "phrase",
         "label": {
           "en": "Phrase",
@@ -2162,6 +2329,15 @@
           "ru": "Документ"
         },
         "icon": "book",
+        "document": true
+      },
+      {
+        "key": "review",
+        "label": {
+          "en": "Review",
+          "ru": "Разбор"
+        },
+        "icon": "clipboard-list",
         "document": true
       },
       {
@@ -3967,6 +4143,15 @@
         },
         "colour": "info",
         "icon": "scissors"
+      },
+      {
+        "key": "redraw-cover",
+        "label": {
+          "en": "Cover to redraw",
+          "ru": "Перерисовать обложку"
+        },
+        "colour": "warn",
+        "icon": "paintbrush"
       }
     ],
     "stages": [
@@ -4992,6 +5177,13 @@
         "label": {
           "en": "Took part",
           "ru": "Участие"
+        }
+      },
+      {
+        "key": "variant_of",
+        "label": {
+          "en": "Variant of",
+          "ru": "Вариант"
         }
       },
       {

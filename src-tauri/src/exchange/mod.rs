@@ -8,6 +8,7 @@
 
 pub mod backup;
 pub mod chat;
+pub mod convert;
 pub mod export;
 pub mod ideas;
 pub mod import;

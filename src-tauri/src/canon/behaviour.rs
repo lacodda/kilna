@@ -1012,3 +1012,156 @@ fn a_section_settles_at_once_and_one_undo_takes_back_what_it_settled() {
         "canon before stays canon"
     );
 }
+
+/// A place's variant - an epoch, a state - is read over its base (v0.147,
+/// FR-10 10.2): the base's facts follow the variant's own, said as holding
+/// unless the variant says otherwise; a pair that name each other is read
+/// once; and the variant's description is written from both.
+#[test]
+fn a_variant_of_a_place_reads_over_its_base() {
+    let (conn, profile_id) = fixtures::workspace();
+    let cape = fixtures::card(&conn, &profile_id, "location", "The cape");
+    let sixties = fixtures::card(&conn, &profile_id, "location", "The cape, 1960s");
+    let slot = |note_id: &str, section: &str, name: &str, body: &str| {
+        add(
+            &conn,
+            NewFact {
+                note_id: note_id.into(),
+                section: section.into(),
+                body: body.into(),
+                data: [("slot".to_owned(), json!(name))].into_iter().collect(),
+                ..NewFact::default()
+            },
+        )
+        .unwrap()
+    };
+    slot(&cape.id, "passport", "type", "exterior, a rocky headland");
+    slot(
+        &cape.id,
+        "prompt",
+        "description",
+        "a lighthouse on a rocky cape at dusk",
+    );
+    slot(
+        &sixties.id,
+        "prompt",
+        "description",
+        "a promenade with striped awnings",
+    );
+    let draw = |from: &str, to: &str| {
+        link::create_minted(
+            &conn,
+            NewCanonLink {
+                from_id: from.into(),
+                to_id: to.into(),
+                kind: Some(view::VARIANT_OF.into()),
+                ..NewCanonLink::default()
+            },
+            Minted::fresh(),
+        )
+        .unwrap()
+    };
+    draw(&sixties.id, &cape.id);
+
+    let read = view::render(&conn, &sixties.id, Lens::Cover).unwrap();
+    assert!(read.contains("striped awnings"), "{read}");
+    assert!(read.contains("It is a variant of this base"), "{read}");
+    assert!(read.contains("### The base: The cape"), "{read}");
+    assert!(read.contains("a lighthouse on a rocky cape"), "{read}");
+    assert!(
+        read.find("striped awnings") < read.find("a lighthouse"),
+        "its own words first:\n{read}"
+    );
+    // The base is not a variant of its variant.
+    let base = view::render(&conn, &cape.id, Lens::Cover).unwrap();
+    assert!(!base.contains("striped awnings"), "{base}");
+
+    // A ring of variants - the cape over the village, the village over the
+    // sixties - reads each card once.
+    let village = fixtures::card(&conn, &profile_id, "location", "The fishing village");
+    draw(&cape.id, &village.id);
+    draw(&village.id, &sixties.id);
+    let both = view::render(&conn, &sixties.id, Lens::Work).unwrap();
+    assert_eq!(both.matches("striped awnings").count(), 1, "{both}");
+
+    let (composed, _) =
+        crate::assistant::task::compose_for_card(&conn, &sixties.id, "describe-card").unwrap();
+    assert!(
+        composed.prompt.contains("description: a promenade"),
+        "{}",
+        composed.prompt
+    );
+    assert!(
+        composed.prompt.contains("It is a variant of “The cape”"),
+        "{}",
+        composed.prompt
+    );
+    assert!(
+        composed.prompt.contains("type: exterior, a rocky headland"),
+        "{}",
+        composed.prompt
+    );
+}
+
+/// A kit of the channel's dressing (v0.147, FR-10 10.3) names what it is
+/// and keeps its prompt, what it keeps out, and whether it is the old look;
+/// a kind it is not is refused, and no text written beside a work reads it.
+#[test]
+fn a_kit_of_the_channels_dressing_is_kept_and_never_handed_to_a_text() {
+    let (conn, profile_id) = fixtures::workspace();
+    let channel = fixtures::card(&conn, &profile_id, "channel", "The channel");
+    let kit = add(
+        &conn,
+        NewFact {
+            note_id: channel.id.clone(),
+            section: "branding".into(),
+            body: "Banner, neon rain".into(),
+            data: [
+                ("kind".to_owned(), json!("banner")),
+                (
+                    "prompt".to_owned(),
+                    json!("a girl in neon rain, wide banner"),
+                ),
+                ("archived".to_owned(), json!(true)),
+                ("about".to_owned(), json!("")),
+            ]
+            .into_iter()
+            .collect(),
+            ..NewFact::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(kit.data.get("kind"), Some(&json!("banner")));
+    assert_eq!(kit.data.get("archived"), Some(&json!(true)));
+    assert!(
+        !kit.data.contains_key("about"),
+        "an empty value is not kept"
+    );
+
+    let refused = add(
+        &conn,
+        NewFact {
+            note_id: channel.id.clone(),
+            section: "branding".into(),
+            body: "A mug".into(),
+            data: [("kind".to_owned(), json!("merch"))].into_iter().collect(),
+            ..NewFact::default()
+        },
+    )
+    .unwrap_err();
+    assert_eq!(refused.refusal().unwrap().code, "canon.brandingNeedsKind");
+
+    let read = view::render(&conn, &channel.id, Lens::Work).unwrap();
+    assert!(!read.contains("neon rain"), "{read}");
+}
+
+/// A kind that is never drawn - a competing channel - has no description
+/// for a picture written of it (v0.147, FR-10 10.4).
+#[test]
+fn a_card_that_is_never_drawn_is_not_described_for_a_picture() {
+    let (conn, profile_id) = fixtures::workspace();
+    let rival = fixtures::card(&conn, &profile_id, "competitor", "A rival channel");
+    let refused =
+        crate::assistant::task::compose_for_card(&conn, &rival.id, "describe-card").unwrap_err();
+    assert_eq!(refused.refusal().unwrap().code, "canon.pictureless");
+}

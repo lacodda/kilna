@@ -399,6 +399,18 @@ pub fn expand_cards(conn: &Connection, text: &str) -> Result<String> {
 /// internal layer gives details without their addresses, the last layer
 /// stays inside the work.
 pub fn render(conn: &Connection, note_id: &str, lens: Lens) -> Result<String> {
+    render_from(conn, note_id, lens, &mut Vec::new())
+}
+
+/// [`render`], with the cards already read on the way: a variant reads its
+/// base, and a base that names the variant back as its own is read once.
+fn render_from(
+    conn: &Connection,
+    note_id: &str,
+    lens: Lens,
+    seen: &mut Vec<String>,
+) -> Result<String> {
+    seen.push(note_id.to_owned());
     let view = card(conn, note_id)?;
     let config = crate::profile::config_for(conn, &view.card.profile_id)?;
     let kind = config.card_kind(&view.card.kind).ok_or_else(|| {
@@ -454,7 +466,9 @@ pub fn render(conn: &Connection, note_id: &str, lens: Lens) -> Result<String> {
                     lines.push(line);
                 }
             }
-            SectionShape::Appearances => {}
+            // A kit of the channel's dressing is for people and generators,
+            // not for a text written beside it (v0.147).
+            SectionShape::Appearances | SectionShape::Branding => {}
             shape => {
                 for read in view
                     .facts
@@ -480,7 +494,48 @@ pub fn render(conn: &Connection, note_id: &str, lens: Lens) -> Result<String> {
         }
         out.push_str(&format!("### {heading}\n{}\n", lines.join("\n")));
     }
+    // A variant of a place - its epoch, its state - is read over its base
+    // (v0.147, FR-10 10.2): what the base holds holds for it, unless the
+    // variant says otherwise.
+    for base in bases_of(conn, &view.card.id)? {
+        if seen.contains(&base) {
+            continue;
+        }
+        let read = render_from(conn, &base, lens, seen)?;
+        if read.is_empty() {
+            continue;
+        }
+        let under = read
+            .lines()
+            .map(|line| {
+                if let Some(rest) = line.strip_prefix("## ") {
+                    format!("### The base: {rest}")
+                } else if line.starts_with("### ") {
+                    format!("#{line}")
+                } else {
+                    line.to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        out.push_str(&format!(
+            "It is a variant of this base: what the base holds holds here too, unless said otherwise above.\n{under}\n"
+        ));
+    }
     Ok(out.trim_end().to_owned())
+}
+
+/// The relation kind a variant names its base by (v0.147).
+pub const VARIANT_OF: &str = "variant_of";
+
+/// The cards `note_id` is a variant of: the far ends of its relations of
+/// kind `variant_of` drawn from it.
+pub fn bases_of(conn: &Connection, note_id: &str) -> Result<Vec<String>> {
+    Ok(link::for_card(conn, note_id)?
+        .into_iter()
+        .filter(|one| one.kind.as_deref() == Some(VARIANT_OF) && one.from_id == note_id)
+        .map(|one| one.to_id)
+        .collect())
 }
 
 /// `count` of `items`, picked by `seed`, in the order they were picked: the

@@ -5,7 +5,7 @@ import { RowMenu } from '@/components/RowMenu'
 import { cn } from '@/lib/utils'
 
 /** The roles a picture of a card can have; the backend holds the same six. */
-const PICTURE_ROLES = ['portrait', 'reference', 'outfit', 'mood', 'still', 'mark'] as const
+const PICTURE_ROLES = ['portrait', 'reference', 'outfit', 'mood', 'still', 'mark', 'brand'] as const
 
 /**
  * One picture of a card or of one of its facts, with its role and what can be
@@ -16,12 +16,18 @@ export function CardPicture({
   onRole,
   onRemove,
   small = false,
+  chosen = false,
+  onChoose,
 }: {
   picture: Asset
   onRole: (role: string) => void
   onRemove: () => void
   /** Drawn beside a fact rather than in the card's gallery. */
   small?: boolean
+  /** The one in use among a kit's pictures (v0.147). */
+  chosen?: boolean
+  /** Make it the one in use. */
+  onChoose?: () => void
 }) {
   const { t } = useTranslation()
   const role = t(`canon.role.${picture.kind}`, { defaultValue: picture.kind })
@@ -30,6 +36,7 @@ export function CardPicture({
       className={cn(
         'group relative shrink-0 overflow-hidden bg-soft',
         small ? 'size-12 rounded-md' : 'aspect-square rounded-lg',
+        chosen && 'ring-2 ring-accent',
       )}
       title={small ? `${role} · ${picture.original_name ?? ''}` : undefined}
     >
@@ -48,6 +55,9 @@ export function CardPicture({
         <RowMenu
           label={t('canon.pictureActions')}
           actions={[
+            ...(onChoose !== undefined && !chosen
+              ? [{ key: 'choose', label: t('canon.kitUse'), onSelect: onChoose }]
+              : []),
             ...PICTURE_ROLES.filter((one) => one !== picture.kind).map((one) => ({
               key: one,
               label: t('canon.makeRole', { role: t(`canon.role.${one}`) }),

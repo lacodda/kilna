@@ -1931,7 +1931,8 @@
         "styles": "Styles",
         "bans": "Bans",
         "relations": "Relations",
-        "appearances": "Appearances"
+        "appearances": "Appearances",
+        "branding": "Dressing kits"
       },
       "wordOf": "The word of {{key}} in {{kind}}",
       "kindOffered": "{{kind}}: offered for new cards",
@@ -2836,7 +2837,10 @@
     },
     "dock": "The prompt and what came back",
     "stage": "Give the constructor the whole window",
-    "unstage": "Back to the card"
+    "unstage": "Back to the card",
+    "redraw": "To redraw",
+    "redrawDone": "Redrawn: take the mark off",
+    "redrawSet": "Mark the cover to redraw"
   },
   "frame": {
     "still": "Still",
@@ -3236,7 +3240,8 @@
       "stale-draft": "It has not moved in a while.",
       "no-link": "It went out a few days ago, and no link is kept for it.",
       "unmarked": "Its day has passed and it is not marked out: mark it, or give it another day."
-    }
+    },
+    "reviews": "Reviews and documents"
   },
   "pick": {
     "placeholder": "Find a work by name…",
@@ -3681,7 +3686,9 @@
       "unknownStatus": "A fact is canon, open or draft, not «{{status}}».",
       "updateSaysNothing": "{{item}} changes nothing of the card.",
       "noSuchRelation": "{{item}} takes away a relation the two cards do not have.",
-      "moveNeedsSection": "A fact is moved to a section: name it."
+      "moveNeedsSection": "A fact is moved to a section: name it.",
+      "brandingNeedsKind": "A kit of the dressing is an avatar, a banner or a watermark.",
+      "pictureless": "“{{title}}” is never drawn: there is no description for a picture to write."
     },
     "term": {
       "exists": "“{{word}}” is in the register already.",
@@ -3879,7 +3886,13 @@
     "workPlan": {
       "badDay": "“{{day}}” is no day: a planned slot takes a day as YYYY-MM-DD."
     },
-    "work.unknownMark": "The profile has no mark “{{mark}}”."
+    "work.unknownMark": "The profile has no mark “{{mark}}”.",
+    "convert": {
+      "unknownSection": "The rules send text to “{{section}}”, which a card of {{kind}} does not have.",
+      "noDressing": "No kind of root card of this profile keeps kits of a dressing.",
+      "noRootCard": "The space has no root card to keep the kits on.",
+      "badRules": "The rules file cannot be read: {{error}}"
+    }
   },
   "proposalBody": {
     "fields": "Fields",
@@ -4250,7 +4263,8 @@
       "palette": "Colour",
       "marks": "Variant of the mark",
       "styles": "House style",
-      "bans": "Ban"
+      "bans": "Ban",
+      "branding": "Kit: avatar, banner or watermark"
     },
     "placeholder": {
       "facts": "One short statement, true of the world",
@@ -4342,7 +4356,8 @@
       "outfit": "outfit",
       "mood": "mood",
       "still": "still",
-      "mark": "mark"
+      "mark": "mark",
+      "brand": "kit"
     },
     "around": "Around",
     "aroundHint": "a graph, not a paragraph",
@@ -4461,7 +4476,24 @@
     "graphMap": "Every card and how they relate",
     "similarTo": "Nearly the same as: {{fact}}",
     "relationTakenAway": "taken away",
-    "cardUpdates": "Cards changed"
+    "cardUpdates": "Cards changed",
+    "slotsOffered": "Names this section offers",
+    "kitKind": "What the kit is",
+    "kit": {
+      "avatar": "Avatar",
+      "banner": "Banner",
+      "watermark": "Watermark"
+    },
+    "kitArchived": "Before the rebranding",
+    "kitArchivedBadge": "archive",
+    "kitPrompt": "Prompt",
+    "kitPromptPlaceholder": "How a generator is told to draw it, in English",
+    "kitNegative": "What it keeps out",
+    "kitNegativePlaceholder": "What the picture must not show, in English",
+    "kitNegativeSaid": "Keeps out: {{text}}",
+    "kitAbout": "The idea",
+    "kitAboutPlaceholder": "The idea of it, in a line or two",
+    "kitUse": "Use this one"
   },
   "register": {
     "new": "Term",

@@ -8,6 +8,7 @@ import {
   BookOpen,
   Box,
   CalendarDays,
+  ClipboardList,
   Library,
   Lightbulb,
   List,
@@ -16,6 +17,7 @@ import {
   Radio,
   Sparkle,
   StickyNote,
+  Target,
   User,
   Users,
   type LucideIcon,
@@ -49,6 +51,8 @@ const CANON_ICONS: Record<string, LucideIcon> = {
   mic: Mic,
   hash: Hash,
   briefcase: Briefcase,
+  target: Target,
+  'clipboard-list': ClipboardList,
 }
 
 /** The names, for the reference and for a picker. */

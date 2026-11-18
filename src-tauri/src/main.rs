@@ -50,6 +50,23 @@ fn main() {
             }
         });
     }
+    // `kilna --convert-notes <rules.json>` turns notes brought in from a vault
+    // into what kilna keeps them as (v0.147): places into cards, banners into
+    // the channel's kits, reviews into documents on their works - a plan and
+    // a report unless `--apply` is said; `--remove-notes` puts the notes
+    // converted in the trash.
+    if args.iter().any(|arg| arg == "--convert-notes") {
+        std::process::exit(match convert_notes(&args) {
+            Ok(report) => {
+                println!("{}", report.display());
+                0
+            }
+            Err(err) => {
+                eprintln!("kilna --convert-notes: {err}");
+                1
+            }
+        });
+    }
     // `kilna --import-songs <dir>` brings the folders of songs a previous
     // system kept (FR-10 10.1): the sections of each `info.md` and its pages
     // as notes on the work, the section `--images-heading <name>` names as
@@ -145,6 +162,25 @@ fn import_ideas(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
         &file,
         &tagged,
         args.iter().any(|arg| arg == "--apply"),
+    )
+}
+
+fn convert_notes(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
+    let app_dir = match workspace_arg(args) {
+        Some(dir) => dir,
+        None => kilna_lib::space::app_dir()?,
+    };
+    let rules = values_of(args, "--convert-notes")
+        .first()
+        .map(std::path::PathBuf::from)
+        .ok_or_else(|| kilna_lib::Error::refused("import.noFile"))?;
+    let space = values_of(args, "--space").first().map(|name| name.as_str());
+    kilna_lib::exchange::convert::run(
+        &app_dir,
+        space,
+        &rules,
+        args.iter().any(|arg| arg == "--apply"),
+        args.iter().any(|arg| arg == "--remove-notes"),
     )
 }
 

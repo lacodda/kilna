@@ -417,6 +417,15 @@
           "en": "For shorts",
           "ru": "Для шортсов"
         }
+      },
+      {
+        "colour": "warn",
+        "icon": "paintbrush",
+        "key": "redraw-cover",
+        "label": {
+          "en": "Cover to redraw",
+          "ru": "Перерисовать обложку"
+        }
       }
     ],
     "note_kinds": [

@@ -688,7 +688,8 @@ and lore; Podcast ships guests and segments; Blog ships only plain kinds.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`, `lightbulb`, `quote`, `library`, and since v0.141 `globe`, `newspaper`, `mic`, `hash`, `briefcase`. Anything else draws a plain note. |
+| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`, `lightbulb`, `quote`, `library`, since v0.141 `globe`, `newspaper`, `mic`, `hash`, `briefcase`, and since v0.147 `target` and `clipboard-list`. Anything else draws a plain note. |
+| `pictureless` | boolean, optional | A card of this kind is never drawn (v0.147): not offered as a cover's hero, and no description for a picture is written of it. Studio's `competitor`. |
 | `sections` | list, optional | What a card of this kind knows, in the order the card reads. Empty or absent: a plain note. |
 | `root` | boolean, optional | One card of this kind per workspace — the passport, the root of the world. Studio's `channel` (worded *Project / Brand* since v0.141), a novel's `world`, a blog's `publication` and a podcast's `show` are roots. A new space is made with its passport, named after it. A second card of a root kind is refused, and a profile with two root kinds is refused when it is saved. |
 | `off` | boolean, optional | Turned off in the profile editor: the kind is not offered for a new card, and no passport is made of it with a space. Cards of it already made stay. Added in v0.141. |
@@ -706,6 +707,7 @@ A section:
 | `kinds` | list of strings, optional | For a section of relations: the kinds of card it gathers — Studio's character keeps the events she was part of apart from the people around her. Empty gathers every relation no other section of the card claims. |
 | `advanced` | boolean, optional | A section an automation reads rather than a person - the templates a release's text is written from. The passport folds such sections under one group. Studio marks its channel's `template`, `moves`, `assemblies`, `pinned_forms`, `captions` and `details`. Added in v0.141. |
 | `off` | boolean, optional | Turned off in the profile editor: the section is not offered when one is added to a card. One that holds facts still shows them. Added in v0.141. |
+| `slots` | list, optional | For a section of named values: the names it offers when an entry is written (v0.147) - a place's angles `wide`, `medium`, `detail`. Offered, not required. |
 | `draw` | number, optional | How many of the section's entries a prompt is handed, drawn at random each time one is written: a pool a text is built from reaches every text as a different handful, because a model handed the whole pool reaches for the same few every time. The prompt heads the section *Moves (8 of 144, drawn at random for this text)*; the card always shows every entry and says how many a prompt reads. Only a section of statements (`facts`, `slots`, `bans`) is drawn from, and `0` is refused. Studio's channel draws 8 of its `moves`, 3 of its `assemblies` and 4 of its `pinned_forms`. Absent hands over every entry. Added in v0.100.2. |
 
 The shapes:
@@ -717,6 +719,7 @@ The shapes:
 | `details` | A signature detail: its name, a template in English for a generator (`[[card:id]]` brings in a card's description), the pictures it belongs in — `cover`, `frame`, `scene` — and whether it is on by default. The [cover constructor](/kilna/guides/the-cover/) shows each as a switch. |
 | `palette` | A colour with its name. |
 | `marks` | A variant of a mark: its code, what it means, a description for a generator, and its files. |
+| `branding` | A kit of the channel's dressing (v0.147): `kind` (`avatar`, `banner` or `watermark`), its name as the words, `prompt` and `negative` in English, `about`, `archived` for the look before a rebranding, and `active`, the id of the picture in use among the kit's own. Never read into a text written beside a work. |
 | `styles` | A house style: a brick of the [style dictionary](/kilna/guides/styles/). |
 | `bans` | A statement of what must not appear. Read through the `cover` lens into the negative of a picture (a cover, a frame, a scene), through the `public` lens by what is said in public. Studio keeps the two apart: `bans` for texts, `picture_bans` for pictures, on the channel and on a character. |
 | `relations` | Holds no facts: the card's relations to other cards, drawn on the card. |
@@ -746,6 +749,12 @@ of its own. A kind the profile does not have is refused, and a profile with
 two relation kinds under one key is refused when it is saved. A profile
 naming none has not decided, and any word goes — the leniency a kind of
 note has.
+
+`variant_of` (v0.147, Studio and Novel) is read, not only drawn: a card
+related to another by it, from the variant to the base, is read with the
+base's facts after its own, and its description for a generator is written
+from both. A space made before gains the kind at the next start, as it
+gains every kind of relation shipped since.
 
 `duration` is a **number of seconds**, and the Scenes tab divides it between
 the scenes of a board (see [Scenes](/kilna/guides/scenes/#timing-the-board)).
@@ -839,7 +848,7 @@ Flags a work can be given by hand, beside the status the app derives:
 | `key` | string | Stored on the work; renaming the label never touches a work. |
 | `label` | string | What the chip says. |
 | `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` \| `"info"` | A palette role rather than a colour, so it reads in both themes. Defaults to `plain`. |
-| `icon` | string | A glyph beside the word, from this list: `tag`, `wrench`, `clock`, `circle-help`, `flame`, `star`, `bookmark`, `eye`, `check`, `heart`, `lightbulb`, `thumbs-up`, `gauge`, `flag`, `pin`, and since v0.139 `sparkles`, `scissors`, `zap`, `shield-alert`, `refresh-cw`, `rocket`, `award`, `gem`, `music`, `mic`, `video`, `message-circle`, `archive`, `layers`. A name outside it draws `tag`; the word is always there. Every shipped profile but the blank one ships the same eleven marks since v0.139 - working, unsure, favourite, priority, next-up, needs-polish, experiment, redo, waiting, flagship, for-shorts - and a space made before gains the ones it lacks at the next start; a mark its owner deleted stays deleted, and one they reworded keeps their words. |
+| `icon` | string | A glyph beside the word, from this list: `tag`, `wrench`, `clock`, `circle-help`, `flame`, `star`, `bookmark`, `eye`, `check`, `heart`, `lightbulb`, `thumbs-up`, `gauge`, `flag`, `pin`, and since v0.139 `sparkles`, `scissors`, `zap`, `shield-alert`, `refresh-cw`, `rocket`, `award`, `gem`, `music`, `mic`, `video`, `message-circle`, `archive`, `layers`, and since v0.147 `paintbrush`. A name outside it draws `tag`; the word is always there. Every shipped profile but the blank one ships the same marks - since v0.139 working, unsure, favourite, priority, next-up, needs-polish, experiment, redo, waiting, flagship, for-shorts, and since v0.147 redraw-cover, the cover to redraw - and a space made before gains the ones it lacks at the next start; a mark its owner deleted stays deleted, and one they reworded keeps their words. |
 
 A mark is not a status: the status says where a work stands in the process and
 is worked out from what happened, while a mark says something the data cannot

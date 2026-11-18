@@ -19,6 +19,7 @@ import { CoverResult } from '@/features/work/tabs/cover/CoverResult'
 import { CoverStage } from '@/features/work/tabs/cover/CoverStage'
 import { IdeaBoard } from '@/features/work/tabs/cover/IdeaBoard'
 import { Stage } from '@/features/work/tabs/versions/Stage'
+import { RedrawBadge } from '@/features/work/tabs/cover/RedrawBadge'
 import { coverHoldsAnything, useCoverEdit } from '@/features/work/tabs/cover/useCoverEdit'
 
 interface Props {
@@ -158,6 +159,7 @@ export function CoverTab({ work }: Props) {
           <span className="text-2xs text-faint">
             {view === 'ideas' ? t('ideas.noMaster') : t('ideas.savedAsMade')}
           </span>
+          <RedrawBadge work={work} />
           {view === 'constructor' && !staged && stageButton}
         </div>
 

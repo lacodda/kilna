@@ -88,6 +88,13 @@ const COLLECTIONS: &[Collection] = &[
         nested: &[],
         whole: false,
     },
+    // The kinds of relation (v0.147): a kind shipped since - a place's
+    // variant - arrives on a copy that has the others.
+    Collection {
+        path: &[Step::Field("relation_kinds")],
+        nested: &[],
+        whole: false,
+    },
     Collection {
         path: &[Step::Field("note_kinds")],
         nested: &["sections"],

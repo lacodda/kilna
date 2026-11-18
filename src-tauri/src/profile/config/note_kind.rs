@@ -65,6 +65,11 @@ pub struct NoteKind {
     /// the short working notes.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub document: bool,
+    /// A card of this kind is never drawn (v0.147, FR-10 10.4): a competing
+    /// channel, a reference that is read rather than shown. It is not offered
+    /// as a cover's hero, and no description for a picture is written of it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pictureless: bool,
     /// Turned off in the profile editor (v0.141, FR-18): a kind of card not
     /// offered for a new card, and no passport made of it with a space.
     /// Cards of it already made stay, and read as they did.
@@ -107,6 +112,7 @@ impl NoteKind {
             library: false,
             media: Vec::new(),
             document: false,
+            pictureless: false,
             off: false,
         }
     }
@@ -246,6 +252,12 @@ pub struct CanonSection {
     /// over every entry; the card itself always shows them all.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub draw: Option<u16>,
+    /// For a section of named values: the names it offers when an entry is
+    /// written (v0.147) - a place's angles, wide, medium and detail, or its
+    /// passport's type and scale. Offered, not required: a slot of another
+    /// name is kept as written.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub slots: Vec<String>,
     /// A section an automation reads rather than a person (v0.141, FR-18):
     /// the templates a release's text is written from. The card gathers such
     /// sections under one folded group, out of the way of the passport.
@@ -267,6 +279,7 @@ impl CanonSection {
             lenses: Vec::new(),
             kinds: Vec::new(),
             draw: None,
+            slots: Vec::new(),
             advanced: false,
             off: false,
         }
@@ -299,6 +312,12 @@ pub enum SectionShape {
     Palette,
     /// Variants of a mark: a code, a meaning, a description, the files.
     Marks,
+    /// The kits a channel is dressed in (v0.147, FR-10 10.3): an avatar, a
+    /// banner, a watermark - each a name, the prompt it is drawn from, the
+    /// pictures drawn of it, the one in use, and whether it belongs to the
+    /// look before a rebranding. Read by people and generators, never handed
+    /// to the assistant with a work.
+    Branding,
     /// House styles: bricks of the style dictionary.
     Styles,
     /// What must not appear: statements a picture's negative reads through

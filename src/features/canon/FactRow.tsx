@@ -86,7 +86,13 @@ export function FactRow({ read, view, shape, lens }: Props) {
   // A picture of the fact itself: an outfit's photo, a variant of the mark in
   // its files. A mark is drawn as a vector as often as not, so it takes SVG.
   const pictureRole =
-    shape === 'marks' ? 'mark' : fact.section === 'outfits' ? 'outfit' : 'reference'
+    shape === 'marks'
+      ? 'mark'
+      : shape === 'branding'
+        ? 'brand'
+        : fact.section === 'outfits'
+          ? 'outfit'
+          : 'reference'
   const attach = useAppMutation({
     mutationFn: async (paths: string[]) => {
       for (const path of paths)
@@ -111,7 +117,8 @@ export function FactRow({ read, view, shape, lens }: Props) {
       filters: [
         {
           name: t('styles.pictures'),
-          extensions: shape === 'marks' ? [...PICTURES, 'svg'] : [...PICTURES],
+          extensions:
+            shape === 'marks' || shape === 'branding' ? [...PICTURES, 'svg'] : [...PICTURES],
         },
       ],
     })
@@ -216,13 +223,29 @@ export function FactRow({ read, view, shape, lens }: Props) {
         >
           <FactWords fact={fact} shape={shape} />
         </div>
-        {pictures.length > 0 && (
+        {pictures.length > 0 && shape !== 'branding' && (
           <div className="mt-1 flex flex-wrap gap-1">
             {pictures.map((picture) => (
               <CardPicture
                 key={picture.id}
                 picture={picture}
                 small
+                onRole={(next) => role.mutate({ id: picture.id, next })}
+                onRemove={() => detach.mutate(picture.id)}
+              />
+            ))}
+          </div>
+        )}
+        {/* A kit's variants, the one in use ringed (v0.147): drawn at a
+            size a banner can be told apart at. */}
+        {shape === 'branding' && pictures.length > 0 && (
+          <div className="mt-1.5 grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-1.5">
+            {pictures.map((picture) => (
+              <CardPicture
+                key={picture.id}
+                picture={picture}
+                chosen={fact.data.active === picture.id}
+                onChoose={() => change.mutate({ data: { ...fact.data, active: picture.id } })}
                 onRole={(next) => role.mutate({ id: picture.id, next })}
                 onRemove={() => detach.mutate(picture.id)}
               />
@@ -370,6 +393,33 @@ function FactWords({ fact, shape }: { fact: ReadFact['fact']; shape: SectionShap
           {text('prompt') !== '' && (
             <span className="block font-mono text-2xs leading-normal text-dim">
               {text('prompt')}
+            </span>
+          )}
+        </>
+      )
+    case 'branding':
+      return (
+        <>
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded-sm bg-accent-soft px-1 text-2xs text-accent-2">
+              {t(`canon.kit.${text('kind') || 'banner'}`)}
+            </span>
+            <b className="font-semibold">{fact.body}</b>
+            {fact.data.archived === true && (
+              <span className="rounded-sm bg-soft px-1 text-2xs text-faint">
+                {t('canon.kitArchivedBadge')}
+              </span>
+            )}
+          </span>
+          {text('about') !== '' && <span className="block text-xs text-dim">{text('about')}</span>}
+          {text('prompt') !== '' && (
+            <span className="block line-clamp-3 font-mono text-2xs leading-normal text-dim">
+              {text('prompt')}
+            </span>
+          )}
+          {text('negative') !== '' && (
+            <span className="block line-clamp-2 font-mono text-2xs leading-normal text-faint">
+              {t('canon.kitNegativeSaid', { text: text('negative') })}
             </span>
           )}
         </>

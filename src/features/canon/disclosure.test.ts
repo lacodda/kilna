@@ -35,8 +35,13 @@ describe('the way to add to a section', () => {
   it('is worded for every shape that holds facts', async () => {
     const en = (await import('@/i18n/locales/en.json')).default
     const ru = (await import('@/i18n/locales/ru.json')).default
-    for (const shape of ['facts', 'slots', 'details', 'palette', 'marks', 'styles', 'bans']) {
+    const shapes = ['facts', 'slots', 'details', 'palette', 'marks', 'styles', 'bans', 'branding']
+    for (const shape of shapes) {
       expect([shape, shape in en.canon.add, shape in ru.canon.add]).toEqual([shape, true, true])
+    }
+    // A kit says what it is in both languages too (v0.147).
+    for (const kind of ['avatar', 'banner', 'watermark']) {
+      expect([kind, kind in en.canon.kit, kind in ru.canon.kit]).toEqual([kind, true, true])
     }
   })
 })

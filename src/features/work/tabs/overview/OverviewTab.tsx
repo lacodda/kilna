@@ -31,6 +31,11 @@ import { LinksWidget } from '@/features/work/tabs/overview/LinksWidget'
 import { PublicationsWidget } from '@/features/work/tabs/overview/PublicationsWidget'
 import { RecentWidget } from '@/features/work/tabs/overview/RecentWidget'
 import { RepeatsWidget } from '@/features/work/tabs/overview/RepeatsWidget'
+import {
+  documentKindsOf,
+  documentsOf,
+  ReviewsWidget,
+} from '@/features/work/tabs/overview/ReviewsWidget'
 import { ReleaseWidget } from '@/features/work/tabs/overview/ReleaseWidget'
 import { ScoreWidget } from '@/features/work/tabs/overview/ScoreWidget'
 import { StageWidget } from '@/features/work/tabs/overview/StageWidget'
@@ -72,6 +77,7 @@ const WIDGET_BODIES: Readonly<Record<WidgetId, (drawn: Drawn) => ReactNode>> = {
   trend: ({ work }) => <TrendWidget work={work} />,
   publications: ({ work }) => <PublicationsWidget work={work} />,
   repeats: ({ work }) => <RepeatsWidget work={work} />,
+  reviews: ({ work }) => <ReviewsWidget work={work} />,
 }
 
 /**
@@ -102,6 +108,8 @@ export function OverviewTab({ work }: Props) {
   // here as well as in its widget, which shares the answer, to know whether
   // the widget is drawn at all.
   const repeats = useQuery(queries.workRepeats(work.id, today()))
+  // The documents attached to the work, shared with their widget (v0.147).
+  const attached = useQuery(queries.notesMatching({ work_id: work.id }))
 
   const board = boardOf(profile.config)
   // The brief is the Conception tab's (ADR 0065): neither the text nor the
@@ -130,6 +138,7 @@ export function OverviewTab({ work }: Props) {
     cover: hasDoors(profile.config, work.kind) || covers.has(work.id),
     findings: standing.length > 0,
     repeats: (repeats.data?.findings.length ?? 0) > 0,
+    reviews: documentsOf(attached.data ?? [], documentKindsOf(profile.config)).length > 0,
   }
   const widgets = board.widgets.filter((widget) => applies(widget.id, facts))
 

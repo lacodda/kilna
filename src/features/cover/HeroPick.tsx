@@ -48,6 +48,8 @@ export function HeroPick({ hero, state, disabled, onChange }: Props) {
     (card: CardSummary) =>
       (everyLayer || card.layer === 'public') &&
       cardKindOf(config, card.kind)?.root !== true &&
+      // A competing channel is read, never drawn (v0.147).
+      cardKindOf(config, card.kind)?.pictureless !== true &&
       (needle === '' ||
         `${card.title ?? ''} ${card.aliases.join(' ')}`.toLowerCase().includes(needle)),
   )

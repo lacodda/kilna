@@ -341,3 +341,36 @@ describe('room for the constructor', () => {
     expect(screen.getByRole('button', { name: en.cover.stage })).toBeInTheDocument()
   })
 })
+
+// v0.147, FR-10 10.4: a cover to redraw carries the mark the Catalogue
+// filters by, raised and taken off from its own tab.
+describe('a cover to redraw', () => {
+  it('is marked from its tab, and says so until the mark is taken off', async () => {
+    backend.answer('mark_works', ({ workIds, mark, raised }) => {
+      for (const id of workIds as string[]) {
+        const work = workspace.works.find((one) => one.id === id)!
+        work.marks = raised
+          ? [...work.marks, mark as string]
+          : work.marks.filter((one) => one !== mark)
+      }
+      return { changed: (workIds as string[]).length, skipped: [] }
+    })
+    await openCover(IDS.audio)
+
+    fireEvent.click(screen.getByRole('button', { name: en.cover.redrawSet }))
+    await waitFor(() =>
+      expect(backend.argsOf('mark_works')).toEqual([
+        { workIds: [IDS.audio], mark: 'redraw-cover', raised: true },
+      ]),
+    )
+    expect(await screen.findByText(en.cover.redraw)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: en.cover.redrawDone }))
+    await waitFor(() => expect(backend.argsOf('mark_works')).toHaveLength(2))
+    expect(backend.argsOf('mark_works')[1]).toEqual({
+      workIds: [IDS.audio],
+      mark: 'redraw-cover',
+      raised: false,
+    })
+  })
+})

@@ -134,7 +134,11 @@ card.
 Most sections hold statements. Some hold more than words, which is what
 lets the channel be a card like the others:
 
-- **Slots** — a caption's slot and its words; a template's parts.
+- **Slots** — a caption's slot and its words; a template's parts. A
+  section may offer the names its slots take (v0.147): a place's angles
+  offer *wide*, *medium* and *detail*, its passport *type*, *scale*,
+  *palette*, *textures* and *key objects* - one press fills the name in,
+  and a slot of another name is kept as written.
 - **Details** — a signature detail: its name, an English template for a
   picture generator, where it acts (covers, frames, scenes) and whether it
   is on by default. `[[card:id]]` in a template brings in that card's
@@ -143,6 +147,13 @@ lets the channel be a card like the others:
 - **Marks** — a variant of the mark: its code, what it means, its
   description for a generator.
 - **House styles** — bricks of the [style dictionary](/kilna/guides/styles/).
+- **Dressing kits** (v0.147) — what the channel is dressed in: an avatar, a
+  banner, a watermark. A kit has a name, the prompt it is drawn from, what
+  a picture of it keeps out and the idea of it; the pictures drawn of it
+  hang under it, and **Use this one** on a picture rings it as the one in
+  use. **Before the rebranding** sends a kit to the archive - kept, said
+  apart, and out of the way of the current look. Kits are for people and
+  generators: a text written beside a work never reads them.
 - **Bans** — what must not appear. A cover reads a picture's bans into its
   negative; a public text reads the bans of texts. Studio keeps them apart on
   the channel and on a character - *Bans* for what is said, *Picture bans*
@@ -156,6 +167,38 @@ a dressing, picture bans its negative.
 
 The channel card lays these out as a board of panels rather than one
 column.
+
+### Places in detail
+
+Since v0.147 a place of Studio and of a novel has more than its look:
+
+- **Passport** - its type (interior, exterior, landscape), scale, palette,
+  textures and key objects, each a named slot.
+- **For a generator** - the place in English, the way a picture generator
+  reads it: a description, and one more per light or epoch when the place
+  has them.
+- **Angles** - wide, medium and detail: what each shows, with its reference
+  pictures pasted onto the angle itself.
+- **Picture bans** - what a picture of it keeps out, read into the negative
+  of a cover it is the hero of.
+
+The description for a generator is written from the passport, the words
+for a generator and the look together.
+
+**A variant of a place** - its epoch, its state, the cape in the sixties -
+is a card of its own, joined to its base by the relation **Variant of**.
+Everything the base holds holds for the variant unless the variant says
+otherwise: a task reading the variant reads its own facts and then the
+base's, said as the base, and the variant's description is written from
+both. A base is never read as its variant's.
+
+### Cards that are never drawn
+
+A kind of card may be marked as never drawn (v0.147): Studio's
+**Competitor** - another channel, its strengths, what does not work for it
+and what to take from it. It stands in the canon and is read by tasks like
+any card, but is never offered as a cover's hero, and no description for a
+picture is written of it.
 
 ### Relations and where it appears
 
@@ -184,7 +227,7 @@ channel; **Raise to the channel** lets it go of the work.
 ### Pictures and the description
 
 Paste a picture (`Ctrl+V`) or drop one onto the side panel. Each has a
-role — portrait, reference, outfit, mood, still, mark — and the newest
+role — portrait, reference, outfit, mood, still, mark, kit — and the newest
 portrait is the card's face.
 
 A picture generator does not know who the card is; it needs the card in
