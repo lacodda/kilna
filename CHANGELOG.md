@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.134.0] - 2026-11-18
+
+Brick contracts. A style can say when it can go into a picture and what it
+brings to it - a pose that needs the hero to the waist, a grade that cannot
+stand a black-and-white style, a camera move that cannot go into a frame
+whose camera holds still - and one rule reads every chosen brick against
+the picture. What the picture cannot take is left out of the prompt but
+kept in the cover, and the constructor says why with one button that lets
+it in. Covers gain nine layers - composition, environment, look, pose,
+angle, layering, lighting, optics, grading - and Studio ships the light, the
+lens and the grade. A frame's loop is built from up to five movements of the
+Motion branch, a scene gets its own bricks and movements, and an agent can
+propose styles of any type, with their contracts, over MCP.
+
+### Bug Fixes
+- The window's types for frames, problems and new bricks
+
+### Features
+- Brick contracts read by one resolver, nine layers, movements in loops and scenes
+
 ## [0.133.0] - 2026-11-18
 
 Motion and heroes. The dictionary has a third branch beside the picture and
