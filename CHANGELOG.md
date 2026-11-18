@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.141.0] - 2026-11-18
+
+A canon for every craft. Novels, blogs and podcasts have a canon now, and
+every canon a passport - World / Book, Publication / Blog with its personas,
+topics and cases, Show / Podcast, and Studio's channel worded Project /
+Brand - made with each new space and named after it. While the canon holds
+nothing else, a quick start offers to fill the passport, make the first card
+or set it up with the assistant. A card shows only the sections that hold
+something, the rest under + Add section; the letters of the layers and the
+words of the states appear only where they say something, and a fact's
+layer, state, time and source wait under More options. The passport folds
+its publication templates away, the lens moved into How the AI reads this,
+and a line over a card counts the assistant's proposals with Review and
+Accept all. Kinds of card and their sections can be turned off in the
+profile editor.
+
+### Bug Fixes
+- The passport kilna made does not keep the first space from going
+
+### Features
+- A passport in every profile, made with the space, and a card that shows only what it holds
+
 ## [0.140.0] - 2026-11-18
 
 Catalogue columns. The total now carries the tier it earned - its letter by
