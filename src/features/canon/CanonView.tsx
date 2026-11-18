@@ -134,7 +134,10 @@ export function CanonView() {
                 ? t('canon.howAiReads')
                 : t('canon.howAiReadsAs', { lens: t(`canon.lensName.${lens}`) })}
             </PopoverTrigger>
-            <PopoverPopup align="start" className="flex w-auto max-w-[calc(100vw-2rem)] flex-col gap-2 p-3">
+            <PopoverPopup
+              align="start"
+              className="flex w-auto max-w-[calc(100vw-2rem)] flex-col gap-2 p-3"
+            >
               <PopoverTitle>{t('canon.lens')}</PopoverTitle>
               <SegmentedControl
                 aria-label={t('canon.lens')}
