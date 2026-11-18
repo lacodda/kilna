@@ -2595,7 +2595,8 @@
       "hint": "the generator letters the title in the same prompt",
       "words": "The title on the cover",
       "noTitle": "No title, captions only",
-      "followSource": "As the song is called"
+      "followSource": "As the song is called",
+      "placeNeedsFrame": "Pick a frame to say where the title goes."
     },
     "dressing": {
       "title": "Dressing",

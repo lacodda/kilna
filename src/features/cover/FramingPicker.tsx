@@ -55,6 +55,37 @@ interface Props {
 /** Past this many layouts the list offers a search. */
 const SEARCHED_FROM = 9
 
+/**
+ * Where the title goes in a built frame: for the constructor's lettering
+ * section, which says everything about the words in one place (v0.135).
+ */
+export function TitlePlacePick({
+  framing,
+  disabled,
+  onChange,
+}: {
+  framing: Framing
+  disabled?: boolean
+  onChange: (framing: Framing) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <SegmentedControl
+      aria-label={t('cover.framing.place')}
+      value={framing.place}
+      disabled={disabled}
+      onValueChange={(place) => onChange({ ...framing, place: place as CoverPlace })}
+      className="h-auto flex-wrap"
+    >
+      {PLACES.map((place) => (
+        <Segment key={place} value={place} className="px-2 py-0.5 text-xs">
+          {t(`cover.place.${place}`)}
+        </Segment>
+      ))}
+    </SegmentedControl>
+  )
+}
+
 /** The shot scale's stops: no subject at all, then how much of it shows. */
 type Shot = 'none' | CoverCrop
 
@@ -225,19 +256,7 @@ export function FramingPicker({
           {lettering && (
             <>
               <span className="caption">{t('cover.framing.place')}</span>
-              <SegmentedControl
-                aria-label={t('cover.framing.place')}
-                value={framing.place}
-                disabled={disabled}
-                onValueChange={(place) => set({ place: place as CoverPlace })}
-                className="h-auto flex-wrap"
-              >
-                {PLACES.map((place) => (
-                  <Segment key={place} value={place} className="px-2 py-0.5 text-xs">
-                    {t(`cover.place.${place}`)}
-                  </Segment>
-                ))}
-              </SegmentedControl>
+              <TitlePlacePick framing={framing} disabled={disabled} onChange={onChange} />
             </>
           )}
         </div>

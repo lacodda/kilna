@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Pane } from '@/components/ui/frame'
 import { BrickPick } from '@/features/cover/BrickPick'
 import { DetailSwitches } from '@/features/cover/DetailSwitches'
-import { FramingPicker } from '@/features/cover/FramingPicker'
+import { FramingPicker, TitlePlacePick } from '@/features/cover/FramingPicker'
+import { Switch } from '@/components/ui/switch'
 import { HeroPick } from '@/features/cover/HeroPick'
 import { DraftText, Section } from '@/features/cover/Section'
 import { DiscSwitch, GroundPick, SubjectPick } from '@/features/cover/Staging'
@@ -151,7 +152,7 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
         <FramingPicker
           framing={cover.framing}
           layouts={view?.layouts ?? []}
-          lettering
+          lettering={false}
           subject={cover.hero !== null ? 'person' : (cover.staging.subject ?? 'object')}
           onSubject={(subject) => change((c) => fixCover(c, { kind: 'subject', subject }))}
           onClear={() => change((c) => ({ ...c, framing: null }))}
@@ -213,6 +214,38 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           sourceTitle={view?.source_title ?? ''}
           onChange={(title) => change((c) => ({ ...c, lettering: { ...c.lettering, title } }))}
         />
+        {/* Everything about the words in one place (v0.135): where the
+            title goes, whether it is lettered by a second prompt, and in
+            what. */}
+        {cover.framing !== null ? (
+          <>
+            <span className="caption">{t('cover.framing.place')}</span>
+            <TitlePlacePick
+              framing={cover.framing}
+              onChange={(framing) => change((c) => ({ ...c, framing }))}
+            />
+          </>
+        ) : (
+          <span className="text-xs text-faint">{t('cover.lettering.placeNeedsFrame')}</span>
+        )}
+        <Switch
+          checked={cover.lettering.apart}
+          onCheckedChange={(apart) =>
+            change((c) => ({ ...c, lettering: { ...c.lettering, apart } }))
+          }
+        >
+          {t('cover.prompt.apart')}
+        </Switch>
+        {cover.lettering.apart && (
+          <Switch
+            checked={cover.lettering.reserve}
+            onCheckedChange={(reserve) =>
+              change((c) => ({ ...c, lettering: { ...c.lettering, reserve } }))
+            }
+          >
+            {t('cover.prompt.reserve')}
+          </Switch>
+        )}
         <BrickPick
           label={t('cover.lettering.title')}
           form="lettering"
@@ -220,6 +253,7 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           houseStyles={house}
           onChange={(typography) => change((c) => ({ ...c, bricks: { ...c.bricks, typography } }))}
         />
+        <CoverProblems problems={problemsOf('typography')} onFix={fix} />
       </Section>
 
       <Section
