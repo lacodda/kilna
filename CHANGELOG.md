@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.126.0] - 2026-11-18
+
+Skills. The profile's actions get a section of their own, Settings -> Skills:
+each is a button the window offers with the message it sends, or a method
+only - a playbook the assistant and agents read, never a button on a card.
+Find one by a word of its key, name, trigger or method, narrow by kind, what
+it is about, button or method and where it stands against what kilna ships,
+and edit it whole: its trigger, its group, every scope and answer, the
+button switch, the method with a preview of what the assistant is handed.
+Reset one to the standard, duplicate it, export and import the set. A count
+beside Profile and Skills says how many newer standards wait to be compared.
+
+### Bug Fixes
+- The newer standards fold into one line in Skills
+
+### Features
+- Skills - a button or a method an agent reads, in a section of their own
+
+### Testing
+- The test backend answers what kilna ships with nothing waiting
+
 ## [0.125.0] - 2026-11-18
 
 One rule for what kilna ships. The actions, statuses, stages, marks, fields,
