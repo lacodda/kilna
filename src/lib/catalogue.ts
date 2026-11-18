@@ -1,3 +1,5 @@
+import type { WorkPlan } from '@/lib/api/types'
+import { today as todayOf } from '@/lib/month'
 import type { RepeatLevel, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { standsAt, stopOf } from '@/lib/stages'
 
@@ -65,16 +67,7 @@ export interface CatalogueFilter {
 
 /** A column the table can be ordered by. */
 export type SortColumn =
-  | 'title'
-  | 'stage'
-  | 'tier'
-  | 'total'
-  | 'scored'
-  | 'status'
-  | 'versions'
-  | 'release'
-  | 'created'
-  | 'updated'
+  'title' | 'stage' | 'total' | 'status' | 'versions' | 'release' | 'created' | 'updated'
 export type SortDirection = 'asc' | 'desc'
 
 export interface Sort {
@@ -100,6 +93,8 @@ export interface CatalogueRow extends ScoredWork {
    * booked. A slot whose day has passed without the release being marked out
    * still counts: it is the booking most in need of an answer. */
   next_release: ScheduledRelease | null
+  /** The work's open planned slot (v0.138, FR-11), or null. */
+  plan?: WorkPlan | null
 }
 
 /**
@@ -114,7 +109,10 @@ export interface CatalogueRow extends ScoredWork {
 export function withNextReleases(
   rows: readonly ScoredWork[],
   releases: readonly ScheduledRelease[] | undefined,
+  /** The open planned slots, each riding with its work (v0.140). */
+  plans: readonly WorkPlan[] = [],
 ): CatalogueRow[] {
+  const planned = new Map(plans.map((plan) => [plan.work_id, plan]))
   const next = new Map<string, ScheduledRelease>()
   for (const release of releases ?? []) {
     if (release.scheduled_at === null || release.status === 'released') continue
@@ -130,7 +128,7 @@ export function withNextReleases(
       const theirs = next.get(made)
       if (theirs !== undefined && (soonest === null || sooner(theirs, soonest))) soonest = theirs
     }
-    return { ...row, next_release: soonest }
+    return { ...row, next_release: soonest, plan: planned.get(row.work_id) ?? null }
   })
 }
 
@@ -295,8 +293,18 @@ export interface ColumnFilters {
    * a view saved before v0.119 ticked - a stop of the older scale, the "no
    * stage" entry - is read as the stop it lands on (`stopOf`). */
   stages?: number[]
-  /** Tier keys. */
+  /** Tier keys, as the total's letter shows them, and `EMPTY_TICK` for
+   *  works with no tier. The total's funnel since v0.140: each tier is a
+   *  range of the score, from its `min` to the next one's. */
   tiers?: string[]
+  /** Where the next release stands (v0.140): `planned` - a booking or a
+   *  planned slot ahead - `overdue` - its day has passed and it is not out -
+   *  or `undated`, nothing ahead. */
+  booking?: string[]
+  /** Collection ids, and `EMPTY_TICK` for works in none (v0.140). */
+  collections?: string[]
+  /** The work's tags, and `EMPTY_TICK` for works with none (v0.140). */
+  tags?: string[]
   /** Mark keys: works carrying any of them - or, with `EMPTY_TICK`, works
    *  carrying none. */
   marks?: string[]
@@ -329,7 +337,50 @@ export const EMPTY_TICK = '(empty)'
  * "With all of" two ticks of one would ask a work to stand in two places, so
  * the funnel does not offer it for two ticks or more (`andBlocked`).
  */
-const SINGLE_VALUED: ReadonlySet<FilterableColumn> = new Set(['statuses', 'stages', 'tiers'])
+const SINGLE_VALUED: ReadonlySet<FilterableColumn> = new Set([
+  'statuses',
+  'stages',
+  'tiers',
+  'booking',
+  'collections',
+])
+
+/**
+ * The profile's tiers, highest first, each with its letter and the range of
+ * the score it stands for (v0.140): S, A, B, C... by rank, from its `min` up
+ * to the next tier's - the letter the total's cell shows, and the ranges its
+ * funnel ticks.
+ */
+export function tierRanges<T extends { key: string; min: number }>(
+  tiers: readonly T[],
+): { tier: T; letter: string; from: number; below: number | null }[] {
+  const ranked = [...tiers].sort((a, b) => b.min - a.min)
+  return ranked.map((tier, rank) => ({
+    tier,
+    letter: TIER_LETTERS[rank] ?? String(rank + 1),
+    from: tier.min,
+    below: rank === 0 ? null : (ranked[rank - 1]?.min ?? null),
+  }))
+}
+
+const TIER_LETTERS = ['S', 'A', 'B', 'C', 'D', 'E', 'F']
+
+/** The ways a work's next release can stand, in the funnel's order. */
+export const BOOKINGS = ['planned', 'overdue', 'undated'] as const
+
+/**
+ * Where a row's next release stands on `today`: its booking, or its planned
+ * slot when nothing is booked - the date the cell shows, so the funnel and
+ * the cell cannot disagree.
+ */
+export function bookingOf(
+  row: Pick<CatalogueRow, 'next_release' | 'plan'>,
+  today: string,
+): (typeof BOOKINGS)[number] {
+  const day = row.next_release?.scheduled_at ?? row.plan?.scheduled_at ?? null
+  if (day === null) return 'undated'
+  return day < today ? 'overdue' : 'planned'
+}
 
 /** Whether "and" is closed to a funnel holding this many ticks. */
 export function andBlocked(column: FilterableColumn, ticks: number): boolean {
@@ -428,6 +479,9 @@ const FILTERABLE_COLUMNS: FilterableColumn[] = [
   'statuses',
   'stages',
   'tiers',
+  'booking',
+  'collections',
+  'tags',
   'marks',
   'vibe',
 ]
@@ -443,9 +497,10 @@ const FILTERABLE_COLUMNS: FilterableColumn[] = [
  * tier is earned rather than set. In a column of one value "and" over two
  * ticks is read as "or": the funnel does not offer it (`andBlocked`).
  */
-export function narrowByColumns<Row extends ScoredWork>(
+export function narrowByColumns<Row extends ScoredWork & Partial<CatalogueRow>>(
   rows: Row[],
   filters: ColumnFilters,
+  today: string = todayOf(),
 ): Row[] {
   const words = (filters.title ?? '').toLowerCase().split(/\s+/).filter(Boolean)
   const held = <T>(column: FilterableColumn, ticks: readonly T[] | undefined) => {
@@ -458,6 +513,9 @@ export function narrowByColumns<Row extends ScoredWork>(
   const statuses = held('statuses', filters.statuses)
   const stages = held('stages', filters.stages?.map(stopOf))
   const tiers = held('tiers', filters.tiers)
+  const booking = held('booking', filters.booking)
+  const collections = held('collections', filters.collections)
+  const tags = held('tags', filters.tags)
   const marks = held('marks', filters.marks)
   const vibe = held('vibe', filters.vibe)
 
@@ -473,6 +531,14 @@ export function narrowByColumns<Row extends ScoredWork>(
       return false
     const tierIs = (key: string) => (key === EMPTY_TICK ? row.tier === null : row.tier === key)
     if (tiers && !passes(tiers.ticks, tierIs, tiers.logic)) return false
+    const stands = bookingOf({ next_release: row.next_release ?? null, plan: row.plan }, today)
+    if (booking && !passes(booking.ticks, (key) => stands === key, booking.logic)) return false
+    const inCollection = (key: string) =>
+      key === EMPTY_TICK ? row.collection_id === null : row.collection_id === key
+    if (collections && !passes(collections.ticks, inCollection, collections.logic)) return false
+    const tagged = (key: string) =>
+      key === EMPTY_TICK ? row.tags.length === 0 : row.tags.includes(key)
+    if (tags && !passes(tags.ticks, tagged, tags.logic)) return false
     const carries = (key: string) =>
       key === EMPTY_TICK ? row.marks.length === 0 : row.marks.includes(key)
     if (marks && !passes(marks.ticks, carries, marks.logic)) return false
@@ -536,6 +602,9 @@ function isColumnFilters(value: unknown): value is ColumnFilters {
   if (!isListOf(candidate.statuses, 'string')) return false
   if (!isListOf(candidate.stages, 'number')) return false
   if (!isListOf(candidate.tiers, 'string')) return false
+  for (const list of ['booking', 'collections', 'tags'] as const) {
+    if (!isListOf(candidate[list], 'string')) return false
+  }
   if (!isListOf(candidate.vibe, 'string')) return false
   if (!isLogic(candidate.logic)) return false
   return isListOf(candidate.marks, 'string')
@@ -595,12 +664,8 @@ function valueOf(row: CatalogueRow, column: SortColumn): string | number | null 
   switch (column) {
     case 'title':
       return row.title
-    case 'tier':
-      return row.tier
     case 'total':
       return row.total
-    case 'scored':
-      return row.scored_at
     case 'status':
       return row.status
     case 'versions':
@@ -678,9 +743,7 @@ const COLUMNS: SortColumn[] = [
   // remembered and then refused on the next open, quietly resetting to the
   // score. The list is what `valueOf` switches on, and the two must agree.
   'stage',
-  'tier',
   'total',
-  'scored',
   'status',
   'versions',
   'release',
@@ -814,12 +877,12 @@ export type ColumnId =
   | 'status'
   | 'stage'
   | 'vibe'
-  | 'tier'
   | 'total'
   | 'versions'
   | 'release'
-  | 'ready'
-  | 'scored'
+  | 'collection'
+  | 'tags'
+  | 'derived'
   | 'created'
   | 'updated'
 
@@ -832,12 +895,12 @@ export const ALL_COLUMNS: ColumnId[] = [
   'status',
   'stage',
   'vibe',
-  'tier',
   'total',
   'versions',
   'release',
-  'ready',
-  'scored',
+  'collection',
+  'tags',
+  'derived',
   'created',
   'updated',
 ]
@@ -859,18 +922,17 @@ export const DEFAULT_COLUMNS: ColumnId[] = [
   'status',
   'stage',
   'vibe',
-  'tier',
   'total',
   'versions',
   'release',
-  'ready',
 ]
 
 /** The title carries the row's identity and its link; it cannot be turned off. */
 export const REQUIRED_COLUMN: ColumnId = 'title'
 
-/** The columns v0.79 added to the default list. */
-const INTRODUCED: readonly ColumnId[] = ['status', 'release', 'ready']
+/** The columns v0.79 added to the default list. Its third, Ready, went into
+ *  the next release's cell in v0.140. */
+const INTRODUCED: readonly ColumnId[] = ['status', 'release']
 
 /** Columns that came after: the vibe (v0.124). Shown in a list the person
  *  has not made their own, wherever it does not name them yet - a list that

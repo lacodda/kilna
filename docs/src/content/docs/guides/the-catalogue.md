@@ -13,14 +13,25 @@ last earned, and when it was scored. Clicking a row opens it.
 ## Choosing the columns
 
 The **columns button** above the table, to the right, says which columns it
-draws. It opens with the title, the stage dial, the marks, the tier, the score,
-when it was judged and when it last changed; beside those there are three more:
+draws. It opens with the title, the marks, the status, the stage dial, the
+vibe, the total, the versions and the next release; beside those there are
+more:
 
 | Column | What it says |
 | --- | --- |
-| ID | The work's identifier, shortened — what a plugin or the assistant calls it |
-| Versions | How many versions the work holds, across every role |
+| ID | The work's identifier, shortened — what a plugin or the assistant calls it. A press copies the whole id |
+| Total | The score and the tier it earned, as the tier's letter by rank - S for the highest, then A, B, C. The tier's word, the day it was scored and how far the next tier is are on hover; a turned arrow says the work was edited after its score, a pin that the tier is held by hand |
+| Next release | The day of the next booking, after a dot that says whether it can go out: green when it can, amber while something is missing, red once the day is close - what is missing is on hover. With nothing booked, the work's [planned slot](/kilna/guides/planning-a-release/#planned-slots), dashed and marked *plan* |
+| Versions | How many versions the work holds, across every role; a quiet dash for a kind that keeps none |
+| Collection | The collection the work is in |
+| Tags | The first two tags and how many more |
+| Made from it | For a song, a chip a kind for what was made from it - its audio, clips and shorts - green once all of them are out, blue while one is booked. A press opens the work, or a menu of them when there are several |
 | Added | When it was first written down |
+| Edited | When it last changed |
+
+Until v0.140 the tier, the day it was scored and whether the release was
+ready were columns of their own. They live in the total and the next release
+now; a list of columns that still names them reads without them.
 
 The title cannot be turned off: it carries the row's identity and the link into
 the work.
@@ -227,14 +238,17 @@ A few things about how it reads what you type:
 
 ### Narrowing from a column
 
-Four headings carry a **funnel**, shown when the pointer is over the heading
+The headings that narrow carry a **funnel**, shown when the pointer is over the heading
 and staying on, filled, while that column is narrowing the list:
 
 | Column | The funnel asks for |
 | --- | --- |
 | Work | Words of the title, each matched anywhere in it and in any case |
 | Stage | One or more of your profile's stops — works standing at any of them |
-| Tier | One or more tiers, and **(empty)** for works with none |
+| Total | One or more tiers, each a range of the score - *S · Strong · 78 and up* - and **(not scored)** |
+| Next release | **Planned** - a booking or a planned slot ahead - **Overdue** - its day passed and it is not out - or **No date** |
+| Collection | One or more collections, and **(empty)** for works in none |
+| Tags | One or more tags, and **(empty)** for works with none |
 | Marks | One or more marks — works carrying any of them — and **(empty)** for works carrying none |
 | Vibe | Words of each line, and **Nobody has said** - ticks on one line ask for any of them, ticks on two lines for both |
 

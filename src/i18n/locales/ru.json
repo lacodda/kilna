@@ -803,10 +803,7 @@
   },
   "catalogue": {
     "work": "Произведение",
-    "tier": "Тир",
     "total": "Итог",
-    "scored": "Оценено",
-    "stale": "изменено после",
     "staleHint": "Произведение правили после того, как поставили эту оценку.",
     "starred": "Избранное",
     "starredHint": "Только произведения со звездой — к которым вернуться",
@@ -875,11 +872,13 @@
       "status": "Статус",
       "versions": "Версии",
       "release": "Ближайший выпуск",
-      "ready": "Готов",
       "created": "Добавлено",
       "updated": "Правка",
       "stage": "Стадия",
-      "vibe": "Настроение"
+      "vibe": "Настроение",
+      "collection": "Коллекция",
+      "tags": "Теги",
+      "derived": "Производные"
     },
     "releaseHint": "{{kind}}, {{date}}",
     "groupBy": "Группировать",
@@ -936,6 +935,28 @@
       "and": "И",
       "andBlocked": "У работы здесь одно значение: две галочки значат только «любая из них».",
       "empty": "(пусто)"
+    },
+    "copyId": "Скопировать идентификатор",
+    "idCopied": "Идентификатор скопирован",
+    "plan": "план",
+    "planHint": "Запланировано на {{date}}: слот, ещё не выпуск",
+    "scoredOn": "оценено {{date}}",
+    "moreTags_one": "ещё {{count}} тег",
+    "moreTags_few": "ещё {{count}} тега",
+    "moreTags_many": "ещё {{count}} тегов",
+    "moreTags_other": "ещё {{count}} тега",
+    "openMade": "Открыть «{{title}}»",
+    "madeOfKind_one": "{{kind}}: {{count}}",
+    "madeOfKind_few": "{{kind}}: {{count}}",
+    "madeOfKind_many": "{{kind}}: {{count}}",
+    "madeOfKind_other": "{{kind}}: {{count}}",
+    "tierFrom": "{{letter}} · {{tier}} · от {{from}}",
+    "tierRange": "{{letter}} · {{tier}} · {{from}}–{{to}}",
+    "unscoredTick": "(без оценки)",
+    "booking": {
+      "planned": "Запланировано",
+      "overdue": "Просрочено",
+      "undated": "Без даты"
     }
   },
   "assistant": {

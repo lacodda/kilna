@@ -54,8 +54,11 @@ export function useShownRows(
   const matching =
     settled === '' || settled !== text || matches.data === undefined ? undefined : matches.data
 
+  // The planned slots ride with their works, for the next release's cell.
+  const plans = useQuery(queries.workPlans())
+
   if (rows === undefined) return undefined
-  const all = withNextReleases(rows, releases)
+  const all = withNextReleases(rows, releases, plans.data)
   // The funnels narrow what the query left: the two compose as AND, and the
   // count above the table reads both.
   const visible = sortRows(

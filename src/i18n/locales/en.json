@@ -725,10 +725,7 @@
   },
   "catalogue": {
     "work": "Work",
-    "tier": "Tier",
     "total": "Total",
-    "scored": "Scored",
-    "stale": "changed since",
     "staleHint": "The work was edited after this score was taken.",
     "starred": "Starred",
     "starredHint": "Only the works you starred to come back to",
@@ -791,11 +788,13 @@
       "status": "Status",
       "versions": "Versions",
       "release": "Next release",
-      "ready": "Ready",
       "created": "Added",
       "updated": "Edited",
       "stage": "Stage",
-      "vibe": "Vibe"
+      "vibe": "Vibe",
+      "collection": "Collection",
+      "tags": "Tags",
+      "derived": "Made from it"
     },
     "releaseHint": "{{kind}} on {{date}}",
     "groupBy": "Group by",
@@ -842,6 +841,24 @@
       "and": "And",
       "andBlocked": "A work holds one value here: two ticks can only mean either of them.",
       "empty": "(empty)"
+    },
+    "copyId": "Copy the id",
+    "idCopied": "Id copied",
+    "plan": "plan",
+    "planHint": "Planned for {{date}}: a slot, not a release yet",
+    "scoredOn": "scored {{date}}",
+    "moreTags_one": "{{count}} more tag",
+    "moreTags_other": "{{count}} more tags",
+    "openMade": "Open “{{title}}”",
+    "madeOfKind_one": "{{count}} {{kind}}",
+    "madeOfKind_other": "{{count}} of kind {{kind}}",
+    "tierFrom": "{{letter}} · {{tier}} · {{from}} and up",
+    "tierRange": "{{letter}} · {{tier}} · {{from}}–{{to}}",
+    "unscoredTick": "(not scored)",
+    "booking": {
+      "planned": "Planned",
+      "overdue": "Overdue",
+      "undated": "No date"
     }
   },
   "assistant": {

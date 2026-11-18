@@ -1,7 +1,12 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { formatNumber } from '@/lib/format'
+import { queries } from '@/lib/query/queries'
 import {
   andBlocked,
+  BOOKINGS,
+  tierRanges,
   clearedColumn,
   combines,
   EMPTY_TICK,
@@ -45,6 +50,9 @@ export function ColumnFunnel({ column, filters, onChange }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const narrows = COLUMN_SPECS[column].filter
+  // What the collections' and the tags' funnels offer, asked only for them.
+  const collections = useQuery({ ...queries.collections(), enabled: narrows === 'collections' })
+  const tags = useQuery({ ...queries.workTags(), enabled: narrows === 'tags' })
   if (narrows === undefined) return null
   const label = t(COLUMN_SPECS[column].label)
 
@@ -139,17 +147,54 @@ export function ColumnFunnel({ column, filters, onChange }: Props) {
         />,
       )
     case 'tiers':
+      // The total's funnel since v0.140: each tier a range of the score,
+      // by its letter, its word and where it starts and ends.
+      return shell(
+        <CheckList
+          options={[
+            ...tierRanges(allOf(profile.config, 'tiers')).map(({ tier, letter, from, below }) => ({
+              value: tier.key,
+              label: t(below === null ? 'catalogue.tierFrom' : 'catalogue.tierRange', {
+                letter,
+                tier: sayLabel(tier.label),
+                from: formatNumber(from),
+                to: below === null ? '' : formatNumber(below - 1),
+              }),
+            })),
+            { value: EMPTY_TICK, label: t('catalogue.unscoredTick') },
+          ]}
+          chosen={filters.tiers ?? []}
+          onChange={(tiers) => onChange(withTicks(filters, 'tiers', tiers))}
+        />,
+      )
+    case 'booking':
+      return shell(
+        <CheckList
+          options={BOOKINGS.map((one) => ({ value: one, label: t(`catalogue.booking.${one}`) }))}
+          chosen={filters.booking ?? []}
+          onChange={(booking) => onChange(withTicks(filters, 'booking', booking))}
+        />,
+      )
+    case 'collections':
       return shell(
         <CheckList
           options={[
             { value: EMPTY_TICK, label: t('catalogue.logic.empty') },
-            ...allOf(profile.config, 'tiers').map((tier) => ({
-              value: tier.key,
-              label: sayLabel(tier.label),
-            })),
+            ...(collections.data ?? []).map((one) => ({ value: one.id, label: one.title })),
           ]}
-          chosen={filters.tiers ?? []}
-          onChange={(tiers) => onChange(withTicks(filters, 'tiers', tiers))}
+          chosen={filters.collections ?? []}
+          onChange={(next) => onChange(withTicks(filters, 'collections', next))}
+        />,
+      )
+    case 'tags':
+      return shell(
+        <CheckList
+          options={[
+            { value: EMPTY_TICK, label: t('catalogue.logic.empty') },
+            ...(tags.data ?? []).map(([tag]) => ({ value: tag, label: tag })),
+          ]}
+          chosen={filters.tags ?? []}
+          onChange={(next) => onChange(withTicks(filters, 'tags', next))}
         />,
       )
     case 'vibe': {

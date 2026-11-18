@@ -45,6 +45,9 @@ import { WorkRow } from './WorkRow'
 interface Props {
   /** What is on show: narrowed and sorted. */
   rows: CatalogueRow[]
+  /** Every work, shown or not, by its id: what an original's derived works
+   *  are, though the funnels hide them. */
+  everyRow?: ReadonlyMap<string, CatalogueRow>
   columns: ColumnId[]
   sort: Sort
   onReorder: (column: SortColumn) => void
@@ -89,6 +92,7 @@ interface DropHandlers {
  */
 export function CatalogueTable({
   rows,
+  everyRow,
   columns,
   sort,
   onReorder,
@@ -444,6 +448,8 @@ export function CatalogueTable({
                             key={id}
                             column={id}
                             row={row}
+                            everyRow={everyRow}
+                            onOpen={onSelect}
                             kindNarrowed={kindNarrowed}
                             statusShown={statusShown}
                             titleStuck={titleStuck}

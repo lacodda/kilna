@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ALL_COLUMNS,
   andBlocked,
+  bookingOf,
   clearedColumn,
   columnsFor,
   columnsForKind,
@@ -30,6 +31,7 @@ import {
   saveSort,
   saveWidths,
   sortRows,
+  tierRanges,
   toggleColumn,
   toggleSort,
   withColumns,
@@ -346,11 +348,11 @@ describe('sortRows', () => {
 
   it('sorts by date, oldest or newest first', () => {
     const rows = [
-      row({ work_id: 'old', title: 'old', scored_at: '2026-01-01' }),
-      row({ work_id: 'new', title: 'new', scored_at: '2026-08-01' }),
-      row({ work_id: 'never', title: 'never', scored_at: null }),
+      row({ work_id: 'old', title: 'old', updated_at: '2026-01-01' }),
+      row({ work_id: 'new', title: 'new', updated_at: '2026-08-01' }),
+      row({ work_id: 'never', title: 'never', updated_at: '2025-01-01' }),
     ]
-    expect(sortRows(rows, { column: 'scored', direction: 'desc' }).map((r) => r.work_id)).toEqual([
+    expect(sortRows(rows, { column: 'updated', direction: 'desc' }).map((r) => r.work_id)).toEqual([
       'new',
       'old',
       'never',
@@ -489,7 +491,7 @@ describe('toggleSort', () => {
   })
 
   it('opens a score column at its highest and a title at its first letter', () => {
-    expect(toggleSort(DEFAULT_SORT, 'tier').direction).toBe('desc')
+    expect(toggleSort(DEFAULT_SORT, 'versions').direction).toBe('desc')
     expect(toggleSort(DEFAULT_SORT, 'title').direction).toBe('asc')
   })
 
@@ -516,7 +518,7 @@ describe('the shown columns', () => {
   })
 
   it('puts the title back when a kept set left it out', () => {
-    expect(columnsFor(['total', 'tier'])).toContain('title')
+    expect(columnsFor(['total', 'versions'])).toContain('title')
   })
 
   it('reads a kind down its own columns and every other kind down the shared list', () => {
@@ -566,10 +568,10 @@ describe('toggling a column', () => {
   // re-sort the list into the table's own order — that would undo a person's
   // arrangement every time a column came or went.
   it('puts a column turned back on at the end and keeps the rest in place', () => {
-    const arranged: ColumnId[] = ['title', 'total', 'stage', 'tier']
+    const arranged: ColumnId[] = ['title', 'total', 'stage', 'versions']
     const without = toggleColumn(arranged, 'stage')
-    expect(without).toEqual(['title', 'total', 'tier'])
-    expect(toggleColumn(without, 'stage')).toEqual(['title', 'total', 'tier', 'stage'])
+    expect(without).toEqual(['title', 'total', 'versions'])
+    expect(toggleColumn(without, 'stage')).toEqual(['title', 'total', 'versions', 'stage'])
   })
 
   it('refuses to hide the title', () => {
@@ -586,21 +588,21 @@ describe('toggling a column', () => {
 })
 
 describe('moving a column', () => {
-  const arranged: ColumnId[] = ['title', 'stage', 'tier', 'total']
+  const arranged: ColumnId[] = ['title', 'stage', 'versions', 'total']
 
   it('puts the column where it was asked to go, either way', () => {
-    expect(moveColumn(arranged, 'total', 1)).toEqual(['title', 'total', 'stage', 'tier'])
-    expect(moveColumn(arranged, 'stage', 3)).toEqual(['title', 'tier', 'total', 'stage'])
+    expect(moveColumn(arranged, 'total', 1)).toEqual(['title', 'total', 'stage', 'versions'])
+    expect(moveColumn(arranged, 'stage', 3)).toEqual(['title', 'versions', 'total', 'stage'])
   })
 
   it('clamps a move past either end rather than refusing it', () => {
-    expect(moveColumn(arranged, 'stage', -1)).toEqual(['stage', 'title', 'tier', 'total'])
-    expect(moveColumn(arranged, 'stage', 99)).toEqual(['title', 'tier', 'total', 'stage'])
+    expect(moveColumn(arranged, 'stage', -1)).toEqual(['stage', 'title', 'versions', 'total'])
+    expect(moveColumn(arranged, 'stage', 99)).toEqual(['title', 'versions', 'total', 'stage'])
   })
 
   it('leaves the list alone for a column it does not hold, or a move to itself', () => {
     expect(moveColumn(arranged, 'id', 0)).toBe(arranged)
-    expect(moveColumn(arranged, 'tier', 2)).toBe(arranged)
+    expect(moveColumn(arranged, 'versions', 2)).toBe(arranged)
   })
 
   it('keeps a stored order as stored, dropping only what it cannot draw', () => {
@@ -625,8 +627,8 @@ describe('the remembered widths', () => {
 
   it('comes back as it was left', () => {
     const held = store()
-    saveWidths({ title: 320, tier: 96 }, held)
-    expect(loadWidths(held)).toEqual({ title: 320, tier: 96 })
+    saveWidths({ title: 320, total: 96 }, held)
+    expect(loadWidths(held)).toEqual({ title: 320, total: 96 })
   })
 
   it('drops a column this build no longer knows and a width that is not a number', () => {
@@ -635,8 +637,8 @@ describe('the remembered widths', () => {
   })
 
   it('never brings back a width narrower than a column can be', () => {
-    const held = store(JSON.stringify({ tier: 4 }))
-    expect(loadWidths(held)).toEqual({ tier: MIN_COLUMN_WIDTH })
+    const held = store(JSON.stringify({ total: 4 }))
+    expect(loadWidths(held)).toEqual({ total: MIN_COLUMN_WIDTH })
   })
 
   it('falls back rather than trusting whatever is in storage', () => {
@@ -1085,14 +1087,13 @@ describe('the columns v0.79 introduced', () => {
       'status',
       'versions',
       'release',
-      'ready',
       'total',
     ])
   })
 
   it('show a later column in a list that knew the earlier ones, and only that', () => {
-    // Written knowing of Status and without Ready: Ready was hidden on
-    // purpose and stays so; the vibe did not exist yet, and shows.
+    // Written knowing of Status and without the next release: it was hidden
+    // on purpose and stays so; the vibe did not exist yet, and shows.
     const stored: ColumnId[] = ['title', 'status', 'stage', 'total']
     expect(withIntroduced(stored, false)).toEqual(['title', 'status', 'stage', 'vibe', 'total'])
     // Named already, it is where the person put it.
@@ -1108,8 +1109,8 @@ describe('the columns v0.79 introduced', () => {
   it('are not forced into a list that already names one of them', () => {
     // Chosen knowing them: the other two were hidden on purpose. What came
     // after them (the vibe, v0.124) was not, and shows.
-    const stored: ColumnId[] = ['title', 'ready', 'total']
-    expect(withIntroduced(stored, false)).toEqual(['title', 'vibe', 'ready', 'total'])
+    const stored: ColumnId[] = ['title', 'release', 'total']
+    expect(withIntroduced(stored, false)).toEqual(['title', 'vibe', 'release', 'total'])
   })
 
   it('remember the choice on this machine', () => {
@@ -1121,5 +1122,80 @@ describe('the columns v0.79 introduced', () => {
     expect(loadColumnsChosen(store)).toBe(false)
     saveColumnsChosen(store)
     expect(loadColumnsChosen(store)).toBe(true)
+  })
+})
+
+// v0.140, FR-12 12.3: the merged columns and the new ones.
+describe('the columns of v0.140', () => {
+  const plan = (work: string, day: string) => ({
+    id: `p-${work}`,
+    work_id: work,
+    scheduled_at: day,
+    note: null,
+    created_at: '',
+    updated_at: '',
+  })
+
+  it('says where the next release stands by the day the cell shows', () => {
+    const on = (day: string | null, planned?: string) =>
+      bookingOf(
+        {
+          next_release: day === null ? null : release({ id: 'r', work_id: 'w', scheduled_at: day }),
+          plan: planned === undefined ? null : plan('w', planned),
+        },
+        '2026-10-10',
+      )
+    expect(on('2026-10-12')).toBe('planned')
+    expect(on('2026-10-10')).toBe('planned')
+    expect(on('2026-10-01')).toBe('overdue')
+    expect(on(null)).toBe('undated')
+    // Nothing booked: the planned slot is the date.
+    expect(on(null, '2026-10-20')).toBe('planned')
+    expect(on(null, '2026-10-02')).toBe('overdue')
+  })
+
+  it('letters the tiers by rank, each a range of the score', () => {
+    const ranges = tierRanges([
+      { key: 'hold', min: 0 },
+      { key: 'clip', min: 78 },
+      { key: 'audio', min: 55 },
+    ])
+    expect(ranges.map(({ tier, letter, from, below }) => [tier.key, letter, from, below])).toEqual([
+      ['clip', 'S', 78, null],
+      ['audio', 'A', 55, 78],
+      ['hold', 'B', 0, 55],
+    ])
+  })
+
+  it('narrows by the next release, the collection and the tags', () => {
+    const rows = [
+      row({ work_id: 'a', collection_id: 'album', tags: ['winter', 'night'] }),
+      row({
+        work_id: 'b',
+        tags: ['winter'],
+        next_release: release({ id: 'r-b', work_id: 'b', scheduled_at: '2026-09-01' }),
+      }),
+      row({ work_id: 'c', tags: [], plan: plan('c', '2026-12-01') }),
+    ]
+    const ids = (kept: CatalogueRow[]) => kept.map((one) => one.work_id)
+    const day = '2026-10-10'
+    expect(ids(narrowByColumns(rows, { booking: ['overdue'] }, day))).toEqual(['b'])
+    expect(ids(narrowByColumns(rows, { booking: ['planned'] }, day))).toEqual(['c'])
+    expect(ids(narrowByColumns(rows, { booking: ['undated'] }, day))).toEqual(['a'])
+    expect(ids(narrowByColumns(rows, { collections: ['album'] }, day))).toEqual(['a'])
+    expect(ids(narrowByColumns(rows, { collections: [EMPTY_TICK] }, day))).toEqual(['b', 'c'])
+    const both = { tags: ['winter', 'night'], logic: { tags: { combine: 'and' as const } } }
+    expect(ids(narrowByColumns(rows, both, day))).toEqual(['a'])
+    expect(ids(narrowByColumns(rows, { tags: [EMPTY_TICK] }, day))).toEqual(['c'])
+    // A work is in one collection: "and" over two of them is read as "or".
+    expect(andBlocked('collections', 2)).toBe(true)
+    expect(andBlocked('tags', 2)).toBe(false)
+  })
+
+  it('reads a stored list naming the retired columns without them', () => {
+    expect(sanitizeColumns(['title', 'tier', 'scored', 'ready', 'total'])).toEqual([
+      'title',
+      'total',
+    ])
   })
 })

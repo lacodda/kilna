@@ -72,7 +72,7 @@ describe('the catalogue', () => {
       expect.arrayContaining([
         en.catalogue.column.status,
         en.catalogue.column.release,
-        en.catalogue.column.ready,
+        en.catalogue.total,
       ]),
     )
   })
@@ -101,15 +101,16 @@ describe('the catalogue', () => {
   it('reads each work down to its next release and whether it can go out', async () => {
     const { rowOf } = await open()
 
-    // The song is booked for the 22nd, and the studio's releases lack nothing.
+    // The song is booked for the 22nd, and the studio's releases lack
+    // nothing: a dot before the day says so (v0.140).
     const song = within(rowOf('Paper Lanterns'))
     expect(song.getByText('Sep 22')).toBeInTheDocument()
-    expect(song.getByText(en.calendar.ready)).toBeInTheDocument()
+    expect(song.getByRole('img', { name: en.calendar.ready })).toBeInTheDocument()
     expect(song.getByText('Scored')).toBeInTheDocument()
 
     // Nothing booked: no date, and nothing to be ready.
     const draft = within(rowOf('Harbour Lights'))
-    expect(draft.queryByText(en.calendar.ready)).toBeNull()
+    expect(draft.queryByRole('img', { name: en.calendar.ready })).toBeNull()
     expect(draft.getByText('Draft')).toBeInTheDocument()
   })
 
@@ -171,6 +172,30 @@ describe('the catalogue', () => {
     expect(backend.argsOf('mark_works')).toEqual([
       { workIds: [IDS.song, IDS.draft], mark: 'working', raised: true },
     ])
+  })
+
+  it('reads the total by its letter, and opens what was made from a song (v0.140)', async () => {
+    const shown = studio()
+    // A copy: the studio's profile is shared by every test.
+    shown.profile = {
+      ...shown.profile,
+      config: { ...shown.profile.config, catalogue_columns: ['id', 'title', 'total', 'derived'] },
+    }
+    backend = mockBackend(answersFor(shown))
+    const { client, rowOf } = await open()
+    const song = within(rowOf('Paper Lanterns'))
+
+    // The tier's letter by rank, named by its word.
+    expect(song.getByLabelText('Release it')).toHaveTextContent('A')
+    // The id is copied whole, and the press stays in the cell.
+    expect(song.getByRole('button', { name: new RegExp(en.catalogue.copyId) })).toBeInTheDocument()
+
+    // The clip made from the song, a press away.
+    await act(async () => {
+      fireEvent.click(song.getByRole('button', { name: 'Open “Paper Lanterns (clip)”' }))
+    })
+    await settled(client)
+    expect(backend.argsOf('get_work')).toContainEqual({ id: IDS.video })
   })
 
   it('says which value the profile lacks, in place of the count', async () => {

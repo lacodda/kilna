@@ -47,8 +47,15 @@ export const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
     width: 'w-14',
     naturalWidth: 72,
   },
-  tier: { label: 'catalogue.tier', sort: 'tier', filter: 'tiers', naturalWidth: 128 },
-  total: { label: 'catalogue.total', sort: 'total', align: 'right', naturalWidth: 80 },
+  // The score and the tier it earned, one column since v0.140: the letter
+  // beside the number, the word and the day it was scored on hover.
+  total: {
+    label: 'catalogue.total',
+    sort: 'total',
+    filter: 'tiers',
+    align: 'right',
+    naturalWidth: 96,
+  },
   versions: {
     label: 'catalogue.column.versions',
     sort: 'versions',
@@ -58,14 +65,24 @@ export const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
   },
   // Wider than a date: the heading is the longest word in the row, and a
   // column sized by its "Sep 22"s cut it to "Next releas".
+  // The next release, whether it can go out, and the planned slot when
+  // nothing is booked - one column since v0.140.
   release: {
     label: 'catalogue.column.release',
     sort: 'release',
+    filter: 'booking',
     width: 'w-36',
     naturalWidth: 144,
   },
-  ready: { label: 'catalogue.column.ready', sort: null, width: 'w-28', naturalWidth: 112 },
-  scored: { label: 'catalogue.scored', sort: 'scored', naturalWidth: 104 },
+  collection: {
+    label: 'catalogue.column.collection',
+    sort: null,
+    filter: 'collections',
+    naturalWidth: 144,
+  },
+  tags: { label: 'catalogue.column.tags', sort: null, filter: 'tags', naturalWidth: 160 },
+  // What was made from an original - its audio, clips and shorts.
+  derived: { label: 'catalogue.column.derived', sort: null, naturalWidth: 136 },
   created: { label: 'catalogue.column.created', sort: 'created', naturalWidth: 104 },
   updated: { label: 'catalogue.column.updated', sort: 'updated', naturalWidth: 104 },
 }

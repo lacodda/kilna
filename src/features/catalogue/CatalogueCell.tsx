@@ -1,14 +1,18 @@
-import { Menu, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { Copyable } from '@/components/ui/copyable'
+import { StatusDot } from '@/components/ui/status-dot'
+import { useQuery } from '@tanstack/react-query'
+import { queries } from '@/lib/query/queries'
 import { MarkMenuItems } from '@/components/MarkMenuItems'
 import { updateWork } from '@/lib/api/works'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useTranslation } from 'react-i18next'
-import { Check, Pin } from 'lucide-react'
-import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
-import type { CatalogueRow, ColumnId } from '@/lib/catalogue'
+import { Pin, RefreshCw } from 'lucide-react'
+import type { ScoredWork } from '@/lib/api/types'
+import { tierRanges, type CatalogueRow, type ColumnId } from '@/lib/catalogue'
 import { coverImageFor } from '@/lib/cover'
-import { formatDay, formatDelta, formatNumber } from '@/lib/format'
+import { formatDay, formatNumber } from '@/lib/format'
 import { badgeVariantOf } from '@/lib/markIcon'
 import { today } from '@/lib/month'
 import { daysBetween, missing, sayNeed, urgency } from '@/lib/readiness'
@@ -16,7 +20,7 @@ import { nextTier } from '@/lib/scoring'
 import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
-import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { MarkAvatars } from '@/components/MarkAvatars'
@@ -29,6 +33,10 @@ import { STUCK_LEFT_TITLE, TITLE_HOLD } from './columns'
 interface Props {
   column: ColumnId
   row: CatalogueRow
+  /** Every row by its work, for what an original's derived works are. */
+  everyRow?: ReadonlyMap<string, CatalogueRow>
+  /** Open another work: a derived one, from its original's row. */
+  onOpen?: (workId: string) => void
   /** The table shows one kind of work: naming it on every row says nothing. */
   kindNarrowed: boolean
   /** The Status column is drawn, so the title need not say it again. */
@@ -41,6 +49,8 @@ interface Props {
 export function CatalogueCell({
   column,
   row,
+  everyRow,
+  onOpen,
   kindNarrowed,
   statusShown,
   titleStuck = false,
@@ -53,10 +63,19 @@ export function CatalogueCell({
   switch (column) {
     case 'id':
       // Monospaced and dimmed: it is here to be copied and compared, not read
-      // as part of the sentence a row makes.
+      // as part of the sentence a row makes. A press copies the whole id
+      // (v0.140) and stays in the cell - it would open the work otherwise.
       return (
-        <TableCell className="truncate font-mono text-xs text-faint">
-          {row.work_id.slice(0, 8)}
+        <TableCell className="truncate" onClick={kept} onKeyDown={kept}>
+          <Copyable
+            value={row.work_id}
+            label={t('catalogue.copyId')}
+            copiedLabel={t('catalogue.idCopied')}
+            title={row.work_id}
+            className="text-faint"
+          >
+            {row.work_id.slice(0, 8)}
+          </Copyable>
         </TableCell>
       )
 
@@ -150,93 +169,29 @@ export function CatalogueCell({
       )
 
     case 'versions':
+      // A kind that keeps no versions and holds none says nothing, quietly.
       return (
         <TableCell numeric className={cn('font-mono', row.version_count === 0 && 'text-faint')}>
-          {row.version_count}
+          {row.version_count === 0 && vocabulary.version_roles.length === 0
+            ? '—'
+            : row.version_count}
         </TableCell>
       )
-
-    case 'tier': {
-      // How far the next tier is, when the row has been judged at all. Only
-      // the distance: which axis is cheapest needs the axis values, and a
-      // catalogue row carries the total, not the score behind it. Naming the
-      // axis here would mean shipping every work's axes to draw a table.
-      const ahead =
-        row.total === null || row.tier_pinned ? undefined : nextTier(vocabulary.tiers, row.total)
-
-      return (
-        <TableCell className="overflow-hidden whitespace-nowrap">
-          {row.tier === null ? (
-            <span className="text-faint">{'—'}</span>
-          ) : (
-            <span className="flex items-center gap-1.5">
-              <Badge variant="accent" className="px-2">
-                {labelOf(vocabulary.tiers, row.tier)}
-              </Badge>
-              {/* A tier held by hand is not a tier the score arrived at, and
-                  a reader who cannot tell them apart is reading a number that
-                  means two different things. */}
-              {row.tier_pinned && (
-                <Pin
-                  aria-label={t('catalogue.tierPinned')}
-                  className="size-3 shrink-0 text-faint"
-                />
-              )}
-              {ahead !== undefined && row.total !== null && (
-                <span
-                  className="text-xs text-faint tabular-nums"
-                  title={t('catalogue.toNextTier', {
-                    gap: formatNumber(ahead.min - row.total),
-                    tier: ahead.label,
-                  })}
-                >
-                  {formatDelta(ahead.min - row.total)}
-                </span>
-              )}
-            </span>
-          )}
-        </TableCell>
-      )
-    }
 
     case 'total':
-      return (
-        // The score, and whether it still describes the work: "changed since"
-        // sits beside the number it doubts, as the mockup has it, rather than
-        // beside the date in a column that is off by default. Before the
-        // number rather than after it, so the numbers of a right-aligned
-        // column still line up.
-        <TableCell
-          numeric
-          className={cn('whitespace-nowrap font-mono', row.total === null && 'text-faint')}
-        >
-          {row.stale && (
-            <Badge
-              variant="warn"
-              className="mr-1.5 px-1.5 font-sans"
-              title={t('catalogue.staleHint')}
-            >
-              {t('catalogue.stale')}
-            </Badge>
-          )}
-          {row.total === null ? '—' : formatNumber(row.total)}
-        </TableCell>
-      )
+      return <TotalCell row={row} />
 
     case 'release':
-      return <ReleaseCell release={row.next_release} />
+      return <ReleaseCell row={row} />
 
-    case 'ready':
-      return <ReadyCell release={row.next_release} />
+    case 'collection':
+      return <CollectionCell row={row} />
 
-    case 'scored':
-      return (
-        // A date is one word. Left to wrap it broke in two, which reads as two
-        // dates rather than as one.
-        <TableCell className="truncate text-xs text-dim">
-          {row.scored_at === null ? '—' : formatDay(row.scored_at)}
-        </TableCell>
-      )
+    case 'tags':
+      return <TagsCell row={row} />
+
+    case 'derived':
+      return <DerivedCell row={row} everyRow={everyRow} onOpen={onOpen} />
 
     case 'created':
       return (
@@ -264,69 +219,235 @@ function StatusBadge({ row }: { row: CatalogueRow }) {
 
 /** The day the work goes out next, and on what - the kind is in the tooltip,
  * since the column is read for the date. */
-function ReleaseCell({ release }: { release: ScheduledRelease | null }) {
+function ReleaseCell({ row }: { row: CatalogueRow }) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const release = row.next_release
   if (release === null || release.scheduled_at === null) {
+    // Nothing booked: the planned slot, dashed as on the calendar (v0.140).
+    if (row.plan != null) {
+      const day = formatDay(row.plan.scheduled_at)
+      return (
+        <TableCell
+          className="whitespace-nowrap font-mono text-xs tabular-nums text-dim"
+          title={t('catalogue.planHint', { date: day })}
+        >
+          <span className="rounded-sm border border-dashed border-line-2 px-1">{day}</span>
+          <span className="ml-1 font-sans text-faint">{t('catalogue.plan')}</span>
+        </TableCell>
+      )
+    }
     return <TableCell className="font-mono text-faint">{'—'}</TableCell>
   }
   const date = formatDay(release.scheduled_at)
+  // Whether it can go out, as a dot before the day (v0.140): green when it
+  // can, and what it still lacks in the dot's name and on hover - amber while
+  // there is time, red once the day is close. The verdict is the backend's,
+  // the one the calendar's chip reads.
+  const names = missing(release.readiness).map((gap) => sayNeed(gap, profile.config, release, t))
+  const close = urgency(daysBetween(today(), release.scheduled_at)) === 'urgent'
+  const said = release.readiness.ready
+    ? t('calendar.ready')
+    : t('calendar.notReadyHint', { list: names.join(', ') })
   return (
     <TableCell
       className="whitespace-nowrap font-mono text-xs tabular-nums"
-      title={t('catalogue.releaseHint', {
+      title={`${t('catalogue.releaseHint', {
         kind: labelOf(allOf(profile.config, 'release_kinds'), release.kind),
         date,
-      })}
+      })} · ${said}`}
     >
-      {date}
+      <span className="inline-flex items-center gap-1.5">
+        <StatusDot
+          size="sm"
+          status={release.readiness.ready ? 'good' : close ? 'bad' : 'warn'}
+          label={said}
+          showLabel={false}
+        />
+        {date}
+      </span>
     </TableCell>
   )
-}
-
-// The colour belongs to the deadline, not to the gap, as on the calendar's
-// chip: the same missing cover is a note a month out and a red flag two days
-// before the slot.
-const GAP_TONE: Record<ReturnType<typeof urgency>, BadgeProps['variant']> = {
-  calm: 'outline',
-  soon: 'warn',
-  urgent: 'bad',
 }
 
 /**
- * Whether the next release can go out, in words: a tick when it can, what it
- * still lacks when it cannot. The verdict is the backend's, the same one the
- * calendar's chip reads, so the two screens cannot disagree. Nothing booked is
- * an empty cell - there is no release to be ready.
+ * The score and the tier it earned (v0.140): the tier's letter by rank beside
+ * the number, a turned arrow where the work was rewritten after its score,
+ * a pin where the tier is held by hand. The tier's word, the day it was
+ * scored and the distance to the next tier are on hover.
  */
-function ReadyCell({ release }: { release: ScheduledRelease | null }) {
+function TotalCell({ row }: { row: CatalogueRow }) {
   const { t } = useTranslation()
   const profile = useProfile()
-  if (release === null || release.scheduled_at === null) return <TableCell />
-
-  if (release.readiness.ready) {
-    return (
-      <TableCell className="text-good" title={t('calendar.ready')}>
-        <Check aria-hidden className="size-3.5" />
-        <span className="sr-only">{t('calendar.ready')}</span>
-      </TableCell>
-    )
-  }
-
-  const names = missing(release.readiness).map((gap) => sayNeed(gap, profile.config, release, t))
-  const tone = GAP_TONE[urgency(daysBetween(today(), release.scheduled_at))]
+  const tiers = vocabularyOf(profile.config, row.kind).tiers
+  const ranked = tierRanges(tiers).find((one) => one.tier.key === row.tier)
+  // How far the next tier is, when the row has been judged at all.
+  const ahead = row.total === null || row.tier_pinned ? undefined : nextTier(tiers, row.total)
+  const hint = [
+    ranked === undefined ? undefined : `${ranked.letter} · ${sayLabel(ranked.tier.label)}`,
+    row.scored_at === null
+      ? undefined
+      : t('catalogue.scoredOn', { date: formatDay(row.scored_at) }),
+    ahead === undefined || row.total === null
+      ? undefined
+      : t('catalogue.toNextTier', {
+          gap: formatNumber(ahead.min - row.total),
+          tier: sayLabel(ahead.label),
+        }),
+    row.stale ? t('catalogue.staleHint') : undefined,
+  ].filter((part) => part !== undefined)
   return (
-    <TableCell className="whitespace-nowrap">
-      <Badge
-        variant={tone}
-        className="px-2"
-        title={t('calendar.notReadyHint', { list: names.join(', ') })}
-      >
-        {names.join(', ')}
-      </Badge>
+    <TableCell
+      numeric
+      className={cn('whitespace-nowrap font-mono', row.total === null && 'text-faint')}
+      title={hint.join(' · ') || undefined}
+    >
+      <span className="inline-flex items-center justify-end gap-1.5">
+        {row.stale && (
+          <RefreshCw aria-label={t('catalogue.staleHint')} className="size-3 shrink-0 text-warn" />
+        )}
+        {row.tier_pinned && (
+          <Pin aria-label={t('catalogue.tierPinned')} className="size-3 shrink-0 text-faint" />
+        )}
+        {ranked !== undefined && (
+          <Badge
+            variant="accent"
+            className="px-1.5 font-sans"
+            aria-label={sayLabel(ranked.tier.label)}
+          >
+            {ranked.letter}
+          </Badge>
+        )}
+        <span>{row.total === null ? '—' : formatNumber(row.total)}</span>
+      </span>
     </TableCell>
   )
 }
+
+/** The collection a work is in, by its name (v0.140). */
+function CollectionCell({ row }: { row: CatalogueRow }) {
+  const collections = useQuery(queries.collections())
+  const held = collections.data?.find((one) => one.id === row.collection_id)
+  return (
+    <TableCell className="truncate text-sm" title={held?.title}>
+      {held === undefined ? <span className="text-faint">{'—'}</span> : held.title}
+    </TableCell>
+  )
+}
+
+/** How many tags a row shows before it says how many more there are. */
+const TAGS_SHOWN = 2
+
+/** The work's tags, the first two and how many more (v0.140). */
+function TagsCell({ row }: { row: CatalogueRow }) {
+  const { t } = useTranslation()
+  if (row.tags.length === 0) {
+    return <TableCell className="text-faint">{'—'}</TableCell>
+  }
+  const rest = row.tags.length - TAGS_SHOWN
+  return (
+    <TableCell className="overflow-hidden whitespace-nowrap" title={row.tags.join(', ')}>
+      <span className="inline-flex items-center gap-1">
+        {row.tags.slice(0, TAGS_SHOWN).map((tag) => (
+          <Badge key={tag} variant="soft" className="px-1.5">
+            {tag}
+          </Badge>
+        ))}
+        {rest > 0 && (
+          <span
+            className="text-xs text-faint"
+            aria-label={t('catalogue.moreTags', { count: rest })}
+          >
+            {`+${rest}`}
+          </span>
+        )}
+      </span>
+    </TableCell>
+  )
+}
+
+/**
+ * What was made from an original (v0.140): one chip a kind - its audio, its
+ * clips, its shorts - green once all of them are out, blue while one is
+ * booked. A press opens the work, or a menu of them when there are several;
+ * either way it stays in the cell.
+ */
+function DerivedCell({
+  row,
+  everyRow,
+  onOpen,
+}: {
+  row: CatalogueRow
+  everyRow?: ReadonlyMap<string, CatalogueRow>
+  onOpen?: (workId: string) => void
+}) {
+  const { t } = useTranslation()
+  const profile = useProfile()
+  const made = (row.publications ?? [])
+    .map((id) => everyRow?.get(id))
+    .filter((one): one is CatalogueRow => one !== undefined)
+  if (made.length === 0) return <TableCell className="text-faint">{'—'}</TableCell>
+  const kinds = [...new Set(made.map((one) => one.kind))]
+  return (
+    <TableCell className="overflow-hidden whitespace-nowrap" onClick={kept} onKeyDown={kept}>
+      <span className="inline-flex items-center gap-1">
+        {kinds.map((kind) => {
+          const ofKind = made.filter((one) => one.kind === kind)
+          const out = ofKind.every((one) => one.released > 0)
+          const booked = ofKind.some((one) => one.next_release !== null)
+          const word = labelOf(profile.config.work_kinds, kind)
+          const chip = (
+            <Badge variant={out ? 'good' : booked ? 'info' : 'outline'} className="px-1.5">
+              {ofKind.length > 1 ? `${word} ${ofKind.length}` : word}
+            </Badge>
+          )
+          const only = ofKind[0]
+          if (ofKind.length === 1 && only !== undefined) {
+            return (
+              <Button
+                key={kind}
+                variant="ghost"
+                size="xs"
+                className="h-auto px-0"
+                aria-label={t('catalogue.openMade', { title: only.title })}
+                title={only.title}
+                onClick={() => onOpen?.(only.work_id)}
+              >
+                {chip}
+              </Button>
+            )
+          }
+          return (
+            <Menu key={kind}>
+              <MenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="h-auto px-0"
+                    aria-label={t('catalogue.madeOfKind', { kind: word, count: ofKind.length })}
+                  />
+                }
+              >
+                {chip}
+              </MenuTrigger>
+              <MenuPopup align="start" onClick={kept} onKeyDown={kept}>
+                {ofKind.map((one) => (
+                  <MenuItem key={one.work_id} onClick={() => onOpen?.(one.work_id)}>
+                    {one.title}
+                  </MenuItem>
+                ))}
+              </MenuPopup>
+            </Menu>
+          )
+        })}
+      </span>
+    </TableCell>
+  )
+}
+
+/** A press inside a cell that acts on its own: it does not open the row. */
+const kept = (event: { stopPropagation: () => void }) => event.stopPropagation()
 
 /**
  * The marks of a row, raised and lowered where they are shown (v0.139,
@@ -348,7 +469,6 @@ function MarksCell({ row }: { row: ScoredWork }) {
     failure: 'toast.workSaveFailed',
     refresh: [keys.catalogue, keys.work(row.work_id)],
   })
-  const kept = (event: { stopPropagation: () => void }) => event.stopPropagation()
   if (marks.length === 0) return <span className="text-faint">{'—'}</span>
   return (
     <Menu>

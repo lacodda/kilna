@@ -507,6 +507,7 @@ export function Catalogue({ onSelect }: Props) {
           shown === undefined ? null : (
             <CatalogueTable
               rows={shown.visible}
+              everyRow={new Map(shown.all.map((one) => [one.work_id, one]))}
               columns={columns}
               sort={sort}
               onReorder={reorder}

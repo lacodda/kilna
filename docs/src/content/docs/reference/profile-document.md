@@ -1019,7 +1019,7 @@ Which columns the [catalogue](/kilna/guides/the-catalogue/#choosing-the-columns)
 shows, by column id, in order:
 
 ```jsonc
-"catalogue_columns": ["title", "marks", "tier", "total", "scored", "updated"]
+"catalogue_columns": ["title", "marks", "status", "total", "release", "updated"]
 ```
 
 A novel and a record are read down different columns, which is why the list
