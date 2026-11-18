@@ -3,6 +3,7 @@ import type { Work } from '@/lib/api/types'
 import { listEntries } from '@/lib/metaSchema'
 import { fieldsOf } from '@/lib/overview'
 import { fieldsFor, say as sayLabel, useProfile } from '@/lib/useProfile'
+import { ArcEditor } from '@/features/work/tabs/overview/ArcEditor'
 import { MetaParagraph } from '@/features/work/tabs/overview/MetaParagraph'
 import { Widget } from '@/features/work/tabs/overview/Widget'
 import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
@@ -28,7 +29,13 @@ export function HookWidget({ work }: { work: Work }) {
   // as a list (v0.112): the anchors of an experiment were a paragraph read
   // line by line, and are entries now without a new way to type them.
   const box = (field: typeof first) =>
-    field.type === 'list' ? (
+    field.type === 'arc' ? (
+      <ArcEditor
+        label={sayLabel(field.label)}
+        value={work.meta[field.key]}
+        onChange={(points) => setField(field.key, points)}
+      />
+    ) : field.type === 'list' ? (
       <MetaParagraph
         label={sayLabel(field.label)}
         value={listEntries(work.meta[field.key]).join('\n')}

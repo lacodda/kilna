@@ -1,11 +1,15 @@
 import { useTranslation } from 'react-i18next'
 import { Plus, X } from 'lucide-react'
-import type { SchemaCustomProps } from '@/components/ui/schema-fields'
+import { useFieldDraft } from '@/components/ui/field-draft'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-/** A point of an emotional arc: a section, its feeling, how strong. */
-export interface ArcPoint {
+/**
+ * A point of an emotional arc: a section, its feeling, how strong. A type,
+ * not an interface: it is stored as it stands, and only a type literal is a
+ * JSON value to the compiler.
+ */
+export type ArcPoint = {
   section: string
   emotion: string
   intensity: number
@@ -27,82 +31,90 @@ function clampIntensity(value: number): number {
   return Math.min(10, Math.max(1, Math.round(value)))
 }
 
+/** Whether a typed intensity reads as a whole number from 1 to 10. */
+function readableIntensity(text: string): boolean {
+  const number = Number(text.trim())
+  return text.trim() !== '' && Number.isInteger(number) && number >= 1 && number <= 10
+}
+
 const WIDTH = 240
 const HEIGHT = 56
 
 /**
  * The emotional arc of a work (v0.146, FR-10 10.1): section by section, what
  * it feels and how strongly - a row each, and the curve the intensities draw
- * above them. The assistant reads it in order, with the work's other fields.
+ * above them. It stands with the paragraphs, at their width: in the grid of
+ * short fields its row was cut off. Every box keeps the rules of a field
+ * (`useFieldDraft`) - leaving it writes only a change, Escape puts back what
+ * is stored - so typing a word is one entry of the history, not one a key.
  */
-export function ArcEditor({ field, value, onValueChange, disabled }: SchemaCustomProps) {
+export function ArcEditor({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: unknown
+  onChange: (points: ArcPoint[] | null) => void
+}) {
   const { t } = useTranslation()
   const points = arcPointsOf(value)
-  const set = (next: ArcPoint[]) => onValueChange(next.length === 0 ? undefined : next)
+  const set = (next: ArcPoint[]) => onChange(next.length === 0 ? null : next)
   const change = (at: number, patch: Partial<ArcPoint>) =>
     set(points.map((one, index) => (index === at ? { ...one, ...patch } : one)))
   const step = points.length > 1 ? WIDTH / (points.length - 1) : 0
-  const curve = points
-    .map((one, index) => {
-      const x = points.length === 1 ? WIDTH / 2 : index * step
-      const y = HEIGHT - 4 - ((one.intensity - 1) / 9) * (HEIGHT - 8)
-      return `${x.toFixed(1)},${y.toFixed(1)}`
-    })
-    .join(' ')
+  const spots = points.map((one, index) => ({
+    x: points.length === 1 ? WIDTH / 2 : index * step,
+    y: HEIGHT - 4 - ((one.intensity - 1) / 9) * (HEIGHT - 8),
+  }))
 
   return (
-    <div className="col-span-full flex flex-col gap-1.5" role="group" aria-label={field.label}>
-      <span className="caption">{field.label}</span>
+    <div className="flex flex-col gap-1.5" role="group" aria-label={label}>
       {points.length > 1 && (
         <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="h-14 w-full max-w-sm"
+          viewBox={`-4 0 ${String(WIDTH + 8)} ${String(HEIGHT)}`}
+          className="h-14 w-full max-w-md"
           role="img"
           aria-label={t('work.arcCurve', {
-            list: points.map((one) => `${one.section} ${one.intensity}`).join(', '),
+            list: points.map((one) => `${one.section} ${String(one.intensity)}`).join(', '),
           })}
         >
-          <polyline points={curve} className="fill-none stroke-accent" strokeWidth={2} />
-          {curve.split(' ').map((spot, index) => {
-            const [x, y] = spot.split(',')
-            return <circle key={String(index)} cx={x} cy={y} r={3} className="fill-accent" />
-          })}
+          <polyline
+            points={spots.map((spot) => `${spot.x.toFixed(1)},${spot.y.toFixed(1)}`).join(' ')}
+            className="fill-none stroke-accent"
+            strokeWidth={2}
+          />
+          {spots.map((spot, index) => (
+            <circle key={String(index)} cx={spot.x} cy={spot.y} r={3} className="fill-accent" />
+          ))}
         </svg>
       )}
       {points.map((one, index) => (
         <div key={String(index)} className="flex items-center gap-1.5">
-          <Input
+          <ArcBox
+            className="w-36"
             value={one.section}
-            disabled={disabled}
             placeholder={t('work.arcSection')}
-            aria-label={t('work.arcSectionOf', { n: index + 1 })}
-            onChange={(event) => change(index, { section: event.target.value })}
-            className="w-32"
+            label={t('work.arcSectionOf', { n: index + 1 })}
+            onCommit={(section) => change(index, { section: section.trim() })}
           />
-          <Input
-            value={one.emotion}
-            disabled={disabled}
-            placeholder={t('work.arcEmotion')}
-            aria-label={t('work.arcEmotionOf', { n: index + 1 })}
-            onChange={(event) => change(index, { emotion: event.target.value })}
+          <ArcBox
             className="min-w-0 flex-1"
+            value={one.emotion}
+            placeholder={t('work.arcEmotion')}
+            label={t('work.arcEmotionOf', { n: index + 1 })}
+            onCommit={(emotion) => change(index, { emotion: emotion.trim() })}
           />
-          <Input
-            type="number"
-            min={1}
-            max={10}
-            value={String(one.intensity)}
-            disabled={disabled}
-            aria-label={t('work.arcIntensityOf', { n: index + 1 })}
-            onChange={(event) =>
-              change(index, { intensity: clampIntensity(Number(event.target.value) || 1) })
-            }
+          <ArcBox
             className="w-16"
+            value={String(one.intensity)}
+            label={t('work.arcIntensityOf', { n: index + 1 })}
+            readable={readableIntensity}
+            onCommit={(text) => change(index, { intensity: clampIntensity(Number(text)) })}
           />
           <Button
             variant="icon"
             size="icon-sm"
-            disabled={disabled}
             aria-label={t('work.arcRemove', { n: index + 1 })}
             onClick={() => set(points.filter((_, at) => at !== index))}
           >
@@ -114,7 +126,6 @@ export function ArcEditor({ field, value, onValueChange, disabled }: SchemaCusto
         size="xs"
         variant="ghost"
         className="self-start"
-        disabled={disabled}
         onClick={() => set([...points, { section: '', emotion: '', intensity: 5 }])}
       >
         <Plus aria-hidden />
@@ -122,4 +133,24 @@ export function ArcEditor({ field, value, onValueChange, disabled }: SchemaCusto
       </Button>
     </div>
   )
+}
+
+/** One box of a row, written when it is left. */
+function ArcBox({
+  value,
+  label,
+  placeholder,
+  className,
+  readable,
+  onCommit,
+}: {
+  value: string
+  label: string
+  placeholder?: string
+  className: string
+  readable?: (text: string) => boolean
+  onCommit: (text: string) => void
+}) {
+  const draft = useFieldDraft(value, onCommit, { readable })
+  return <Input aria-label={label} placeholder={placeholder} className={className} {...draft} />
 }

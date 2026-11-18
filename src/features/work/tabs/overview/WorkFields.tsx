@@ -1,4 +1,3 @@
-import { ArcEditor } from '@/features/work/tabs/overview/ArcEditor'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Meta, MetaField } from '@/lib/api/types'
@@ -60,12 +59,8 @@ export function WorkFields({
   )
   const value = metaRecord(fields, meta)
 
-  const custom = Object.fromEntries([
-    // The arc is drawn whole, a row a section and its curve (v0.146).
-    ...fields
-      .filter((field) => field.type === 'arc')
-      .map((field) => [field.key, (props: SchemaCustomProps) => <ArcEditor {...props} />]),
-    ...fields
+  const custom = Object.fromEntries(
+    fields
       .filter((field) => field.type === 'text' || field.type === 'number')
       .map((field) => [
         field.key,
@@ -79,7 +74,7 @@ export function WorkFields({
           />
         ),
       ]),
-  ])
+  )
 
   return (
     <SchemaFields

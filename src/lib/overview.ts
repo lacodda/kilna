@@ -331,12 +331,14 @@ export function previousOf(
  * the paragraphs - a premise, an idea - in the hook widget, where a paragraph
  * has the width to be read. In a grid cell a paragraph was a column of
  * two-word lines. A list stands with the paragraphs: its entries need the
- * width as a paragraph does.
+ * width as a paragraph does, and so does an emotional arc, a row a section.
  */
 export function fieldsOf(fields: readonly MetaField[]): { short: MetaField[]; prose: MetaField[] } {
+  const wide = (field: MetaField) =>
+    field.type === 'multiline' || field.type === 'list' || field.type === 'arc'
   return {
-    short: fields.filter((field) => field.type !== 'multiline' && field.type !== 'list'),
-    prose: fields.filter((field) => field.type === 'multiline' || field.type === 'list'),
+    short: fields.filter((field) => !wide(field)),
+    prose: fields.filter(wide),
   }
 }
 

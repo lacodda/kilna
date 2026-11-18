@@ -180,3 +180,34 @@ describe('fields drawn from the schema the profile describes', () => {
     await waitFor(() => expect(written).toEqual([{ meta: { explicit: true } }]))
   })
 })
+
+// v0.146: the emotional arc stands with the paragraphs, at their width - in
+// the grid of short fields its rows were cut off - and a box of it writes
+// when it is left, not on every key.
+describe('the emotional arc', () => {
+  it('stands outside the grid and writes a box when it is left', async () => {
+    const widget = await openFields(IDS.song, 'Song')
+    expect(within(widget).queryByRole('group', { name: 'Emotional arc' })).toBeNull()
+    const arc = await screen.findByRole('group', { name: 'Emotional arc' })
+
+    fireEvent.click(within(arc).getByRole('button', { name: en.work.arcAdd }))
+    await waitFor(() =>
+      expect(written).toEqual([
+        { meta: { emotional_arc: [{ section: '', emotion: '', intensity: 5 }] } },
+      ]),
+    )
+
+    const section = await within(arc).findByRole('textbox', {
+      name: en.work.arcSectionOf.replace('{{n}}', '1'),
+    })
+    fireEvent.focus(section)
+    fireEvent.change(section, { target: { value: 'Verse' } })
+    expect(written).toHaveLength(1)
+    fireEvent.blur(section)
+    await waitFor(() =>
+      expect(written.at(-1)).toEqual({
+        meta: { emotional_arc: [{ section: 'Verse', emotion: '', intensity: 5 }] },
+      }),
+    )
+  })
+})
