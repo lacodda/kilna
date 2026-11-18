@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.144.0] - 2026-11-18
+
+The canon over MCP. An agent reading the canon now learns whether the space
+has its passport and what each shape of section carries, reads a long card
+in parts - its summary and counts, one section, one state, a page of facts -
+and names the passport `root`. Proposing, it can change a card's name, other
+names, layer or summary, and a second passport becomes an update of the one
+standing; move a fact to another section, refile it as it refines it, or
+delete it; take a relation away; and a new fact the card nearly holds comes
+back marked as similar. The proposal shows every new kind of item, each kept
+or left out on its own. Two playbooks ship for agents: setting up a canon
+from an interview or a description, and tidying one card by card.
+
+### Features
+- The canon over MCP - read in parts, changed, tidied
+
 ## [0.143.0] - 2026-11-18
 
 The canon as a graph. An open card's side now draws it among the cards it is
