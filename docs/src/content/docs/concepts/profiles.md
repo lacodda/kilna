@@ -1,6 +1,6 @@
 ---
 title: Profiles
-description: One fixed schema, configured by profile — how Studio, Novel, Podcast and Blog speak the same structure with different vocabulary, and how a profile is edited, kept as a type and moved in a file.
+description: One fixed schema, configured by profile — how Studio, Novel, Podcast, Blog, Poetry and Newsletter speak the same structure with different vocabulary, and how a profile is edited, kept as a type and moved in a file.
 ---
 
 A song, a chapter, and a podcast episode differ in **vocabulary and evaluation

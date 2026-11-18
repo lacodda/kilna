@@ -10,6 +10,7 @@ import { LabelInput } from '@/features/settings/LabelInput'
 import { RhythmEditor } from '@/features/settings/RhythmEditor'
 import type { ProblemsAt } from '@/features/settings/useProfileProblems'
 import { stagesOf } from '@/lib/stages'
+import { MARK_ICON_NAMES } from '@/lib/markIcon'
 
 /** A kind of work newly made: a draft to start in and a text to write, which
  *  is the least a kind can be - a kind with no status cannot hold a work. */
@@ -78,6 +79,14 @@ export function CraftEditor({
               value={mark.colour}
               onChange={(colour) => set({ colour: colour as MarkColour })}
               options={colours}
+            />
+            <Select
+              className="w-32"
+              aria-label={t('editor.markIconOf', { key: mark.key })}
+              placeholder={t('editor.actionIconNone')}
+              value={mark.icon != null && MARK_ICON_NAMES.includes(mark.icon) ? mark.icon : ''}
+              onChange={(icon) => set({ icon: icon === '' ? undefined : icon })}
+              options={MARK_ICON_NAMES.map((name) => ({ value: name, label: name }))}
             />
           </>
         )}

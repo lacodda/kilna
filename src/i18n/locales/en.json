@@ -1586,7 +1586,9 @@
     "parts": "Parts of the profile",
     "part": {
       "craft": "The craft",
-      "fields": "Fields"
+      "fields": "Fields",
+      "canon": "Canon",
+      "vibe": "Vibe"
     },
     "partWrong": "Something here will not save",
     "exportProfile": "Export…",
@@ -1822,7 +1824,45 @@
     "fileHint": "Which file in the folder the work is finished as - what a short is cut from: a path inside the folder, where * stands for any name and ? for one character, as video/*.mp4. The newest file it matches is taken, unless one is chosen in the Files tab. Empty takes only a chosen one.",
     "fileAbsolute": "Name a file inside the work’s folder, as video/*.mp4, not a place on a disk.",
     "fileClimbs": "The finished file lies inside the work’s folder, and . and .. step out of it.",
-    "fileForbidden": "“{{text}}” holds a character no file name may hold."
+    "fileForbidden": "“{{text}}” holds a character no file name may hold.",
+    "markIconOf": "The glyph of {{key}}",
+    "canon": {
+      "hint": "The kinds of card the canon keeps, and the sections a card of each is filled in by. A section’s shape says what it holds: facts in layers, slots to fill, details, a palette, marks, styles, bans, relations or appearances in the works.",
+      "none": "No kind of note in this profile is a card of the canon.",
+      "sectionsOf": "Sections of {{kind}}",
+      "addSection": "Add a section",
+      "sectionHint": "What goes here, and what reads it",
+      "sectionHintOf": "The hint of {{key}} in {{kind}}",
+      "shapeOf": "What {{key}} of {{kind}} holds",
+      "shape": {
+        "facts": "Facts",
+        "slots": "Slots",
+        "details": "Details",
+        "palette": "Palette",
+        "marks": "Marks",
+        "styles": "Styles",
+        "bans": "Bans",
+        "relations": "Relations",
+        "appearances": "Appearances"
+      },
+      "wordOf": "The word of {{key}} in {{kind}}"
+    },
+    "vibe": {
+      "hint": "The three lines a work’s feel is said along. A mood is drawn in its colour (#RRGGBB, as it reads on the dark theme), a character in its shape, a complexity in its strokes.",
+      "none": "This profile says no vibe yet; it gains the shipped lines at the next start.",
+      "colourOf": "The colour of {{key}}",
+      "glyphOf": "The shape of {{key}}",
+      "strokesOf": "The strokes of {{key}}",
+      "strokes_one": "One stroke",
+      "strokes_other": "{{count}} strokes",
+      "glyph": {
+        "calm": "Wave",
+        "playful": "Diamond",
+        "steady": "Circle",
+        "edgy": "Broken line",
+        "drive": "Chevron"
+      }
+    }
   },
   "fields": {
     "choiceNone": "Not set",

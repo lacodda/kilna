@@ -1,3 +1,5 @@
+import { CanonEditor } from '@/features/settings/CanonEditor'
+import { VibeEditor } from '@/features/settings/VibeEditor'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ProfileConfig, WorkKind } from '@/lib/api/types'
@@ -69,6 +71,8 @@ export function ProfileEditor() {
       label: sayLabel(kind.label) || kind.key,
     })),
     { id: 'fields', label: t('editor.part.fields') },
+    { id: 'canon', label: t('editor.part.canon') },
+    { id: 'vibe', label: t('editor.part.vibe') },
   ]
   // A kind taken out while its part was open leaves the craft open instead.
   const part = parts.some((entry) => entry.id === chosen) ? chosen : 'craft'
@@ -136,6 +140,14 @@ export function ProfileEditor() {
           problemsAt={problemsAt}
         />
       )}
+      {part === 'canon' && (
+        <CanonEditor
+          kinds={config.note_kinds ?? []}
+          onChange={(note_kinds) => patch({ note_kinds })}
+          problemsAt={problemsAt}
+        />
+      )}
+      {part === 'vibe' && <VibeEditor vibe={config.vibe} onChange={(vibe) => patch({ vibe })} />}
       {part === 'fields' && (
         <MetaFieldsEditor
           fields={config.work_meta_fields}

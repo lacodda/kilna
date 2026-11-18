@@ -934,6 +934,10 @@ colour, the character's shape, the complexity's strokes.
 | `labels` | optional | What a line is called, where the craft has its own word for it: a blog calls the third *How deep it goes*, a novel *Layers of the plot*. |
 | `neutral` | optional | The word a line stands at while it is unsaid and another is said - its middle word unless named. |
 
+The words, colours, shapes and strokes are edited in **Settings → Profile →
+Vibe** (since v0.129); the sections of each kind of card in **Settings →
+Profile → Canon**, and a mark's glyph beside its colour in the craft's part.
+
 Every shipped profile carries the same five moods, five characters and three
 complexities; a stored profile that names none takes them on the next start,
 and one that has them keeps its words. The five colours are told apart from

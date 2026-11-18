@@ -45,6 +45,9 @@ const MARK_ICONS: Record<string, LucideIcon> = {
   pin: Pin,
 }
 
+/** The names a mark's glyph may take, as the profile editor offers them. */
+export const MARK_ICON_NAMES = Object.keys(MARK_ICONS)
+
 export function markIconOf(mark: Pick<Mark, 'icon'>): LucideIcon {
   return (mark.icon != null ? MARK_ICONS[mark.icon] : undefined) ?? Tag
 }

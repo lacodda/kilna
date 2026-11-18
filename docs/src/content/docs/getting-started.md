@@ -172,6 +172,6 @@ profiles use different roles for the same idea.
 ## Where next
 
 - [The loop](/kilna/concepts/the-loop/) — work, versions, score, slot, shipped, and why each step exists.
-- [Profiles](/kilna/concepts/profiles/) — how Music, Novel, Podcast and Blog share one schema.
+- [Profiles](/kilna/concepts/profiles/) — how Music, Novel, Podcast, Blog, Poetry and Newsletter share one schema.
 - [Scoring a work](/kilna/guides/scoring-a-work/) — a walkthrough.
 - [Data](/kilna/reference/data/) — export, backup, and where the workspace file lives.

@@ -69,15 +69,20 @@ export function problemsAt(problems: readonly Reason[], path: readonly Wanted[])
 }
 
 /** The parts the profile editor is laid out in. */
-export type ProfilePart = 'craft' | 'fields' | 'actions' | `kind:${string}`
+export type ProfilePart = 'craft' | 'fields' | 'actions' | 'canon' | 'vibe' | `kind:${string}`
 
 /** The part of the editor a problem is shown in. */
 export function partOf(problem: Reason): ProfilePart {
+  // A word of the vibe that will not hold - a colour, a count of strokes -
+  // is said by itself, without a place (v0.129).
+  if (problem.key.startsWith('problem.vibe')) return 'vibe'
   const [first] = placeOf(problem)
   if (first === undefined) return 'craft'
   if (first.what === 'workKind' && first.key !== null) return `kind:${first.key}`
   if (first.what === 'action') return 'actions'
   if (first.what === 'metaField') return 'fields'
+  if (['noteKind', 'noteKinds', 'section', 'sections'].includes(first.what)) return 'canon'
+  if (['moods', 'characters', 'complexities'].includes(first.what)) return 'vibe'
   return 'craft'
 }
 

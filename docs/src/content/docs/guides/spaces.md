@@ -20,7 +20,9 @@ of songs are two registers of repeats and two calendars that never mix.
 ## Kinds
 
 A space is made of one of the profiles kilna ships - **Studio** (songs, clips,
-shorts), **Blog**, **Novel**, **Podcast** or **Empty** - and speaks that
+shorts), **Blog**, **Novel**, **Podcast**, **Poetry** (poems, translations and
+reading sets, since v0.129), **Newsletter** (issues, special editions and
+sequence emails, since v0.129) or **Empty** - and speaks that
 craft's words from then on. The kind is a starting point, not a cage: the
 profile inside the space is its own copy, and editing it in **Settings →
 Profile** changes that space alone. Two spaces of the same kind are as normal
@@ -48,6 +50,27 @@ the type's source space, or deleting the type, changes nothing in it. It stays
 a space of the kind the type grew from, so what a later version of kilna adds
 to that kind - a new action, a new field - reaches it as it reaches any space
 of that kind. Works are not part of a type: a space made of one is empty.
+
+## The first start
+
+On a new machine kilna makes a space so the window has somewhere to stand,
+and welcomes you into it (v0.129): whether Claude Code is on the machine -
+the assistant waits without it, nothing else does - then what the space is
+made of, its name, colour and mark, and **Start with a demo**; then your
+first work, by its title, opened on its card - or **Look around first**. A
+Studio stays the space kilna made; any other kind is a new space, and the
+untouched first one goes. **Later** puts the welcome off to the next start.
+
+**A demo** is a handful of made-up works in English at every stage -
+versions to compare, a score, notes, a card of the canon and, in Studio,
+releases booked for the coming days - so each screen has something on it.
+It is written through the ordinary gestures, so it is in the history and is
+deleted like anything else, and it goes only into a space with no works:
+**New space…** offers it too.
+
+**First-visit hints.** The first time a screen opens on a machine it says,
+in two sentences, what it is for; **Got it** puts that one away, **No more
+hints** all of them, and **Settings → General** brings them back.
 
 ## Making one and switching
 
