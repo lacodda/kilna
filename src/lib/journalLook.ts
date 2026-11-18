@@ -118,6 +118,7 @@ const KIND_OF_PREFIX: Readonly<Record<string, Kind>> = {
   upgrade: 'release',
   layout: 'calendar',
   timeOff: 'calendar',
+  workPlan: 'calendar',
   scene: 'scene',
   cut: 'cut',
   link: 'link',
