@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.146.0] - 2026-11-18
+
+A song's material. A song now has an emotional arc on its Overview: a row
+a section - what it feels and how strongly - with the curve the
+intensities draw, read section by section by the assistant. A field can be
+marked as kept by every action: Studio's anchors - the hooks and devices a
+song keeps - go with every critique, polish and rewrite with the rule not
+to touch them unless asked, and stand in the order and in an agent's
+brief. The research board gains a reference track - what to take from a
+song and where in it. `kilna --import-songs` brings the folders of songs a
+previous system kept into their works, a plan and a report first. And the
+cover constructor makes room: the shortlist folds to one line, and the
+constructor takes the whole window the way the text editor does.
+
+### Bug Fixes
+- The anchors stand once in the order, under their own heading
+- The emotional arc stands with the paragraphs and writes a box when it is left
+- The arc's curve takes whole coordinates, not a formatted number
+
+### Documentation
+- The shortlist folds, the constructor takes the whole window
+
+### Features
+- A song's material - the emotional arc, kept anchors, reference tracks, and the old song folders brought in
+- The shortlist folds to one line and the constructor takes the whole window
+
 ## [0.145.0] - 2026-11-18
 
 Documents and links. Every shipped profile now has a Document kind beside
