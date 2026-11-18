@@ -63,9 +63,10 @@ export function ArcEditor({
   const change = (at: number, patch: Partial<ArcPoint>) =>
     set(points.map((one, index) => (index === at ? { ...one, ...patch } : one)))
   const step = points.length > 1 ? WIDTH / (points.length - 1) : 0
+  // Whole units of the drawing's own box: a coordinate, never a number said.
   const spots = points.map((one, index) => ({
-    x: points.length === 1 ? WIDTH / 2 : index * step,
-    y: HEIGHT - 4 - ((one.intensity - 1) / 9) * (HEIGHT - 8),
+    x: Math.round(points.length === 1 ? WIDTH / 2 : index * step),
+    y: Math.round(HEIGHT - 4 - ((one.intensity - 1) / 9) * (HEIGHT - 8)),
   }))
 
   return (
@@ -80,7 +81,7 @@ export function ArcEditor({
           })}
         >
           <polyline
-            points={spots.map((spot) => `${spot.x.toFixed(1)},${spot.y.toFixed(1)}`).join(' ')}
+            points={spots.map((spot) => `${String(spot.x)},${String(spot.y)}`).join(' ')}
             className="fill-none stroke-accent"
             strokeWidth={2}
           />
