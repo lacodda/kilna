@@ -2953,6 +2953,67 @@
     "earlier": "Move earlier",
     "later": "Move later"
   },
+  "packs": {
+    "get": "Get styles",
+    "title": "Style packs",
+    "description": "Packs of styles from the registries this machine reads. Install a pack whole, or one style of it.",
+    "half": "Half",
+    "halves": {
+      "all": "All",
+      "picture": "Picture",
+      "motion": "Motion",
+      "sound": "Sound"
+    },
+    "category": "Category",
+    "anyCategory": "Any category",
+    "search": "Find a pack",
+    "categories": {
+      "genres": "Genres",
+      "artist-spirit": "In the spirit of",
+      "frame-animation": "Frame animation",
+      "photo-trends": "Photo trends",
+      "fonts": "Fonts",
+      "angles-light": "Angles and light",
+      "composition": "Composition"
+    },
+    "bricks_one": "one style",
+    "bricks_other": "{{count}} styles",
+    "standing": {
+      "absent": "Not installed",
+      "installed": "Installed",
+      "update": "Update available",
+      "unfit": "Not for this space"
+    },
+    "brickStanding": {
+      "absent": "Not installed",
+      "installed": "Installed",
+      "update": "Newer words",
+      "changed": "Yours",
+      "deleted": "Deleted",
+      "unfit": "Not for this space"
+    },
+    "open": "Open",
+    "back": "All packs",
+    "installPack": "Install the pack",
+    "installOne": "Install only this style",
+    "takeNewer": "Take the newer words",
+    "installed": "Styles installed: {{added}} added, {{renewed}} renewed, {{kept}} left as they were.",
+    "installFailed": "Could not install the pack",
+    "unfitNote": "This space’s profile has no type for these styles.",
+    "offlineNote": "Offline: only the snapshot and folders are read.",
+    "none": "No pack answers the filter.",
+    "sources": "Style packs",
+    "sourcesHint": "Where packs are read from: the snapshot that ships with kilna, and the folders and sites you add.",
+    "builtin": "The snapshot shipped with kilna",
+    "removeSource": "Remove",
+    "addFolder": "Add a folder",
+    "addUrl": "Add a site",
+    "addUrlHint": "The address of a registry’s index.json, or of the folder that holds it.",
+    "url": "Address",
+    "add": "Add",
+    "offline": "Offline: read no sites",
+    "sourceFailed": "Could not change the sources"
+  },
   "agents": {
     "trigger": {
       "title": "A trigger for your agent",
@@ -3634,6 +3695,15 @@
       "notEmpty": "A demo goes only into a space with no works yet: it is a way to look around a new space, never mixed into your own.",
       "noKind": "This space has no kind of work a demo could be written in.",
       "notAStand": "The folder {{path}} holds spaces and is not a demo stand: --demo-all makes a stand only in an empty folder, or in one it made."
+    },
+    "packs": {
+      "unreadable": "The registry {{source}} could not be read: {{cause}}",
+      "notAnIndex": "{{source}} has no index of packs kilna reads: {{cause}}",
+      "newerFormat": "{{source}} is written in a newer format ({{format}}) than this kilna reads: update kilna.",
+      "digestMismatch": "The pack {{pack}} does not match the fingerprint its registry gives: it was changed in transit or on the site.",
+      "notAManifest": "The pack {{pack}} could not be read: {{cause}}",
+      "nothingChosen": "Nothing of the pack {{pack}} was chosen.",
+      "emptySource": "A source needs a folder or an address."
     }
   },
   "proposalBody": {

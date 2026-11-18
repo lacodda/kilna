@@ -1,3 +1,4 @@
+import { PackSources } from '@/features/settings/PackSources'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { resetCoachMarks } from '@/components/CoachMark'
@@ -53,6 +54,7 @@ export function GeneralSection() {
           }))}
         />
       </FieldGroup>
+      <PackSources />
       <div className="flex flex-col gap-1">
         <h3 className="caption">{t('coach.title')}</h3>
         <div>

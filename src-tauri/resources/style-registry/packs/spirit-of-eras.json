@@ -1,0 +1,81 @@
+{
+  "id": "spirit-of-eras",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "late-night-jazz-club",
+      "type": "genre",
+      "label": {
+        "en": "Late-night jazz club",
+        "ru": "Ночной джаз-клуб"
+      },
+      "family": "spirit-of-eras",
+      "description": "smoky late-night jazz club, brushed drums, upright bass, muted trumpet, close-miked vocal",
+      "when": "For a slow, intimate, after-hours song.",
+      "explanation": {
+        "en": "A small club after midnight.",
+        "ru": "Маленький клуб после полуночи."
+      }
+    },
+    {
+      "key": "nineties-trip-hop",
+      "type": "genre",
+      "label": {
+        "en": "Nineties trip-hop haze",
+        "ru": "Трип-хоп девяностых"
+      },
+      "family": "spirit-of-eras",
+      "description": "slow downtempo trip-hop, dusty breakbeat, deep bass, cinematic strings, breathy vocal",
+      "when": "For a dark, slow, cinematic song.",
+      "explanation": {
+        "en": "The slow, smoky beats of the nineties.",
+        "ru": "Медленные дымные биты девяностых."
+      }
+    },
+    {
+      "key": "seventies-soul-strings",
+      "type": "genre",
+      "label": {
+        "en": "Seventies soul strings",
+        "ru": "Соул-струнные семидесятых"
+      },
+      "family": "spirit-of-eras",
+      "description": "warm seventies soul, lush string section, wah guitar, tight live rhythm section",
+      "when": "For a warm, lifting song with a groove.",
+      "explanation": {
+        "en": "A soul record with an orchestra in the room.",
+        "ru": "Соул-пластинка с оркестром в комнате."
+      }
+    },
+    {
+      "key": "eighties-synth-pop",
+      "type": "genre",
+      "label": {
+        "en": "Eighties synth-pop sheen",
+        "ru": "Синти-поп восьмидесятых"
+      },
+      "family": "spirit-of-eras",
+      "description": "bright eighties synth-pop, gated reverb drums, glossy analogue synth pads, punchy bass synth",
+      "when": "For a bright, nostalgic, danceable song.",
+      "explanation": {
+        "en": "The shine of eighties synthesizers.",
+        "ru": "Блеск синтезаторов восьмидесятых."
+      }
+    },
+    {
+      "key": "sixties-garage-fuzz",
+      "type": "genre",
+      "label": {
+        "en": "Sixties garage fuzz",
+        "ru": "Гаражный фузз шестидесятых"
+      },
+      "family": "spirit-of-eras",
+      "description": "raw sixties garage rock, fuzz guitar, farfisa organ, loose energetic drums, shouted vocal",
+      "when": "For a raw, fast, joyful song.",
+      "explanation": {
+        "en": "A band in a garage with a fuzz pedal.",
+        "ru": "Группа в гараже с фузз-педалью."
+      }
+    }
+  ]
+}

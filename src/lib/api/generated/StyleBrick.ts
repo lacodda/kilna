@@ -60,6 +60,11 @@ sample: string | null,
  */
 set_key: string | null, 
 /**
+ * Where it came from, when a pack of a registry gave it: `pack:<id>`
+ * (v0.131). Empty for the starter set's and the owner's own.
+ */
+source: string | null, 
+/**
  * Where it came from and whether it was changed since - see [`Origin`].
  */
 origin: StyleOrigin, 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { BookPlus, Plus } from 'lucide-react'
+import { BookPlus, PackageOpen, Plus } from 'lucide-react'
 import type { StyleBrick, StyleOrigin, StyleType } from '@/lib/api/types'
 import { picturesAmong } from '@/lib/drop'
 import { queries } from '@/lib/query/queries'
@@ -26,6 +26,7 @@ import { StyleBrickCard } from '@/features/styles/StyleBrickCard'
 import { StyleDropCard } from '@/features/styles/StyleDropCard'
 import { StyleEditor } from '@/features/styles/StyleEditor'
 import { FromStylesDialog } from '@/features/styles/FromStylesDialog'
+import { PacksDialog } from '@/features/styles/PacksDialog'
 import { useNewStyle } from '@/features/styles/useNewStyle'
 
 /*
@@ -100,6 +101,7 @@ export function StylesView() {
   const house = useQuery(queries.houseStyles())
   const houseSet = new Set(house.data ?? [])
   const [fromTexts, setFromTexts] = useState(false)
+  const [packs, setPacks] = useState(false)
   // Every style, whatever the filters: the open one is found here, so
   // narrowing the dictionary never closes the style being edited, and a new
   // style's name is kept apart from every other of its type.
@@ -396,6 +398,10 @@ export function StylesView() {
               {t('phrases.fromTexts')}
             </Button>
           )}
+          <Button variant="soft" onClick={() => setPacks(true)}>
+            <PackageOpen aria-hidden />
+            {t('packs.get')}
+          </Button>
           <Button
             variant="primary"
             onClick={() => make.mutate(null)}
@@ -412,6 +418,7 @@ export function StylesView() {
       {fromTexts && half?.composition != null && (
         <FromStylesDialog open onOpenChange={setFromTexts} composition={half.composition} />
       )}
+      <PacksDialog open={packs} onOpenChange={setPacks} />
     </Frame>
   )
 }

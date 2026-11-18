@@ -36,6 +36,7 @@ pub mod note;
 pub mod operation;
 pub mod ordinal;
 pub mod origin;
+pub mod packs;
 pub mod parts;
 pub mod phrase;
 pub mod plan_import;
@@ -284,6 +285,12 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::workspace::read_skill_set,
             commands::workspace::seed_demo,
             commands::spaces::welcome_space,
+            commands::packs::style_packs,
+            commands::packs::style_pack,
+            commands::packs::install_style_pack,
+            commands::packs::add_style_source,
+            commands::packs::remove_style_source,
+            commands::packs::set_packs_offline,
             commands::workspace::skill_triggers,
             commands::workspace::install_skill_trigger,
             commands::workspace::take_shipped,

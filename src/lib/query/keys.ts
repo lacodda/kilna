@@ -167,6 +167,8 @@ export const keys = {
   /** The channel's house bricks - named on its card, so the canon's prefix
       refreshes them too. */
   houseStyles: ['styles', 'house'] as const,
+  /** The packs the registries offer, and where each stands (v0.131). */
+  stylePacks: ['styles', 'packs'] as const,
   /** A text written from picks: under the dictionary's prefix, since a brick
       reworded changes it. */
   composedText: (composition: string, bricks: readonly string[], workId: string | null) =>

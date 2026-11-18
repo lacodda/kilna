@@ -107,6 +107,38 @@ where its style came from:
 A style of the set you delete stays deleted. Narrow the dictionary by where a
 style came from, and by where it stands, with the chips under the types.
 
+## Packs from a registry
+
+Since v0.131 the dictionary also grows from **packs**: themed sets of styles
+- film photography, light and angle, lo-fi textures, the sound of an era,
+camera moves - published in a registry. **Get styles** on the Styles screen
+opens the catalogue: packs by half (picture, motion, sound), category and
+words, each saying whether it is **Not installed**, **Installed** or has an
+**Update available**, or is **Not for this space** when its profile has no
+type for its styles. A pack opens into its styles; **Install the pack**
+puts them all in, under a family of the pack's own, and **Install only this
+style** one of them.
+
+A pack's style is a shipped entry like the starter set's: the same pack
+never installs twice, one you never touched takes a pack's newer words, one
+you reworded keeps yours, and one you deleted stays out of a pack installed
+whole - installing that very style brings it back. Each install is written
+as styles made by hand are, so the history says it and an undo takes it
+back.
+
+**Where packs come from.** kilna ships a snapshot of a registry beside the
+application, read without a network. **Settings → General → Style packs**
+adds folders and sites - any static site, GitHub Pages among them - that
+serve a registry, and can stop the sites being read at all. A registry is an
+`index.json` listing its packs (`id`, `version`, the SHA-256 `digest` of the
+pack's file, `title` and `description` in every language, `half`,
+`category`, `brick_count`, `updated_at`, `manifest_url`, an optional
+`preview_webp_url`), and a file per pack listing its styles in the shape of
+the starter set (`key`, `type`, `label`, `family`, `description` - in
+English, naming no artist - `when`, `explanation`, `colours`, `sample`), with
+an optional `preview_webp` and what a style `needs`, `provides` and
+`conflicts` with. A pack whose file does not match its digest is refused.
+
 ## Types the craft no longer builds from
 
 *Layers* and *Frame composition* are retired in Studio: where the hero

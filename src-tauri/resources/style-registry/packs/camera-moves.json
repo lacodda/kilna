@@ -1,0 +1,81 @@
+{
+  "id": "camera-moves",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "slow-push",
+      "type": "motion",
+      "label": {
+        "en": "Slow push in",
+        "ru": "Медленный наезд"
+      },
+      "family": "camera-moves",
+      "description": "slow steady push in toward the subject",
+      "when": "For a growing feeling, a moment that matters.",
+      "explanation": {
+        "en": "The camera slowly closer.",
+        "ru": "Камера медленно ближе."
+      }
+    },
+    {
+      "key": "handheld-drift",
+      "type": "motion",
+      "label": {
+        "en": "Handheld drift",
+        "ru": "Ручная камера"
+      },
+      "family": "camera-moves",
+      "description": "subtle handheld drift and sway, documentary feel",
+      "when": "For presence and realism.",
+      "explanation": {
+        "en": "A camera held, not mounted.",
+        "ru": "Камера в руках, а не на штативе."
+      }
+    },
+    {
+      "key": "crane-rise",
+      "type": "motion",
+      "label": {
+        "en": "Crane rise",
+        "ru": "Подъём крана"
+      },
+      "family": "camera-moves",
+      "description": "camera rises slowly from ground level to above the subject, revealing the scene",
+      "when": "For an ending or a reveal.",
+      "explanation": {
+        "en": "The camera rising up and away.",
+        "ru": "Камера поднимается вверх и прочь."
+      }
+    },
+    {
+      "key": "whip-pan",
+      "type": "motion",
+      "label": {
+        "en": "Whip pan",
+        "ru": "Резкая панорама"
+      },
+      "family": "camera-moves",
+      "description": "fast whip pan to the side with motion blur",
+      "when": "For a cut on the beat.",
+      "explanation": {
+        "en": "A turn so fast it blurs.",
+        "ru": "Поворот такой быстрый, что смазывается."
+      }
+    },
+    {
+      "key": "orbit",
+      "type": "motion",
+      "label": {
+        "en": "Slow orbit",
+        "ru": "Медленный облёт"
+      },
+      "family": "camera-moves",
+      "description": "camera slowly orbits around the subject at eye level",
+      "when": "For a portrait that turns.",
+      "explanation": {
+        "en": "The camera circling the subject.",
+        "ru": "Камера кружит вокруг героя."
+      }
+    }
+  ]
+}

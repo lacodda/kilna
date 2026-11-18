@@ -1,0 +1,95 @@
+{
+  "format_version": 1,
+  "packs": [
+    {
+      "id": "film-photo",
+      "version": "1.0.0",
+      "digest": "e7ef8e5e9a469390e37374a2dec46d42fd3e0952c3f63253f91754dda774b973",
+      "title": {
+        "en": "Film photography",
+        "ru": "Плёночная фотография"
+      },
+      "description": {
+        "en": "Five looks of analogue film for a cover or a frame: warm portrait stock, hard black-and-white grain, expired film, cross-processing and saturated slide reds.",
+        "ru": "Пять плёночных фактур для обложки или кадра: тёплая портретная плёнка, жёсткое чёрно-белое зерно, просроченная плёнка, кросс-процесс и насыщенные слайдовые красные."
+      },
+      "half": "picture",
+      "category": "photo-trends",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/film-photo.json"
+    },
+    {
+      "id": "light-and-angle",
+      "version": "1.0.0",
+      "digest": "95f146289fc2604c3862be35bfb98d60f840b226e02359fce4cd2f6e841a69a3",
+      "title": {
+        "en": "Light and angle",
+        "ru": "Свет и ракурс"
+      },
+      "description": {
+        "en": "Five ways to stand the camera and light the subject.",
+        "ru": "Пять способов поставить камеру и осветить героя."
+      },
+      "half": "picture",
+      "category": "angles-light",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/light-and-angle.json"
+    },
+    {
+      "id": "lofi-textures",
+      "version": "1.0.0",
+      "digest": "7b0df50c3fce1154bb9cbdaee5e8a1aa11263c8fdef4656433e81361241b68bd",
+      "title": {
+        "en": "Lo-fi textures",
+        "ru": "Лоу-фай фактуры"
+      },
+      "description": {
+        "en": "Five textures that make a track sound worn, warm and close.",
+        "ru": "Пять фактур, от которых трек звучит потёрто, тепло и близко."
+      },
+      "half": "sound",
+      "category": "genres",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/lofi-textures.json"
+    },
+    {
+      "id": "spirit-of-eras",
+      "version": "1.0.0",
+      "digest": "249244f249b3628827110b653bfef9d1f8c13d1bd49c35283e9d2662d631796e",
+      "title": {
+        "en": "In the spirit of an era",
+        "ru": "В духе эпохи"
+      },
+      "description": {
+        "en": "Five sounds of a time and a place, described by what is heard - never by whose name.",
+        "ru": "Пять звучаний времени и места, описанных тем, что слышно, - никогда не чьим-то именем."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/spirit-of-eras.json"
+    },
+    {
+      "id": "camera-moves",
+      "version": "1.0.0",
+      "digest": "2642f650b2ce80097225bd43730297d91e653b5baa74d58764673c8833df64b7",
+      "title": {
+        "en": "Camera moves",
+        "ru": "Движения камеры"
+      },
+      "description": {
+        "en": "Five moves of a camera for an animated frame. Installs into a space whose profile has a type for motion.",
+        "ru": "Пять движений камеры для анимированного кадра. Ставится в пространство, где в профиле есть тип для движения."
+      },
+      "half": "motion",
+      "category": "frame-animation",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/camera-moves.json"
+    }
+  ]
+}

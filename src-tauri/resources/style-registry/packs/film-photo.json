@@ -1,0 +1,81 @@
+{
+  "id": "film-photo",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "warm-portrait-stock",
+      "type": "image-style",
+      "label": {
+        "en": "Warm portrait stock",
+        "ru": "Тёплая портретная плёнка"
+      },
+      "family": "film-photo",
+      "description": "shot on warm colour negative portrait film, soft pastel skin tones, gentle highlight rolloff, fine grain, slightly lifted shadows",
+      "when": "For a person in natural light that should feel close and kind.",
+      "explanation": {
+        "en": "Colour negative film made for faces: warm, soft, forgiving.",
+        "ru": "Цветная негативная плёнка для лиц: тёплая, мягкая, прощающая."
+      }
+    },
+    {
+      "key": "hard-mono-grain",
+      "type": "image-style",
+      "label": {
+        "en": "Hard monochrome grain",
+        "ru": "Жёсткое ч/б зерно"
+      },
+      "family": "film-photo",
+      "description": "high-contrast black and white film pushed two stops, coarse visible grain, deep blacks, gritty street-photo texture",
+      "when": "For a raw, urgent picture; not for a gentle song.",
+      "explanation": {
+        "en": "Black-and-white film developed for more contrast than it was made for.",
+        "ru": "Чёрно-белая плёнка, проявленная контрастнее, чем рассчитана."
+      }
+    },
+    {
+      "key": "expired-film",
+      "type": "image-style",
+      "label": {
+        "en": "Expired film",
+        "ru": "Просроченная плёнка"
+      },
+      "family": "film-photo",
+      "description": "expired colour film, shifted colours toward magenta and teal, uneven density, light leaks at the edge of the frame, soft focus",
+      "when": "For memory, nostalgia, a picture that seems found in a drawer.",
+      "explanation": {
+        "en": "Old film past its date: colours drift and edges glow.",
+        "ru": "Старая плёнка после срока: цвета плывут, края засвечены."
+      }
+    },
+    {
+      "key": "cross-processed",
+      "type": "image-style",
+      "label": {
+        "en": "Cross-processed",
+        "ru": "Кросс-процесс"
+      },
+      "family": "film-photo",
+      "description": "cross-processed slide film, strong yellow-green highlights, cyan shadows, punchy contrast, oversaturated",
+      "when": "For an electric, summer, slightly wrong picture.",
+      "explanation": {
+        "en": "Slide film developed in the chemistry for negatives.",
+        "ru": "Слайдовая плёнка, проявленная в химии для негатива."
+      }
+    },
+    {
+      "key": "slide-reds",
+      "type": "image-style",
+      "label": {
+        "en": "Saturated slide reds",
+        "ru": "Насыщенные слайдовые красные"
+      },
+      "family": "film-photo",
+      "description": "vintage colour slide film, deep saturated reds and blues, crisp detail, dark rich shadows, mid-century colour palette",
+      "when": "For a bold, classic, colourful picture.",
+      "explanation": {
+        "en": "Colour reversal film known for its reds.",
+        "ru": "Обращаемая плёнка, известная своими красными."
+      }
+    }
+  ]
+}

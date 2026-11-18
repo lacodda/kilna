@@ -60,6 +60,9 @@ pub struct StyleBrick {
     pub sample: Option<String>,
     /// The entry of the starter set it came from; absent for the owner's own.
     pub set_key: Option<String>,
+    /// Where it came from, when a pack of a registry gave it: `pack:<id>`
+    /// (v0.131). Empty for the starter set's and the owner's own.
+    pub source: Option<String>,
     /// Where it came from and whether it was changed since - see [`Origin`].
     pub origin: Origin,
     /// The fingerprint of the set entry last written into it. Bookkeeping of
@@ -147,7 +150,7 @@ const SELECT: &str = "SELECT b.id, b.profile_id, b.type_key, b.name, b.descripti
      b.status, b.created_at, b.updated_at, \
      (SELECT count(*) FROM asset a WHERE a.style_brick_id = b.id), \
      b.label, b.family, b.when_to_use, b.colours, b.sample, b.set_key, b.set_digest, \
-     b.explanation, b.trial_id \
+     b.explanation, b.trial_id, b.source \
      FROM style_brick b";
 
 /// What to make a brick out of.
@@ -173,6 +176,22 @@ pub struct NewStyleBrick {
     /// The trial of an experiment the phrase was cut from: a kept one.
     #[serde(default)]
     pub trial_id: Option<String>,
+    /// The word per language, for a brick that arrives with one: a pack's.
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub label: Option<Label>,
+    /// Its key where it was shipped, and the fingerprint of the words it was
+    /// given (ADR 0087): a pack's brick says both.
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub set_key: Option<String>,
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub set_digest: Option<String>,
+    /// Where it came from: `pack:<id>` (v0.131).
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub source: Option<String>,
 }
 
 /// What may be changed about one.
@@ -334,8 +353,9 @@ pub fn create_minted(
         .transpose()?;
     conn.execute(
         "INSERT INTO style_brick (id, profile_id, type_key, name, description, hint, status, created_at, updated_at,
-                                  family, when_to_use, colours, sample, explanation, trial_id)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                                  family, when_to_use, colours, sample, explanation, trial_id,
+                                  label, set_key, set_digest, source)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
         params![
             minted.id(),
             profile_id,
@@ -350,7 +370,11 @@ pub fn create_minted(
             colours,
             new.sample,
             explanation,
-            new.trial_id
+            new.trial_id,
+            new.label.as_ref().map(serde_json::to_string).transpose()?,
+            new.set_key,
+            new.set_digest,
+            new.source
         ],
     )
     .map_err(|error| taken(error, &new.type_key, name))?;
@@ -686,6 +710,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
         explanation,
         origin: Origin::Own,
         trial_id: row.get(18)?,
+        source: row.get(19)?,
     };
     brick.origin = match (&brick.set_key, &brick.set_digest) {
         (Some(_), Some(digest)) if *digest == brick.content().digest() => Origin::Set,

@@ -47,6 +47,9 @@
       "icons/icon.png",
       "icons/icon.ico"
     ],
+    "resources": {
+      "resources/style-registry/": "style-registry/"
+    },
     "fileAssociations": [
       {
         "ext": ["kilna"],

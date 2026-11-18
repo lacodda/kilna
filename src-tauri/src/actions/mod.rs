@@ -117,6 +117,15 @@ impl<'c> Act<'c> {
         Minted::of(uuid::Uuid::new_v4().to_string(), self.at.clone())
     }
 
+    /// An id decided beforehand, at the gesture's moment, carried as `id` and
+    /// `at` as a minted one is.
+    pub fn mint_as(&self, id: &str) -> Minted {
+        let minted = Minted::of(id, self.at.clone());
+        let mut params = self.params.borrow_mut();
+        minted.clone().into_params(&mut params);
+        minted
+    }
+
     /// A fresh id at the gesture's moment, carried as `id` and `at` so a
     /// replay lands the row under it.
     pub fn mint(&self) -> Minted {

@@ -18,6 +18,17 @@ pub fn create(conn: &Connection, new: NewStyleBrick) -> Result<StyleBrick> {
     })
 }
 
+/// A brick under an id decided beforehand: a pack's, whose id is its
+/// profile's, its pack's and its own key (v0.131). Logged as `style.create`
+/// with that id, so a replay and an undo treat it as any brick made by hand.
+pub fn create_given(conn: &Connection, id: &str, new: NewStyleBrick) -> Result<StyleBrick> {
+    gesture(conn, "style.create", |act| {
+        act.json("brick", &new)?;
+        let minted = act.mint_as(id);
+        style_brick::create_minted(act, act.profile_id(), new, minted)
+    })
+}
+
 pub fn update(conn: &Connection, id: &str, patch: StyleBrickPatch) -> Result<StyleBrick> {
     gesture(conn, "style.update", |act| {
         let before = style_brick::get(act, id)?;

@@ -1056,6 +1056,8 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     shipped_offers: () => [],
     shipped_standing: () => [],
     skill_triggers: () => [],
+    // The snapshot of style packs, read and offering nothing (v0.131).
+    style_packs: () => ({ packs: [], failed: [], sources: [{ kind: 'builtin' }], offline: false }),
     get_workspace: () => ({
       schema_version: 30,
       profile: studio.profile,

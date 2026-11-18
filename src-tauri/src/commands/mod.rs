@@ -23,6 +23,7 @@ pub mod ideas;
 pub mod journal;
 pub mod links;
 pub mod notes;
+pub mod packs;
 pub mod plugins;
 pub mod register;
 pub mod releases;

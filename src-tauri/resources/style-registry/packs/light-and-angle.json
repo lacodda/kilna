@@ -1,0 +1,81 @@
+{
+  "id": "light-and-angle",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "low-angle-hero",
+      "type": "angle",
+      "label": {
+        "en": "Low angle",
+        "ru": "Нижний ракурс"
+      },
+      "family": "light-and-angle",
+      "description": "low camera angle looking up at the subject, sky behind, the subject towers over the frame",
+      "when": "For strength, defiance, a subject bigger than the viewer.",
+      "explanation": {
+        "en": "The camera below the eyes, looking up.",
+        "ru": "Камера ниже глаз, снизу вверх."
+      }
+    },
+    {
+      "key": "overhead-flat",
+      "type": "angle",
+      "label": {
+        "en": "Straight overhead",
+        "ru": "Строго сверху"
+      },
+      "family": "light-and-angle",
+      "description": "top-down overhead view, flat lay composition, objects arranged on a surface, even light",
+      "when": "For objects, a table, a still life of what the song is about.",
+      "explanation": {
+        "en": "The camera looking straight down.",
+        "ru": "Камера смотрит строго вниз."
+      }
+    },
+    {
+      "key": "dutch-tilt",
+      "type": "angle",
+      "label": {
+        "en": "Tilted frame",
+        "ru": "Заваленный горизонт"
+      },
+      "family": "light-and-angle",
+      "description": "dutch angle, horizon tilted about fifteen degrees, unsettled off-balance composition",
+      "when": "For unease and tension.",
+      "explanation": {
+        "en": "The horizon deliberately not level.",
+        "ru": "Горизонт нарочно не ровный."
+      }
+    },
+    {
+      "key": "rim-silhouette",
+      "type": "angle",
+      "label": {
+        "en": "Rim light silhouette",
+        "ru": "Силуэт в контровом свете"
+      },
+      "family": "light-and-angle",
+      "description": "subject backlit by a strong light behind, bright rim around the outline, face in shadow, silhouette",
+      "when": "For mystery, anonymity, a figure rather than a face.",
+      "explanation": {
+        "en": "Light from behind draws only the outline.",
+        "ru": "Свет сзади рисует только контур."
+      }
+    },
+    {
+      "key": "window-side-light",
+      "type": "angle",
+      "label": {
+        "en": "Window side light",
+        "ru": "Боковой свет из окна"
+      },
+      "family": "light-and-angle",
+      "description": "soft directional light from a single window to one side, half the face in gentle shadow, quiet interior",
+      "when": "For intimacy and stillness.",
+      "explanation": {
+        "en": "One soft source from the side.",
+        "ru": "Один мягкий источник сбоку."
+      }
+    }
+  ]
+}

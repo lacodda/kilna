@@ -348,6 +348,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0055_shipped_entry.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 56,
+        name: "style_source",
+        sql: include_str!("../../migrations/0056_style_source.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what
@@ -377,6 +383,12 @@ pub const APP_MIGRATIONS: &[Migration] = &[
         version: 4,
         name: "welcome",
         sql: include_str!("../../app-migrations/0004_welcome.sql"),
+        rebuilds: false,
+    },
+    Migration {
+        version: 5,
+        name: "style_registry",
+        sql: include_str!("../../app-migrations/0005_style_registry.sql"),
         rebuilds: false,
     },
 ];
@@ -509,7 +521,17 @@ mod tests {
             .unwrap()
             .collect::<rusqlite::Result<_>>()
             .unwrap();
-        assert_eq!(tables, ["assistant_settings", "space", "space_type"]);
+        // The registries of style packs are the machine's too (v0.131).
+        assert_eq!(
+            tables,
+            [
+                "assistant_settings",
+                "space",
+                "space_type",
+                "style_registry",
+                "style_source"
+            ]
+        );
         assert_eq!(apply_app(&mut conn).unwrap(), latest_app_version());
     }
 

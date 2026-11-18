@@ -8,4 +8,17 @@ export type NewStyleBrick = { type_key: string, name: string, description?: stri
 /**
  * The trial of an experiment the phrase was cut from: a kept one.
  */
-trial_id?: string, };
+trial_id?: string, 
+/**
+ * The word per language, for a brick that arrives with one: a pack's.
+ */
+label?: Label | null, 
+/**
+ * Its key where it was shipped, and the fingerprint of the words it was
+ * given (ADR 0087): a pack's brick says both.
+ */
+set_key?: string | null, set_digest?: string | null, 
+/**
+ * Where it came from: `pack:<id>` (v0.131).
+ */
+source?: string | null, };

@@ -1,0 +1,81 @@
+{
+  "id": "lofi-textures",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "vinyl-crackle",
+      "type": "texture",
+      "label": {
+        "en": "Vinyl crackle",
+        "ru": "Треск винила"
+      },
+      "family": "lofi-textures",
+      "description": "soft vinyl crackle and dust noise under the mix",
+      "when": "For warmth and age under a quiet track.",
+      "explanation": {
+        "en": "The surface noise of an old record.",
+        "ru": "Шум поверхности старой пластинки."
+      }
+    },
+    {
+      "key": "tape-wobble",
+      "type": "texture",
+      "label": {
+        "en": "Tape wobble",
+        "ru": "Плавание плёнки"
+      },
+      "family": "lofi-textures",
+      "description": "gentle tape wow and flutter, slightly unstable pitch on sustained notes",
+      "when": "For a hazy, dreamy, imperfect feel.",
+      "explanation": {
+        "en": "The pitch wavering as an old tape does.",
+        "ru": "Высота плывёт, как на старой кассете."
+      }
+    },
+    {
+      "key": "room-hiss",
+      "type": "texture",
+      "label": {
+        "en": "Room hiss",
+        "ru": "Шипение комнаты"
+      },
+      "family": "lofi-textures",
+      "description": "low background hiss and room tone, recorded in a small room",
+      "when": "For intimacy: the song in the room with you.",
+      "explanation": {
+        "en": "The air of a small room left in the recording.",
+        "ru": "Воздух маленькой комнаты, оставленный в записи."
+      }
+    },
+    {
+      "key": "muffled-drums",
+      "type": "texture",
+      "label": {
+        "en": "Muffled drums",
+        "ru": "Приглушённые барабаны"
+      },
+      "family": "lofi-textures",
+      "description": "muffled dusty drum break, rolled-off highs, soft kick",
+      "when": "For a relaxed beat that stays behind the voice.",
+      "explanation": {
+        "en": "Drums with their brightness taken off.",
+        "ru": "Барабаны без яркости."
+      }
+    },
+    {
+      "key": "bitcrushed-keys",
+      "type": "texture",
+      "label": {
+        "en": "Bitcrushed keys",
+        "ru": "Клавиши с понижением разрядности"
+      },
+      "family": "lofi-textures",
+      "description": "electric piano chords slightly bitcrushed and low-passed",
+      "when": "For a soft, slightly digital warmth.",
+      "explanation": {
+        "en": "Keys with fewer bits than they deserve.",
+        "ru": "Клавиши с меньшей разрядностью, чем положено."
+      }
+    }
+  ]
+}
