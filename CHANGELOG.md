@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.148.0] - 2026-11-18
+
+A simple video, rendered. The new plugin kilna-plugin-simple-video renders
+a work's cover - a picture, or a loop played over and over - over its track
+into a video in the work's folder: at a stream's 1080p, quick to make with a
+fade-out at the end, or as a 4K master with the sound at 320k and brought to
+-14 LUFS. It follows the work's own timeline when it has one, and measures
+how loud a track is and how far from what a platform wants. In kilna, a
+plugin's command can now say it is meant for many works at once, and a work
+hands a plugin the files attached to it, so a track kept on the Files tab is
+found.
+
+### Features
+- A command can be for many works at once, and the simple-video plugin's guide
+- A work's attached files travel with it to a plugin
+
 ## [0.147.0] - 2026-11-18
 
 Places, the channel's dressing, and the vault's notes put in their place.
