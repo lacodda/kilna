@@ -3553,7 +3553,8 @@
       "noDatabase": "The folder {{path}} holds a space's file but no database.",
       "none": "There is no space to open yet: start kilna once.",
       "unreachable": "The space at {{path}} cannot be reached: is its drive connected?",
-      "historyTooLong": "A history is kept for {{most}} days at most - or for good."
+      "historyTooLong": "A history is kept for {{most}} days at most - or for good.",
+      "notWelcomed": "This space has been set up already: change it in Settings → Spaces."
     },
     "intake": {
       "brokenPage": "This page ends where its parcel should begin: it was cut short.",
@@ -3588,6 +3589,10 @@
     "trigger": {
       "exists": "A file is already at {{path}}. Replace it only if it is not one you wrote.",
       "noPlace": "kilna does not know where this agent keeps its files on this machine: save the file where it reads it."
+    },
+    "demo": {
+      "notEmpty": "A demo goes only into a space with no works yet: it is a way to look around a new space, never mixed into your own.",
+      "noKind": "This space has no kind of work a demo could be written in."
     }
   },
   "proposalBody": {
@@ -5016,6 +5021,36 @@
     "trashed": "In the trash",
     "forgetDescription": "A space in the trash keeps its folder. Forgetting one takes it off this list and leaves the folder where it is: double-click its space.kilna to open it again.",
     "actions": "What to do with {{name}}"
+  },
+  "welcome": {
+    "next": "Continue",
+    "failed": "Could not set up the space",
+    "demoAdded_one": "A demo is in: one work to look around in.",
+    "demoAdded_other": "A demo is in: {{count}} works to look around in.",
+    "check": {
+      "title": "Welcome to kilna",
+      "description": "A workbench for what you make - songs, posts, chapters, episodes - from the first idea to what goes out. First, the assistant.",
+      "looking": "Looking for Claude Code on this machine...",
+      "found": "Claude Code is here",
+      "foundVersion": "Claude Code is here ({{version}}): the assistant runs through it.",
+      "missing": "Claude Code is not on this machine",
+      "install": "kilna works without it, and the assistant waits: install Claude Code, sign in, and it is found at the next start."
+    },
+    "space": {
+      "title": "Your space",
+      "description": "A space holds one craft’s works, its words and its calendar. You can make more later.",
+      "demo": "Start with a demo",
+      "demoHint": "A few made-up works at every stage, a score, notes and releases on the coming days - to see each screen with something on it. Delete them whenever you like.",
+      "make": "Make it"
+    },
+    "first": {
+      "title": "Your first work",
+      "description": "Give it a title; the rest is written on its card.",
+      "titleLabel": "Title",
+      "placeholder": "A working title is fine",
+      "make": "Make it and open it",
+      "skip": "Look around first"
+    }
   },
   "intake": {
     "title": "Bring works in",

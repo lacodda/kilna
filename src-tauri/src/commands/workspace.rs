@@ -66,6 +66,13 @@ pub fn read_skill_set(path: String) -> Result<Vec<crate::assistant::prompt::Prom
     crate::assistant::prompt::read_set(std::path::Path::new(&path))
 }
 
+/// Put the demo of the space's craft into the open space, when it holds no
+/// works yet (FR-16).
+#[tauri::command]
+pub fn seed_demo(state: State<'_, AppState>) -> Result<crate::demo::DemoReport> {
+    crate::demo::seed(&state.conn())
+}
+
 /// The thin trigger each agent is given, and where it goes (FR-17).
 #[tauri::command]
 pub fn skill_triggers() -> Vec<crate::trigger::TriggerFile> {

@@ -373,6 +373,12 @@ pub const APP_MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../app-migrations/0003_auto_score.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 4,
+        name: "welcome",
+        sql: include_str!("../../app-migrations/0004_welcome.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.

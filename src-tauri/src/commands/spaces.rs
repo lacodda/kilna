@@ -116,6 +116,117 @@ pub fn open_space(app: AppHandle, state: State<'_, AppState>, id: String) -> Res
     current(&state)
 }
 
+/// What the person chose for their first space (v0.129).
+#[derive(Debug, Clone, serde::Deserialize, ts_rs::TS)]
+pub struct WelcomeChoice {
+    pub name: String,
+    pub kind: String,
+    #[serde(default)]
+    #[ts(optional)]
+    pub type_id: Option<String>,
+    #[serde(default)]
+    pub colour: Option<String>,
+    #[serde(default)]
+    pub mark: Option<String>,
+}
+
+/// Shape the first space of a new machine as the person chose. A Studio stays
+/// the space kilna made, renamed and restyled; anything else is a new space,
+/// opened, and the one kilna made - holding nothing yet - goes. Refused for a
+/// space that is not being welcomed.
+#[tauri::command]
+pub fn welcome_space(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    choice: WelcomeChoice,
+) -> Result<CurrentSpace> {
+    let switched = welcome(&state, choice)?;
+    if switched {
+        grant(&app, &state);
+    }
+    current(&state)
+}
+
+/// The welcome without the window: returns whether another space is open now.
+pub(crate) fn welcome(state: &AppState, choice: WelcomeChoice) -> Result<bool> {
+    let id = state.space_id();
+    let db = state.app();
+    let placeholder = registry::get(&db, state.app_dir(), &id, Some(&id))?;
+    if !placeholder.welcome {
+        return Err(Error::refused("space.notWelcomed"));
+    }
+    let name = choice.name.trim();
+    if name.is_empty() {
+        return Err(Error::refused("space.noName"));
+    }
+    let look = SpaceLook {
+        colour: choice.colour.clone(),
+        mark: choice.mark.clone(),
+    };
+    let same =
+        choice.type_id.is_none() && placeholder.kind.as_deref() == Some(choice.kind.as_str());
+    if same {
+        let folder = registry::folder(&db, state.app_dir(), &id)?;
+        space::rename(&folder, name)?;
+        space::restyle(&folder, &look)?;
+        registry::welcomed(&db, &id)?;
+        return Ok(false);
+    }
+    let made = space::create(
+        &db,
+        state.app_dir(),
+        &NewSpace {
+            name: name.to_owned(),
+            kind: choice.kind.clone(),
+            colour: choice.colour,
+            mark: choice.mark,
+            type_id: choice.type_id,
+        },
+        None,
+    )?;
+    let old_folder = registry::folder(&db, state.app_dir(), &id)?;
+    drop(db);
+    nothing_going(state)?;
+    state.switch(&made.id)?;
+    discard_untouched(state, &id, &old_folder);
+    Ok(true)
+}
+
+/// Take away the space kilna made for a first start, once another stands in
+/// its place - only while it holds nothing a person wrote. A folder that will
+/// not go is left in the trash rather than lost track of.
+fn discard_untouched(state: &AppState, id: &str, folder: &Folder) {
+    let untouched = rusqlite::Connection::open(folder.database())
+        .and_then(|conn| {
+            conn.query_row(
+                "SELECT (SELECT count(*) FROM work) + (SELECT count(*) FROM note)",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+        })
+        .is_ok_and(|held| held == 0);
+    let db = state.app();
+    if untouched && std::fs::remove_dir_all(folder.path()).is_ok() {
+        if let Err(cause) = registry::remove(&db, id) {
+            crate::log::warn("space", &format!("the first space stays listed: {cause}"));
+        }
+        return;
+    }
+    crate::log::warn(
+        "space",
+        &format!(
+            "the first space at {} goes to the trash, not away",
+            folder.path().display()
+        ),
+    );
+    if let Err(cause) = registry::trash(&db, id, &state.space_id()) {
+        crate::log::warn(
+            "space",
+            &format!("the first space stays on the list: {cause}"),
+        );
+    }
+}
+
 /// Name a space - and, for one kilna named, stop asking.
 #[tauri::command]
 pub fn rename_space(state: State<'_, AppState>, id: String, name: String) -> Result<Space> {
@@ -297,6 +408,52 @@ pub fn target_in(args: &[String]) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn choice(kind: &str, name: &str) -> WelcomeChoice {
+        WelcomeChoice {
+            name: name.into(),
+            kind: kind.into(),
+            type_id: None,
+            colour: Some("#5EC486".into()),
+            mark: None,
+        }
+    }
+
+    #[test]
+    fn a_welcomed_studio_stays_the_space_kilna_made_named_and_coloured() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::start(dir.path(), None).unwrap();
+        let id = state.space_id();
+        assert!(!welcome(&state, choice("music", "Harbour Songs")).unwrap());
+        let space = registry::get(&state.app(), dir.path(), &id, Some(&id)).unwrap();
+        assert_eq!(space.name, "Harbour Songs");
+        assert_eq!(space.colour.as_deref(), Some("#5EC486"));
+        assert!(!space.welcome);
+        assert_eq!(
+            welcome(&state, choice("music", "Again"))
+                .unwrap_err()
+                .refusal()
+                .map(|r| r.code),
+            Some("space.notWelcomed"),
+            "welcomed once"
+        );
+    }
+
+    #[test]
+    fn a_welcome_into_another_kind_opens_a_new_space_and_the_first_one_goes() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::start(dir.path(), None).unwrap();
+        let first = state.space_id();
+        let first_folder = state.folder().path().to_path_buf();
+        assert!(welcome(&state, choice("blog", "Field Notes")).unwrap());
+        assert_ne!(state.space_id(), first);
+        let open = registry::get(&state.app(), dir.path(), &state.space_id(), None).unwrap();
+        assert_eq!(open.kind.as_deref(), Some("blog"));
+        assert!(!open.welcome);
+        assert!(!first_folder.exists(), "the untouched first space is gone");
+        let listed = registry::list(&state.app(), dir.path(), None).unwrap();
+        assert_eq!(listed.len(), 1, "{listed:?}");
+    }
 
     #[test]
     fn a_link_names_a_space_and_a_work_in_it() {

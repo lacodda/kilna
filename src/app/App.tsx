@@ -11,6 +11,7 @@ import { QueueBanner } from '@/features/assistant/QueueBanner'
 import { WaitingBanner } from '@/features/assistant/WaitingBanner'
 import { HeldBanner } from '@/features/spaces/HeldBanner'
 import { NameSpaceDialog } from '@/features/spaces/NameSpaceDialog'
+import { WelcomeDialog } from '@/features/spaces/WelcomeDialog'
 import { useOpenRequests } from '@/features/spaces/useOpenRequests'
 import { KeyboardSheet } from '@/shell/KeyboardSheet'
 import { useShellKeys } from '@/shell/useShellKeys'
@@ -160,6 +161,7 @@ export default function App() {
 
       <KeyboardSheet />
       <NameSpaceDialog />
+      <WelcomeDialog />
       <ResizeEdges />
       {/* The tray, the badges, the notices said outside the window, and the
           sweep of the coming week at start and whenever the day turns - per

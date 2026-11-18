@@ -76,6 +76,8 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::assistant::task::SkillPreview,
         kilna_lib::trigger::TriggerFile,
         kilna_lib::trigger::Client,
+        kilna_lib::demo::DemoReport,
+        kilna_lib::commands::spaces::WelcomeChoice,
         kilna_lib::profile::config::VibeMood,
         kilna_lib::profile::config::VibeCharacter,
         kilna_lib::profile::config::VibeGlyph,

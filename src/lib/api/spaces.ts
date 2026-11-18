@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
   CurrentSpace,
+  DemoReport,
   NewSpace,
   Opened,
   ProfileConfig,
@@ -9,6 +10,7 @@ import type {
   Space,
   SpaceLook,
   SpaceType,
+  WelcomeChoice,
 } from '@/lib/api/types'
 import type { Reason } from '@/lib/api/generated/Reason'
 
@@ -59,3 +61,8 @@ export const openTarget = (target: string) => invoke<Opened>('open_target', { ta
 /** A link or a space's file handed to kilna while it is open. */
 export const onOpenRequest = (handler: (target: string) => void): Promise<UnlistenFn> =>
   listen<string>('app:open', ({ payload }) => handler(payload))
+/** Shape the first space of a new machine as the person chose (v0.129). */
+export const welcomeSpace = (choice: WelcomeChoice) =>
+  invoke<CurrentSpace>('welcome_space', { choice })
+/** Fill the open space, while it holds no works, with the demo of its craft. */
+export const seedDemo = () => invoke<DemoReport>('seed_demo')

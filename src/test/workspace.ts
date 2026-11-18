@@ -60,6 +60,7 @@ const SPACE: Space = {
   opened_at: '2026-09-15T09:00:00Z',
   trashed_at: null,
   ask_name: false,
+  welcome: false,
   reachable: true,
   open: true,
 }

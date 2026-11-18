@@ -54,6 +54,7 @@ beforeEach(() => {
       opened_at: null,
       trashed_at: null,
       ask_name: false,
+      welcome: false,
       reachable: true,
       open: false,
     }),

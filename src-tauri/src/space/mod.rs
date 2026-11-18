@@ -142,6 +142,9 @@ pub struct Space {
     pub trashed_at: Option<String>,
     /// The name was given by kilna; the window asks for one, once.
     pub ask_name: bool,
+    /// The first space of a new machine, which the window welcomes the person
+    /// into before anything else (v0.129).
+    pub welcome: bool,
     /// Whether its folder and its file can be read now - a space on a drive
     /// that is not plugged in is listed, and cannot be opened.
     pub reachable: bool,

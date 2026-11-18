@@ -14,6 +14,7 @@ pub mod conception;
 pub mod cover;
 pub mod cut;
 pub mod db;
+pub mod demo;
 pub mod device;
 pub mod donor_map;
 pub mod error;
@@ -265,6 +266,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::workspace::shipped_standing,
             commands::workspace::preview_skill,
             commands::workspace::read_skill_set,
+            commands::workspace::seed_demo,
+            commands::spaces::welcome_space,
             commands::workspace::skill_triggers,
             commands::workspace::install_skill_trigger,
             commands::workspace::take_shipped,

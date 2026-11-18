@@ -428,8 +428,9 @@ fn apply_limit(runs: &Runs, app: &Connection) {
     }
 }
 
-/// The space a machine with none starts in: Studio, its name asked the first
-/// time the window opens it.
+/// The space a machine with none starts in: Studio, so the window has somewhere
+/// to stand - and the window welcomes the person into it, to say what it is
+/// made of, its name and its look (v0.129).
 pub(crate) fn first_space(app: &Connection, app_dir: &Path) -> Result<String> {
     let made = space::create(
         app,
@@ -443,7 +444,7 @@ pub(crate) fn first_space(app: &Connection, app_dir: &Path) -> Result<String> {
         },
         None,
     )?;
-    registry::ask_name(app, &made.id)?;
+    registry::welcome(app, &made.id)?;
     Ok(made.id)
 }
 
@@ -646,7 +647,7 @@ mod tests {
     }
 
     #[test]
-    fn a_first_start_makes_a_studio_and_asks_its_name() {
+    fn a_first_start_makes_a_studio_and_welcomes_the_person_into_it() {
         let dir = tempfile::tempdir().unwrap();
 
         let state = AppState::start(dir.path(), None).unwrap();
@@ -654,7 +655,8 @@ mod tests {
         let open = registry::get(&state.app(), dir.path(), &state.space_id(), None).unwrap();
         assert_eq!(open.name, "Studio");
         assert_eq!(open.kind.as_deref(), Some("music"));
-        assert!(open.ask_name);
+        assert!(open.welcome, "the window welcomes the person into it");
+        assert!(!open.ask_name, "the welcome asks the name");
         assert!(
             state
                 .folder()

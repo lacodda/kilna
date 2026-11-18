@@ -21,9 +21,10 @@ struct Row {
     opened_at: Option<String>,
     trashed_at: Option<String>,
     ask_name: bool,
+    welcome: bool,
 }
 
-const SELECT: &str = "SELECT id, path, opened_at, trashed_at, ask_name FROM space";
+const SELECT: &str = "SELECT id, path, opened_at, trashed_at, ask_name, welcome FROM space";
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Row> {
     Ok(Row {
@@ -32,6 +33,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Row> {
         opened_at: row.get(2)?,
         trashed_at: row.get(3)?,
         ask_name: row.get::<_, i64>(4)? == 1,
+        welcome: row.get::<_, i64>(5)? == 1,
     })
 }
 
@@ -110,6 +112,35 @@ pub fn add(conn: &Connection, app_dir: &Path, id: &str, folder: &Path) -> Result
 pub fn ask_name(conn: &Connection, id: &str) -> Result<()> {
     changed(
         conn.execute("UPDATE space SET ask_name = 1 WHERE id = ?1", params![id])?,
+        id,
+    )
+}
+
+/// Welcome the person into the first space of a new machine (v0.129): the
+/// window asks what it is made of, its name and look, and whether to fill it
+/// with a demo.
+pub fn welcome(conn: &Connection, id: &str) -> Result<()> {
+    changed(
+        conn.execute("UPDATE space SET welcome = 1 WHERE id = ?1", params![id])?,
+        id,
+    )
+}
+
+/// The person chose; the window stops welcoming.
+pub fn welcomed(conn: &Connection, id: &str) -> Result<()> {
+    changed(
+        conn.execute(
+            "UPDATE space SET welcome = 0, ask_name = 0 WHERE id = ?1",
+            params![id],
+        )?,
+        id,
+    )
+}
+
+/// Take a space off the list for good: its folder is gone too.
+pub fn remove(conn: &Connection, id: &str) -> Result<()> {
+    changed(
+        conn.execute("DELETE FROM space WHERE id = ?1", params![id])?,
         id,
     )
 }
@@ -281,6 +312,7 @@ fn described(app_dir: &Path, row: Row, open: Option<&str>) -> Space {
         opened_at: row.opened_at,
         trashed_at: row.trashed_at,
         ask_name: row.ask_name,
+        welcome: row.welcome,
         reachable,
     }
 }

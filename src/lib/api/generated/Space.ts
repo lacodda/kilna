@@ -21,6 +21,11 @@ path: string, opened_at: string | null, trashed_at: string | null,
  */
 ask_name: boolean, 
 /**
+ * The first space of a new machine, which the window welcomes the person
+ * into before anything else (v0.129).
+ */
+welcome: boolean, 
+/**
  * Whether its folder and its file can be read now - a space on a drive
  * that is not plugged in is listed, and cannot be opened.
  */

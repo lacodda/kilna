@@ -1,7 +1,9 @@
+import { say } from '@/lib/toast'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import { createSpace } from '@/lib/api/spaces'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { createSpace, seedDemo } from '@/lib/api/spaces'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -42,6 +44,8 @@ export function NewSpaceDialog({ open, onOpenChange }: Props) {
     mark: null,
   })
   const enter = useOpenSpace()
+  const [demo, setDemo] = useState(false)
+  const client = useQueryClient()
 
   const make = useAppMutation({
     mutationFn: createSpace,
@@ -51,7 +55,18 @@ export function NewSpaceDialog({ open, onOpenChange }: Props) {
       onOpenChange(false)
       setName('')
       setLook({ colour: null, mark: null })
-      enter.mutate(space.id)
+      enter.mutate(space.id, {
+        onSuccess: () => {
+          if (!demo) return
+          setDemo(false)
+          seedDemo()
+            .then(async (report) => {
+              await client.resetQueries()
+              say.ok(t('welcome.demoAdded', { count: report.works }))
+            })
+            .catch((cause: unknown) => say.failed(cause))
+        },
+      })
     },
   })
 
@@ -134,6 +149,9 @@ export function NewSpaceDialog({ open, onOpenChange }: Props) {
           mark={look.mark ?? kindLook(kind).mark}
           onChange={(next) => setLook({ ...look, ...next })}
         />
+        <Checkbox checked={demo} onCheckedChange={(next) => setDemo(next === true)}>
+          {t('welcome.space.demo')}
+        </Checkbox>
       </form>
     </Dialog>
   )
