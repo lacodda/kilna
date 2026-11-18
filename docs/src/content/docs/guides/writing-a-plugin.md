@@ -163,6 +163,7 @@ plugin would otherwise have to ask for back:
 | `chain` | The titles up the chain "made from", nearest first: a short's clip, then the song. |
 | `origin` | What it is all made from - the song, for a short - as `id`, `title`, `kind`. |
 | `cover` | The picture it goes out under, a whole path, or `null`. |
+| `files` | The files attached to it, oldest first (v0.148): each `kind`, its whole `path` and the `name` it arrived under - a track kept on its Files tab rather than in a folder. |
 | `axes` | For a `score` command only: the axes to judge along, as the work's kind names them - each with `key`, `label`, `weight`, `scale` and `kind`. |
 
 A cutter has what it needs in one call: the stretches and the file each comes

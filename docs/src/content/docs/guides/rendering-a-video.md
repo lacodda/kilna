@@ -39,8 +39,12 @@ kind's rule would not find one by itself.
 - **the picture** - the work's cover: a still, or a loop that plays over and
   over for as long as the video runs, fitted into the frame over black;
 - **the track** - the work's finished file when it is a track, or else the
-  finished track of the work it is made from: a clip renders over the song's
-  audio.
+  newest track on its Files tab, or else the finished track of the work it
+  is made from: a clip renders over the song's audio.
+
+The video goes to the work's folder, which it has once the workspace's media
+folder is chosen; until then it goes to the folder the plugin's setting
+**Where a video goes when the work has no folder** names.
 
 Two presets:
 

@@ -96,6 +96,20 @@ pub fn subject(conn: &Connection, target: Target, id: &str) -> Result<Value> {
                     crate::asset::cover_of(conn, id)?
                         .map_or(Value::Null, |asset| Value::String(asset.path)),
                 );
+                // The files attached to the work, oldest first (v0.148): a
+                // track kept on its Files tab rather than in a folder is
+                // still the track a renderer needs.
+                let files: Vec<Value> = crate::asset::for_work(conn, id)?
+                    .into_iter()
+                    .map(|asset| {
+                        json!({
+                            "kind": asset.kind,
+                            "path": asset.path,
+                            "name": asset.original_name.or(asset.label),
+                        })
+                    })
+                    .collect();
+                object.insert("files".into(), Value::Array(files));
                 if target == Target::Score {
                     object.insert(
                         "axes".into(),
@@ -442,6 +456,33 @@ mod tests {
 
         let plain = subject(&conn, Target::Work, &song.id).unwrap();
         assert!(plain.get("axes").is_none());
+    }
+
+    /// A work's attached files travel with it - a track kept on its Files
+    /// tab is what a renderer needs (v0.148).
+    #[test]
+    fn a_work_is_handed_the_files_attached_to_it() {
+        let (conn, profile_id, dir) = crate::fixtures::workspace_with_media();
+        let song = crate::fixtures::song(&conn, &profile_id, "Harbour lights");
+        let track = crate::fixtures::file(dir.path(), "mix.wav");
+        let media = dir.path().join("media");
+        std::fs::create_dir_all(&media).unwrap();
+        crate::actions::asset::attach(
+            &conn,
+            &media,
+            &track.to_string_lossy(),
+            crate::asset::NewAsset {
+                work_id: Some(song.id.clone()),
+                ..crate::asset::NewAsset::default()
+            },
+        )
+        .unwrap();
+
+        let handed = subject(&conn, Target::Work, &song.id).unwrap();
+        let files = handed["files"].as_array().expect("the attached files");
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0]["name"], "mix.wav");
+        assert!(files[0]["path"].as_str().unwrap().ends_with(".wav"));
     }
 
     /// Marks reach the Score tab as a proposal under the plugin's name, held to
