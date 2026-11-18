@@ -4930,6 +4930,8 @@
       "blog": "Posts, newsletter issues and guides.",
       "novel": "Chapters, scenes and stories, with a canon of people and places.",
       "podcast": "Episodes, segments and trailers.",
+      "poetry": "Poems, translations and reading sets, gathered into cycles and books.",
+      "newsletter": "Issues, special editions and sequence emails, sent on a schedule.",
       "blank": "One kind of work with a text: name the rest of the craft yourself in Settings."
     },
     "typeHint": "Your type, grown from {{kind}}: a space made of it starts with its words.",
@@ -4966,6 +4968,8 @@
       "blog": "Blog",
       "novel": "Novel",
       "podcast": "Podcast",
+      "poetry": "Poetry",
+      "newsletter": "Newsletter",
       "blank": "Empty"
     },
     "colour": "Colour",

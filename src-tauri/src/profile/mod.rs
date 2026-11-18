@@ -58,7 +58,7 @@ pub fn builtin() -> Result<Vec<BuiltinProfile>> {
 }
 
 fn read_builtin() -> Result<Vec<BuiltinProfile>> {
-    // Four crafts against one schema. If a craft needed a schema change to fit,
+    // Six crafts against one schema (Poetry and Newsletter since v0.129). If a craft needed a schema change to fit,
     // the premise of ADR 0001 would be wrong — so far none has. And the empty
     // one last: a craft kilna does not ship starts from it (v0.112).
     const SOURCES: &[&str] = &[
@@ -66,6 +66,8 @@ fn read_builtin() -> Result<Vec<BuiltinProfile>> {
         include_str!("../../profiles/novel.json"),
         include_str!("../../profiles/podcast.json"),
         include_str!("../../profiles/blog.json"),
+        include_str!("../../profiles/poetry.json"),
+        include_str!("../../profiles/newsletter.json"),
         include_str!("../../profiles/blank.json"),
     ];
     SOURCES

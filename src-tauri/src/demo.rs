@@ -207,6 +207,68 @@ const BLOG: Corpus = Corpus {
     card: None,
 };
 
+const POETRY: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Inventory of a Kitchen at Night",
+            stage: 100,
+            versions: &[
+                "the kettle cooling\nthe knife asleep on the board\none cup turned down",
+                "the kettle cooling\nthe knife asleep on its board\none cup face down, waiting",
+            ],
+        },
+        Piece {
+            title: "Winter Ferry",
+            stage: 50,
+            versions: &[
+                "The ferry leaves at six and no one waves.\nThe water folds the town back into grey.",
+            ],
+        },
+        Piece {
+            title: "A poem about the stairwell",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## The image it starts from\nA light left on in an empty stairwell.\n\n## What it turns on\nWho it was left on for.",
+    notes: &[
+        ("phrase", "one cup face down, waiting"),
+        ("note", "Try the ferry poem in couplets."),
+    ],
+    card: None,
+};
+
+const NEWSLETTER: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Issue 1. Why I Started This",
+            stage: 100,
+            versions: &[
+                "Hello. This is a letter about small tools, sent once a week.",
+                "Hello. This is a weekly letter about small tools - the ones you can see all of.",
+            ],
+        },
+        Piece {
+            title: "Issue 2. Three Tools I Stopped Using",
+            stage: 50,
+            versions: &[
+                "This week: three tools I dropped, and the one thing each of them did better than its replacement.",
+            ],
+        },
+        Piece {
+            title: "Issue 3",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## What this issue is about\nThe tool I use every day and never mention.\n\n## The one thing to take away\nBoring tools are the ones that last.",
+    notes: &[
+        ("phrase", "the ones you can see all of"),
+        ("note", "A reader asked about backups - an issue on that."),
+    ],
+    card: None,
+};
+
 /// Put the demo of the space's craft into it. Refused for a space that
 /// already holds works: a demo is a way to look around a new space, never
 /// something mixed into a person's own.
@@ -222,6 +284,8 @@ pub fn seed(conn: &Connection) -> Result<DemoReport> {
         "novel" => &NOVEL,
         "podcast" => &PODCAST,
         "blog" => &BLOG,
+        "poetry" => &POETRY,
+        "newsletter" => &NEWSLETTER,
         _ => &BLOG,
     };
     let config = &profile.config;
@@ -401,7 +465,7 @@ mod tests {
 
     #[test]
     fn every_shipped_craft_gets_a_demo_with_something_on_each_screen() {
-        for kind in ["music", "novel", "podcast", "blog"] {
+        for kind in ["music", "novel", "podcast", "blog", "poetry", "newsletter"] {
             let conn = space(kind);
             let report = seed(&conn).unwrap();
             assert!(report.works >= 3, "{kind}: {report:?}");

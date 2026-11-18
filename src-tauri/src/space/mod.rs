@@ -488,7 +488,7 @@ mod tests {
         assert!(checked_name(&"x".repeat(81)).is_err());
         assert!(checked_kind("music").is_ok());
         assert_eq!(
-            checked_kind("poetry").unwrap_err().refusal().unwrap().code,
+            checked_kind("zine").unwrap_err().refusal().unwrap().code,
             "space.unknownKind"
         );
         assert_eq!(

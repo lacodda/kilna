@@ -1,0 +1,1850 @@
+{
+  "config": {
+    "boards": [
+      {
+        "cards": [
+          {
+            "fields": [
+              {
+                "key": "why",
+                "label": {
+                  "en": "What is there, and why it fits",
+                  "ru": "Что там и почему подходит"
+                },
+                "multiline": true
+              },
+              {
+                "key": "quote",
+                "label": {
+                  "en": "Quote",
+                  "ru": "Цитата"
+                },
+                "multiline": true,
+                "shape": "quote"
+              },
+              {
+                "key": "translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "Canto XXIII; the last chapter",
+                  "ru": "Песнь XXIII; последняя глава"
+                },
+                "key": "address",
+                "label": {
+                  "en": "Where in it",
+                  "ru": "Где"
+                }
+              },
+              {
+                "key": "proof",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
+                "shape": "proof"
+              },
+              {
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
+                "key": "take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
+                "key": "caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
+                "key": "chips",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
+                "shape": "chips"
+              }
+            ],
+            "key": "work",
+            "label": {
+              "en": "Work",
+              "ru": "Произведение"
+            },
+            "library": true
+          },
+          {
+            "fields": [
+              {
+                "key": "quote",
+                "label": {
+                  "en": "The text",
+                  "ru": "Текст"
+                },
+                "multiline": true,
+                "shape": "quote"
+              },
+              {
+                "hint": {
+                  "en": "Matthew 23:27",
+                  "ru": "Мф 23:27"
+                },
+                "key": "address",
+                "label": {
+                  "en": "Address",
+                  "ru": "Адрес"
+                }
+              },
+              {
+                "key": "translation",
+                "label": {
+                  "en": "Translation",
+                  "ru": "Перевод"
+                },
+                "multiline": true
+              },
+              {
+                "key": "proof",
+                "label": {
+                  "en": "Checked at",
+                  "ru": "Сверено по"
+                },
+                "shape": "proof"
+              },
+              {
+                "key": "why",
+                "label": {
+                  "en": "Why it is here",
+                  "ru": "Почему здесь"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "The image for a line; the structure; the move that closes it",
+                  "ru": "Образ под строку; структура; ход для финала"
+                },
+                "key": "take",
+                "label": {
+                  "en": "What to take",
+                  "ru": "Что взять"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
+                "key": "chips",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
+                "shape": "chips"
+              }
+            ],
+            "key": "text",
+            "label": {
+              "en": "Primary source",
+              "ru": "Первоисточник"
+            },
+            "library": true
+          },
+          {
+            "fields": [
+              {
+                "hint": {
+                  "en": "Pharisee",
+                  "ru": "Фарисей"
+                },
+                "key": "term",
+                "label": {
+                  "en": "Concept",
+                  "ru": "Концепция"
+                }
+              },
+              {
+                "key": "meaning",
+                "label": {
+                  "en": "What it is",
+                  "ru": "Что это"
+                },
+                "multiline": true
+              },
+              {
+                "key": "figurative",
+                "label": {
+                  "en": "What it means of a person",
+                  "ru": "Переносный смысл"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "Only the opening fits - it gets loud later",
+                  "ru": "Подходит только завязка - дальше громко"
+                },
+                "key": "caveat",
+                "label": {
+                  "en": "Caveat",
+                  "ru": "Оговорка"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "gilded lead cloaks; Arzamas; the hot spring",
+                  "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
+                },
+                "key": "chips",
+                "label": {
+                  "en": "Images and names",
+                  "ru": "Образы и имена"
+                },
+                "shape": "chips"
+              }
+            ],
+            "key": "concept",
+            "label": {
+              "en": "Concept",
+              "ru": "Концепция"
+            }
+          }
+        ],
+        "description": {
+          "en": "What the poem could draw on: works of culture, primary sources, concepts - each with why it belongs and what to take. Everything not turned down goes into the order, the starred first; a quote goes word for word only once it is checked.",
+          "ru": "На что могло бы опереться стихотворение: произведения культуры, первоисточники, понятия — у каждого с причиной, почему он здесь, и что взять. Всё, что не отклонено, попадает в заказ, отмеченное звёздочкой первым; цитата идёт слово в слово, только если сверена."
+        },
+        "key": "research",
+        "label": {
+          "en": "Research",
+          "ru": "Исследовать"
+        },
+        "rule": "all"
+      },
+      {
+        "cards": [
+          {
+            "fields": [
+              {
+                "hint": {
+                  "en": "Every guide to this skips the one step that breaks",
+                  "ru": "Во всех гайдах пропущен единственный шаг, на котором всё ломается"
+                },
+                "key": "line",
+                "label": {
+                  "en": "In one line",
+                  "ru": "Одной фразой"
+                }
+              },
+              {
+                "key": "image",
+                "label": {
+                  "en": "The example through it",
+                  "ru": "Сквозной пример"
+                },
+                "multiline": true
+              },
+              {
+                "key": "ending",
+                "label": {
+                  "en": "How it ends",
+                  "ru": "Чем кончается"
+                },
+                "multiline": true
+              }
+            ],
+            "key": "scenario",
+            "label": {
+              "en": "Take",
+              "ru": "Трактовка"
+            }
+          }
+        ],
+        "description": {
+          "en": "Ways the poem could go: the take it stands on, the example through it, how it ends. Star the ones to write by.",
+          "ru": "Как могло бы пойти стихотворение: на какой трактовке оно стоит, какой пример его пронизывает, чем кончается. Отметьте звёздочкой те, по которым писать."
+        },
+        "key": "scenarios",
+        "label": {
+          "en": "Takes",
+          "ru": "Трактовки"
+        },
+        "rule": "one"
+      }
+    ],
+    "collection_kinds": [
+      {
+        "key": "cycle",
+        "label": {
+          "en": "Cycle",
+          "ru": "Цикл"
+        }
+      },
+      {
+        "key": "book",
+        "label": {
+          "en": "Book",
+          "ru": "Книга"
+        }
+      },
+      {
+        "key": "chapbook",
+        "label": {
+          "en": "Chapbook",
+          "ru": "Сборничек"
+        }
+      }
+    ],
+    "format": 3,
+    "marks": [],
+    "note_kinds": [
+      {
+        "icon": "library",
+        "key": "source",
+        "label": {
+          "en": "Library",
+          "ru": "Библиотека"
+        },
+        "library": true,
+        "media": [
+          {
+            "key": "literature",
+            "label": {
+              "en": "Literature",
+              "ru": "Литература"
+            }
+          },
+          {
+            "key": "film",
+            "label": {
+              "en": "Film",
+              "ru": "Кино"
+            }
+          },
+          {
+            "key": "painting",
+            "label": {
+              "en": "Painting",
+              "ru": "Живопись"
+            }
+          },
+          {
+            "key": "music",
+            "label": {
+              "en": "Music",
+              "ru": "Музыка"
+            },
+            "quoted": false
+          },
+          {
+            "key": "scripture",
+            "label": {
+              "en": "Scripture",
+              "ru": "Священный текст"
+            }
+          },
+          {
+            "key": "myth",
+            "label": {
+              "en": "Myth",
+              "ru": "Миф"
+            }
+          },
+          {
+            "key": "history",
+            "label": {
+              "en": "History",
+              "ru": "История"
+            }
+          },
+          {
+            "key": "place",
+            "label": {
+              "en": "Place",
+              "ru": "Место"
+            }
+          }
+        ]
+      },
+      {
+        "icon": "quote",
+        "key": "phrase",
+        "label": {
+          "en": "Phrase",
+          "ru": "Фраза"
+        },
+        "line": true,
+        "material": true
+      },
+      {
+        "key": "note",
+        "label": {
+          "en": "Note",
+          "ru": "Заметка"
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "category": "critique",
+        "description": {
+          "en": "Where the poem goes slack.",
+          "ru": "Где стихотворение провисает."
+        },
+        "key": "critique",
+        "label": {
+          "en": "Critique the poem",
+          "ru": "Разобрать стихотворение"
+        },
+        "method": "# Poem critique\n\n## Role\n\nYou are a demanding fellow poet. You find where the poem goes slack and say it so the poet can act: the line, what is wrong, what would fix it.\n\n## Blocks\n\n1. **Image.** Mark every line of ideas with nothing to see, hear or touch.\n2. **Sound.** Read it aloud: where does the music trip, where does it fight the sense?\n3. **Compression.** Name the words that could go without loss.\n4. **The turn.** Does the poem arrive somewhere it did not start? If not, where could it turn?\n5. **The ending.** An ending that explains the poem undoes it; say so.\n\n## Output\n\nThe three problems that matter most, each with the line and a fix; then the rest, briefly.\n\n## Never\n\nNo rewriting the poem. No praise padding. No judging the subject - judge the making.",
+        "template": "Here is a poem called \"{title}\".\n\n{role:draft}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere does it go slack? Name the lines.",
+        "when": {
+          "en": "After a draft: where the poem goes slack - the abstract line, the image that does nothing, the ending that explains.",
+          "ru": "После черновика: где стихотворение провисает - абстрактная строка, образ без дела, концовка, которая объясняет."
+        }
+      },
+      {
+        "category": "critique",
+        "description": {
+          "en": "Stresses, breath and the music of the lines.",
+          "ru": "Ударения, дыхание и музыка строк."
+        },
+        "key": "sound_check",
+        "label": {
+          "en": "Read it aloud",
+          "ru": "Прочитать вслух"
+        },
+        "method": "# Sound\n\n## Role\n\nYou read the poem aloud, in your head, slowly, and listen.\n\n## How\n\n1. Mark the stresses of each line; say where the metre holds and where it breaks - and whether the break means something.\n2. Mark where a reader would run out of breath, and where a line ends too early.\n3. Name the sound patterns that carry it - repeated vowels, consonant runs, rhymes inside lines - and the ones that clash.\n4. For each problem, offer one change that keeps the sense.\n\n## Never\n\nNo metre forced on free verse. No rewriting the whole poem.",
+        "template": "A poem called \"{title}\":\n\n{role:draft}\n\nRead it aloud and say where the sound helps and where it trips.",
+        "when": {
+          "en": "When the lines look right on the page and you are not sure they sound right: stresses, breath, the clash of consonants.",
+          "ru": "Когда на странице строки выглядят верно, а звучат ли - неясно: ударения, дыхание, столкновение согласных."
+        }
+      },
+      {
+        "category": "critique",
+        "description": {
+          "en": "Every word that could go.",
+          "ru": "Каждое слово, которое можно убрать."
+        },
+        "key": "cut_test",
+        "label": {
+          "en": "Cut to the bone",
+          "ru": "Сократить до кости"
+        },
+        "method": "# Cut\n\n## Role\n\nYou cut the poem to see what holds it up.\n\n## How\n\n1. Strike every adjective and adverb in your head; put back only those the poem cannot stand without.\n2. Strike every line that explains a line before it.\n3. Give the poem as it would stand after the cuts.\n4. Say what was lost, if anything, and whether to keep a cut back.\n\n## Never\n\nNo new words added. No cut that changes what the poem says.",
+        "template": "A poem called \"{title}\":\n\n{role:draft}\n\nWhat could go?",
+        "when": {
+          "en": "When the poem may be longer than it needs to be: every word that could go, and what is left when it does.",
+          "ru": "Когда стихотворение, возможно, длиннее, чем нужно: каждое слово, которое можно убрать, и что останется."
+        }
+      },
+      {
+        "category": "writing",
+        "description": {
+          "en": "Other ways to name it.",
+          "ru": "Другие названия."
+        },
+        "key": "titles",
+        "label": {
+          "en": "Alternative titles",
+          "ru": "Другие названия"
+        },
+        "method": "# Titles\n\n## Role\n\nYou name a poem. A title is the first line read; it opens the poem, or quietly frames it.\n\n## How\n\n1. Say in one line what the poem is about underneath.\n2. Offer eight titles: an image from the poem, a word it never says, a place, a time, a person addressed, a form, a question, a single plain noun.\n3. For each, one line on how it changes the reading.\n4. Mark the two you would keep.\n\n## Never\n\nNo title that explains the poem.",
+        "template": "A poem called \"{title}\":\n\n{role:draft}\n\nOffer other titles.",
+        "when": {
+          "en": "When the title is a label rather than a door: other titles, each opening the poem from another side.",
+          "ru": "Когда название - этикетка, а не дверь: другие варианты, каждый открывает стихотворение с другой стороны."
+        }
+      },
+      {
+        "category": "scoring",
+        "description": {
+          "en": "Rate it along the profile axes, with a reason.",
+          "ru": "Оценить по осям профиля, с обоснованием."
+        },
+        "key": "score",
+        "label": {
+          "en": "Score the poem",
+          "ru": "Оценить стихотворение"
+        },
+        "method": "# Judge of finished work\n\n## Role\n\nYou are judging release potential — how the finished piece stands against the profile's axes — not helping to improve it. Score each axis on its own scale as the profile describes it; the marks of a rubric, where given, are the anchors: find the nearest one below the work and place it there. Do not average impressions across axes, and do not let a strong axis lift a weak one.\n\n## How to judge\n\n1. Read the whole piece once as a listener or reader would, without a pen.\n2. Read it again per axis, in the profile's order, and write one line of evidence for each axis before the number — a quote or a concrete observation, not an adjective.\n3. Be honest rather than kind: a flattering score is worth nothing to the author, and a 10 is reserved for work with nothing left to fix on that axis.\n4. Where the profile names tiers, say which tier the total lands in and what, if anything, would move it up one.\n\n## Output\n\nYour reasoning first: the evidence per axis, one line each, then the tier and what would move it. Then the fenced json block exactly as instructed, and nothing after it.\n",
+        "produces": "score",
+        "template": "Here is a poem called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "when": {
+          "en": "When the poem is finished enough to judge: a number along each axis - image, sound, compression, the turn, voice - with the line that earned it.",
+          "ru": "Когда стихотворение готово настолько, чтобы его судить: оценка по каждой оси - образ, звук, сжатость, поворот, голос - с обоснованием."
+        }
+      },
+      {
+        "category": "release",
+        "description": {
+          "en": "A pasted screenshot of a comment, copied out word for word.",
+          "ru": "Вставленный снимок комментария, переписанный слово в слово."
+        },
+        "icon": "eye",
+        "key": "read-comment",
+        "label": {
+          "en": "Read a comment",
+          "ru": "Прочитать комментарий"
+        },
+        "method": "# Comment reader\n\n## Role\n\nYou are looking at a screenshot of a comment someone left under a published work, and copying it out so it can be kept and answered.\n\n## How to read it\n\n- Copy the comment **word for word**, in the language it was written in: no translation, no correction of spelling or grammar, no shortening. Keep its line breaks and its emoji.\n- The author is the name shown beside the comment. Leave it out if none is visible.\n- A relative time (\"3 weeks ago\", \"2 дня назад\") becomes the day it means, counted back from today. No time shown means no day.\n- If the screenshot shows several comments, take the one the others answer — not a reply under it. If it shows the title of what the comment was written under, give it as `about`.\n- Never invent what the picture does not show.\n\n## Output\n\nOne line saying what you read, then the fenced json block exactly as instructed, and nothing after it.\n",
+        "produces": "comment",
+        "scope": "comment",
+        "template": "Read the comment in this screenshot.",
+        "when": {
+          "en": "When someone pasted a screenshot of a comment: it is copied out word for word, with who wrote it and when.",
+          "ru": "Когда вставлен снимок комментария: он переписывается слово в слово, с автором и временем."
+        }
+      },
+      {
+        "category": "release",
+        "description": {
+          "en": "A reply in the voice you already speak in, for you to post.",
+          "ru": "Ответ голосом, которым вы уже говорите, - публикуете вы."
+        },
+        "icon": "reply",
+        "key": "reply-to-comment",
+        "label": {
+          "en": "Draft a reply",
+          "ru": "Набросать ответ"
+        },
+        "method": "# Reply writer\n\n## Role\n\nYou are writing, for the author of a poem, the reply to one comment from their audience. The author will read it, change what they like and poem it themselves.\n\n## The voice\n\n- The replies already posted on the same channel are given with the task. They **are** the voice: match their length, their warmth, their language, how they address people, whether they use emoji. Do not describe the voice — use it.\n- With nothing posted yet, write as a person, not as a brand: plain, warm, short.\n- Answer in the language of the comment.\n\n## What to write\n\n- Answer what the comment actually says. A question gets an answer; praise gets a real thank-you that shows it was read, never a template.\n- Use what the work's text is given for when the comment is about something in it — a line, a moment, a character. Never explain the work unasked.\n- One to three sentences, unless the posted replies are longer as a rule.\n- Never promise anything on the author's behalf: a release date, a sequel, a collaboration. Never argue, and never answer rudeness in kind — a hostile comment gets a short, calm line or the note that it may not need a reply.\n- If a draft is given, rewrite it: keep what the author wrote that already works.\n\n## Output\n\nThe reply alone, as it would be posted.\n",
+        "produces": "reply",
+        "scope": "comment",
+        "template": "Write the reply.",
+        "when": {
+          "en": "When a reader’s comment deserves an answer: a reply in the poet’s own voice, to post yourself.",
+          "ru": "Когда на комментарий читателя стоит ответить: ответ голосом самого поэта, публикуете вы."
+        }
+      },
+      {
+        "category": "workflow",
+        "description": {
+          "en": "The brief and what is starred, worked into one idea.",
+          "ru": "Замысел и отмеченное, сведённые в одну идею."
+        },
+        "icon": "wand",
+        "key": "refine",
+        "kinds": [
+          "poem",
+          "translation",
+          "reading"
+        ],
+        "label": {
+          "en": "Refine the idea",
+          "ru": "Уточнить идею"
+        },
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their poem is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the poem is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the poem itself. Nothing the author did not give as their own.\n",
+        "produces": "conception",
+        "template": "A poem called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the poem is about.",
+        "when": {
+          "en": "When the brief and the starred cards are there and the poem is not written yet: the image it starts from and what it turns on, set straight.",
+          "ru": "Когда есть бриф и отмеченные карточки, а стихотворения ещё нет: образ, с которого оно начнётся, и на чём повернётся."
+        }
+      },
+      {
+        "category": "workflow",
+        "description": {
+          "en": "Works, sources and concepts the poem could draw on, put on the research board.",
+          "ru": "Произведения, источники и понятия для стихотворения - на доску исследования."
+        },
+        "icon": "globe",
+        "key": "research",
+        "kinds": [
+          "poem",
+          "translation",
+          "reading"
+        ],
+        "label": {
+          "en": "Research",
+          "ru": "Исследовать"
+        },
+        "method": "# Research\n\n## Role\n\nYou gather what a poem could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the poem, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the poem is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Keep to the register the author asked for: where they asked for a quiet example, a loud one is not an answer.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the poem it serves - \"a promise kept too late\", \"a city that forgets\" - not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the poem itself. Nothing invented: a work you are not sure exists is not a card.\n",
+        "produces": "cards:research",
+        "scope": "board",
+        "template": "A poem called \"{title}\" is being prepared.\n\n{prepared}\n\n{cards}",
+        "web": true,
+        "when": {
+          "en": "Before the poem is written, when it needs ground: poems, works and sources it could answer, quotes checked on the web.",
+          "ru": "До того как стихотворение написано, когда ему нужна опора: стихи, произведения и источники, которым оно могло бы ответить, цитаты сверены."
+        }
+      },
+      {
+        "category": "workflow",
+        "description": {
+          "en": "Ways the poem could go, put on the board.",
+          "ru": "Пути стихотворения - на доску."
+        },
+        "icon": "lightbulb",
+        "key": "scenarios",
+        "kinds": [
+          "poem",
+          "translation",
+          "reading"
+        ],
+        "label": {
+          "en": "Propose ways in",
+          "ru": "Предложить входы"
+        },
+        "method": "# Ways it could go\n\n## Role\n\nYou propose ways a poem could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the poem itself.\n",
+        "produces": "cards:scenarios",
+        "scope": "board",
+        "template": "A poem called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}",
+        "when": {
+          "en": "When the image is there but not the way into it: several ways the poem could open and turn.",
+          "ru": "Когда образ есть, а входа в него нет: несколько способов, как стихотворение может открыться и повернуть."
+        }
+      },
+      {
+        "category": "writing",
+        "description": {
+          "en": "A draft written from the whole order.",
+          "ru": "Черновик по всему заказу."
+        },
+        "icon": "pen",
+        "key": "write",
+        "kinds": [
+          "poem",
+          "translation",
+          "reading"
+        ],
+        "label": {
+          "en": "Write from the brief",
+          "ru": "Написать по замыслу"
+        },
+        "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the poem they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Open on the take, not on a warm-up.\n- Lay it out in markdown: short paragraphs, a heading where the reader would want one.\n- Write in the language of the brief.\n\n## Output\n\nThe poem alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
+        "template": "{order}\n\nWrite the poem.",
+        "when": {
+          "en": "When the order is complete - brief, image, chosen way in: a draft of the poem to talk over before it is inserted.",
+          "ru": "Когда заказ собран - бриф, образ, выбранный вход: черновик стихотворения, чтобы обсудить его до вставки."
+        }
+      },
+      {
+        "category": "workflow",
+        "description": {
+          "en": "The whole cycle of a poem, step by step, through the skills of this profile.",
+          "ru": "Весь цикл стихотворения шаг за шагом через навыки этого профиля."
+        },
+        "key": "poetry-workflow",
+        "label": {
+          "en": "Poem, from an image to a book",
+          "ru": "Стихотворение от образа до книги"
+        },
+        "method": "# Poem, from an image to a book\n\n## Role\n\nYou take a poem through kilna's cycle with the poet, one step at a time, using the skills of this profile. Every step ends in a proposal.\n\n## Before anything\n\nRead `workspace` and the poem with `work`. Read the words already spent with `notes`. Say what stage the poem is at.\n\n## The cycle\n\n1. **Image.** `research`, `scenarios` - ways in - then `refine`.\n2. **Draft.** `write` from the brief, or the poet's own draft.\n3. **Reading.** `critique`, `sound_check` aloud, `cut_test` to the bone.\n4. **Judgement.** `score` along the axes.\n5. **Name.** `titles`.\n\nOpen each skill with `guide` before you use it. Say what changed and what comes next after each step.\n\n## Never\n\nNo rewriting a poem the poet did not ask you to rewrite. Do not apply anything.",
+        "show_in_ui": false,
+        "template": "",
+        "when": {
+          "en": "When a person wants to take a poem all the way, or asks what to do next with one.",
+          "ru": "Когда человек хочет провести стихотворение целиком или спрашивает, что делать с ним дальше."
+        }
+      }
+    ],
+    "rhythm": {
+      "default_time": null,
+      "every_days": 7,
+      "monthly": []
+    },
+    "stages": [
+      {
+        "colour": "plain",
+        "hex": "#6E737D",
+        "key": "idea",
+        "label": {
+          "en": "idea / untouched",
+          "ru": "идея / ещё не трогали"
+        },
+        "percent": 0
+      },
+      {
+        "colour": "info",
+        "hex": "#5CA3FA",
+        "key": "start",
+        "label": {
+          "en": "started / first drafts",
+          "ru": "старт / первые наброски"
+        },
+        "percent": 25
+      },
+      {
+        "colour": "warn",
+        "hex": "#E8B341",
+        "key": "half",
+        "label": {
+          "en": "halfway / working draft",
+          "ru": "половина / рабочий черновик"
+        },
+        "percent": 50
+      },
+      {
+        "colour": "accent",
+        "hex": "#B084F7",
+        "key": "almost",
+        "label": {
+          "en": "almost ready / polishing",
+          "ru": "почти готово / доводка и полировка"
+        },
+        "percent": 75
+      },
+      {
+        "colour": "good",
+        "hex": "#5EC486",
+        "key": "final",
+        "label": {
+          "en": "final / ready to ship",
+          "ru": "финал, можно выпускать"
+        },
+        "percent": 100
+      }
+    ],
+    "style_types": [],
+    "vibe": {
+      "characters": [
+        {
+          "glyph": "calm",
+          "key": "calm",
+          "label": {
+            "en": "Calm",
+            "ru": "Спокойная"
+          }
+        },
+        {
+          "glyph": "playful",
+          "key": "playful",
+          "label": {
+            "en": "Playful",
+            "ru": "Игривая"
+          }
+        },
+        {
+          "glyph": "steady",
+          "key": "steady",
+          "label": {
+            "en": "Steady",
+            "ru": "Умеренная"
+          }
+        },
+        {
+          "glyph": "edgy",
+          "key": "edgy",
+          "label": {
+            "en": "Raw",
+            "ru": "Надрывная"
+          }
+        },
+        {
+          "glyph": "drive",
+          "key": "drive",
+          "label": {
+            "en": "Drive",
+            "ru": "Драйв"
+          }
+        }
+      ],
+      "complexities": [
+        {
+          "key": "simple",
+          "label": {
+            "en": "Simple",
+            "ru": "Простая"
+          },
+          "strokes": 1
+        },
+        {
+          "key": "medium",
+          "label": {
+            "en": "Medium",
+            "ru": "Средняя"
+          },
+          "strokes": 2
+        },
+        {
+          "key": "complex",
+          "label": {
+            "en": "Complex",
+            "ru": "Сложная"
+          },
+          "strokes": 3
+        }
+      ],
+      "labels": {
+        "complexity": {
+          "en": "How deep it goes",
+          "ru": "Глубина разбора"
+        }
+      },
+      "moods": [
+        {
+          "color": "#7A82AB",
+          "key": "dark",
+          "label": {
+            "en": "Dark",
+            "ru": "Мрачная"
+          }
+        },
+        {
+          "color": "#608EBA",
+          "key": "melancholy",
+          "label": {
+            "en": "Melancholy",
+            "ru": "Меланхоличная"
+          }
+        },
+        {
+          "color": "#6FAEA0",
+          "key": "contemplative",
+          "label": {
+            "en": "Contemplative",
+            "ru": "Созерцательная"
+          }
+        },
+        {
+          "color": "#DEA058",
+          "key": "warm",
+          "label": {
+            "en": "Bright",
+            "ru": "Светлая"
+          }
+        },
+        {
+          "color": "#E8786C",
+          "key": "joyful",
+          "label": {
+            "en": "Joyful",
+            "ru": "Весёлая"
+          }
+        }
+      ]
+    },
+    "work_kinds": [
+      {
+        "axes": [
+          {
+            "description": {
+              "en": "Can the poem be seen, heard or touched, or is it ideas in a row?",
+              "ru": "Можно ли стихотворение увидеть, услышать, потрогать - или это идеи подряд?"
+            },
+            "key": "image",
+            "kind": "scale",
+            "label": {
+              "en": "Image",
+              "ru": "Образ"
+            },
+            "scale": 10.0,
+            "weight": 2.0
+          },
+          {
+            "description": {
+              "en": "Read aloud: does the music of the lines carry the sense, or fight it?",
+              "ru": "Вслух: несёт ли музыка строк смысл или спорит с ним?"
+            },
+            "key": "sound",
+            "kind": "scale",
+            "label": {
+              "en": "Sound",
+              "ru": "Звук"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Is there a word that could go without loss?",
+              "ru": "Есть ли слово, которое можно убрать без потери?"
+            },
+            "key": "compression",
+            "kind": "scale",
+            "label": {
+              "en": "Compression",
+              "ru": "Сжатость"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Does the poem arrive somewhere it did not start?",
+              "ru": "Приходит ли стихотворение туда, откуда не начиналось?"
+            },
+            "key": "turn",
+            "kind": "scale",
+            "label": {
+              "en": "Turn",
+              "ru": "Поворот"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Could only this poet have written it?",
+              "ru": "Мог ли написать это только этот поэт?"
+            },
+            "key": "voice",
+            "kind": "scale",
+            "label": {
+              "en": "Voice",
+              "ru": "Голос"
+            },
+            "scale": 10.0,
+            "weight": 1.0
+          }
+        ],
+        "conception": {
+          "boards": [
+            "research",
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "angle"
+          ]
+        },
+        "folder": "poems/{id}",
+        "key": "poem",
+        "label": {
+          "en": "Poem",
+          "ru": "Стихотворение"
+        },
+        "release_kinds": [
+          {
+            "fields": [
+              {
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Название"
+                },
+                "required": true,
+                "template": "{title}",
+                "type": "line"
+              },
+              {
+                "hint": {
+                  "en": "Two sentences to the editor: who you are and why this poem.",
+                  "ru": "Две фразы редактору: кто вы и почему это стихотворение."
+                },
+                "key": "note",
+                "label": {
+                  "en": "Cover note",
+                  "ru": "Сопроводительное письмо"
+                },
+                "type": "text"
+              }
+            ],
+            "icon": "book",
+            "key": "journal",
+            "label": {
+              "en": "Journal",
+              "ru": "Журнал"
+            },
+            "requires": [
+              "draft"
+            ]
+          },
+          {
+            "fields": [
+              {
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Название"
+                },
+                "required": true,
+                "template": "{title}",
+                "type": "line"
+              },
+              {
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
+                "key": "tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
+                "type": "tags"
+              }
+            ],
+            "icon": "globe",
+            "key": "online",
+            "label": {
+              "en": "Online",
+              "ru": "В сети"
+            },
+            "requires": [
+              "draft"
+            ]
+          },
+          {
+            "fields": [
+              {
+                "key": "venue",
+                "label": {
+                  "en": "Venue",
+                  "ru": "Площадка"
+                },
+                "required": true,
+                "type": "line"
+              },
+              {
+                "key": "intro",
+                "label": {
+                  "en": "What to say before it",
+                  "ru": "Что сказать перед ним"
+                },
+                "limit": 300,
+                "type": "text"
+              }
+            ],
+            "icon": "quote",
+            "key": "reading",
+            "label": {
+              "en": "Reading",
+              "ru": "Чтение"
+            },
+            "requires": [
+              "draft"
+            ]
+          }
+        ],
+        "statuses": [
+          {
+            "derive": "draft",
+            "key": "draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
+          },
+          {
+            "colour": "info",
+            "derive": "manual",
+            "key": "revised",
+            "label": {
+              "en": "Revised",
+              "ru": "Доработано"
+            }
+          },
+          {
+            "colour": "accent",
+            "derive": "scored",
+            "key": "scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
+          },
+          {
+            "colour": "info",
+            "derive": "manual",
+            "key": "submitted",
+            "label": {
+              "en": "Submitted",
+              "ru": "Отправлено"
+            }
+          },
+          {
+            "colour": "warn",
+            "derive": "scheduled",
+            "key": "scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
+          },
+          {
+            "colour": "good",
+            "derive": "released",
+            "key": "published",
+            "label": {
+              "en": "Published",
+              "ru": "Опубликовано"
+            }
+          },
+          {
+            "colour": "plain",
+            "derive": "manual",
+            "key": "shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
+          }
+        ],
+        "tiers": [
+          {
+            "key": "drawer",
+            "label": {
+              "en": "Drawer",
+              "ru": "В стол"
+            },
+            "min": 0.0
+          },
+          {
+            "key": "reading",
+            "label": {
+              "en": "For a reading",
+              "ru": "Для чтений"
+            },
+            "min": 55.0
+          },
+          {
+            "key": "journal",
+            "label": {
+              "en": "For a journal",
+              "ru": "В журнал"
+            },
+            "min": 70.0
+          },
+          {
+            "key": "book",
+            "label": {
+              "en": "For the book",
+              "ru": "В книгу"
+            },
+            "min": 82.0
+          }
+        ],
+        "version_roles": [
+          {
+            "body": "plain",
+            "key": "draft",
+            "label": {
+              "en": "Poem",
+              "ru": "Стихотворение"
+            }
+          },
+          {
+            "body": "plain",
+            "key": "angle",
+            "label": {
+              "en": "Seed image",
+              "ru": "Исходный образ"
+            }
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## The image it starts from\n\n## What it turns on\n\n## The form\n\n## What it must not say\n",
+              "ru": "## Образ, с которого начинается\n\n## На чём поворот\n\n## Форма\n\n## Чего нельзя говорить\n"
+            }
+          }
+        ]
+      },
+      {
+        "axes": [
+          {
+            "description": {
+              "en": "Can the poem be seen, heard or touched, or is it ideas in a row?",
+              "ru": "Можно ли стихотворение увидеть, услышать, потрогать - или это идеи подряд?"
+            },
+            "key": "image",
+            "kind": "scale",
+            "label": {
+              "en": "Image",
+              "ru": "Образ"
+            },
+            "scale": 10.0,
+            "weight": 2.0
+          },
+          {
+            "description": {
+              "en": "Read aloud: does the music of the lines carry the sense, or fight it?",
+              "ru": "Вслух: несёт ли музыка строк смысл или спорит с ним?"
+            },
+            "key": "sound",
+            "kind": "scale",
+            "label": {
+              "en": "Sound",
+              "ru": "Звук"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Is there a word that could go without loss?",
+              "ru": "Есть ли слово, которое можно убрать без потери?"
+            },
+            "key": "compression",
+            "kind": "scale",
+            "label": {
+              "en": "Compression",
+              "ru": "Сжатость"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Does the poem arrive somewhere it did not start?",
+              "ru": "Приходит ли стихотворение туда, откуда не начиналось?"
+            },
+            "key": "turn",
+            "kind": "scale",
+            "label": {
+              "en": "Turn",
+              "ru": "Поворот"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Could only this poet have written it?",
+              "ru": "Мог ли написать это только этот поэт?"
+            },
+            "key": "voice",
+            "kind": "scale",
+            "label": {
+              "en": "Voice",
+              "ru": "Голос"
+            },
+            "scale": 10.0,
+            "weight": 1.0
+          }
+        ],
+        "conception": {
+          "boards": [
+            "research",
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "angle"
+          ]
+        },
+        "folder": "translations/{id}",
+        "key": "translation",
+        "label": {
+          "en": "Translation",
+          "ru": "Перевод"
+        },
+        "release_kinds": [
+          {
+            "fields": [
+              {
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Название"
+                },
+                "required": true,
+                "template": "{title}",
+                "type": "line"
+              },
+              {
+                "hint": {
+                  "en": "Two sentences to the editor: who you are and why this poem.",
+                  "ru": "Две фразы редактору: кто вы и почему это стихотворение."
+                },
+                "key": "note",
+                "label": {
+                  "en": "Cover note",
+                  "ru": "Сопроводительное письмо"
+                },
+                "type": "text"
+              }
+            ],
+            "icon": "book",
+            "key": "journal",
+            "label": {
+              "en": "Journal",
+              "ru": "Журнал"
+            },
+            "requires": [
+              "draft"
+            ]
+          },
+          {
+            "fields": [
+              {
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Название"
+                },
+                "required": true,
+                "template": "{title}",
+                "type": "line"
+              },
+              {
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
+                "key": "tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
+                "type": "tags"
+              }
+            ],
+            "icon": "globe",
+            "key": "online",
+            "label": {
+              "en": "Online",
+              "ru": "В сети"
+            },
+            "requires": [
+              "draft"
+            ]
+          },
+          {
+            "fields": [
+              {
+                "key": "venue",
+                "label": {
+                  "en": "Venue",
+                  "ru": "Площадка"
+                },
+                "required": true,
+                "type": "line"
+              },
+              {
+                "key": "intro",
+                "label": {
+                  "en": "What to say before it",
+                  "ru": "Что сказать перед ним"
+                },
+                "limit": 300,
+                "type": "text"
+              }
+            ],
+            "icon": "quote",
+            "key": "reading",
+            "label": {
+              "en": "Reading",
+              "ru": "Чтение"
+            },
+            "requires": [
+              "draft"
+            ]
+          }
+        ],
+        "statuses": [
+          {
+            "derive": "draft",
+            "key": "draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
+          },
+          {
+            "colour": "info",
+            "derive": "manual",
+            "key": "revised",
+            "label": {
+              "en": "Revised",
+              "ru": "Доработано"
+            }
+          },
+          {
+            "colour": "accent",
+            "derive": "scored",
+            "key": "scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
+          },
+          {
+            "colour": "info",
+            "derive": "manual",
+            "key": "submitted",
+            "label": {
+              "en": "Submitted",
+              "ru": "Отправлено"
+            }
+          },
+          {
+            "colour": "warn",
+            "derive": "scheduled",
+            "key": "scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
+          },
+          {
+            "colour": "good",
+            "derive": "released",
+            "key": "published",
+            "label": {
+              "en": "Published",
+              "ru": "Опубликовано"
+            }
+          },
+          {
+            "colour": "plain",
+            "derive": "manual",
+            "key": "shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
+          }
+        ],
+        "tiers": [
+          {
+            "key": "drawer",
+            "label": {
+              "en": "Drawer",
+              "ru": "В стол"
+            },
+            "min": 0.0
+          },
+          {
+            "key": "reading",
+            "label": {
+              "en": "For a reading",
+              "ru": "Для чтений"
+            },
+            "min": 55.0
+          },
+          {
+            "key": "journal",
+            "label": {
+              "en": "For a journal",
+              "ru": "В журнал"
+            },
+            "min": 70.0
+          },
+          {
+            "key": "book",
+            "label": {
+              "en": "For the book",
+              "ru": "В книгу"
+            },
+            "min": 82.0
+          }
+        ],
+        "version_roles": [
+          {
+            "body": "plain",
+            "key": "draft",
+            "label": {
+              "en": "Poem",
+              "ru": "Стихотворение"
+            }
+          },
+          {
+            "body": "plain",
+            "key": "angle",
+            "label": {
+              "en": "Seed image",
+              "ru": "Исходный образ"
+            }
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## The image it starts from\n\n## What it turns on\n\n## The form\n\n## What it must not say\n",
+              "ru": "## Образ, с которого начинается\n\n## На чём поворот\n\n## Форма\n\n## Чего нельзя говорить\n"
+            }
+          }
+        ]
+      },
+      {
+        "axes": [
+          {
+            "description": {
+              "en": "Can the poem be seen, heard or touched, or is it ideas in a row?",
+              "ru": "Можно ли стихотворение увидеть, услышать, потрогать - или это идеи подряд?"
+            },
+            "key": "image",
+            "kind": "scale",
+            "label": {
+              "en": "Image",
+              "ru": "Образ"
+            },
+            "scale": 10.0,
+            "weight": 2.0
+          },
+          {
+            "description": {
+              "en": "Read aloud: does the music of the lines carry the sense, or fight it?",
+              "ru": "Вслух: несёт ли музыка строк смысл или спорит с ним?"
+            },
+            "key": "sound",
+            "kind": "scale",
+            "label": {
+              "en": "Sound",
+              "ru": "Звук"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Is there a word that could go without loss?",
+              "ru": "Есть ли слово, которое можно убрать без потери?"
+            },
+            "key": "compression",
+            "kind": "scale",
+            "label": {
+              "en": "Compression",
+              "ru": "Сжатость"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Does the poem arrive somewhere it did not start?",
+              "ru": "Приходит ли стихотворение туда, откуда не начиналось?"
+            },
+            "key": "turn",
+            "kind": "scale",
+            "label": {
+              "en": "Turn",
+              "ru": "Поворот"
+            },
+            "scale": 10.0,
+            "weight": 1.5
+          },
+          {
+            "description": {
+              "en": "Could only this poet have written it?",
+              "ru": "Мог ли написать это только этот поэт?"
+            },
+            "key": "voice",
+            "kind": "scale",
+            "label": {
+              "en": "Voice",
+              "ru": "Голос"
+            },
+            "scale": 10.0,
+            "weight": 1.0
+          }
+        ],
+        "conception": {
+          "boards": [
+            "research",
+            "scenarios"
+          ],
+          "brief": "brief",
+          "idea": "premise",
+          "with": [
+            "angle"
+          ]
+        },
+        "folder": "readings/{id}",
+        "key": "reading",
+        "label": {
+          "en": "Reading set",
+          "ru": "Программа чтений"
+        },
+        "release_kinds": [
+          {
+            "fields": [
+              {
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Название"
+                },
+                "required": true,
+                "template": "{title}",
+                "type": "line"
+              },
+              {
+                "hint": {
+                  "en": "Two sentences to the editor: who you are and why this poem.",
+                  "ru": "Две фразы редактору: кто вы и почему это стихотворение."
+                },
+                "key": "note",
+                "label": {
+                  "en": "Cover note",
+                  "ru": "Сопроводительное письмо"
+                },
+                "type": "text"
+              }
+            ],
+            "icon": "book",
+            "key": "journal",
+            "label": {
+              "en": "Journal",
+              "ru": "Журнал"
+            },
+            "requires": [
+              "draft"
+            ]
+          },
+          {
+            "fields": [
+              {
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Название"
+                },
+                "required": true,
+                "template": "{title}",
+                "type": "line"
+              },
+              {
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
+                "key": "tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
+                "type": "tags"
+              }
+            ],
+            "icon": "globe",
+            "key": "online",
+            "label": {
+              "en": "Online",
+              "ru": "В сети"
+            },
+            "requires": [
+              "draft"
+            ]
+          },
+          {
+            "fields": [
+              {
+                "key": "venue",
+                "label": {
+                  "en": "Venue",
+                  "ru": "Площадка"
+                },
+                "required": true,
+                "type": "line"
+              },
+              {
+                "key": "intro",
+                "label": {
+                  "en": "What to say before it",
+                  "ru": "Что сказать перед ним"
+                },
+                "limit": 300,
+                "type": "text"
+              }
+            ],
+            "icon": "quote",
+            "key": "reading",
+            "label": {
+              "en": "Reading",
+              "ru": "Чтение"
+            },
+            "requires": [
+              "draft"
+            ]
+          }
+        ],
+        "statuses": [
+          {
+            "derive": "draft",
+            "key": "draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
+          },
+          {
+            "colour": "info",
+            "derive": "manual",
+            "key": "revised",
+            "label": {
+              "en": "Revised",
+              "ru": "Доработано"
+            }
+          },
+          {
+            "colour": "accent",
+            "derive": "scored",
+            "key": "scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
+          },
+          {
+            "colour": "info",
+            "derive": "manual",
+            "key": "submitted",
+            "label": {
+              "en": "Submitted",
+              "ru": "Отправлено"
+            }
+          },
+          {
+            "colour": "warn",
+            "derive": "scheduled",
+            "key": "scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
+          },
+          {
+            "colour": "good",
+            "derive": "released",
+            "key": "published",
+            "label": {
+              "en": "Published",
+              "ru": "Опубликовано"
+            }
+          },
+          {
+            "colour": "plain",
+            "derive": "manual",
+            "key": "shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
+          }
+        ],
+        "tiers": [
+          {
+            "key": "drawer",
+            "label": {
+              "en": "Drawer",
+              "ru": "В стол"
+            },
+            "min": 0.0
+          },
+          {
+            "key": "reading",
+            "label": {
+              "en": "For a reading",
+              "ru": "Для чтений"
+            },
+            "min": 55.0
+          },
+          {
+            "key": "journal",
+            "label": {
+              "en": "For a journal",
+              "ru": "В журнал"
+            },
+            "min": 70.0
+          },
+          {
+            "key": "book",
+            "label": {
+              "en": "For the book",
+              "ru": "В книгу"
+            },
+            "min": 82.0
+          }
+        ],
+        "version_roles": [
+          {
+            "body": "plain",
+            "key": "draft",
+            "label": {
+              "en": "Poem",
+              "ru": "Стихотворение"
+            }
+          },
+          {
+            "body": "plain",
+            "key": "angle",
+            "label": {
+              "en": "Seed image",
+              "ru": "Исходный образ"
+            }
+          },
+          {
+            "body": "markdown",
+            "counts_as_version": false,
+            "key": "brief",
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "skeleton": {
+              "en": "## The image it starts from\n\n## What it turns on\n\n## The form\n\n## What it must not say\n",
+              "ru": "## Образ, с которого начинается\n\n## На чём поворот\n\n## Форма\n\n## Чего нельзя говорить\n"
+            }
+          }
+        ]
+      }
+    ],
+    "work_meta_fields": [
+      {
+        "key": "lines",
+        "label": {
+          "en": "Lines",
+          "ru": "Строк"
+        },
+        "type": "number"
+      },
+      {
+        "key": "form",
+        "label": {
+          "en": "Form",
+          "ru": "Форма"
+        },
+        "type": "text"
+      },
+      {
+        "key": "dedication",
+        "label": {
+          "en": "Dedication",
+          "ru": "Посвящение"
+        },
+        "type": "text"
+      },
+      {
+        "key": "premise",
+        "label": {
+          "en": "Premise",
+          "ru": "Идея"
+        },
+        "type": "multiline"
+      }
+    ]
+  },
+  "description": "Poems kept in drafts with the image they grew from, judged on image, sound and the turn, gathered into cycles and books, and taken to journals and readings.",
+  "key": "poetry",
+  "name": "Poetry"
+}

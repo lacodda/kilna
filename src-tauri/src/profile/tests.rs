@@ -570,7 +570,7 @@ fn a_space_is_seeded_with_its_own_kind_alone() {
 fn a_kind_kilna_does_not_ship_is_refused_and_nothing_seeded() {
     let conn = db::open_in_memory().unwrap();
 
-    let refused = seed(&conn, "poetry").unwrap_err();
+    let refused = seed(&conn, "zine").unwrap_err();
 
     assert_eq!(refused.refusal().unwrap().code, "space.unknownKind");
     assert!(list(&conn).unwrap().is_empty());
@@ -3021,6 +3021,10 @@ fn a_critique_still_as_it_shipped_comes_to_read_the_context() {
                 profile.key
             );
         }
+        // A craft shipped since v0.112 has no earlier wording to follow.
+        if matches!(profile.key.as_str(), "poetry" | "newsletter") {
+            continue;
+        }
         let before = TEMPLATES_BEFORE_THE_CONTEXT
             .iter()
             .map(|(_, before)| *before)
@@ -3341,11 +3345,13 @@ fn one_language_words(value: &serde_json::Value, path: &str, found: &mut Vec<Str
 /// playbook of its whole cycle, naming skills it has.
 #[test]
 fn what_ships_is_the_craft_not_an_author() {
-    const PLAYBOOKS: [(&str, &[&str]); 4] = [
+    const PLAYBOOKS: [(&str, &[&str]); 6] = [
         ("music", &["song-workflow", "ai-video-pipeline"]),
         ("novel", &["novel-workflow"]),
         ("podcast", &["podcast-workflow"]),
         ("blog", &["blog-workflow"]),
+        ("poetry", &["poetry-workflow"]),
+        ("newsletter", &["newsletter-workflow"]),
     ];
     for profile in builtin().unwrap() {
         let config = &profile.config;
