@@ -2611,6 +2611,122 @@
         }
       },
       {
+        "key": "motion-atmosphere",
+        "label": {
+          "en": "Atmosphere",
+          "ru": "Стихия"
+        },
+        "hint": {
+          "en": "Describe what the air and the weather do: rain, snow, fog, wind, dust. Say the physics, how big the movement is, how often it repeats, and that the rest of the frame holds still.",
+          "ru": "Опиши, что делают воздух и погода: дождь, снег, туман, ветер, пыль. Физика, амплитуда, периодичность — и что остальной кадр неподвижен."
+        },
+        "icon": "wind",
+        "families": [
+          {
+            "key": "precipitation",
+            "label": {
+              "en": "Rain and snow",
+              "ru": "Дождь и снег"
+            }
+          },
+          {
+            "key": "air",
+            "label": {
+              "en": "Air",
+              "ru": "Воздух"
+            }
+          }
+        ],
+        "form": "motion"
+      },
+      {
+        "key": "motion-subject",
+        "label": {
+          "en": "Subject",
+          "ru": "Персонаж"
+        },
+        "hint": {
+          "en": "Describe what the subject does: a blink, a glance, breathing, hair and cloth. Small movements, how often, and what stays still.",
+          "ru": "Опиши, что делает персонаж: моргание, взгляд, дыхание, волосы и ткань. Мелкие движения, как часто — и что остаётся неподвижным."
+        },
+        "icon": "eye",
+        "families": [
+          {
+            "key": "face",
+            "label": {
+              "en": "Face",
+              "ru": "Лицо"
+            }
+          },
+          {
+            "key": "body",
+            "label": {
+              "en": "Body",
+              "ru": "Тело"
+            }
+          }
+        ],
+        "form": "motion"
+      },
+      {
+        "key": "motion-world",
+        "label": {
+          "en": "World",
+          "ru": "Мир"
+        },
+        "hint": {
+          "en": "Describe what moves in the world around: light and screens, water and glass, machines. The rhythm of it, and that nothing else moves.",
+          "ru": "Опиши, что движется вокруг: свет и экраны, вода и стекло, механизмы. Ритм — и что больше ничего не движется."
+        },
+        "icon": "sun",
+        "families": [
+          {
+            "key": "light",
+            "label": {
+              "en": "Light and screens",
+              "ru": "Свет и экраны"
+            }
+          },
+          {
+            "key": "matter",
+            "label": {
+              "en": "Water and machines",
+              "ru": "Вода и механизмы"
+            }
+          }
+        ],
+        "form": "motion"
+      },
+      {
+        "key": "motion-camera",
+        "label": {
+          "en": "Camera",
+          "ru": "Камера"
+        },
+        "hint": {
+          "en": "Describe what the camera does: locked, breathing, pushing in, sliding, pulling focus. Its speed and its amount, and what it never does.",
+          "ru": "Опиши, что делает камера: штатив, дыхание, наезд, проезд, перевод фокуса. Скорость и величина — и чего она не делает никогда."
+        },
+        "icon": "video",
+        "families": [
+          {
+            "key": "still",
+            "label": {
+              "en": "Locked and breathing",
+              "ru": "Штатив и дыхание"
+            }
+          },
+          {
+            "key": "travel",
+            "label": {
+              "en": "Travel and focus",
+              "ru": "Движение и фокус"
+            }
+          }
+        ],
+        "form": "motion"
+      },
+      {
         "key": "genre",
         "label": {
           "en": "Genre core",
@@ -9692,6 +9808,226 @@
         "#7A5CFF",
         "#FF6F61"
       ]
+    },
+    {
+      "key": "rain-steady",
+      "type": "motion-atmosphere",
+      "family": "precipitation",
+      "label": {
+        "en": "Steady rain",
+        "ru": "Ровный дождь"
+      },
+      "description": "MOTION: steady rain falling straight down in thin streaks at a constant speed, small splashes where it lands; the subject and the background stay completely still.",
+      "when": "A wet night, a quiet verse."
+    },
+    {
+      "key": "snow-drift",
+      "type": "motion-atmosphere",
+      "family": "precipitation",
+      "label": {
+        "en": "Drifting snow",
+        "ru": "Плывущий снег"
+      },
+      "description": "MOTION: large snowflakes drifting down slowly and a little sideways, each on its own soft path, no gusts; everything else in the frame is locked.",
+      "when": "A cold, tender picture that should feel like time slowed down."
+    },
+    {
+      "key": "fog-roll",
+      "type": "motion-atmosphere",
+      "family": "air",
+      "label": {
+        "en": "Rolling fog",
+        "ru": "Стелющийся туман"
+      },
+      "description": "MOTION: low fog rolling slowly across the ground from one side to the other, thinning and thickening, one slow pass over the whole loop; subject and background stay still.",
+      "when": "Mystery, a place nobody should be at night."
+    },
+    {
+      "key": "wind-gust",
+      "type": "motion-atmosphere",
+      "family": "air",
+      "label": {
+        "en": "Gust of wind",
+        "ru": "Порыв ветра"
+      },
+      "description": "MOTION: a gust of wind every few seconds: grass, hair and loose cloth lean the same way together, then settle; between the gusts the whole frame stays still.",
+      "when": "Open air, a field, a roof - a picture that needs to breathe now and then."
+    },
+    {
+      "key": "dust-motes",
+      "type": "motion-atmosphere",
+      "family": "air",
+      "label": {
+        "en": "Dust in a beam",
+        "ru": "Пыль в луче"
+      },
+      "description": "MOTION: fine dust motes floating in a beam of light, drifting slowly upward, barely visible; nothing else in the frame moves.",
+      "when": "An old room, a memory, quiet light."
+    },
+    {
+      "key": "blink",
+      "type": "motion-subject",
+      "family": "face",
+      "label": {
+        "en": "Blink",
+        "ru": "Моргание"
+      },
+      "description": "MOTION: the subject blinks once every four to five seconds, a natural quick blink; the head, the body and the background do not move at all.",
+      "when": "A portrait that should feel alive without anything happening."
+    },
+    {
+      "key": "gaze-shift",
+      "type": "motion-subject",
+      "family": "face",
+      "label": {
+        "en": "Shifting gaze",
+        "ru": "Отведённый взгляд"
+      },
+      "description": "MOTION: the subject’s eyes move slowly from the camera to one side and back, once per loop; the head and face stay still.",
+      "when": "A thought, a doubt, someone looking past the viewer."
+    },
+    {
+      "key": "breathing",
+      "type": "motion-subject",
+      "family": "body",
+      "label": {
+        "en": "Breathing",
+        "ru": "Дыхание"
+      },
+      "description": "MOTION: slow breathing: the chest and shoulders rise and fall gently about once every four seconds; the face and the background stay still.",
+      "when": "A still figure that must not read as a photograph."
+    },
+    {
+      "key": "hair-sway",
+      "type": "motion-subject",
+      "family": "body",
+      "label": {
+        "en": "Hair in a breeze",
+        "ru": "Волосы на ветру"
+      },
+      "description": "MOTION: hair moves softly in a light breeze, small and continuous; the face and the body hold still.",
+      "when": "A portrait outdoors, a calm moment."
+    },
+    {
+      "key": "cloth-ripple",
+      "type": "motion-subject",
+      "family": "body",
+      "label": {
+        "en": "Rippling cloth",
+        "ru": "Ткань на ветру"
+      },
+      "description": "MOTION: loose fabric ripples in a light wind, small waves running along it; the body underneath does not move.",
+      "when": "A cloak, a dress, a flag - drama without a gesture."
+    },
+    {
+      "key": "neon-flicker",
+      "type": "motion-world",
+      "family": "light",
+      "label": {
+        "en": "Neon flicker",
+        "ru": "Мерцание неона"
+      },
+      "description": "MOTION: a neon sign flickers irregularly, going dark for a fraction of a second every few seconds; the rest of the frame is still.",
+      "when": "A night street, unease, something about to break."
+    },
+    {
+      "key": "screen-glow",
+      "type": "motion-world",
+      "family": "light",
+      "label": {
+        "en": "Screen glow",
+        "ru": "Свет экрана"
+      },
+      "description": "MOTION: the light of a screen changes on the subject’s face, slow shifts of brightness and colour; the subject does not move.",
+      "when": "Someone alone with a phone or a monitor at night."
+    },
+    {
+      "key": "water-ripple",
+      "type": "motion-world",
+      "family": "matter",
+      "label": {
+        "en": "Rippling water",
+        "ru": "Рябь на воде"
+      },
+      "description": "MOTION: the surface of the water ripples gently and its reflections waver slowly; everything above the water stays still.",
+      "when": "A lake, a puddle, a reflection that carries the meaning."
+    },
+    {
+      "key": "rain-on-glass",
+      "type": "motion-world",
+      "family": "matter",
+      "label": {
+        "en": "Rain on glass",
+        "ru": "Дождь по стеклу"
+      },
+      "description": "MOTION: raindrops run down a window pane, joining and speeding up as they fall; the view beyond the glass stays still.",
+      "when": "Waiting, looking out, a sad song."
+    },
+    {
+      "key": "gears-turning",
+      "type": "motion-world",
+      "family": "matter",
+      "label": {
+        "en": "Turning gears",
+        "ru": "Вращение шестерён"
+      },
+      "description": "MOTION: gears and mechanisms turn slowly at a constant speed in a loop that repeats seamlessly; nothing else moves.",
+      "when": "Clockwork, machinery, time running out."
+    },
+    {
+      "key": "locked-tripod",
+      "type": "motion-camera",
+      "family": "still",
+      "label": {
+        "en": "Locked tripod",
+        "ru": "Штатив"
+      },
+      "description": "MOTION: the camera is locked on a tripod, no camera movement at all; only what moves inside the frame moves.",
+      "when": "Whenever the movement inside the frame should be the only movement."
+    },
+    {
+      "key": "handheld-breath",
+      "type": "motion-camera",
+      "family": "still",
+      "label": {
+        "en": "Breathing camera",
+        "ru": "Дыхание камеры"
+      },
+      "description": "MOTION: a handheld camera breathing: a tiny slow drift and sway of a few pixels, never a shake; the framing holds and the subject stays still in it.",
+      "when": "A close, human picture that should not feel staged."
+    },
+    {
+      "key": "slow-push-in",
+      "type": "motion-camera",
+      "family": "travel",
+      "label": {
+        "en": "Slow push-in",
+        "ru": "Медленный наезд"
+      },
+      "description": "MOTION: a slow push-in toward the subject at a constant speed, about ten percent closer over the whole loop; no tilt and no pan, and the subject stays still.",
+      "when": "The moment that matters, a verse turning into a chorus."
+    },
+    {
+      "key": "parallax-slide",
+      "type": "motion-camera",
+      "family": "travel",
+      "label": {
+        "en": "Parallax slide",
+        "ru": "Проезд с параллаксом"
+      },
+      "description": "MOTION: a slow sideways camera slide that reveals parallax: the foreground passes faster than the background while the subject stays sharp and still.",
+      "when": "A layered scene - a street, a forest, a crowd - that needs depth."
+    },
+    {
+      "key": "rack-focus",
+      "type": "motion-camera",
+      "family": "travel",
+      "label": {
+        "en": "Rack focus",
+        "ru": "Перевод фокуса"
+      },
+      "description": "MOTION: a rack focus from the foreground to the subject over two seconds; the camera itself does not move.",
+      "when": "Turning attention from a thing to a person, or back."
     },
     {
       "key": "sound-alt-rock-90s",

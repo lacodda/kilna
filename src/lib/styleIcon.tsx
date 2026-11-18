@@ -11,6 +11,7 @@ import {
   TrendingUp,
   WavesHorizontal,
   Droplet,
+  Eye,
   Grid3x3,
   Layers,
   Move,
@@ -18,10 +19,13 @@ import {
   Shapes,
   Shirt,
   Square,
+  Sun,
   Tag,
   TreePine,
   Type,
   User,
+  Video,
+  Wind,
   type LucideIcon,
   type LucideProps,
 } from 'lucide-react'
@@ -64,6 +68,11 @@ const STYLE_ICONS: Record<string, LucideIcon> = {
   gauge: Gauge,
   trending: TrendingUp,
   sliders: SlidersHorizontal,
+  // The types of movement (v0.133).
+  wind: Wind,
+  eye: Eye,
+  sun: Sun,
+  video: Video,
 }
 
 export function styleIconOf(type: Pick<StyleType, 'icon'> | undefined): LucideIcon {

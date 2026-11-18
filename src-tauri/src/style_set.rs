@@ -1072,6 +1072,22 @@ mod tests {
                         !slots(&entry.description).is_empty(),
                         "{at} is a dressing with no slot"
                     ),
+                    // A movement is said in words: what moves, how, and what
+                    // stays still - a frame that moves everywhere is noise.
+                    StyleForm::Motion => {
+                        assert!(entry.colours.is_empty(), "{at} is a movement with colours");
+                        assert!(
+                            entry.description.starts_with("MOTION:"),
+                            "{at} does not say it is a movement"
+                        );
+                        assert!(
+                            ["still", "locked", "nothing else", "not move"]
+                                .iter()
+                                .any(|word| entry.description.contains(word)),
+                            "{at} does not say what stays still: {}",
+                            entry.description
+                        );
+                    }
                     // A phrase is the generator's own words and nothing
                     // else: a short line, written as it is read, with what
                     // it means beside it in every language the window speaks

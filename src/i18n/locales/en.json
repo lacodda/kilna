@@ -1590,7 +1590,9 @@
     "noSet": "No set",
     "fillExplanations_one": "Explain {{count}} phrase",
     "fillExplanations_other": "Explain {{count}} phrases",
-    "explainThis": "Write what it means"
+    "explainThis": "Write what it means",
+    "motion": "Motion",
+    "heroesOfCanon": "Heroes of the canon"
   },
   "editor": {
     "parts": "Parts of the profile",
@@ -2502,7 +2504,8 @@
       "undescribed": "No description for a generator yet - describe the card in the Canon, or the prompt will not name the hero.",
       "noPictures": "The card has no pictures to hand over",
       "references_one": "Hand over the card's picture · {{count}}",
-      "references_other": "Hand over the card's pictures · {{count}}"
+      "references_other": "Hand over the card's pictures · {{count}}",
+      "everyLayer": "Show every layer"
     },
     "framing": {
       "title": "Frame",

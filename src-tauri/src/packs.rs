@@ -875,13 +875,20 @@ mod tests {
     }
 
     #[test]
-    fn a_pack_of_a_type_the_space_lacks_is_unfit_and_adds_nothing() {
+    fn a_pack_fits_where_its_type_is_and_is_unfit_elsewhere() {
+        // Studio has the camera's own type of movement since v0.133.
         let conn = studio();
-        let opened = open(&conn, &Source::Builtin, &snapshot(), "camera-moves").unwrap();
+        let done =
+            install_from(&conn, &Source::Builtin, &snapshot(), "camera-moves", None).unwrap();
+        assert_eq!((done.added, done.unfit), (5, 0));
+
+        let novel = db::open_in_memory().unwrap();
+        profile::seed(&novel, "novel").unwrap();
+        let opened = open(&novel, &Source::Builtin, &snapshot(), "camera-moves").unwrap();
         let standings: Vec<_> = opened.bricks.iter().map(|(_, s)| *s).collect();
         assert_eq!(pack_standing(&standings), PackStanding::Unfit);
         let done =
-            install_from(&conn, &Source::Builtin, &snapshot(), "camera-moves", None).unwrap();
+            install_from(&novel, &Source::Builtin, &snapshot(), "camera-moves", None).unwrap();
         assert_eq!((done.added, done.unfit), (0, 5));
     }
 

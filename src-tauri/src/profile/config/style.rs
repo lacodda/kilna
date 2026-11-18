@@ -96,7 +96,18 @@ pub enum StyleForm {
     /// (v0.94). A text is read against the phrases of the types a
     /// composition names, and assembled out of them.
     Phrase,
+    /// A movement of an animated frame, described in words - its physics,
+    /// how big it is, how often it repeats, what stays still (v0.133, FR-05
+    /// 5.3): the third branch of the dictionary, beside the picture and the
+    /// sound. Shown by its references - an animated preview - and its words
+    /// while it has none.
+    Motion,
 }
+
+/// The branch of the dictionary a picture's types stand in.
+pub const PICTURE_BRANCH: &str = "picture";
+/// The branch of the dictionary the movements stand in (v0.133).
+pub const MOTION_BRANCH: &str = "motion";
 
 impl StyleForm {
     pub(super) fn is_picture(&self) -> bool {

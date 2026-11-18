@@ -4,7 +4,7 @@
   "bricks": [
     {
       "key": "slow-push",
-      "type": "motion",
+      "type": "motion-camera",
       "label": {
         "en": "Slow push in",
         "ru": "Медленный наезд"
@@ -19,7 +19,7 @@
     },
     {
       "key": "handheld-drift",
-      "type": "motion",
+      "type": "motion-camera",
       "label": {
         "en": "Handheld drift",
         "ru": "Ручная камера"
@@ -34,7 +34,7 @@
     },
     {
       "key": "crane-rise",
-      "type": "motion",
+      "type": "motion-camera",
       "label": {
         "en": "Crane rise",
         "ru": "Подъём крана"
@@ -49,7 +49,7 @@
     },
     {
       "key": "whip-pan",
-      "type": "motion",
+      "type": "motion-camera",
       "label": {
         "en": "Whip pan",
         "ru": "Резкая панорама"
@@ -64,7 +64,7 @@
     },
     {
       "key": "orbit",
-      "type": "motion",
+      "type": "motion-camera",
       "label": {
         "en": "Slow orbit",
         "ru": "Медленный облёт"

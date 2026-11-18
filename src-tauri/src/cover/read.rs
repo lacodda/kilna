@@ -461,7 +461,7 @@ fn resolve(
                         role: "hero".into(),
                     }));
                 }
-                bans.extend(card_bans(conn, config, &note.id)?);
+                bans.extend(card_bans(conn, config, &note.id, true)?);
                 hero_text = Some(HeroText {
                     description: description.clone(),
                     references: handed,
@@ -575,16 +575,30 @@ fn resolve(
 }
 
 /// The bans a picture of a card keeps out: its sections of bans the cover
-/// may read.
-fn card_bans(conn: &Connection, config: &ProfileConfig, note_id: &str) -> Result<Vec<String>> {
+/// may read. A card the owner `chosen` as the cover's hero is read as if it
+/// were public whatever its layer (v0.133, FR-05 5.3): choosing an inner
+/// hero for a picture is showing it - its description and pictures already
+/// go - and a hero drawn without its bans would be drawn wrong. Its facts
+/// keep their own layers.
+fn card_bans(
+    conn: &Connection,
+    config: &ProfileConfig,
+    note_id: &str,
+    chosen: bool,
+) -> Result<Vec<String>> {
     let Ok((note, kind)) = crate::canon::fact::card_of(conn, config, note_id) else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();
     for one in crate::canon::fact::for_card(conn, &note.id)? {
         let section = kind.section(&one.section);
+        let card_layer = if chosen {
+            crate::canon::Layer::Public
+        } else {
+            note.layer
+        };
         if section.is_some_and(|section| section.shape == SectionShape::Bans)
-            && crate::canon::seen_by(Lens::Cover, note.layer, section, one.layer, one.status)
+            && crate::canon::seen_by(Lens::Cover, card_layer, section, one.layer, one.status)
         {
             out.push(one.body.trim().to_owned());
         }
@@ -980,7 +994,7 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
             resolved
                 .parts
                 .bans
-                .extend(card_bans(conn, &config, &link.note_id)?);
+                .extend(card_bans(conn, &config, &link.note_id, false)?);
         }
     }
     if !heroes.is_empty() {
@@ -1172,6 +1186,34 @@ mod tests {
             },
         )
         .unwrap();
+    }
+
+    /// A hero of the inner layer, picked by hand, is drawn whole: its words,
+    /// its pictures and its bans reach the cover.
+    #[test]
+    fn an_inner_hero_picked_by_hand_gives_its_words_pictures_and_bans() {
+        let stage = stage();
+        crate::note::update(
+            &stage.conn,
+            &stage.hero,
+            crate::note::NotePatch {
+                layer: Some(crate::canon::Layer::Internal),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        write(&stage, cover_of(&stage));
+        let view = view(&stage.conn, &stage.clip.id, None).unwrap();
+        assert!(
+            view.prompts
+                .picture
+                .contains("a small woman with a red scarf")
+        );
+        assert!(
+            view.prompts.negative.contains("no tattoos on her."),
+            "{}",
+            view.prompts.negative
+        );
     }
 
     /// Everything a cover names reaches its prompt from where it lives: the

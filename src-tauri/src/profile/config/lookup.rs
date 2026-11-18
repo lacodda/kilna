@@ -140,6 +140,23 @@ impl ProfileConfig {
     }
 
     /// The composition by its key.
+    /// The branch of the dictionary a type stands in (v0.133, FR-05 5.3):
+    /// `motion` for a movement, the key of the composition that reads a type
+    /// of phrase, `picture` for everything a picture is built from - the
+    /// window's tabs.
+    pub fn branch_of(&self, type_key: &str) -> &str {
+        if self
+            .style_type(type_key)
+            .is_some_and(|style| style.form == StyleForm::Motion)
+        {
+            return MOTION_BRANCH;
+        }
+        self.compose
+            .iter()
+            .find(|composition| composition.types().any(|key| key == type_key))
+            .map_or(PICTURE_BRANCH, |composition| composition.key.as_str())
+    }
+
     pub fn composition(&self, key: &str) -> Option<&Composition> {
         self.compose.iter().find(|c| c.key == key)
     }

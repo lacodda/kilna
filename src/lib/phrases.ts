@@ -22,6 +22,8 @@ export function compositionFor(
 
 /** The key of the half of the dictionary that is not a composition's. */
 export const PICTURE = 'picture'
+/** The key of the branch of movements (v0.133) - the backend's `MOTION_BRANCH`. */
+export const MOTION = 'motion'
 
 /** One half of the dictionary: the picture's, or a composition's. */
 export interface Half {
@@ -33,15 +35,22 @@ export interface Half {
 
 /**
  * The dictionary split the way it is used: the types a picture is built from,
- * then one half per composition - its types in the order they are picked.
- * A type of phrase in no composition is nowhere a text is written from; the
- * profile refuses one, and here it would stand with the pictures.
+ * the movements of an animated frame (v0.133), then one half per composition
+ * - its types in the order they are picked. A type of phrase in no
+ * composition is nowhere a text is written from; the profile refuses one,
+ * and here it would stand with the pictures.
  */
 export function halvesOf(config: ProfileConfig, types: readonly StyleType[]): Half[] {
   const compositions = config.compose ?? []
   const composed = new Set(compositions.flatMap((c) => c.parts.map((part) => part.type)))
+  const moving = (type: StyleType) => type.form === 'motion'
   const halves: Half[] = [
-    { key: PICTURE, composition: null, types: types.filter((type) => !composed.has(type.key)) },
+    {
+      key: PICTURE,
+      composition: null,
+      types: types.filter((type) => !composed.has(type.key) && !moving(type)),
+    },
+    { key: MOTION, composition: null, types: types.filter(moving) },
   ]
   for (const composition of compositions) {
     const own = composition.parts

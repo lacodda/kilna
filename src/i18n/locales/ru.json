@@ -1724,7 +1724,9 @@
     "fillExplanations_few": "Объяснить {{count}} фразы",
     "fillExplanations_many": "Объяснить {{count}} фраз",
     "fillExplanations_other": "Объяснить {{count}} фразы",
-    "explainThis": "Написать, что это значит"
+    "explainThis": "Написать, что это значит",
+    "motion": "Движение",
+    "heroesOfCanon": "Герои канона"
   },
   "editor": {
     "parts": "Части профиля",
@@ -2694,7 +2696,8 @@
       "references_one": "Приложить картинку карточки · {{count}}",
       "references_other": "Приложить картинки карточки · {{count}}",
       "references_few": "Приложить картинки карточки · {{count}}",
-      "references_many": "Приложить картинки карточки · {{count}}"
+      "references_many": "Приложить картинки карточки · {{count}}",
+      "everyLayer": "Показывать все слои"
     },
     "framing": {
       "title": "Кадр",

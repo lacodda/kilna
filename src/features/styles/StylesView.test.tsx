@@ -160,6 +160,36 @@ describe('the sets, the star and the switch (v0.132)', () => {
   })
 })
 
+describe('movements and heroes (v0.133)', () => {
+  it('keeps the movements in a branch of their own', async () => {
+    workspace.bricks.push({
+      ...workspace.bricks[0]!,
+      id: 'b-blink',
+      type_key: 'motion-subject',
+      name: 'Blink',
+      description: 'MOTION: the subject blinks; nothing else moves.',
+      family: 'face',
+    })
+    const { client } = renderApp('/styles')
+    await settled(client)
+    expect(screen.queryByRole('button', { name: /Blink/ })).toBeNull()
+    fireEvent.click(screen.getByRole('radio', { name: en.styles.motion }))
+    await settled(client)
+    expect(await screen.findByRole('button', { name: /Blink/ })).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Dusk over water/ })).toBeNull()
+  })
+
+  it('mirrors the heroes of the canon where the character type is', async () => {
+    const { client } = renderApp('/styles')
+    await settled(client)
+    const types = screen.getByRole('group', { name: en.styles.type })
+    fireEvent.click(within(types).getByRole('button', { name: /Character/ }))
+    await settled(client)
+    const mirror = await screen.findByRole('region', { name: en.styles.heroesOfCanon })
+    expect(within(mirror).getByText('The lantern keeper')).toBeVisible()
+  })
+})
+
 describe('the style dictionary', () => {
   it('opens a style beside the cards, and writes it as it is typed into', async () => {
     const { client } = renderApp('/styles')

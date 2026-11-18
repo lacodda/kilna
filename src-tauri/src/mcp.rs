@@ -669,11 +669,16 @@ fn tools() -> Vec<Value> {
              word - `phrase` - with what it means for a person, `explanation` per language, and \
              when to take it. Each brick has its id, type, family, whether it is one of the \
              channel's house bricks, where it came from (the starter set, changed, or the \
-             owner's own) and its status (only `ready` ones are offered for a prompt). Narrow by \
-             `type`, by `composition` (its types, in its order) or by `query` (a substring of \
-             the name, the phrase or the explanation, in any language). Without any of them: \
-             each type with how many bricks it has.",
+             owner's own) and its status (only `ready` ones are offered for a prompt), whether \
+             the owner starred it, and its `branch`: `picture` for what a still picture is built \
+             from, `motion` for the movements of an animated frame (the form `motion`: what \
+             moves, how much, how often, and what stays still), or the key of the composition \
+             that writes a text out of it. Narrow by `branch`, by `type`, by `composition` (its \
+             types, in its order) or by `query` (a substring of the name, the phrase or the \
+             explanation, in any language). Without any of them: each type with its branch and \
+             how many bricks it has.",
             json!({
+                "branch": text_arg("`picture`, `motion` or a composition key"),
                 "type": text_arg("A style type key, as `workspace` lists them"),
                 "composition": text_arg("A composition key, as `workspace` lists them"),
                 "query": text_arg("A case-insensitive substring of the name, the phrase or the explanation"),
@@ -1538,13 +1543,15 @@ fn read_styles(
         None => None,
     };
     let query = arg(args, "query").map(str::to_lowercase);
-    if type_key.is_none() && composition.is_none() && query.is_none() {
+    let branch = arg(args, "branch");
+    if type_key.is_none() && composition.is_none() && query.is_none() && branch.is_none() {
         let types: Vec<Value> = config
             .style_types
             .iter()
             .map(|style| {
                 json!({
                     "type": style.key, "label": style.label, "form": style.form,
+                    "branch": config.branch_of(&style.key),
                     "retired": style.retired.is_some(),
                     "bricks": all.iter().filter(|b| b.type_key == style.key).count(),
                 })
@@ -1556,6 +1563,7 @@ fn read_styles(
     let mut rows: Vec<&crate::style_brick::StyleBrick> = all
         .iter()
         .filter(|b| type_key.is_none_or(|key| b.type_key == key))
+        .filter(|b| branch.is_none_or(|branch| config.branch_of(&b.type_key) == branch))
         .filter(|b| composition.is_none_or(|c| c.types().any(|key| key == b.type_key)))
         .filter(|b| {
             query.as_ref().is_none_or(|q| {
@@ -1585,7 +1593,7 @@ fn read_styles(
                 "id": b.id, "type": b.type_key, "name": b.name, "family": b.family,
                 "phrase": b.description, "explanation": b.explanation, "when": b.when_to_use,
                 "house": house.contains(&b.id), "origin": b.origin, "status": b.status,
-                "favorite": b.favorite,
+                "favorite": b.favorite, "branch": config.branch_of(&b.type_key),
             })
         })
         .collect();
@@ -5281,6 +5289,44 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(unknown.refusal().map(|r| r.code), Some("mcp.unknownBrick"));
+    }
+
+    #[test]
+    fn the_dictionary_says_each_brick_s_branch_and_is_read_by_it() {
+        let (conn, _) = workspace();
+        crate::style_set::seed(&conn).unwrap();
+        let summary: Value =
+            serde_json::from_str(&run_tool(&conn, &claude(), "styles", &args(json!({}))).unwrap())
+                .unwrap();
+        let branch_of = |key: &str| {
+            summary["types"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|t| t["type"] == key)
+                .map(|t| t["branch"].clone())
+                .unwrap()
+        };
+        assert_eq!(branch_of("image-style"), "picture");
+        assert_eq!(branch_of("motion-camera"), "motion");
+        assert_eq!(branch_of("groove"), "sound");
+
+        let motion: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "styles",
+                &args(json!({ "branch": "motion" })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let rows = motion.as_array().unwrap();
+        assert_eq!(rows.len(), 20, "the four types of movement, five each");
+        assert!(
+            rows.iter().all(|row| row["branch"] == "motion"
+                && row["type"].as_str().unwrap().starts_with("motion-"))
+        );
     }
 
     #[test]

@@ -7,11 +7,13 @@ import { cardKindOf } from '@/lib/canon'
 import { queries } from '@/lib/query/queries'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
+import { Switch } from '@/components/ui/switch'
 import { CardAvatar } from '@/features/canon/CardAvatar'
 
 interface Props {
@@ -27,22 +29,24 @@ interface Props {
  * canon - described for a generator from its facts, with its pictures handed
  * over as references.
  *
- * Only a public card is offered: a cover reads the public layer of the canon
- * and nothing else (`canon::seen_by`), and a hero the cover cannot read would
- * be named on the picture and described nowhere. The root card - the channel
- * itself - is no hero either.
+ * A public card is offered first: a cover reads the public layer of the
+ * canon and nothing else (`canon::seen_by`). **All layers** shows the inner
+ * ones too, each with its layer (v0.133, FR-05 5.3): a hero picked by hand is
+ * shown on purpose, and the cover takes its description, its pictures and its
+ * bans whatever its layer. The root card - the channel itself - is no hero.
  */
 export function HeroPick({ hero, state, disabled, onChange }: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
+  const [everyLayer, setEveryLayer] = useState(false)
   const cards = useQuery({ ...queries.cardsMatching({}), enabled: open || hero !== null })
 
   const needle = text.trim().toLowerCase()
   const offered = (cards.data ?? []).filter(
     (card: CardSummary) =>
-      card.layer === 'public' &&
+      (everyLayer || card.layer === 'public') &&
       cardKindOf(config, card.kind)?.root !== true &&
       (needle === '' ||
         `${card.title ?? ''} ${card.aliases.join(' ')}`.toLowerCase().includes(needle)),
@@ -95,6 +99,9 @@ export function HeroPick({ hero, state, disabled, onChange }: Props) {
             aria-label={t('cover.hero.search')}
             onChange={(event) => setText(event.target.value)}
           />
+          <Switch checked={everyLayer} onCheckedChange={setEveryLayer}>
+            {t('cover.hero.everyLayer')}
+          </Switch>
           <ul
             aria-label={t('cover.hero.cards')}
             className="flex max-h-80 flex-col gap-0.5 overflow-y-auto"
@@ -124,6 +131,11 @@ export function HeroPick({ hero, state, disabled, onChange }: Props) {
                   <span className="shrink-0 text-2xs text-faint">
                     {sayLabel(cardKindOf(config, card.kind)?.label ?? card.kind)}
                   </span>
+                  {card.layer !== 'public' && (
+                    <Badge variant="soft" title={t(`canon.layer.long.${card.layer}`)}>
+                      {t(`canon.layer.short.${card.layer}`)}
+                    </Badge>
+                  )}
                 </Button>
               </li>
             ))}

@@ -176,6 +176,32 @@ style already in the dictionary says so and, kept, writes what it means,
 when to take it and its set onto that style - only where it says nothing,
 never over your words. **From your texts** can now tick every phrase at once.
 
+## Motion
+
+Since v0.133 the dictionary has a third branch beside the picture and the
+sound: **Motion**, the movements of an animated frame. Its four types are
+**Atmosphere** (rain, snow, fog, wind, dust), **Subject** (a blink, a glance,
+breathing, hair and cloth), **World** (light and screens, water and glass,
+machines) and **Camera** (a locked tripod, a breathing camera, a push-in, a
+parallax slide, a rack focus). A movement is said in words - what moves, how
+much, how often, and what stays still, because a frame that moves everywhere
+is noise - and shown by its pictures once it has an animated preview, by its
+words until then. The pack *Camera moves* from the snapshot installs into
+Studio's Camera type. Over MCP every style says its `branch` - `picture`,
+`motion` or the composition that writes a text out of it - and `styles` can
+be narrowed to one.
+
+## Heroes from the canon
+
+A hero is written once, in the canon. Where the dictionary has the
+*Character* type, it shows the canon's characters above that type's styles -
+their portraits, their layers - each opening its card; nothing is copied into
+the dictionary. In the cover constructor the hero picker offers the public
+cards first and **Show every layer** adds the inner ones, each with its layer.
+A hero picked by hand is shown on purpose: the cover takes its description,
+its pictures and its bans whatever the card's layer, while each of its facts
+keeps its own.
+
 ## Types the craft no longer builds from
 
 *Layers* and *Frame composition* are retired in Studio: where the hero

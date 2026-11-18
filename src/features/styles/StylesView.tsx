@@ -11,7 +11,7 @@ import { useProfile, styleTypesOf, say as sayLabel } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
 import { useDebounced } from '@/lib/useDebounced'
 import { livingTypes } from '@/lib/styleBrick'
-import { PICTURE, halfOfType, halvesOf } from '@/lib/phrases'
+import { MOTION, PICTURE, halfOfType, halvesOf } from '@/lib/phrases'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
@@ -27,6 +27,7 @@ import { StyleDropCard } from '@/features/styles/StyleDropCard'
 import { StyleEditor } from '@/features/styles/StyleEditor'
 import { FromStylesDialog } from '@/features/styles/FromStylesDialog'
 import { PacksDialog } from '@/features/styles/PacksDialog'
+import { CanonMirror } from '@/features/styles/CanonMirror'
 import { NO_SET, SetsPanel } from '@/features/styles/SetsPanel'
 import { useExplainPhrases } from '@/features/styles/useExplainPhrases'
 import { useNewStyle } from '@/features/styles/useNewStyle'
@@ -250,6 +251,7 @@ export function StylesView() {
                   dictionary, so nobody goes looking for the mark here. */}
             <p className="text-xs text-faint">{t('styles.brandNote')}</p>
             {current !== undefined && <TypeNote type={current} />}
+            {current?.canon_kind != null && <CanonMirror type={current} />}
             {rows.length === 0 &&
               retired === null &&
               (filtered ? (
@@ -329,7 +331,11 @@ export function StylesView() {
             >
               {halves.map((one) => (
                 <Segment key={one.key} value={one.key}>
-                  {one.composition === null ? t('styles.picture') : sayLabel(one.composition.label)}
+                  {one.composition !== null
+                    ? sayLabel(one.composition.label)
+                    : one.key === MOTION
+                      ? t('styles.motion')
+                      : t('styles.picture')}
                 </Segment>
               ))}
             </SegmentedControl>

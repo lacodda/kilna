@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ImageOff, type LucideIcon } from 'lucide-react'
+import { ImageOff, Move, type LucideIcon } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
 import type { StyleBrick, StyleBrickStatus, StyleType } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
@@ -231,6 +231,22 @@ export function BrickFace({
   }
 
   const slots = Math.min(brick.reference_count, SHOWN)
+  if (slots === 0 && form === 'motion') {
+    // A movement with no preview yet is shown by what it says moves.
+    return brick.description === null ? (
+      <Empty className={className} />
+    ) : (
+      <span
+        className={cn(
+          'flex h-18.5 items-center gap-2 overflow-hidden bg-soft px-3 text-sm text-dim',
+          className,
+        )}
+      >
+        <Move aria-hidden className="size-4 shrink-0 text-faint" />
+        <span className="line-clamp-2">{brick.description.replace(/^MOTION:\s*/, '')}</span>
+      </span>
+    )
+  }
   if (slots === 0) {
     // No pictures yet: the palette it is described by, when it has one.
     return brick.colours.length === 0 ? (

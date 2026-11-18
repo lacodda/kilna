@@ -2628,6 +2628,122 @@
       {
         "families": [
           {
+            "key": "precipitation",
+            "label": {
+              "en": "Rain and snow",
+              "ru": "Дождь и снег"
+            }
+          },
+          {
+            "key": "air",
+            "label": {
+              "en": "Air",
+              "ru": "Воздух"
+            }
+          }
+        ],
+        "form": "motion",
+        "hint": {
+          "en": "Describe what the air and the weather do: rain, snow, fog, wind, dust. Say the physics, how big the movement is, how often it repeats, and that the rest of the frame holds still.",
+          "ru": "Опиши, что делают воздух и погода: дождь, снег, туман, ветер, пыль. Физика, амплитуда, периодичность — и что остальной кадр неподвижен."
+        },
+        "icon": "wind",
+        "key": "motion-atmosphere",
+        "label": {
+          "en": "Atmosphere",
+          "ru": "Стихия"
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "face",
+            "label": {
+              "en": "Face",
+              "ru": "Лицо"
+            }
+          },
+          {
+            "key": "body",
+            "label": {
+              "en": "Body",
+              "ru": "Тело"
+            }
+          }
+        ],
+        "form": "motion",
+        "hint": {
+          "en": "Describe what the subject does: a blink, a glance, breathing, hair and cloth. Small movements, how often, and what stays still.",
+          "ru": "Опиши, что делает персонаж: моргание, взгляд, дыхание, волосы и ткань. Мелкие движения, как часто — и что остаётся неподвижным."
+        },
+        "icon": "eye",
+        "key": "motion-subject",
+        "label": {
+          "en": "Subject",
+          "ru": "Персонаж"
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "light",
+            "label": {
+              "en": "Light and screens",
+              "ru": "Свет и экраны"
+            }
+          },
+          {
+            "key": "matter",
+            "label": {
+              "en": "Water and machines",
+              "ru": "Вода и механизмы"
+            }
+          }
+        ],
+        "form": "motion",
+        "hint": {
+          "en": "Describe what moves in the world around: light and screens, water and glass, machines. The rhythm of it, and that nothing else moves.",
+          "ru": "Опиши, что движется вокруг: свет и экраны, вода и стекло, механизмы. Ритм — и что больше ничего не движется."
+        },
+        "icon": "sun",
+        "key": "motion-world",
+        "label": {
+          "en": "World",
+          "ru": "Мир"
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "still",
+            "label": {
+              "en": "Locked and breathing",
+              "ru": "Штатив и дыхание"
+            }
+          },
+          {
+            "key": "travel",
+            "label": {
+              "en": "Travel and focus",
+              "ru": "Движение и фокус"
+            }
+          }
+        ],
+        "form": "motion",
+        "hint": {
+          "en": "Describe what the camera does: locked, breathing, pushing in, sliding, pulling focus. Its speed and its amount, and what it never does.",
+          "ru": "Опиши, что делает камера: штатив, дыхание, наезд, проезд, перевод фокуса. Скорость и величина — и чего она не делает никогда."
+        },
+        "icon": "video",
+        "key": "motion-camera",
+        "label": {
+          "en": "Camera",
+          "ru": "Камера"
+        }
+      },
+      {
+        "families": [
+          {
             "key": "rock",
             "label": {
               "en": "Rock and alternative",

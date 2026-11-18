@@ -924,7 +924,7 @@ pub fn read(
                 // An accent is a value the cover keeps, not a brick it is
                 // built from: it is read below. A phrase is never a part of
                 // a picture: it is written into a text.
-                StyleForm::Accent | StyleForm::Phrase => continue,
+                StyleForm::Accent | StyleForm::Phrase | StyleForm::Motion => continue,
             };
             *place = Some(brick.id.clone());
         }
