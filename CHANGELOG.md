@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.149.0] - 2026-11-18
+
+The simple video, on a timeline. A clip, an audio release or a short now has
+a Build tab while the simple-video plugin is installed: the picture on one
+track and the sound on another, with the track's waveform trimmed by its
+edges, fades in and out of black and silence, the picture held before and
+after the sound, the gain with a warning when the peaks would clip, and an
+optimal loudness measured and set in one press. A preview plays it all before
+anything is rendered, and Render the video makes the file with its progress
+and a way to stop it. What is set is kept with the work and undone like any
+edit.
+
+### Bug Fixes
+- The tab opens by its address before the plugins are read, says the track's own name, and shows what applies in an empty box
+- A work refetched after the measure may be gone
+
+### Features
+- The Build tab - a simple video on two tracks, previewed, and rendered by its plugin
+
 ## [0.148.0] - 2026-11-18
 
 A simple video, rendered. The new plugin kilna-plugin-simple-video renders
