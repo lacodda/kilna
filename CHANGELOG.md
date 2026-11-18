@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.140.0] - 2026-11-18
+
+Catalogue columns. The total now carries the tier it earned - its letter by
+rank beside the score, the word, the day it was scored and the distance to
+the next tier on hover, a turned arrow for a stale score - and its funnel
+ticks the profile's tiers as ranges of the score. The next release carries
+whether it can go out, as a dot before the day, and the planned slot when
+nothing is booked; its funnel asks planned, overdue or no date. A press on
+the id copies it whole. New columns: the collection, the tags, and what was
+made from a song - a chip a kind that opens the work. A list of columns that
+still names the retired tier, scored or ready columns reads without them.
+
+### Features
+- One total, one next release, and the collection, tags and made-from columns
+
 ## [0.139.0] - 2026-11-18
 
 Marks and filters. A mark is raised where it is shown: the catalogue's cell
