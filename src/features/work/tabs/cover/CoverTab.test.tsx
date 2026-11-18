@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import type { Asset, CoverView, Scheme, WorkPatch } from '@/lib/api/types'
+import type { Asset, Cover, CoverView, IdeaCard, Scheme, WorkPatch } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, coverOf, IDS, NOW, studio, type Studio } from '@/test/workspace'
@@ -272,5 +272,72 @@ describe('the result', () => {
     fireEvent.click(within(result).getByRole('button', { name: en.cover.result.choose }))
 
     await waitFor(() => expect(backend.argsOf('choose_cover')).toEqual([{ id: 'second' }]))
+  })
+})
+
+// v0.146: the constructor under the card's header had half a laptop's
+// screen. The shortlist folds to one line, and the constructor takes the
+// whole window the way the text does.
+describe('room for the constructor', () => {
+  const starred = (id: string, headline: string, concept: Cover): IdeaCard => ({
+    idea: {
+      id,
+      profile_id: IDS.profile,
+      work_id: IDS.audio,
+      source: 'ai',
+      from_work_id: null,
+      angle: '',
+      headline,
+      concept,
+      verdict: 'star',
+      created_at: '2026-09-20T10:00:00Z',
+      updated_at: '2026-09-20T10:00:00Z',
+    },
+    look: { scheme: null, layout: null, style: null, background: null, mark: null, hero: null },
+    from_title: null,
+  })
+
+  beforeEach(() => localStorage.removeItem('kilna.folded'))
+  afterEach(() => localStorage.removeItem('kilna.folded'))
+
+  it('folds the shortlist to one line naming the idea the cover is built from', async () => {
+    const cover = workspace.works.find((one) => one.id === IDS.audio)!.cover
+    backend.answer('cover_board', () => ({
+      format: '16:9',
+      ideas: [
+        starred('built', 'Lanterns at dawn', cover),
+        starred('other', 'A pier at night', coverOf({ idea: 'A pier', scene: 'a pier at night' })),
+      ],
+      siblings: [],
+    }))
+    await openCover(IDS.audio)
+    expect(await screen.findByRole('list', { name: en.ideas.shortlist })).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(en.ideas.shortlist), expanded: true }),
+    )
+
+    expect(screen.queryByRole('list', { name: en.ideas.shortlist })).toBeNull()
+    expect(screen.getByText('Lanterns at dawn')).toBeInTheDocument()
+    expect(screen.queryByText('A pier at night')).toBeNull()
+    expect(localStorage.getItem('kilna.folded')).toContain('cover.shortlist')
+  })
+
+  it('takes the whole window and comes back on Escape', async () => {
+    await openCover(IDS.audio)
+
+    fireEvent.click(screen.getByRole('button', { name: en.cover.stage }))
+
+    expect(screen.getByText(en.versions.stageHint)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: en.cover.unstage })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getAllByRole('region', { name: en.cover.idea.title })).toHaveLength(1)
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByText(en.versions.stageHint)).toBeNull())
+    expect(screen.getByRole('button', { name: en.cover.stage })).toBeInTheDocument()
   })
 })

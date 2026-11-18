@@ -2834,7 +2834,9 @@
       "title": "Scene, look and optics",
       "hint": "each kept only where the picture can take it"
     },
-    "dock": "The prompt and what came back"
+    "dock": "The prompt and what came back",
+    "stage": "Give the constructor the whole window",
+    "unstage": "Back to the card"
   },
   "frame": {
     "still": "Still",
