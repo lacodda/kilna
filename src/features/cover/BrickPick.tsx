@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { X } from 'lucide-react'
+import { Star, X } from 'lucide-react'
 import type { StyleBrick, StyleForm, StyleType } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
-import { styleName } from '@/lib/styleBrick'
+import { byOffer, isOffered, styleName } from '@/lib/styleBrick'
 import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -55,7 +55,7 @@ export function BrickPick({ label, form, brickId, houseStyles, disabled, onChang
   const typeOf = (brick: StyleBrick) => types.find((type) => type.key === brick.type_key)
   const chosen = (all.data ?? []).find((brick) => brick.id === brickId)
   const offered = (all.data ?? [])
-    .filter((brick) => brick.status === 'ready' && typeOf(brick) !== undefined)
+    .filter((brick) => isOffered(types, brick) && typeOf(brick) !== undefined)
     .filter((brick) => {
       const needle = text.trim().toLowerCase()
       return (
@@ -65,7 +65,7 @@ export function BrickPick({ label, form, brickId, houseStyles, disabled, onChang
           .includes(needle)
       )
     })
-    .sort((a, b) => Number(houseStyles.includes(b.id)) - Number(houseStyles.includes(a.id)))
+    .sort(byOffer(new Set(houseStyles)))
 
   return (
     <div className="flex flex-col gap-2">
@@ -185,6 +185,9 @@ function Choice({
         <span className="flex min-w-0 items-center gap-1.5">
           <b className="truncate text-sm font-semibold text-text">{styleName(brick)}</b>
           {house && <Chip variant="accent">{t('cover.brick.house')}</Chip>}
+          {brick.favorite === true && (
+            <Star aria-label={t('styles.favorite')} className="size-3.5 shrink-0 text-warn" />
+          )}
           {family !== undefined && <Chip>{sayLabel(family.label)}</Chip>}
         </span>
         <span className="line-clamp-2 text-xs text-dim">

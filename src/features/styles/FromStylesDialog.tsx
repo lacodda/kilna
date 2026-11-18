@@ -95,33 +95,48 @@ export function FromStylesDialog({ open, onOpenChange, composition }: Props) {
         plain
       >
         {(list) => (
-          <ul className="flex max-h-[55vh] flex-col gap-1 overflow-y-auto pr-1 text-xs">
-            {list.map((one, index) => (
-              <li key={one.phrase} className="flex items-center gap-2">
-                <Checkbox
-                  checked={ticked(one.phrase, index)}
-                  onCheckedChange={(on) => setToggled((now) => ({ ...now, [one.phrase]: on }))}
-                  aria-label={t('phrases.pick', { phrase: one.phrase })}
-                />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-mono text-sm text-text">{one.phrase}</span>
-                  <span className="truncate text-faint">
-                    {t('phrases.writtenIn', { works: one.works, versions: one.versions })}
-                    {one.seen_in.length > 0 && ` · ${one.seen_in.join(', ')}`}
+          <div className="flex flex-col gap-2">
+            {/* Every phrase at once, or none (v0.132): the mixed state says
+                some are ticked. */}
+            <span className="flex items-center gap-2 text-xs text-dim">
+              <Checkbox
+                checked={chosen.length > 0 && chosen.length === list.length}
+                indeterminate={chosen.length > 0 && chosen.length < list.length}
+                onCheckedChange={(on) =>
+                  setToggled(Object.fromEntries(list.map((one) => [one.phrase, on])))
+                }
+                aria-label={t('phrases.pickAll')}
+              />
+              {t('phrases.picked', { count: chosen.length, total: list.length })}
+            </span>
+            <ul className="flex max-h-[55vh] flex-col gap-1 overflow-y-auto pr-1 text-xs">
+              {list.map((one, index) => (
+                <li key={one.phrase} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={ticked(one.phrase, index)}
+                    onCheckedChange={(on) => setToggled((now) => ({ ...now, [one.phrase]: on }))}
+                    aria-label={t('phrases.pick', { phrase: one.phrase })}
+                  />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-mono text-sm text-text">{one.phrase}</span>
+                    <span className="truncate text-faint">
+                      {t('phrases.writtenIn', { works: one.works, versions: one.versions })}
+                      {one.seen_in.length > 0 && ` · ${one.seen_in.join(', ')}`}
+                    </span>
                   </span>
-                </span>
-                <Button
-                  variant="icon"
-                  size="icon-sm"
-                  title={t('phrases.addByHand')}
-                  aria-label={t('phrases.addByHandOf', { phrase: one.phrase })}
-                  onClick={() => setAdding(one.phrase)}
-                >
-                  <BookPlus aria-hidden />
-                </Button>
-              </li>
-            ))}
-          </ul>
+                  <Button
+                    variant="icon"
+                    size="icon-sm"
+                    title={t('phrases.addByHand')}
+                    aria-label={t('phrases.addByHandOf', { phrase: one.phrase })}
+                    onClick={() => setAdding(one.phrase)}
+                  >
+                    <BookPlus aria-hidden />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </Loaded>
       {previewing && action !== undefined && (

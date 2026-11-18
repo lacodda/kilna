@@ -93,6 +93,73 @@ function paste(file: File) {
   window.dispatchEvent(event)
 }
 
+describe('the sets, the star and the switch (v0.132)', () => {
+  function filed() {
+    workspace.bricks.push({
+      ...workspace.bricks[0]!,
+      id: 'b-filed',
+      type_key: 'image-style',
+      name: 'Gouache cover',
+      family: 'classic',
+    })
+  }
+
+  it('stars a style and switches it off from its card', async () => {
+    const { client } = renderApp('/styles')
+    await settled(client)
+    const card = (await screen.findByRole('button', { name: /Dusk over water/ })).closest('li')!
+    fireEvent.click(within(card).getByRole('button', { name: en.styles.favorite }))
+    await waitFor(() =>
+      expect(backend.argsOf('update_style_brick')).toContainEqual({
+        id: IDS.brick,
+        patch: { favorite: true },
+      }),
+    )
+    fireEvent.click(within(card).getByRole('switch', { name: en.styles.enabled }))
+    await waitFor(() =>
+      expect(backend.argsOf('update_style_brick')).toContainEqual({
+        id: IDS.brick,
+        patch: { status: 'dropped' },
+      }),
+    )
+  })
+
+  it('narrows to a set and switches the whole set off in the profile', async () => {
+    filed()
+    const saved = vi.fn((args: Record<string, unknown>) => ({
+      ...workspace.profile,
+      config: args.config,
+    }))
+    backend.answer('update_profile_config', saved)
+    const { client } = renderApp('/styles')
+    await settled(client)
+    const sets = await screen.findByRole('navigation', { name: en.styles.sets })
+    fireEvent.click(within(sets).getByRole('button', { name: /Classic/ }))
+    await settled(client)
+    expect(screen.getByRole('button', { name: /Gouache cover/ })).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Dusk over water/ })).toBeNull()
+
+    fireEvent.click(within(sets).getByRole('switch', { name: /Classic/ }))
+    await waitFor(() => expect(saved).toHaveBeenCalled())
+    const config = saved.mock.calls[0]![0].config as {
+      style_types: { key: string; families?: { key: string; off?: boolean }[] }[]
+    }
+    const image = config.style_types.find((one) => one.key === 'image-style')!
+    expect(image.families!.find((one) => one.key === 'classic')!.off).toBe(true)
+  })
+
+  it('narrows to the starred', async () => {
+    filed()
+    workspace.bricks[1]!.favorite = true
+    const { client } = renderApp('/styles')
+    await settled(client)
+    fireEvent.click(await screen.findByRole('button', { name: new RegExp(en.styles.favorites) }))
+    await settled(client)
+    expect(screen.getByRole('button', { name: /Gouache cover/ })).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Dusk over water/ })).toBeNull()
+  })
+})
+
 describe('the style dictionary', () => {
   it('opens a style beside the cards, and writes it as it is typed into', async () => {
     const { client } = renderApp('/styles')

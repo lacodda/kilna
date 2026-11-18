@@ -12,4 +12,8 @@ kept: number,
 /**
  * Of a type this space does not have.
  */
-unfit: number, };
+unfit: number, 
+/**
+ * Previews kept as the first picture of a brick just added (v0.132).
+ */
+previews?: number, };

@@ -4,4 +4,10 @@ import type { Label } from "./Label";
 /**
  * A family bricks of one type are filed under.
  */
-export type StyleFamily = { key: string, label: Label, };
+export type StyleFamily = { key: string, label: Label, 
+/**
+ * Switched off whole by the owner (v0.132, FR-05 5.3): its bricks keep
+ * their own status, but none of them is offered to a picker, a
+ * composer or an assistant choosing styles until it is on again.
+ */
+off?: boolean, };

@@ -1,3 +1,6 @@
+import { BrickToggles } from '@/features/styles/BrickToggles'
+import { useExplainPhrases } from '@/features/styles/useExplainPhrases'
+import { halfOfType, halvesOf } from '@/lib/phrases'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -90,6 +93,12 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
   )
 
   const draft = useStyleDraft(brick, { holdKey, failure: t('styles.saveFailed') })
+  // The composition this brick's type is a part of, for asking what a
+  // phrase means.
+  const { config } = useProfile()
+  const explainer = useExplainPhrases(
+    halfOfType(halvesOf(config, types), brick.type_key)?.composition?.key,
+  )
   const { form, edit, flush, forget } = draft
   const problem = nameProblem(form.name, namesOf(form.type_key))
 
@@ -197,6 +206,7 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
               savingLabel={t('save.saving')}
               savedLabel={t('save.saved')}
             />
+            <BrickToggles brick={brick} withSwitch={false} />
             <Button
               size="icon-sm"
               variant="danger"
@@ -432,6 +442,26 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
             onChange={(event) => edit({ explanation: event.target.value })}
           />
         </Field>
+        {/* A phrase that says nothing of what it means asks the profile's
+            action about phrases for it (v0.132, FR-05 5.4): the answer fills
+            what it means, when to take it and its set, where they are empty. */}
+        {form_ === 'phrase' &&
+          brick.explanation === null &&
+          brick.description !== null &&
+          explainer.label !== undefined && (
+            <Button
+              variant="soft"
+              size="sm"
+              className="self-start"
+              disabled={explainer.pending}
+              onClick={() =>
+                explainer.explain([{ phrase: brick.description ?? brick.name, count: 1 }])
+              }
+            >
+              <Sparkles aria-hidden />
+              {t('styles.explainThis')}
+            </Button>
+          )}
 
         <Field label={t('styles.when')} help={t('styles.whenHint')}>
           <Textarea

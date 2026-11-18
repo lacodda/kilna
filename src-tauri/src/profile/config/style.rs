@@ -114,6 +114,12 @@ impl StyleForm {
 pub struct StyleFamily {
     pub key: String,
     pub label: Label,
+    /// Switched off whole by the owner (v0.132, FR-05 5.3): its bricks keep
+    /// their own status, but none of them is offered to a picker, a
+    /// composer or an assistant choosing styles until it is on again.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(optional, as = "Option<bool>")]
+    pub off: bool,
 }
 
 /// A text a role is written out of the dictionary (v0.94): a song's style

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { BookPlus, PackageOpen, Plus } from 'lucide-react'
+import { BookPlus, PackageOpen, Plus, Sparkles, Star } from 'lucide-react'
 import type { StyleBrick, StyleOrigin, StyleType } from '@/lib/api/types'
 import { picturesAmong } from '@/lib/drop'
 import { queries } from '@/lib/query/queries'
@@ -27,6 +27,8 @@ import { StyleDropCard } from '@/features/styles/StyleDropCard'
 import { StyleEditor } from '@/features/styles/StyleEditor'
 import { FromStylesDialog } from '@/features/styles/FromStylesDialog'
 import { PacksDialog } from '@/features/styles/PacksDialog'
+import { NO_SET, SetsPanel } from '@/features/styles/SetsPanel'
+import { useExplainPhrases } from '@/features/styles/useExplainPhrases'
 import { useNewStyle } from '@/features/styles/useNewStyle'
 
 /*
@@ -40,21 +42,31 @@ const typeOf = (chip: string | undefined) =>
   chip === undefined || chip === ALL_TYPES ? undefined : chip.slice('type:'.length)
 
 const ORIGINS = ['set', 'changed', 'own'] as const satisfies readonly StyleOrigin[]
+
+/** The most phrases one task explains - the backend's `PHRASES_AT_ONCE`. */
+const PHRASES_AT_ONCE = 40
 const STATUSES = ['draft', 'ready', 'dropped'] as const
 
 /** The narrowing the window does itself: the list is small, and read whole. */
 interface Narrowing {
+  /** A family's key, or `NO_SET` for the styles filed under none. */
   family: string | undefined
   origin: StyleOrigin | undefined
   status: string | undefined
+  favorite: boolean
 }
 
-function narrowed(rows: StyleBrick[], { family, origin, status }: Narrowing): StyleBrick[] {
+function narrowed(
+  rows: StyleBrick[],
+  { family, origin, status, favorite }: Narrowing,
+): StyleBrick[] {
   return rows.filter(
     (brick) =>
-      (family === undefined || brick.family === family) &&
+      (family === undefined ||
+        (family === NO_SET ? brick.family === null : brick.family === family)) &&
       (origin === undefined || brick.origin === origin) &&
-      (status === undefined || brick.status === status),
+      (status === undefined || brick.status === status) &&
+      (!favorite || brick.favorite === true),
   )
 }
 
@@ -91,6 +103,7 @@ export function StylesView() {
   const [family, setFamily] = useState<string | undefined>(undefined)
   const [origin, setOrigin] = useState<StyleOrigin | undefined>(undefined)
   const [status, setStatus] = useState<string | undefined>(undefined)
+  const [favorite, setFavorite] = useState(false)
   const [text, setText] = useState('')
   // The list is a query; typing into it unthrottled would refetch per letter.
   const query = useDebounced(text, 200)
@@ -134,6 +147,8 @@ export function StylesView() {
   const living = livingTypes(types)
   const current = types.find((one) => one.key === typeKey)
   const makeIn = current !== undefined && living.includes(current) ? current.key : living[0]?.key
+
+  const explainer = useExplainPhrases(half?.composition?.key)
 
   const make = useNewStyle({
     typeKey: makeIn ?? '',
@@ -191,7 +206,17 @@ export function StylesView() {
   }
 
   const retired = current?.retired ?? null
-  const families = current?.families ?? []
+  // The phrases of the half that say nothing of what they mean: asked for
+  // at once, at most as many as one task explains.
+  const unexplained = (everything.data ?? [])
+    .filter(
+      (brick) =>
+        inHalf.has(brick.type_key) &&
+        types.find((one) => one.key === brick.type_key)?.form === 'phrase' &&
+        brick.description !== null &&
+        brick.explanation === null,
+    )
+    .slice(0, PHRASES_AT_ONCE)
 
   const selected =
     styleId === undefined
@@ -203,7 +228,8 @@ export function StylesView() {
     query !== '' ||
     family !== undefined ||
     origin !== undefined ||
-    status !== undefined
+    status !== undefined ||
+    favorite
 
   const dictionary = (
     <Loaded
@@ -214,7 +240,7 @@ export function StylesView() {
       {(all) => {
         const rows = narrowed(
           all.filter((brick) => inHalf.has(brick.type_key)),
-          { family, origin, status },
+          { family, origin, status, favorite },
         )
         return (
           // A hair of room around the grid, so a card's focus ring is not cut
@@ -341,24 +367,22 @@ export function StylesView() {
               )
             })}
           </ChipGroup>
-          {/* The second row: a type's families, then where a style came from
-              and where it stands. Each group lets go the way the types do -
-              pressing the chip that is on leaves the group empty, which is
-              "any". */}
+          {/* The second row: the starred, then where a style came from and
+              where it stands. The families moved to the panel of sets beside
+              the dictionary (v0.132). Each group lets go the way the types
+              do - pressing the chip that is on leaves the group empty, which
+              is "any". */}
           <div className="flex w-full flex-wrap items-center gap-1.5">
-            {families.length > 0 && (
-              <ChipGroup
-                aria-label={t('styles.family')}
-                value={family === undefined ? [] : [family]}
-                onValueChange={(next) => setFamily(next[0])}
-              >
-                {families.map((one) => (
-                  <Chip key={one.key} value={one.key}>
-                    {sayLabel(one.label)}
-                  </Chip>
-                ))}
-              </ChipGroup>
-            )}
+            <ChipGroup
+              aria-label={t('styles.favorites')}
+              value={favorite ? ['favorite'] : []}
+              onValueChange={(next) => setFavorite(next.includes('favorite'))}
+            >
+              <Chip value="favorite">
+                <Star aria-hidden className="size-3.5" />
+                {t('styles.favorites')}
+              </Chip>
+            </ChipGroup>
             <ChipGroup
               aria-label={t('styles.originLabel')}
               value={origin === undefined ? [] : [origin]}
@@ -390,31 +414,71 @@ export function StylesView() {
             aria-label={t('styles.search')}
             className="max-w-60"
           />
-          {/* The owner's own phrases, read out of their texts and offered
-              to the dictionary (v0.94). */}
-          {half?.composition != null && (
-            <Button variant="soft" onClick={() => setFromTexts(true)} className="ml-auto">
-              <BookPlus aria-hidden />
-              {t('phrases.fromTexts')}
+          {/* What adds to the dictionary, in one cluster on the right
+              (v0.132): the owner's own phrases read out of their texts
+              (v0.94), meanings asked for the phrases that say none, packs,
+              and a style from nothing. */}
+          <span className="ml-auto flex flex-wrap items-center gap-2">
+            {half?.composition != null && (
+              <Button variant="soft" onClick={() => setFromTexts(true)}>
+                <BookPlus aria-hidden />
+                {t('phrases.fromTexts')}
+              </Button>
+            )}
+            {half?.composition != null &&
+              unexplained.length > 0 &&
+              explainer.label !== undefined && (
+                <Button
+                  variant="soft"
+                  disabled={explainer.pending}
+                  onClick={() =>
+                    explainer.explain(
+                      unexplained.map((brick) => ({
+                        phrase: brick.description ?? brick.name,
+                        count: 1,
+                      })),
+                    )
+                  }
+                >
+                  <Sparkles aria-hidden />
+                  {t('styles.fillExplanations', { count: unexplained.length })}
+                </Button>
+              )}
+            <Button variant="soft" onClick={() => setPacks(true)}>
+              <PackageOpen aria-hidden />
+              {t('packs.get')}
             </Button>
-          )}
-          <Button variant="soft" onClick={() => setPacks(true)}>
-            <PackageOpen aria-hidden />
-            {t('packs.get')}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => make.mutate(null)}
-            disabled={making || makeIn === undefined}
-            className="ml-auto"
-          >
-            <Plus aria-hidden />
-            {t('styles.new')}
-          </Button>
+            <Button
+              variant="primary"
+              onClick={() => make.mutate(null)}
+              disabled={making || makeIn === undefined}
+            >
+              <Plus aria-hidden />
+              {t('styles.new')}
+            </Button>
+          </span>
         </>
       }
     >
-      {styleId === undefined ? dictionary : <ListDetail open list={dictionary} detail={detail} />}
+      {styleId === undefined ? (
+        // The sets beside the whole dictionary; with a style open the list is
+        // a column and the panel would leave it no room.
+        <div className="flex min-h-0 flex-1 gap-3">
+          <SetsPanel
+            types={types}
+            bricks={(everything.data ?? []).filter((brick) => inHalf.has(brick.type_key))}
+            typeKey={typeKey}
+            family={family}
+            onPick={(type, set) => {
+              setTypeKey(type)
+              setFamily(set)
+            }}
+          />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">{dictionary}</div>
+        </div>
+      ) : (
+        <ListDetail open list={dictionary} detail={detail} />
+      )}
       {fromTexts && half?.composition != null && (
         <FromStylesDialog open onOpenChange={setFromTexts} composition={half.composition} />
       )}

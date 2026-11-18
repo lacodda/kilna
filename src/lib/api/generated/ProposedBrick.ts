@@ -24,4 +24,11 @@ when?: string,
 /**
  * A key of its type's `families`, where the type files its bricks.
  */
-family?: string, };
+family?: string, 
+/**
+ * The brick of the dictionary this phrase already is, when it has no
+ * explanation yet (v0.132, FR-05 5.4): keeping the item writes what it
+ * means, when to take it and its family onto that brick - only where
+ * the brick says nothing - instead of making a second one.
+ */
+fills?: string, };

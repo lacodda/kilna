@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { TileButton } from '@/components/ui/tile-button'
 import { Chip } from '@/components/ui/chip'
+import { BrickToggles } from '@/features/styles/BrickToggles'
 // The typefaces the lettering samples are drawn with; the window fetches a
 // file only when a sample needs it.
 import '@/assets/fonts/samples.css'
@@ -91,7 +92,7 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, house = false, o
   const said = phrase ? sayLabel(brick.explanation) : (brick.description ?? '')
 
   return (
-    <li ref={card} className="flex">
+    <li ref={card} className="relative flex">
       {/* A card rather than a row of a list: the top, two lines of what it
           says and the chips do not fit a row's slots. */}
       <TileButton
@@ -135,6 +136,12 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, house = false, o
           </span>
         </span>
       </TileButton>
+      {/* Over the card's top, beside it rather than in it: a button inside
+          the card's own button would be no button at all. */}
+      <BrickToggles
+        brick={brick}
+        className="absolute top-1.5 right-1.5 rounded-md bg-raise px-1 py-0.5 shadow-lift"
+      />
     </li>
   )
 }

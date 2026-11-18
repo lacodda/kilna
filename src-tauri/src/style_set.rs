@@ -93,6 +93,9 @@ impl SetBrick {
 pub struct Seeded {
     pub added: usize,
     pub rewritten: usize,
+    /// Bricks the owner changed and the set had never filed, filed now under
+    /// the set's family with their words kept (FR-05 5.1).
+    pub filed: usize,
     /// Entries left out because a brick of the owner's own already has the
     /// name in that type.
     pub clashes: Vec<String>,
@@ -160,6 +163,16 @@ pub fn seed_profile(conn: &Connection, profile_key: &str, set: &[SetBrick]) -> R
                         "UPDATE style_brick SET set_digest = ?2 WHERE id = ?1",
                         params![id, digest],
                     )?;
+                }
+                // The owner's words stay theirs, but a brick the set never
+                // filed is filed now (FR-05 5.1): a family is where it sits,
+                // not what it says, and "No set" is for the owner's own.
+                _ if brick.family.is_none() && entry.family.is_some() => {
+                    conn.execute(
+                        "UPDATE style_brick SET family = ?2 WHERE id = ?1 AND family IS NULL",
+                        params![id, entry.family],
+                    )?;
+                    seeded.filed += 1;
                 }
                 _ => {}
             }
@@ -703,6 +716,99 @@ mod tests {
     }
 
     #[test]
+    fn a_star_is_not_a_change_and_a_family_switched_off_offers_nothing() {
+        let (conn, profile_id) = fixtures::workspace();
+        let mut set = a_set();
+        set[0].family = Some("classic".into());
+        set[1].family = Some("street".into());
+        seed_profile(&conn, "music", &set).unwrap();
+        let id = set[0].id("music");
+
+        let starred = crate::actions::style::update(
+            &conn,
+            &id,
+            style_brick::StyleBrickPatch {
+                favorite: Some(true),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(starred.favorite);
+        assert_eq!(
+            starred.origin,
+            style_brick::Origin::Set,
+            "a star says nothing about the words"
+        );
+        let offer = crate::undo::last(&conn).unwrap().unwrap();
+        crate::undo::undo(&conn, &offer.operation_id).unwrap();
+        assert!(!style_brick::get(&conn, &id).unwrap().unwrap().favorite);
+
+        let mut config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        let offered = |config: &crate::profile::config::ProfileConfig| -> Vec<String> {
+            style_brick::list(&conn, &profile_id, &Default::default())
+                .unwrap()
+                .into_iter()
+                .filter(|b| style_brick::offered(config, b))
+                .map(|b| b.name)
+                .collect()
+        };
+        assert_eq!(offered(&config).len(), 2);
+        for family in &mut config
+            .style_types
+            .iter_mut()
+            .find(|t| t.key == "image-style")
+            .unwrap()
+            .families
+        {
+            family.off = family.key == "classic";
+        }
+        assert_eq!(
+            offered(&config),
+            ["Paper"],
+            "the switched-off family offers nothing"
+        );
+        assert_eq!(
+            style_brick::get(&conn, &id).unwrap().unwrap().status,
+            style_brick::READY,
+            "and its bricks keep their own status"
+        );
+    }
+
+    #[test]
+    fn a_brick_the_owner_reworded_is_filed_once_its_set_files_it_and_keeps_the_words() {
+        let (conn, _) = fixtures::workspace();
+        let mut set = a_set();
+        seed_profile(&conn, "music", &set).unwrap();
+        let id = set[0].id("music");
+        crate::actions::style::update(
+            &conn,
+            &id,
+            style_brick::StyleBrickPatch {
+                description: Some(Some("My own ink.".into())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        // The next release files the set's bricks under a family.
+        set[0].family = Some("classic".into());
+        set[1].family = Some("classic".into());
+        let seeded = seed_profile(&conn, "music", &set).unwrap();
+        assert_eq!((seeded.rewritten, seeded.filed), (1, 1), "{seeded:?}");
+        let ink = style_brick::get(&conn, &id).unwrap().unwrap();
+        assert_eq!(ink.family.as_deref(), Some("classic"));
+        assert_eq!(
+            ink.description.as_deref(),
+            Some("My own ink."),
+            "the words stay the owner's"
+        );
+        assert_eq!(
+            seed_profile(&conn, "music", &set).unwrap(),
+            Seeded::default()
+        );
+    }
+
+    #[test]
     fn a_set_is_seeded_once_and_reads_from_the_set() {
         let (conn, profile_id) = fixtures::workspace();
         let set = a_set();
@@ -883,13 +989,16 @@ mod tests {
                     .style_type(&entry.type_key)
                     .unwrap_or_else(|| panic!("{at} is of a type the profile does not name"));
                 assert!(style.retired.is_none(), "{at} is of a retired type");
-                match &entry.family {
-                    Some(family) => assert!(
-                        style.families.iter().any(|f| f.key == *family),
-                        "{at} is filed under `{family}`, which its type does not have"
-                    ),
-                    None => assert!(style.families.is_empty(), "{at} names no family"),
-                }
+                // Every shipped brick is filed (FR-05 AC-05.1): "No set" is
+                // the owner's own bricks only.
+                let family = entry
+                    .family
+                    .as_ref()
+                    .unwrap_or_else(|| panic!("{at} is filed under no family"));
+                assert!(
+                    style.families.iter().any(|f| f.key == *family),
+                    "{at} is filed under `{family}`, which its type does not have"
+                );
 
                 let name = (entry.type_key.clone(), entry.name().to_owned());
                 assert!(!names.contains(&name), "{at} repeats a name in its type");

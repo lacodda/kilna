@@ -139,6 +139,43 @@ English, naming no artist - `when`, `explanation`, `colours`, `sample`), with
 an optional `preview_webp` and what a style `needs`, `provides` and
 `conflicts` with. A pack whose file does not match its digest is refused.
 
+## Sets, stars and the switch
+
+Every style kilna ships is filed under a **set** - since v0.132 the
+lettering, the dressings, the backgrounds and accents and every phrase of
+sound too: *Hand-drawn*, *Street*, *Scripts of the East* for lettering,
+*Pastel* and *Gradients* for colours, *Voice* and *Backing* for vocals, and so
+on. The sets stand in a panel beside the dictionary, type by type, each with
+how many styles it holds. Pressing one narrows the dictionary to it; **No
+set** is listed only where you have styles of your own filed under none.
+
+Each set has a **switch**. Switched off, none of its styles is offered - not
+by the cover constructor, the composer of a style prompt, the picker of a
+background or an accent, nor to the assistant choosing styles - while every
+style in it keeps its own status, so switching the set on again brings back
+exactly what was there. The switch is part of the profile, written as one
+change the history says and undo takes back.
+
+A card has two controls of its own over its top. The **star** marks a
+favorite: favorites come first in every picker, right after the channel's
+house styles, and the **Favorites** chip narrows the dictionary to them. The
+**switch** takes one style out of the pickers - its status reads **Off** -
+and back, without losing a word of it; a draft is offered once it is
+described. Neither counts as a change to a shipped style: a starred or
+switched-off style of the set still takes the set's newer words.
+
+A style from a pack that ships a preview picture gets it as its first
+picture when it is installed, kept in the space's own folder like any
+reference.
+
+**Phrases that say nothing of what they mean.** In the sound, **Explain N
+phrases** at the top asks the profile's action about phrases for the meaning
+of every phrase that has none, and an open phrase has **Write what it means**
+for itself. The answer is kept like any package of phrases; an item that is a
+style already in the dictionary says so and, kept, writes what it means,
+when to take it and its set onto that style - only where it says nothing,
+never over your words. **From your texts** can now tick every phrase at once.
+
 ## Types the craft no longer builds from
 
 *Layers* and *Frame composition* are retired in Studio: where the hero

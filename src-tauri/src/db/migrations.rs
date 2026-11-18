@@ -354,6 +354,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0056_style_source.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 57,
+        name: "style_favorite",
+        sql: include_str!("../../migrations/0057_style_favorite.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what

@@ -330,6 +330,10 @@ pub struct Installed {
     pub kept: u32,
     /// Of a type this space does not have.
     pub unfit: u32,
+    /// Previews kept as the first picture of a brick just added (v0.132).
+    #[serde(default)]
+    #[ts(optional, as = "Option<u32>")]
+    pub previews: u32,
 }
 
 /// Install bricks of a pack into the open space: all of them, or only the
@@ -340,6 +344,7 @@ pub fn install(
     manifest: &PackManifest,
     entry: &PackEntry,
     only: Option<&[String]>,
+    preview_of: &dyn Fn(&str) -> Option<Vec<u8>>,
 ) -> Result<Installed> {
     let profile =
         crate::profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
@@ -364,9 +369,10 @@ pub fn install(
             BrickStanding::Installed | BrickStanding::Changed => done.kept += 1,
             BrickStanding::Deleted if only.is_none() => done.kept += 1,
             BrickStanding::Absent | BrickStanding::Deleted => {
+                let id = brick_id(&profile.key, &entry.id, &brick.key);
                 crate::actions::style::create_given(
                     conn,
-                    &brick_id(&profile.key, &entry.id, &brick.key),
+                    &id,
                     NewStyleBrick {
                         type_key: brick.type_key.clone(),
                         name: brick.label.as_str().to_owned(),
@@ -384,6 +390,18 @@ pub fn install(
                     },
                 )?;
                 done.added += 1;
+                // The pack's preview is the brick's first picture (FR-05
+                // 5.2): kept in the space's own folder like any reference,
+                // so it works offline and goes to the trash with the brick.
+                // A preview that cannot be read leaves the brick without one.
+                if let Some(relative) = &brick.preview_webp
+                    && let Ok(media) = crate::state::media_dir_of(conn)
+                    && let Some(bytes) = preview_of(relative)
+                {
+                    let name = format!("{}.webp", brick.key);
+                    crate::actions::style::paste_reference(conn, &media, &id, &bytes, &name)?;
+                    done.previews += 1;
+                }
             }
             BrickStanding::Update => {
                 let id = brick_id(&profile.key, &entry.id, &brick.key);
@@ -432,6 +450,7 @@ fn register_families(
             continue;
         }
         style.families.push(crate::profile::config::StyleFamily {
+            off: false,
             key: brick.family.clone(),
             label: title.clone(),
         });
@@ -600,7 +619,9 @@ pub fn install_from(
         .find(|entry| entry.id == pack)
         .ok_or_else(|| Error::not_found("pack", pack))?;
     let manifest = manifest(source, builtin, &entry)?;
-    install(conn, &manifest, &entry, only)
+    install(conn, &manifest, &entry, only, &|relative| {
+        read(source, builtin, relative).ok()
+    })
 }
 
 /// The snapshot's folder in the source tree, for tests and the development run.
@@ -777,6 +798,55 @@ mod tests {
             .into_iter()
             .map(|b| b.key)
             .collect()
+    }
+
+    #[test]
+    fn a_pack_s_preview_is_the_first_picture_of_the_brick_it_adds() {
+        let (conn, _, _dir) = crate::fixtures::workspace_on_disk();
+        let folder = tempfile::tempdir().unwrap();
+        let film = entry("film-photo");
+        let mut manifest = manifest(&Source::Builtin, &snapshot(), &film).unwrap();
+        manifest.bricks[0].preview_webp = Some("previews/first.webp".into());
+        manifest.bricks[1].preview_webp = Some("previews/missing.webp".into());
+        let text = serde_json::to_vec_pretty(&manifest).unwrap();
+        std::fs::create_dir_all(folder.path().join("packs")).unwrap();
+        std::fs::create_dir_all(folder.path().join("previews")).unwrap();
+        std::fs::write(folder.path().join("packs/film-photo.json"), &text).unwrap();
+        std::fs::write(
+            folder.path().join("previews/first.webp"),
+            b"RIFF0000WEBPVP8 ",
+        )
+        .unwrap();
+        let mut listed = film.clone();
+        listed.digest = hex(&sha2::Sha256::digest(&text));
+        let index = PackIndex {
+            format_version: FORMAT,
+            packs: vec![listed],
+        };
+        std::fs::write(
+            folder.path().join("index.json"),
+            serde_json::to_vec(&index).unwrap(),
+        )
+        .unwrap();
+
+        let source = Source::Folder(folder.path().display().to_string());
+        let done = install_from(&conn, &source, &snapshot(), "film-photo", None).unwrap();
+        assert_eq!((done.added, done.previews), (5, 1), "{done:?}");
+        let key = profile::active(&conn).unwrap().unwrap().key;
+        let first = brick_id(&key, "film-photo", &manifest.bricks[0].key);
+        let pictures = crate::asset::for_style_brick(&conn, &first).unwrap();
+        assert_eq!(pictures.len(), 1);
+        assert!(
+            std::path::Path::new(&pictures[0].path).is_file(),
+            "the bytes are in the space"
+        );
+        let brick = style_brick::get(&conn, &first).unwrap().unwrap();
+        assert_eq!(brick.reference_count, 1);
+        assert_eq!(
+            brick.origin,
+            style_brick::Origin::Set,
+            "a picture is not a change of words"
+        );
     }
 
     #[test]

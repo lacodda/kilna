@@ -63,6 +63,7 @@ export function BricksPackageView({ pack, chosen, onChosen, answered = false }: 
 }
 
 function Brick({ brick }: { brick: ProposedBrick }) {
+  const { t } = useTranslation()
   const types = styleTypesOf(useProfile().config)
   const type = types.find((one) => one.key === brick.type)
   return (
@@ -73,6 +74,9 @@ function Brick({ brick }: { brick: ProposedBrick }) {
           <StyleIcon of={type} aria-hidden className="size-3" />
           {type === undefined ? brick.type : sayLabel(type.label)}
         </span>
+        {/* Already in the dictionary, saying nothing of what it means: kept,
+            the meaning lands on that style (v0.132). */}
+        {brick.fills !== undefined && <span className="text-info">{t('phrases.fills')}</span>}
       </span>
       <span className="text-dim">{sayLabel(brick.explanation)}</span>
     </span>

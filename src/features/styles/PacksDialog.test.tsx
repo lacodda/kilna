@@ -69,7 +69,7 @@ function mounted() {
       offline: false,
     }),
     style_pack: () => opened,
-    install_style_pack: () => ({ added: 1, renewed: 0, kept: 1, unfit: 0 }),
+    install_style_pack: () => ({ added: 1, renewed: 0, kept: 1, unfit: 0, previews: 0 }),
   })
   render(
     <Providers client={createQueryClient()}>

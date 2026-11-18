@@ -36,6 +36,13 @@ pub struct ProposedBrick {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub family: Option<String>,
+    /// The brick of the dictionary this phrase already is, when it has no
+    /// explanation yet (v0.132, FR-05 5.4): keeping the item writes what it
+    /// means, when to take it and its family onto that brick - only where
+    /// the brick says nothing - instead of making a second one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub fills: Option<String>,
 }
 
 /// What was proposed, and what of it was left out on reading.
@@ -92,16 +99,9 @@ pub fn read(
         })
     };
     // What the dictionary already says, so a phrase is not proposed twice -
-    // whatever type it stands under: one phrase, one meaning.
-    let known: BTreeSet<String> = crate::style_brick::list(conn, profile_id, &Default::default())?
-        .into_iter()
-        .filter(|brick| {
-            config
-                .style_type(&brick.type_key)
-                .is_some_and(|style| style.form == StyleForm::Phrase)
-        })
-        .filter_map(|brick| brick.description.map(|text| key_of(&text)))
-        .collect();
+    // whatever type it stands under: one phrase, one meaning. A known phrase
+    // with nothing said about it is the one exception: its meaning is filled.
+    let known = phrase_bricks(conn, profile_id, config)?;
 
     let mut package = BricksPackage::default();
     let mut seen: BTreeSet<String> = BTreeSet::new();
@@ -138,12 +138,17 @@ pub fn read(
             );
             continue;
         }
-        if known.contains(&key) || !seen.insert(key) {
+        let unexplained = known
+            .get(&key)
+            .filter(|(_, explained)| !explained)
+            .map(|(id, _)| id.clone());
+        if (known.contains_key(&key) && unexplained.is_none()) || !seen.insert(key) {
             package
                 .dropped
                 .push(Reason::of("refusal.bricks.known").param("phrase", brick.phrase.clone()));
             continue;
         }
+        brick.fills = unexplained;
         if let Some(family) = &brick.family
             && !config
                 .style_type(&brick.type_key)
@@ -156,6 +161,31 @@ pub fn read(
         package.bricks.push(brick);
     }
     Ok(package)
+}
+
+/// The dictionary's phrases by their key: the brick's id, and whether it
+/// says what it means.
+fn phrase_bricks(
+    conn: &Connection,
+    profile_id: &str,
+    config: &ProfileConfig,
+) -> Result<std::collections::BTreeMap<String, (String, bool)>> {
+    Ok(
+        crate::style_brick::list(conn, profile_id, &Default::default())?
+            .into_iter()
+            .filter(|brick| {
+                config
+                    .style_type(&brick.type_key)
+                    .is_some_and(|style| style.form == StyleForm::Phrase)
+            })
+            .filter_map(|brick| {
+                let explained = brick.explanation.is_some();
+                brick
+                    .description
+                    .map(|text| (key_of(&text), (brick.id, explained)))
+            })
+            .collect(),
+    )
 }
 
 /// What is wrong with keeping the items named, as the dictionary stands now.
@@ -195,18 +225,19 @@ pub fn keep(
 ) -> Result<Vec<String>> {
     let profile_id = crate::actions::active_profile_id(conn)?;
     let config = crate::profile::config_for(conn, &profile_id)?;
-    let known: BTreeSet<String> = crate::style_brick::list(conn, &profile_id, &Default::default())?
-        .into_iter()
-        .filter(|brick| {
-            config
-                .style_type(&brick.type_key)
-                .is_some_and(|style| style.form == StyleForm::Phrase)
-        })
-        .filter_map(|brick| brick.description.map(|text| key_of(&text)))
-        .collect();
+    let known = phrase_bricks(conn, &profile_id, &config)?;
     let mut written = Vec::new();
     for (index, brick) in package.bricks.into_iter().enumerate() {
-        if !taken(items, index) || known.contains(&key_of(&brick.phrase)) {
+        if !taken(items, index) {
+            continue;
+        }
+        if let Some(id) = &brick.fills {
+            if let Some(filled) = fill(conn, &config, id, brick.clone())? {
+                written.push(filled);
+            }
+            continue;
+        }
+        if known.contains_key(&key_of(&brick.phrase)) {
             continue;
         }
         let made = crate::actions::style::create(
@@ -224,6 +255,42 @@ pub fn keep(
         written.push(made.id);
     }
     Ok(written)
+}
+
+/// What a kept item writes onto a brick the dictionary already has: only the
+/// fields it says nothing in, as one `style.update` undo takes back. Nothing
+/// when the brick is gone or has come to say all of it since.
+fn fill(
+    conn: &Connection,
+    config: &ProfileConfig,
+    id: &str,
+    brick: ProposedBrick,
+) -> Result<Option<String>> {
+    let Some(before) = crate::style_brick::get(conn, id)? else {
+        return Ok(None);
+    };
+    let family = brick.family.filter(|family| {
+        before.family.is_none()
+            && config
+                .style_type(&before.type_key)
+                .is_some_and(|style| style.families.iter().any(|f| f.key == *family))
+    });
+    let patch = crate::style_brick::StyleBrickPatch {
+        explanation: before
+            .explanation
+            .is_none()
+            .then_some(Some(brick.explanation)),
+        when_to_use: brick
+            .when
+            .filter(|_| before.when_to_use.is_none())
+            .map(Some),
+        family: family.map(Some),
+        ..Default::default()
+    };
+    if patch.explanation.is_none() && patch.when_to_use.is_none() && patch.family.is_none() {
+        return Ok(None);
+    }
+    Ok(Some(crate::actions::style::update(conn, id, patch)?.id))
 }
 
 /// The package as the chat shows it, in English.
@@ -270,6 +337,7 @@ mod tests {
                 type_key: "groove".into(),
                 name: "breakbeat".into(),
                 description: Some("breakbeat".into()),
+                explanation: Some(Label::One("Breaks.".into())),
                 ..Default::default()
             },
         )
@@ -305,6 +373,84 @@ mod tests {
                 "refusal.bricks.known"
             ]
         );
+    }
+
+    #[test]
+    fn a_phrase_the_dictionary_knows_but_never_explained_is_filled_where_it_says_nothing() {
+        let (conn, profile_id) = fixtures::workspace();
+        let known = crate::actions::style::create(
+            &conn,
+            NewStyleBrick {
+                type_key: "groove".into(),
+                name: "breakbeat".into(),
+                description: Some("breakbeat".into()),
+                when_to_use: Some("My own steer.".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let read = package(
+            &conn,
+            &profile_id,
+            serde_json::json!({ "bricks": [
+                { "type": "groove", "phrase": "Breakbeat", "explanation": { "en": "Chopped drums.", "ru": "Нарезанные барабаны." },
+                  "when": "When a rock song needs a rave.", "family": "breaks" }
+            ]}),
+        );
+        assert!(read.dropped.is_empty(), "{:?}", read.dropped);
+        assert_eq!(read.bricks[0].fills.as_deref(), Some(known.id.as_str()));
+
+        let written = keep(&conn, read, None).unwrap();
+        assert_eq!(
+            written,
+            std::slice::from_ref(&known.id),
+            "the same brick, not a second one"
+        );
+        let bricks = crate::style_brick::list(&conn, &profile_id, &Default::default()).unwrap();
+        assert_eq!(bricks.iter().filter(|b| b.name == "breakbeat").count(), 1);
+        let filled = crate::style_brick::get(&conn, &known.id).unwrap().unwrap();
+        assert_eq!(
+            filled.explanation.as_ref().map(|l| l.in_locale("ru")),
+            Some("Нарезанные барабаны.")
+        );
+        assert_eq!(filled.family.as_deref(), Some("breaks"));
+        assert_eq!(
+            filled.when_to_use.as_deref(),
+            Some("My own steer."),
+            "what the owner wrote stays"
+        );
+
+        let offer = crate::undo::last(&conn).unwrap().unwrap();
+        crate::undo::undo(&conn, &offer.operation_id).unwrap();
+        let back = crate::style_brick::get(&conn, &known.id).unwrap().unwrap();
+        assert!(back.explanation.is_none() && back.family.is_none());
+
+        // Once it says what it means, the phrase is known like any other.
+        let again = package(
+            &conn,
+            &profile_id,
+            serde_json::json!({ "bricks": [
+                { "type": "groove", "phrase": "breakbeat", "explanation": { "en": "x", "ru": "x" } }
+            ]}),
+        );
+        assert!(again.bricks[0].fills.is_some());
+        crate::actions::style::update(
+            &conn,
+            &known.id,
+            crate::style_brick::StyleBrickPatch {
+                explanation: Some(Some(Label::One("Mine.".into()))),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let known_now = package(
+            &conn,
+            &profile_id,
+            serde_json::json!({ "bricks": [
+                { "type": "groove", "phrase": "breakbeat", "explanation": { "en": "x", "ru": "x" } }
+            ]}),
+        );
+        assert!(known_now.bricks.is_empty());
     }
 
     #[test]

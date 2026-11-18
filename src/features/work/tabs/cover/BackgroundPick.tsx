@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/query/queries'
-import { colourFill, styleName } from '@/lib/styleBrick'
+import { byOffer, colourFill, isOffered, styleName } from '@/lib/styleBrick'
 import { styleTypesOf, useProfile } from '@/lib/useProfile'
 import { TileButton } from '@/components/ui/tile-button'
 
@@ -30,10 +30,15 @@ export function BackgroundPick({ brickId, disabled, onChange }: Props) {
       .filter((type) => type.form === 'colour')
       .map((type) => type.key),
   )
-  const grounds = (all.data ?? []).filter(
-    (brick) =>
-      colourTypes.has(brick.type_key) && brick.status === 'ready' && brick.colours[0] !== undefined,
-  )
+  const grounds = (all.data ?? [])
+    .filter(
+      (brick) =>
+        colourTypes.has(brick.type_key) &&
+        isOffered(styleTypesOf(config), brick) &&
+        brick.colours[0] !== undefined,
+    )
+    // The starred first (v0.132).
+    .sort(byOffer(new Set()))
   const chosen = grounds.find((brick) => brick.id === brickId)
 
   return (

@@ -517,6 +517,7 @@ fn a_family_shipped_later_reaches_a_type_that_already_files() {
     image.families.insert(
         0,
         config::StyleFamily {
+            off: false,
             key: "mine".into(),
             label: Label::from("Mine"),
         },

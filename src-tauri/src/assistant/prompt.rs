@@ -715,7 +715,10 @@ pub fn for_work(
                 ready_only: true,
                 ..Default::default()
             },
-        )?;
+        )?
+        .into_iter()
+        .filter(|brick| crate::style_brick::offered(&config, brick))
+        .collect::<Vec<_>>();
         values.push(("style_library", library_sheet(&bricks, &config)));
     }
 

@@ -2328,6 +2328,64 @@
           "ru": "Опиши шрифт: характер гарнитуры, начертание, акценты кегля, цвет, эффекты, как текст ложится в кадр."
         },
         "icon": "type",
+        "families": [
+          {
+            "key": "hand",
+            "label": {
+              "en": "Hand-drawn",
+              "ru": "От руки"
+            }
+          },
+          {
+            "key": "street",
+            "label": {
+              "en": "Street",
+              "ru": "Улица"
+            }
+          },
+          {
+            "key": "tattoo",
+            "label": {
+              "en": "Tattoo and metal",
+              "ru": "Тату и метал"
+            }
+          },
+          {
+            "key": "heritage",
+            "label": {
+              "en": "Old scripts",
+              "ru": "Старое письмо"
+            }
+          },
+          {
+            "key": "world",
+            "label": {
+              "en": "Scripts of the East",
+              "ru": "Письмо Востока"
+            }
+          },
+          {
+            "key": "era",
+            "label": {
+              "en": "Eras",
+              "ru": "Эпохи"
+            }
+          },
+          {
+            "key": "paper",
+            "label": {
+              "en": "Paper and print",
+              "ru": "Бумага и печать"
+            }
+          },
+          {
+            "key": "digital",
+            "label": {
+              "en": "Screen and 3D",
+              "ru": "Экран и 3D"
+            }
+          }
+        ],
         "form": "lettering"
       },
       {
@@ -2341,6 +2399,29 @@
           "ru": "Опиши мелкую обвязку вокруг заголовка: ярлыки, номера, штампы, линейки, наклейки. Каждую подпись пиши слотом {slot}, а фразу, которой он нужен, бери в [квадратные скобки] — тогда при пустой подписи фраза выпадет."
         },
         "icon": "tag",
+        "families": [
+          {
+            "key": "quiet",
+            "label": {
+              "en": "Quiet",
+              "ru": "Тихое"
+            }
+          },
+          {
+            "key": "document",
+            "label": {
+              "en": "Document",
+              "ru": "Документ"
+            }
+          },
+          {
+            "key": "loud",
+            "label": {
+              "en": "Loud",
+              "ru": "Громкое"
+            }
+          }
+        ],
         "form": "dressing"
       },
       {
@@ -2354,6 +2435,43 @@
           "ru": "Опиши основу, на которой стоит картинка: цвет или градиент, фактуру и чего на ней нет."
         },
         "icon": "square",
+        "families": [
+          {
+            "key": "neutral",
+            "label": {
+              "en": "Paper and neutrals",
+              "ru": "Бумага и нейтральные"
+            }
+          },
+          {
+            "key": "pastel",
+            "label": {
+              "en": "Pastel",
+              "ru": "Пастель"
+            }
+          },
+          {
+            "key": "bright",
+            "label": {
+              "en": "Bright",
+              "ru": "Яркие"
+            }
+          },
+          {
+            "key": "dark",
+            "label": {
+              "en": "Dark",
+              "ru": "Тёмные"
+            }
+          },
+          {
+            "key": "gradient",
+            "label": {
+              "en": "Gradients",
+              "ru": "Градиенты"
+            }
+          }
+        ],
         "form": "colour"
       },
       {
@@ -2367,6 +2485,36 @@
           "ru": "Назови цвет, на который опираются картинка и надпись, и дай его как #RRGGBB. Несколько цветов — градиент, по порядку."
         },
         "icon": "droplet",
+        "families": [
+          {
+            "key": "warm",
+            "label": {
+              "en": "Warm",
+              "ru": "Тёплые"
+            }
+          },
+          {
+            "key": "cool",
+            "label": {
+              "en": "Cool",
+              "ru": "Холодные"
+            }
+          },
+          {
+            "key": "metal",
+            "label": {
+              "en": "Metal",
+              "ru": "Металл"
+            }
+          },
+          {
+            "key": "gradient",
+            "label": {
+              "en": "Gradients",
+              "ru": "Градиенты"
+            }
+          }
+        ],
         "form": "accent"
       },
       {
@@ -2537,6 +2685,36 @@
           "ru": "Как подаётся голос: близко или издалека, шёпотом или на разрыв, удвоенно или голо, с подпевками или без. Поясни, что подача делает с песней."
         },
         "icon": "mic",
+        "families": [
+          {
+            "key": "voice",
+            "label": {
+              "en": "Voice",
+              "ru": "Голос"
+            }
+          },
+          {
+            "key": "delivery",
+            "label": {
+              "en": "Delivery",
+              "ru": "Подача"
+            }
+          },
+          {
+            "key": "backing",
+            "label": {
+              "en": "Backing",
+              "ru": "Бэк-вокал"
+            }
+          },
+          {
+            "key": "device",
+            "label": {
+              "en": "Voice as an instrument",
+              "ru": "Голос как инструмент"
+            }
+          }
+        ],
         "form": "phrase"
       },
       {
@@ -2643,6 +2821,29 @@
           "ru": "Низ: какой бас и как он сидит. Поясни, какой вес и характер он даёт."
         },
         "icon": "waves",
+        "families": [
+          {
+            "key": "synth",
+            "label": {
+              "en": "Synth bass",
+              "ru": "Синт-бас"
+            }
+          },
+          {
+            "key": "played",
+            "label": {
+              "en": "Played bass",
+              "ru": "Живой бас"
+            }
+          },
+          {
+            "key": "sparse",
+            "label": {
+              "en": "Little or none",
+              "ru": "Мало или нет"
+            }
+          }
+        ],
         "form": "phrase"
       },
       {
@@ -2656,6 +2857,36 @@
           "ru": "Чувство трека в одном-двух словах. Поясни, что должен почувствовать слушатель и куда это тянет аранжировку."
         },
         "icon": "cloud",
+        "families": [
+          {
+            "key": "longing",
+            "label": {
+              "en": "Longing",
+              "ru": "Тоска"
+            }
+          },
+          {
+            "key": "dark",
+            "label": {
+              "en": "Dark",
+              "ru": "Мрак"
+            }
+          },
+          {
+            "key": "warm",
+            "label": {
+              "en": "Warm and bright",
+              "ru": "Тепло и свет"
+            }
+          },
+          {
+            "key": "dream",
+            "label": {
+              "en": "Dream",
+              "ru": "Сон"
+            }
+          }
+        ],
         "form": "phrase"
       },
       {
@@ -2669,6 +2900,36 @@
           "ru": "Поверхность записи: зерно, шум, пространство, насколько гладко или сыро. Поясни, что это делает со звуком."
         },
         "icon": "waveform",
+        "families": [
+          {
+            "key": "wear",
+            "label": {
+              "en": "Tape and wear",
+              "ru": "Плёнка и износ"
+            }
+          },
+          {
+            "key": "space",
+            "label": {
+              "en": "Room and space",
+              "ru": "Комната и пространство"
+            }
+          },
+          {
+            "key": "noise",
+            "label": {
+              "en": "Noise and density",
+              "ru": "Шум и плотность"
+            }
+          },
+          {
+            "key": "polish",
+            "label": {
+              "en": "Polish",
+              "ru": "Полировка"
+            }
+          }
+        ],
         "form": "phrase"
       },
       {
@@ -2682,6 +2943,22 @@
           "ru": "Темп или его ощущение словами. Поясни, насколько быстро это ощущается и почему."
         },
         "icon": "gauge",
+        "families": [
+          {
+            "key": "slow",
+            "label": {
+              "en": "Slow",
+              "ru": "Медленно"
+            }
+          },
+          {
+            "key": "moving",
+            "label": {
+              "en": "Moving",
+              "ru": "В движении"
+            }
+          }
+        ],
         "form": "phrase"
       },
       {
@@ -2695,6 +2972,29 @@
           "ru": "Как аранжировка движется от начала к концу: нарастания, обрывы, контрасты. Поясни, какой путь она даёт треку."
         },
         "icon": "trending",
+        "families": [
+          {
+            "key": "arc",
+            "label": {
+              "en": "Arc",
+              "ru": "Дуга"
+            }
+          },
+          {
+            "key": "contrast",
+            "label": {
+              "en": "Contrast",
+              "ru": "Контраст"
+            }
+          },
+          {
+            "key": "steady",
+            "label": {
+              "en": "Steady",
+              "ru": "Ровно"
+            }
+          }
+        ],
         "form": "phrase"
       },
       {
@@ -2708,6 +3008,36 @@
           "ru": "Одна строка, которую дописывают к любому ядру, чтобы сдвинуть одно, - по одной за раз, чтобы было слышно, что сдвинулось. Поясни, что она двигает и насколько."
         },
         "icon": "sliders",
+        "families": [
+          {
+            "key": "break",
+            "label": {
+              "en": "The break",
+              "ru": "Брейк"
+            }
+          },
+          {
+            "key": "guitar",
+            "label": {
+              "en": "Guitar against the beat",
+              "ru": "Гитара против бита"
+            }
+          },
+          {
+            "key": "mix",
+            "label": {
+              "en": "The whole mix",
+              "ru": "Весь микс"
+            }
+          },
+          {
+            "key": "moment",
+            "label": {
+              "en": "One moment",
+              "ru": "Один момент"
+            }
+          }
+        ],
         "form": "phrase"
       }
     ],
@@ -6693,6 +7023,7 @@
     {
       "key": "dry-brush",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Dry brush",
         "ru": "Сухая кисть"
@@ -6707,6 +7038,7 @@
     {
       "key": "drip-graffiti",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Drip graffiti",
         "ru": "Граффити с потёками"
@@ -6721,6 +7053,7 @@
     {
       "key": "metal-halo",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Metal halo",
         "ru": "Метал-нимб"
@@ -6735,6 +7068,7 @@
     {
       "key": "blackletter",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Blackletter",
         "ru": "Готика"
@@ -6749,6 +7083,7 @@
     {
       "key": "vyaz",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Old Russian vyaz",
         "ru": "Вязь"
@@ -6763,6 +7098,7 @@
     {
       "key": "roman",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Roman capitals",
         "ru": "Римская антиква"
@@ -6777,6 +7113,7 @@
     {
       "key": "quill",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Quill calligraphy",
         "ru": "Перо летописца"
@@ -6791,6 +7128,7 @@
     {
       "key": "paper-tag",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Paper tag",
         "ru": "Бирка с печатью"
@@ -6805,6 +7143,7 @@
     {
       "key": "rubber-stamp",
       "type": "typography",
+      "family": "paper",
       "label": {
         "en": "Rubber stamp",
         "ru": "Штамп"
@@ -6819,6 +7158,7 @@
     {
       "key": "redacted",
       "type": "typography",
+      "family": "paper",
       "label": {
         "en": "Redacted",
         "ru": "Цензура"
@@ -6833,6 +7173,7 @@
     {
       "key": "burning",
       "type": "typography",
+      "family": "paper",
       "label": {
         "en": "Burning letters",
         "ru": "Горящие буквы"
@@ -6847,6 +7188,7 @@
     {
       "key": "ransom",
       "type": "typography",
+      "family": "paper",
       "label": {
         "en": "Ransom note",
         "ru": "Вырезанные буквы"
@@ -6861,6 +7203,7 @@
     {
       "key": "constructivist",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Constructivist blocks",
         "ru": "Конструктивизм"
@@ -6875,6 +7218,7 @@
     {
       "key": "glitch-type",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Glitch",
         "ru": "Глитч"
@@ -6889,6 +7233,7 @@
     {
       "key": "pixel",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Pixel",
         "ru": "Пиксель"
@@ -6903,6 +7248,7 @@
     {
       "key": "liquid-chrome",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Liquid chrome",
         "ru": "Жидкий хром"
@@ -6917,6 +7263,7 @@
     {
       "key": "cyber-sigil",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Cyber-sigilism",
         "ru": "Кибер-сигилизм"
@@ -6931,6 +7278,7 @@
     {
       "key": "neon",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Neon sign",
         "ru": "Неон"
@@ -6945,6 +7293,7 @@
     {
       "key": "marquee",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Circus marquee",
         "ru": "Цирковая афиша"
@@ -6959,6 +7308,7 @@
     {
       "key": "tattoo-banner",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Tattoo banner",
         "ru": "Тату-лента"
@@ -6973,6 +7323,7 @@
     {
       "key": "varsity",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Varsity",
         "ru": "Варсити"
@@ -6987,6 +7338,7 @@
     {
       "key": "melting",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Melting",
         "ru": "Плавящиеся"
@@ -7001,6 +7353,7 @@
     {
       "key": "extended-grotesk",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Extended grotesk",
         "ru": "Растянутый гротеск"
@@ -7015,6 +7368,7 @@
     {
       "key": "marker",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Marker scrawl",
         "ru": "Маркер от руки"
@@ -7029,6 +7383,7 @@
     {
       "key": "stencil",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Stencil",
         "ru": "Трафарет"
@@ -7043,6 +7398,7 @@
     {
       "key": "comic-boom",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Comic boom",
         "ru": "Комикс-бум"
@@ -7057,6 +7413,7 @@
     {
       "key": "folk-lettering",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Folk lettering",
         "ru": "Лубочная"
@@ -7071,6 +7428,7 @@
     {
       "key": "stacked",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Stacked word",
         "ru": "Слово стопкой"
@@ -7085,6 +7443,7 @@
     {
       "key": "calligraffiti",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Calligraffiti",
         "ru": "Каллиграффити"
@@ -7099,6 +7458,7 @@
     {
       "key": "chicano",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Chicano script",
         "ru": "Чикано-скрипт"
@@ -7113,6 +7473,7 @@
     {
       "key": "captions-only",
       "type": "typography",
+      "family": "paper",
       "label": {
         "en": "Captions only",
         "ru": "Только подписи"
@@ -7127,6 +7488,7 @@
     {
       "key": "sumi-brush",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Japanese brush",
         "ru": "Японская кисть"
@@ -7141,6 +7503,7 @@
     {
       "key": "manga-sfx",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Manga sound effect",
         "ru": "Манга-звук"
@@ -7155,6 +7518,7 @@
     {
       "key": "meiji-label",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Meiji label",
         "ru": "Этикетка Мэйдзи"
@@ -7169,6 +7533,7 @@
     {
       "key": "kaishu",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Chinese brush",
         "ru": "Китайская кисть"
@@ -7183,6 +7548,7 @@
     {
       "key": "spring-couplet",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Spring couplet",
         "ru": "Чуньлянь"
@@ -7197,6 +7563,7 @@
     {
       "key": "seal-stamp",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Seal stamp",
         "ru": "Печать"
@@ -7211,6 +7578,7 @@
     {
       "key": "bollywood-title",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Bollywood title",
         "ru": "Болливуд-титр"
@@ -7225,6 +7593,7 @@
     {
       "key": "headline-bar",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Headline bar",
         "ru": "Строка-широрекха"
@@ -7239,6 +7608,7 @@
     {
       "key": "arabesque",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Arabesque",
         "ru": "Арабеска"
@@ -7253,6 +7623,7 @@
     {
       "key": "storybook-gilt",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Storybook gilt",
         "ru": "Сказочная позолота"
@@ -7267,6 +7638,7 @@
     {
       "key": "gemstone",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Jewelled letters",
         "ru": "Самоцветы"
@@ -7281,6 +7653,7 @@
     {
       "key": "church-ustav",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Church ustav",
         "ru": "Церковный устав"
@@ -7295,6 +7668,7 @@
     {
       "key": "uncial",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Insular uncial",
         "ru": "Унциал"
@@ -7309,6 +7683,7 @@
     {
       "key": "cartouche",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Cartouche",
         "ru": "Картуш"
@@ -7323,6 +7698,7 @@
     {
       "key": "runic",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Runic carving",
         "ru": "Рунная резьба"
@@ -7337,6 +7713,7 @@
     {
       "key": "rotulo",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Mexican sign painting",
         "ru": "Мексиканская вывеска"
@@ -7351,6 +7728,7 @@
     {
       "key": "art-deco-type",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Art Deco letters",
         "ru": "Буквы ар-деко"
@@ -7365,6 +7743,7 @@
     {
       "key": "playbill",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Victorian playbill",
         "ru": "Викторианская афиша"
@@ -7379,6 +7758,7 @@
     {
       "key": "copperplate",
       "type": "typography",
+      "family": "heritage",
       "label": {
         "en": "Copperplate script",
         "ru": "Копперплейт"
@@ -7393,6 +7773,7 @@
     {
       "key": "bauhaus-type",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Bauhaus letters",
         "ru": "Буквы Баухауса"
@@ -7407,6 +7788,7 @@
     {
       "key": "thaw-modern",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Sixties modernism",
         "ru": "Оттепель"
@@ -7421,6 +7803,7 @@
     {
       "key": "didone",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Fashion Didone",
         "ru": "Глянцевая антиква"
@@ -7435,6 +7818,7 @@
     {
       "key": "groovy",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Groovy 70s",
         "ru": "Грув 70-х"
@@ -7449,6 +7833,7 @@
     {
       "key": "psychedelic-type",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Psychedelic letters",
         "ru": "Психоделические буквы"
@@ -7463,6 +7848,7 @@
     {
       "key": "inflated-type",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "Inflated letters",
         "ru": "Надувные буквы"
@@ -7477,6 +7863,7 @@
     {
       "key": "outrun",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Outrun chrome",
         "ru": "Аутран"
@@ -7491,6 +7878,7 @@
     {
       "key": "doodle",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Doodle letters",
         "ru": "Каракули"
@@ -7505,6 +7893,7 @@
     {
       "key": "chalk",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Chalkboard",
         "ru": "Мел на доске"
@@ -7519,6 +7908,7 @@
     {
       "key": "floral",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Floral letters",
         "ru": "Цветочные буквы"
@@ -7533,6 +7923,7 @@
     {
       "key": "streetwear-badge",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Streetwear badge",
         "ru": "Стритвир-эмблема"
@@ -7547,6 +7938,7 @@
     {
       "key": "kustom-script",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Kustom script",
         "ru": "Кастом-скрипт"
@@ -7561,6 +7953,7 @@
     {
       "key": "lucha-poster",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Lucha libre poster",
         "ru": "Афиша луча либре"
@@ -7575,6 +7968,7 @@
     {
       "key": "signature",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Signature",
         "ru": "Автограф"
@@ -7589,6 +7983,7 @@
     {
       "key": "dj-logo",
       "type": "typography",
+      "family": "digital",
       "label": {
         "en": "DJ logo",
         "ru": "Логотип диджея"
@@ -7603,6 +7998,7 @@
     {
       "key": "tattoo-lockup",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Tattoo lockup",
         "ru": "Тату-композиция"
@@ -7617,6 +8013,7 @@
     {
       "key": "sticker-script",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Sticker script",
         "ru": "Стикер-скрипт"
@@ -7631,6 +8028,7 @@
     {
       "key": "drift-decal",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Drift decal",
         "ru": "Дрифт-наклейка"
@@ -7645,6 +8043,7 @@
     {
       "key": "gradient-brush",
       "type": "typography",
+      "family": "hand",
       "label": {
         "en": "Gradient brush lettering",
         "ru": "Градиентная кисть"
@@ -7659,6 +8058,7 @@
     {
       "key": "freestyle-calligraphy",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Freestyle calligraphy",
         "ru": "Фристайл-каллиграфия"
@@ -7673,6 +8073,7 @@
     {
       "key": "neo-tribal",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Neo-tribal letters",
         "ru": "Нео-трайбл"
@@ -7687,6 +8088,7 @@
     {
       "key": "merch-lettering",
       "type": "typography",
+      "family": "street",
       "label": {
         "en": "Merch lettering",
         "ru": "Мерч-леттеринг"
@@ -7701,6 +8103,7 @@
     {
       "key": "neo-gothic",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Neo-gothic",
         "ru": "Нео-готика"
@@ -7715,6 +8118,7 @@
     {
       "key": "blade-calligraphy",
       "type": "typography",
+      "family": "tattoo",
       "label": {
         "en": "Blade calligraphy",
         "ru": "Каллиграфия-клинок"
@@ -7729,6 +8133,7 @@
     {
       "key": "brush-logotype",
       "type": "typography",
+      "family": "world",
       "label": {
         "en": "Running brush logotype",
         "ru": "Каллиграфический логотип"
@@ -7743,6 +8148,7 @@
     {
       "key": "letter-wreath",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Letter wreath",
         "ru": "Венок из букв"
@@ -7757,6 +8163,7 @@
     {
       "key": "swash-stack",
       "type": "typography",
+      "family": "era",
       "label": {
         "en": "Swash stack",
         "ru": "Колонна с росчерками"
@@ -7771,6 +8178,7 @@
     {
       "key": "clean",
       "type": "dressing",
+      "family": "quiet",
       "label": {
         "en": "Clean",
         "ru": "Чисто"
@@ -7781,6 +8189,7 @@
     {
       "key": "minimal",
       "type": "dressing",
+      "family": "quiet",
       "label": {
         "en": "Minimal",
         "ru": "Минимум"
@@ -7791,6 +8200,7 @@
     {
       "key": "hype",
       "type": "dressing",
+      "family": "loud",
       "label": {
         "en": "Hype poster",
         "ru": "Хайп-постер"
@@ -7801,6 +8211,7 @@
     {
       "key": "dossier",
       "type": "dressing",
+      "family": "document",
       "label": {
         "en": "Dossier",
         "ru": "Досье"
@@ -7811,6 +8222,7 @@
     {
       "key": "proofreading",
       "type": "dressing",
+      "family": "document",
       "label": {
         "en": "Proofreading",
         "ru": "Корректура"
@@ -7821,6 +8233,7 @@
     {
       "key": "museum-label",
       "type": "dressing",
+      "family": "document",
       "label": {
         "en": "Museum label",
         "ru": "Музейная этикетка"
@@ -7831,6 +8244,7 @@
     {
       "key": "stickers",
       "type": "dressing",
+      "family": "loud",
       "label": {
         "en": "Stickers and labels",
         "ru": "Стикеры и ярлыки"
@@ -7841,6 +8255,7 @@
     {
       "key": "swiss-grid",
       "type": "dressing",
+      "family": "quiet",
       "label": {
         "en": "Swiss grid",
         "ru": "Швейцарская сетка"
@@ -7851,6 +8266,7 @@
     {
       "key": "bg-paper",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Paper",
         "ru": "Бумага"
@@ -7864,6 +8280,7 @@
     {
       "key": "bg-cream",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Cream",
         "ru": "Крем"
@@ -7877,6 +8294,7 @@
     {
       "key": "bg-newsprint",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Newsprint",
         "ru": "Газетная"
@@ -7890,6 +8308,7 @@
     {
       "key": "bg-kraft",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Kraft",
         "ru": "Крафт"
@@ -7903,6 +8322,7 @@
     {
       "key": "bg-dusty-rose",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Dusty rose",
         "ru": "Пыльная роза"
@@ -7916,6 +8336,7 @@
     {
       "key": "bg-lavender",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Lavender",
         "ru": "Лаванда"
@@ -7929,6 +8350,7 @@
     {
       "key": "bg-sage",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Sage",
         "ru": "Шалфей"
@@ -7942,6 +8364,7 @@
     {
       "key": "bg-olive",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Olive",
         "ru": "Олива"
@@ -7955,6 +8378,7 @@
     {
       "key": "bg-mustard",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Mustard",
         "ru": "Горчица"
@@ -7968,6 +8392,7 @@
     {
       "key": "bg-acid",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Acid lime",
         "ru": "Кислотный"
@@ -7981,6 +8406,7 @@
     {
       "key": "bg-terracotta",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Terracotta",
         "ru": "Терракота"
@@ -7994,6 +8420,7 @@
     {
       "key": "bg-signal-red",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Signal red",
         "ru": "Сигнальный"
@@ -8007,6 +8434,7 @@
     {
       "key": "bg-oxblood",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Oxblood",
         "ru": "Бордо"
@@ -8020,6 +8448,7 @@
     {
       "key": "bg-cobalt",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Cobalt",
         "ru": "Кобальт"
@@ -8033,6 +8462,7 @@
     {
       "key": "bg-midnight",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Midnight",
         "ru": "Полночь"
@@ -8046,6 +8476,7 @@
     {
       "key": "bg-concrete",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Concrete",
         "ru": "Бетон"
@@ -8059,6 +8490,7 @@
     {
       "key": "bg-asphalt",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Asphalt",
         "ru": "Асфальт"
@@ -8072,6 +8504,7 @@
     {
       "key": "bg-ink",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Ink black",
         "ru": "Чернила"
@@ -8085,6 +8518,7 @@
     {
       "key": "bg-salmon",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Salmon",
         "ru": "Лосось"
@@ -8098,6 +8532,7 @@
     {
       "key": "bg-peach",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Peach",
         "ru": "Персик"
@@ -8111,6 +8546,7 @@
     {
       "key": "bg-apricot",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Apricot",
         "ru": "Абрикос"
@@ -8124,6 +8560,7 @@
     {
       "key": "bg-coral",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Coral",
         "ru": "Коралл"
@@ -8137,6 +8574,7 @@
     {
       "key": "bg-blush",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Blush",
         "ru": "Румяна"
@@ -8150,6 +8588,7 @@
     {
       "key": "bg-butter",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Butter",
         "ru": "Сливочное масло"
@@ -8163,6 +8602,7 @@
     {
       "key": "bg-pistachio",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Pistachio",
         "ru": "Фисташка"
@@ -8176,6 +8616,7 @@
     {
       "key": "bg-mint",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Mint",
         "ru": "Мята"
@@ -8189,6 +8630,7 @@
     {
       "key": "bg-powder-blue",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Powder blue",
         "ru": "Пудрово-голубой"
@@ -8202,6 +8644,7 @@
     {
       "key": "bg-periwinkle",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Periwinkle",
         "ru": "Барвинок"
@@ -8215,6 +8658,7 @@
     {
       "key": "bg-lilac",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Lilac",
         "ru": "Сирень"
@@ -8228,6 +8672,7 @@
     {
       "key": "bg-mauve",
       "type": "background",
+      "family": "pastel",
       "label": {
         "en": "Mauve",
         "ru": "Мов"
@@ -8241,6 +8686,7 @@
     {
       "key": "bg-sand",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Sand",
         "ru": "Песок"
@@ -8254,6 +8700,7 @@
     {
       "key": "bg-mocha",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Mocha mousse",
         "ru": "Мокко-мусс"
@@ -8267,6 +8714,7 @@
     {
       "key": "bg-cloud",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Cloud white",
         "ru": "Облачный белый"
@@ -8280,6 +8728,7 @@
     {
       "key": "bg-ivory",
       "type": "background",
+      "family": "neutral",
       "label": {
         "en": "Ivory",
         "ru": "Слоновая кость"
@@ -8293,6 +8742,7 @@
     {
       "key": "bg-ochre",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Ochre",
         "ru": "Охра"
@@ -8306,6 +8756,7 @@
     {
       "key": "bg-tangerine",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Tangerine",
         "ru": "Мандарин"
@@ -8319,6 +8770,7 @@
     {
       "key": "bg-shocking-pink",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Shocking pink",
         "ru": "Шокирующий розовый"
@@ -8332,6 +8784,7 @@
     {
       "key": "bg-cherry",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Cherry",
         "ru": "Вишня"
@@ -8345,6 +8798,7 @@
     {
       "key": "bg-teal",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Deep teal",
         "ru": "Глубокий бирюзовый"
@@ -8358,6 +8812,7 @@
     {
       "key": "bg-emerald",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Emerald",
         "ru": "Изумруд"
@@ -8371,6 +8826,7 @@
     {
       "key": "bg-forest",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Forest green",
         "ru": "Лесной"
@@ -8384,6 +8840,7 @@
     {
       "key": "bg-klein",
       "type": "background",
+      "family": "bright",
       "label": {
         "en": "Klein blue",
         "ru": "Синий Кляйна"
@@ -8397,6 +8854,7 @@
     {
       "key": "bg-plum",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Plum",
         "ru": "Слива"
@@ -8410,6 +8868,7 @@
     {
       "key": "bg-chocolate",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Chocolate",
         "ru": "Шоколад"
@@ -8423,6 +8882,7 @@
     {
       "key": "bg-charcoal",
       "type": "background",
+      "family": "dark",
       "label": {
         "en": "Charcoal",
         "ru": "Уголь"
@@ -8436,6 +8896,7 @@
     {
       "key": "bg-sunset",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Sunset",
         "ru": "Закат"
@@ -8451,6 +8912,7 @@
     {
       "key": "bg-peach-sky",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Peach sky",
         "ru": "Персиковое небо"
@@ -8465,6 +8927,7 @@
     {
       "key": "bg-dawn",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Dawn",
         "ru": "Рассвет"
@@ -8480,6 +8943,7 @@
     {
       "key": "bg-dusk",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Dusk",
         "ru": "Сумерки"
@@ -8495,6 +8959,7 @@
     {
       "key": "bg-aurora",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Aurora",
         "ru": "Северное сияние"
@@ -8510,6 +8975,7 @@
     {
       "key": "bg-lagoon",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Lagoon",
         "ru": "Лагуна"
@@ -8524,6 +8990,7 @@
     {
       "key": "bg-mint-lemonade",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Mint lemonade",
         "ru": "Мятный лимонад"
@@ -8538,6 +9005,7 @@
     {
       "key": "bg-rose-gold",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Rose gold",
         "ru": "Розовое золото"
@@ -8552,6 +9020,7 @@
     {
       "key": "bg-aura",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Aura",
         "ru": "Аура"
@@ -8567,6 +9036,7 @@
     {
       "key": "bg-embers",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Embers",
         "ru": "Угли"
@@ -8582,6 +9052,7 @@
     {
       "key": "bg-smoke",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Smoke",
         "ru": "Дым"
@@ -8596,6 +9067,7 @@
     {
       "key": "bg-lavender-haze",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Lavender haze",
         "ru": "Лавандовая дымка"
@@ -8610,6 +9082,7 @@
     {
       "key": "bg-sage-mist",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Sage mist",
         "ru": "Шалфейный туман"
@@ -8624,6 +9097,7 @@
     {
       "key": "bg-neon-night",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Neon night",
         "ru": "Неоновая ночь"
@@ -8638,6 +9112,7 @@
     {
       "key": "bg-desert",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Desert",
         "ru": "Пустыня"
@@ -8652,6 +9127,7 @@
     {
       "key": "bg-holographic",
       "type": "background",
+      "family": "gradient",
       "label": {
         "en": "Holographic",
         "ru": "Голография"
@@ -8668,6 +9144,7 @@
     {
       "key": "accent-salmon",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Salmon",
         "ru": "Лосось"
@@ -8681,6 +9158,7 @@
     {
       "key": "accent-coral",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Coral",
         "ru": "Коралл"
@@ -8694,6 +9172,7 @@
     {
       "key": "accent-peach",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Peach",
         "ru": "Персик"
@@ -8707,6 +9186,7 @@
     {
       "key": "accent-tangerine",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Tangerine",
         "ru": "Мандарин"
@@ -8720,6 +9200,7 @@
     {
       "key": "accent-marigold",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Marigold",
         "ru": "Бархатцы"
@@ -8733,6 +9214,7 @@
     {
       "key": "accent-lemon",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Lemon",
         "ru": "Лимон"
@@ -8746,6 +9228,7 @@
     {
       "key": "accent-acid",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Acid lime",
         "ru": "Кислотный лайм"
@@ -8759,6 +9242,7 @@
     {
       "key": "accent-mint",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Mint",
         "ru": "Мята"
@@ -8772,6 +9256,7 @@
     {
       "key": "accent-teal",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Teal",
         "ru": "Бирюза"
@@ -8785,6 +9270,7 @@
     {
       "key": "accent-turquoise",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Turquoise",
         "ru": "Яркая бирюза"
@@ -8798,6 +9284,7 @@
     {
       "key": "accent-sky",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Sky blue",
         "ru": "Небесно-голубой"
@@ -8811,6 +9298,7 @@
     {
       "key": "accent-klein",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Klein blue",
         "ru": "Синий Кляйна"
@@ -8824,6 +9312,7 @@
     {
       "key": "accent-periwinkle",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Periwinkle",
         "ru": "Барвинок"
@@ -8837,6 +9326,7 @@
     {
       "key": "accent-violet",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Electric violet",
         "ru": "Электрик-фиолетовый"
@@ -8850,6 +9340,7 @@
     {
       "key": "accent-lilac",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Lilac",
         "ru": "Сирень"
@@ -8863,6 +9354,7 @@
     {
       "key": "accent-hot-pink",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Hot pink",
         "ru": "Горячий розовый"
@@ -8876,6 +9368,7 @@
     {
       "key": "accent-bubblegum",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Bubblegum",
         "ru": "Жвачка"
@@ -8889,6 +9382,7 @@
     {
       "key": "accent-blush",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Blush",
         "ru": "Румяна"
@@ -8902,6 +9396,7 @@
     {
       "key": "accent-signal-red",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Signal red",
         "ru": "Сигнальный красный"
@@ -8915,6 +9410,7 @@
     {
       "key": "accent-cherry",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Cherry",
         "ru": "Вишня"
@@ -8928,6 +9424,7 @@
     {
       "key": "accent-emerald",
       "type": "accent",
+      "family": "cool",
       "label": {
         "en": "Emerald",
         "ru": "Изумруд"
@@ -8941,6 +9438,7 @@
     {
       "key": "accent-gold",
       "type": "accent",
+      "family": "metal",
       "label": {
         "en": "Gold",
         "ru": "Золото"
@@ -8954,6 +9452,7 @@
     {
       "key": "accent-silver",
       "type": "accent",
+      "family": "metal",
       "label": {
         "en": "Silver",
         "ru": "Серебро"
@@ -8967,6 +9466,7 @@
     {
       "key": "accent-copper",
       "type": "accent",
+      "family": "metal",
       "label": {
         "en": "Copper",
         "ru": "Медь"
@@ -8980,6 +9480,7 @@
     {
       "key": "accent-cream",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Cream",
         "ru": "Сливки"
@@ -8993,6 +9494,7 @@
     {
       "key": "accent-mocha",
       "type": "accent",
+      "family": "warm",
       "label": {
         "en": "Mocha mousse",
         "ru": "Мокко-мусс"
@@ -9006,6 +9508,7 @@
     {
       "key": "accent-grad-sunset",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Sunset gradient",
         "ru": "Закатный градиент"
@@ -9020,6 +9523,7 @@
     {
       "key": "accent-grad-peach-lilac",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Peach to lilac",
         "ru": "Персик в сирень"
@@ -9034,6 +9538,7 @@
     {
       "key": "accent-grad-neon",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Neon gradient",
         "ru": "Неоновый градиент"
@@ -9049,6 +9554,7 @@
     {
       "key": "accent-grad-fire",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Fire gradient",
         "ru": "Огненный градиент"
@@ -9064,6 +9570,7 @@
     {
       "key": "accent-grad-lagoon",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Lagoon gradient",
         "ru": "Лагуна"
@@ -9078,6 +9585,7 @@
     {
       "key": "accent-grad-holographic",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Holographic",
         "ru": "Голографический"
@@ -9094,6 +9602,7 @@
     {
       "key": "accent-grad-gold-foil",
       "type": "accent",
+      "family": "metal",
       "label": {
         "en": "Gold foil",
         "ru": "Золотая фольга"
@@ -9110,6 +9619,7 @@
     {
       "key": "accent-grad-chrome",
       "type": "accent",
+      "family": "metal",
       "label": {
         "en": "Chrome",
         "ru": "Хром"
@@ -9126,6 +9636,7 @@
     {
       "key": "accent-grad-rose-gold",
       "type": "accent",
+      "family": "metal",
       "label": {
         "en": "Rose gold gradient",
         "ru": "Розовое золото"
@@ -9140,6 +9651,7 @@
     {
       "key": "accent-grad-toxic",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Toxic gradient",
         "ru": "Токсичный градиент"
@@ -9154,6 +9666,7 @@
     {
       "key": "accent-grad-candy",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Candy gradient",
         "ru": "Леденец"
@@ -9168,6 +9681,7 @@
     {
       "key": "accent-grad-twilight",
       "type": "accent",
+      "family": "gradient",
       "label": {
         "en": "Twilight gradient",
         "ru": "Сумеречный градиент"
@@ -9707,6 +10221,7 @@
     {
       "key": "sound-female-vocal",
       "type": "vocal",
+      "family": "voice",
       "label": {
         "en": "female vocal",
         "ru": "женский вокал"
@@ -9721,6 +10236,7 @@
     {
       "key": "sound-male-vocal",
       "type": "vocal",
+      "family": "voice",
       "label": {
         "en": "male vocal",
         "ru": "мужской вокал"
@@ -9735,6 +10251,7 @@
     {
       "key": "sound-constant-female-backing-vocals",
       "type": "vocal",
+      "family": "backing",
       "label": {
         "en": "constant female backing vocals",
         "ru": "постоянные женские подпевки"
@@ -9749,6 +10266,7 @@
     {
       "key": "sound-intimate-close-mic-female-vocal",
       "type": "vocal",
+      "family": "voice",
       "label": {
         "en": "intimate close-mic female vocal",
         "ru": "близкий интимный женский вокал"
@@ -9763,6 +10281,7 @@
     {
       "key": "sound-breathy-whisper-vocal",
       "type": "vocal",
+      "family": "voice",
       "label": {
         "en": "breathy whisper vocal",
         "ru": "дыхание и шёпот"
@@ -9777,6 +10296,7 @@
     {
       "key": "sound-double-tracked-vocal",
       "type": "vocal",
+      "family": "backing",
       "label": {
         "en": "double-tracked vocal",
         "ru": "дабл-трек вокала"
@@ -9791,6 +10311,7 @@
     {
       "key": "sound-layered-vocal-harmonies",
       "type": "vocal",
+      "family": "backing",
       "label": {
         "en": "layered vocal harmonies",
         "ru": "многослойные гармонии"
@@ -9805,6 +10326,7 @@
     {
       "key": "sound-sparse-backing-vocals",
       "type": "vocal",
+      "family": "backing",
       "label": {
         "en": "sparse backing vocals",
         "ru": "редкие подпевки"
@@ -9819,6 +10341,7 @@
     {
       "key": "sound-spoken-word-verses",
       "type": "vocal",
+      "family": "delivery",
       "label": {
         "en": "spoken word verses",
         "ru": "куплеты речитативом"
@@ -9833,6 +10356,7 @@
     {
       "key": "sound-belted-emotional-chorus",
       "type": "vocal",
+      "family": "delivery",
       "label": {
         "en": "belted emotional chorus",
         "ru": "припев на разрыв"
@@ -9847,6 +10371,7 @@
     {
       "key": "sound-wordless-vocal",
       "type": "vocal",
+      "family": "device",
       "label": {
         "en": "wordless vocal",
         "ru": "вокализ без слов"
@@ -9861,6 +10386,7 @@
     {
       "key": "sound-vocal-chops",
       "type": "vocal",
+      "family": "device",
       "label": {
         "en": "vocal chops",
         "ru": "нарезка вокала"
@@ -9875,6 +10401,7 @@
     {
       "key": "sound-deadpan-flat-delivery",
       "type": "vocal",
+      "family": "delivery",
       "label": {
         "en": "deadpan flat delivery",
         "ru": "бесстрастная подача"
@@ -9889,6 +10416,7 @@
     {
       "key": "sound-no-backing-vocals",
       "type": "vocal",
+      "family": "backing",
       "label": {
         "en": "no backing vocals",
         "ru": "без подпевок"
@@ -9903,6 +10431,7 @@
     {
       "key": "sound-detached-baritone-vocal",
       "type": "vocal",
+      "family": "voice",
       "label": {
         "en": "detached baritone vocal",
         "ru": "отстранённый баритон"
@@ -9917,6 +10446,7 @@
     {
       "key": "sound-raspy-conversational-vocal",
       "type": "vocal",
+      "family": "voice",
       "label": {
         "en": "raspy conversational vocal",
         "ru": "хрипловатая разговорная манера"
@@ -9931,6 +10461,7 @@
     {
       "key": "sound-snarled-punk-vocal",
       "type": "vocal",
+      "family": "voice",
       "label": {
         "en": "snarled punk vocal",
         "ru": "рычащий панк-вокал"
@@ -9945,6 +10476,7 @@
     {
       "key": "sound-chanted-mantra-hook",
       "type": "vocal",
+      "family": "device",
       "label": {
         "en": "chanted mantra hook",
         "ru": "хук-мантра"
@@ -9959,6 +10491,7 @@
     {
       "key": "sound-pitched-up-vocal-double",
       "type": "vocal",
+      "family": "backing",
       "label": {
         "en": "pitched-up vocal double",
         "ru": "дубль вокала с повышенным питчем"
@@ -9973,6 +10506,7 @@
     {
       "key": "sound-long-slow-vocal-notes",
       "type": "vocal",
+      "family": "delivery",
       "label": {
         "en": "long slow vocal notes",
         "ru": "долгие медленные ноты"
@@ -10887,6 +11421,7 @@
     {
       "key": "sound-deep-sub-bass",
       "type": "bass",
+      "family": "synth",
       "label": {
         "en": "deep sub bass",
         "ru": "глубокий саб-бас"
@@ -10901,6 +11436,7 @@
     {
       "key": "sound-warm-round-bass-guitar",
       "type": "bass",
+      "family": "played",
       "label": {
         "en": "warm round bass guitar",
         "ru": "тёплый округлый бас"
@@ -10915,6 +11451,7 @@
     {
       "key": "sound-upright-bass",
       "type": "bass",
+      "family": "played",
       "label": {
         "en": "upright bass",
         "ru": "контрабас"
@@ -10929,6 +11466,7 @@
     {
       "key": "sound-fuzzy-bass",
       "type": "bass",
+      "family": "played",
       "label": {
         "en": "fuzzy bass",
         "ru": "грязный бас"
@@ -10943,6 +11481,7 @@
     {
       "key": "sound-dub-bass",
       "type": "bass",
+      "family": "synth",
       "label": {
         "en": "dub bass",
         "ru": "даб-бас"
@@ -10957,6 +11496,7 @@
     {
       "key": "sound-minimal-bass",
       "type": "bass",
+      "family": "sparse",
       "label": {
         "en": "minimal bass",
         "ru": "минимальный бас"
@@ -10971,6 +11511,7 @@
     {
       "key": "sound-no-bass",
       "type": "bass",
+      "family": "sparse",
       "label": {
         "en": "no bass",
         "ru": "без баса"
@@ -10985,6 +11526,7 @@
     {
       "key": "sound-reese-bass",
       "type": "bass",
+      "family": "synth",
       "label": {
         "en": "reese bass",
         "ru": "риис-бас"
@@ -10999,6 +11541,7 @@
     {
       "key": "sound-acid-303-bassline",
       "type": "bass",
+      "family": "synth",
       "label": {
         "en": "acid 303 bassline",
         "ru": "эйсид-бас 303"
@@ -11013,6 +11556,7 @@
     {
       "key": "sound-fuzz-bass-with-an-octave-pedal",
       "type": "bass",
+      "family": "played",
       "label": {
         "en": "fuzz bass with an octave pedal",
         "ru": "фузз-бас с октавером"
@@ -11027,6 +11571,7 @@
     {
       "key": "sound-melancholic",
       "type": "mood",
+      "family": "longing",
       "label": {
         "en": "melancholic",
         "ru": "меланхоличное"
@@ -11041,6 +11586,7 @@
     {
       "key": "sound-cold-atmosphere",
       "type": "mood",
+      "family": "dark",
       "label": {
         "en": "cold atmosphere",
         "ru": "холодная атмосфера"
@@ -11055,6 +11601,7 @@
     {
       "key": "sound-nostalgic",
       "type": "mood",
+      "family": "longing",
       "label": {
         "en": "nostalgic",
         "ru": "ностальгическое"
@@ -11069,6 +11616,7 @@
     {
       "key": "sound-emotional-detachment",
       "type": "mood",
+      "family": "dark",
       "label": {
         "en": "emotional detachment",
         "ru": "эмоциональная отстранённость"
@@ -11083,6 +11631,7 @@
     {
       "key": "sound-surreal",
       "type": "mood",
+      "family": "dream",
       "label": {
         "en": "surreal",
         "ru": "сюрреалистичное"
@@ -11097,6 +11646,7 @@
     {
       "key": "sound-bittersweet",
       "type": "mood",
+      "family": "longing",
       "label": {
         "en": "bittersweet",
         "ru": "горько-сладкое"
@@ -11111,6 +11661,7 @@
     {
       "key": "sound-wistful-longing",
       "type": "mood",
+      "family": "longing",
       "label": {
         "en": "wistful longing",
         "ru": "томление"
@@ -11125,6 +11676,7 @@
     {
       "key": "sound-eerie",
       "type": "mood",
+      "family": "dark",
       "label": {
         "en": "eerie",
         "ru": "жутковатое"
@@ -11139,6 +11691,7 @@
     {
       "key": "sound-hopeful-melancholy",
       "type": "mood",
+      "family": "longing",
       "label": {
         "en": "hopeful melancholy",
         "ru": "грусть с надеждой"
@@ -11153,6 +11706,7 @@
     {
       "key": "sound-numb",
       "type": "mood",
+      "family": "dark",
       "label": {
         "en": "numb",
         "ru": "оцепенение"
@@ -11167,6 +11721,7 @@
     {
       "key": "sound-tender-intimate",
       "type": "mood",
+      "family": "warm",
       "label": {
         "en": "tender intimate",
         "ru": "нежное и близкое"
@@ -11181,6 +11736,7 @@
     {
       "key": "sound-anxious-tension",
       "type": "mood",
+      "family": "dark",
       "label": {
         "en": "anxious tension",
         "ru": "тревожное напряжение"
@@ -11195,6 +11751,7 @@
     {
       "key": "sound-warm-comforting",
       "type": "mood",
+      "family": "warm",
       "label": {
         "en": "warm comforting",
         "ru": "тёплое и утешающее"
@@ -11209,6 +11766,7 @@
     {
       "key": "sound-dreamlike-hazy",
       "type": "mood",
+      "family": "dream",
       "label": {
         "en": "dreamlike hazy",
         "ru": "дымка сна"
@@ -11223,6 +11781,7 @@
     {
       "key": "sound-quiet-desperation",
       "type": "mood",
+      "family": "dark",
       "label": {
         "en": "quiet desperation",
         "ru": "тихое отчаяние"
@@ -11237,6 +11796,7 @@
     {
       "key": "sound-cinematic",
       "type": "mood",
+      "family": "dream",
       "label": {
         "en": "cinematic",
         "ru": "кинематографичное"
@@ -11251,6 +11811,7 @@
     {
       "key": "sound-menacing",
       "type": "mood",
+      "family": "dark",
       "label": {
         "en": "menacing",
         "ru": "угрожающее"
@@ -11265,6 +11826,7 @@
     {
       "key": "sound-euphoric",
       "type": "mood",
+      "family": "warm",
       "label": {
         "en": "euphoric",
         "ru": "эйфоричное"
@@ -11279,6 +11841,7 @@
     {
       "key": "sound-defiant",
       "type": "mood",
+      "family": "warm",
       "label": {
         "en": "defiant",
         "ru": "вызывающее"
@@ -11293,6 +11856,7 @@
     {
       "key": "sound-mournful",
       "type": "mood",
+      "family": "longing",
       "label": {
         "en": "mournful",
         "ru": "скорбное"
@@ -11307,6 +11871,7 @@
     {
       "key": "sound-vinyl-crackle",
       "type": "texture",
+      "family": "wear",
       "label": {
         "en": "vinyl crackle",
         "ru": "треск винила"
@@ -11321,6 +11886,7 @@
     {
       "key": "sound-lo-fi",
       "type": "texture",
+      "family": "wear",
       "label": {
         "en": "lo-fi",
         "ru": "лоу-фай"
@@ -11335,6 +11901,7 @@
     {
       "key": "sound-no-live-recording",
       "type": "texture",
+      "family": "polish",
       "label": {
         "en": "no live recording",
         "ru": "студийная запись"
@@ -11349,6 +11916,7 @@
     {
       "key": "sound-balanced-radio-friendly-indie-production",
       "type": "texture",
+      "family": "polish",
       "label": {
         "en": "balanced radio-friendly indie production",
         "ru": "сбалансированный радио-инди микс"
@@ -11363,6 +11931,7 @@
     {
       "key": "sound-tape-saturation",
       "type": "texture",
+      "family": "wear",
       "label": {
         "en": "tape saturation",
         "ru": "плёночное насыщение"
@@ -11377,6 +11946,7 @@
     {
       "key": "sound-cassette-warble",
       "type": "texture",
+      "family": "wear",
       "label": {
         "en": "cassette warble",
         "ru": "плавающий питч кассеты"
@@ -11391,6 +11961,7 @@
     {
       "key": "sound-heavy-reverb",
       "type": "texture",
+      "family": "space",
       "label": {
         "en": "heavy reverb",
         "ru": "тяжёлая реверберация"
@@ -11405,6 +11976,7 @@
     {
       "key": "sound-spring-reverb",
       "type": "texture",
+      "family": "space",
       "label": {
         "en": "spring reverb",
         "ru": "пружинная реверберация"
@@ -11419,6 +11991,7 @@
     {
       "key": "sound-tape-delay",
       "type": "texture",
+      "family": "wear",
       "label": {
         "en": "tape delay",
         "ru": "плёночное эхо"
@@ -11433,6 +12006,7 @@
     {
       "key": "sound-sidechained-pumping",
       "type": "texture",
+      "family": "polish",
       "label": {
         "en": "sidechained pumping",
         "ru": "дышащая компрессия"
@@ -11447,6 +12021,7 @@
     {
       "key": "sound-bit-crushed-textures",
       "type": "texture",
+      "family": "noise",
       "label": {
         "en": "bit-crushed textures",
         "ru": "бит-краш фактуры"
@@ -11461,6 +12036,7 @@
     {
       "key": "sound-field-recording-ambience",
       "type": "texture",
+      "family": "space",
       "label": {
         "en": "field recording ambience",
         "ru": "полевые записи"
@@ -11475,6 +12051,7 @@
     {
       "key": "sound-analog-warmth",
       "type": "texture",
+      "family": "wear",
       "label": {
         "en": "analog warmth",
         "ru": "аналоговое тепло"
@@ -11489,6 +12066,7 @@
     {
       "key": "sound-distant-muffled-mix",
       "type": "texture",
+      "family": "space",
       "label": {
         "en": "distant muffled mix",
         "ru": "приглушённый далёкий микс"
@@ -11503,6 +12081,7 @@
     {
       "key": "sound-airy-spacious-mix",
       "type": "texture",
+      "family": "space",
       "label": {
         "en": "airy spacious mix",
         "ru": "воздушный просторный микс"
@@ -11517,6 +12096,7 @@
     {
       "key": "sound-raw-unpolished",
       "type": "texture",
+      "family": "noise",
       "label": {
         "en": "raw unpolished",
         "ru": "сырое звучание"
@@ -11531,6 +12111,7 @@
     {
       "key": "sound-dense-wall-of-sound",
       "type": "texture",
+      "family": "noise",
       "label": {
         "en": "dense wall of sound",
         "ru": "плотная стена звука"
@@ -11545,6 +12126,7 @@
     {
       "key": "sound-sustained-wall-of-fuzz-guitars",
       "type": "texture",
+      "family": "noise",
       "label": {
         "en": "sustained wall of fuzz guitars",
         "ru": "стена гудящего фуззом"
@@ -11559,6 +12141,7 @@
     {
       "key": "sound-digital-clipping",
       "type": "texture",
+      "family": "noise",
       "label": {
         "en": "digital clipping",
         "ru": "цифровой клиппинг"
@@ -11573,6 +12156,7 @@
     {
       "key": "sound-dry-live-room-sound",
       "type": "texture",
+      "family": "space",
       "label": {
         "en": "dry live-room sound",
         "ru": "сухой звук живой комнаты"
@@ -11587,6 +12171,7 @@
     {
       "key": "sound-long-feedback-tails",
       "type": "texture",
+      "family": "noise",
       "label": {
         "en": "long feedback tails",
         "ru": "длинные хвосты фидбэка"
@@ -11601,6 +12186,7 @@
     {
       "key": "sound-backwards-tape-guitars",
       "type": "texture",
+      "family": "wear",
       "label": {
         "en": "backwards tape guitars",
         "ru": "гитары с обратной лентой"
@@ -11615,6 +12201,7 @@
     {
       "key": "sound-slow-tempo",
       "type": "tempo",
+      "family": "slow",
       "label": {
         "en": "slow tempo",
         "ru": "медленный темп"
@@ -11629,6 +12216,7 @@
     {
       "key": "sound-mid-tempo",
       "type": "tempo",
+      "family": "moving",
       "label": {
         "en": "mid tempo",
         "ru": "средний темп"
@@ -11643,6 +12231,7 @@
     {
       "key": "sound-ballad-tempo",
       "type": "tempo",
+      "family": "slow",
       "label": {
         "en": "ballad tempo",
         "ru": "темп баллады"
@@ -11657,6 +12246,7 @@
     {
       "key": "sound-building-tempo",
       "type": "tempo",
+      "family": "moving",
       "label": {
         "en": "building tempo",
         "ru": "нарастающий темп"
@@ -11671,6 +12261,7 @@
     {
       "key": "sound-downtempo",
       "type": "tempo",
+      "family": "slow",
       "label": {
         "en": "downtempo",
         "ru": "даунтемпо"
@@ -11685,6 +12276,7 @@
     {
       "key": "sound-uptempo",
       "type": "tempo",
+      "family": "moving",
       "label": {
         "en": "uptempo",
         "ru": "быстрый темп"
@@ -11699,6 +12291,7 @@
     {
       "key": "sound-double-time-feel",
       "type": "tempo",
+      "family": "moving",
       "label": {
         "en": "double-time feel",
         "ru": "ощущение двойного темпа"
@@ -11713,6 +12306,7 @@
     {
       "key": "sound-half-time-feel",
       "type": "tempo",
+      "family": "slow",
       "label": {
         "en": "half-time feel",
         "ru": "ощущение половинного темпа"
@@ -11727,6 +12321,7 @@
     {
       "key": "sound-quiet-loud-dynamics",
       "type": "dynamics",
+      "family": "contrast",
       "label": {
         "en": "quiet-loud dynamics",
         "ru": "динамика тихо-громко"
@@ -11741,6 +12336,7 @@
     {
       "key": "sound-slow-build-to-cathartic-peak",
       "type": "dynamics",
+      "family": "arc",
       "label": {
         "en": "slow build to cathartic peak",
         "ru": "медленный рост к катарсису"
@@ -11755,6 +12351,7 @@
     {
       "key": "sound-stripped-intro-to-full-outro",
       "type": "dynamics",
+      "family": "arc",
       "label": {
         "en": "stripped intro to full outro",
         "ru": "голое начало, плотный финал"
@@ -11769,6 +12366,7 @@
     {
       "key": "sound-sudden-drop-to-silence",
       "type": "dynamics",
+      "family": "contrast",
       "label": {
         "en": "sudden drop to silence",
         "ru": "резкий обрыв в тишину"
@@ -11783,6 +12381,7 @@
     {
       "key": "sound-sparse-verse-and-dense-chorus",
       "type": "dynamics",
+      "family": "contrast",
       "label": {
         "en": "sparse verse and dense chorus",
         "ru": "разреженный куплет, плотный припев"
@@ -11797,6 +12396,7 @@
     {
       "key": "sound-one-take-intimate-feel",
       "type": "dynamics",
+      "family": "steady",
       "label": {
         "en": "one-take intimate feel",
         "ru": "ощущение одного дубля"
@@ -11811,6 +12411,7 @@
     {
       "key": "sound-repetitive-hypnotic-loop",
       "type": "dynamics",
+      "family": "steady",
       "label": {
         "en": "repetitive hypnotic loop",
         "ru": "гипнотический повтор"
@@ -11825,6 +12426,7 @@
     {
       "key": "sound-outro-instrumental-jam",
       "type": "dynamics",
+      "family": "steady",
       "label": {
         "en": "outro instrumental jam",
         "ru": "инструментальный финал"
@@ -11839,6 +12441,7 @@
     {
       "key": "sound-build-and-collapse-structure",
       "type": "dynamics",
+      "family": "arc",
       "label": {
         "en": "build-and-collapse structure",
         "ru": "нагнетание и срыв"
@@ -11853,6 +12456,7 @@
     {
       "key": "sound-break-fading-in-late",
       "type": "dynamics",
+      "family": "arc",
       "label": {
         "en": "break fading in late",
         "ru": "брейк проступает поздно"
@@ -11867,6 +12471,7 @@
     {
       "key": "sound-final-chorus-switching-to-double-time",
       "type": "dynamics",
+      "family": "arc",
       "label": {
         "en": "final chorus switching to double-time",
         "ru": "последний припев вдвое быстрее"
@@ -11881,6 +12486,7 @@
     {
       "key": "sound-straight-beat-verses-with-a-breakbeat-chorus",
       "type": "dynamics",
+      "family": "contrast",
       "label": {
         "en": "straight-beat verses with a breakbeat chorus",
         "ru": "куплеты на ровном бите, припев на брейке"
@@ -11895,6 +12501,7 @@
     {
       "key": "sound-chopped-breakbeat-instead-of-a-rock-beat",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "chopped breakbeat instead of a rock beat",
         "ru": "брейк вместо рок-бита"
@@ -11909,6 +12516,7 @@
     {
       "key": "sound-half-time-guitar-over-the-break",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "half-time guitar over the break",
         "ru": "гитара вдвое медленнее брейка"
@@ -11923,6 +12531,7 @@
     {
       "key": "sound-real-distorted-guitars-stay-in-front",
       "type": "knob",
+      "family": "guitar",
       "label": {
         "en": "real distorted guitars stay in front",
         "ru": "живые гитары остаются впереди"
@@ -11937,6 +12546,7 @@
     {
       "key": "sound-everything-in-the-red",
       "type": "knob",
+      "family": "mix",
       "label": {
         "en": "everything in the red",
         "ru": "всё в красной зоне"
@@ -11951,6 +12561,7 @@
     {
       "key": "sound-everything-clipping",
       "type": "knob",
+      "family": "mix",
       "label": {
         "en": "everything clipping",
         "ru": "всё клиппует"
@@ -11965,6 +12576,7 @@
     {
       "key": "sound-dusty-vinyl-sampled-break",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "dusty vinyl-sampled break",
         "ru": "пыльный сэмпл с винила"
@@ -11979,6 +12591,7 @@
     {
       "key": "sound-breakbeat-run-through-a-fuzz-pedal",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "breakbeat run through a fuzz pedal",
         "ru": "брейк через фузз"
@@ -11993,6 +12606,7 @@
     {
       "key": "sound-break-played-in-a-big-live-room",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "break played in a big live room",
         "ru": "брейк в большой комнате"
@@ -12007,6 +12621,7 @@
     {
       "key": "sound-gated-reverb-on-the-break-snare",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "gated reverb on the break snare",
         "ru": "гейтовая реверберация на снэйре"
@@ -12021,6 +12636,7 @@
     {
       "key": "sound-pitched-up-break-with-fast-chipmunk-snares",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "pitched-up break with fast chipmunk snares",
         "ru": "ускоренный брейк"
@@ -12035,6 +12651,7 @@
     {
       "key": "sound-slow-enormous-pitched-down-break",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "slow enormous pitched-down break",
         "ru": "замедленный брейк"
@@ -12049,6 +12666,7 @@
     {
       "key": "sound-stuttered-snare-rolls-before-every-chorus",
       "type": "knob",
+      "family": "moment",
       "label": {
         "en": "stuttered snare rolls before every chorus",
         "ru": "заикающиеся снэйр-роллы перед припевом"
@@ -12063,6 +12681,7 @@
     {
       "key": "sound-reversed-snare-rising-into-each-section",
       "type": "knob",
+      "family": "moment",
       "label": {
         "en": "reversed snare rising into each section",
         "ru": "реверсный снэйр перед секцией"
@@ -12077,6 +12696,7 @@
     {
       "key": "sound-tape-stop-at-the-end-of-the-bridge",
       "type": "knob",
+      "family": "moment",
       "label": {
         "en": "tape stop at the end of the bridge",
         "ru": "остановка ленты в конце бриджа"
@@ -12091,6 +12711,7 @@
     {
       "key": "sound-break-filtered-thin-in-the-intro",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "break filtered thin in the intro",
         "ru": "тонкий брейк в начале"
@@ -12105,6 +12726,7 @@
     {
       "key": "sound-drums-drop-out-for-two-bars-before-the-last-chorus",
       "type": "knob",
+      "family": "moment",
       "label": {
         "en": "drums drop out for two bars before the last chorus",
         "ru": "барабаны пропадают перед последним припевом"
@@ -12119,6 +12741,7 @@
     {
       "key": "sound-chopped-amen-drum-break-alone-for-eight-bars",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "chopped amen drum break alone for eight bars",
         "ru": "соло амен-брейка"
@@ -12133,6 +12756,7 @@
     {
       "key": "sound-reese-bass-doubled-by-a-downtuned-distorted-guitar",
       "type": "knob",
+      "family": "guitar",
       "label": {
         "en": "reese bass doubled by a downtuned distorted guitar",
         "ru": "риис-бас в унисон с гитарой"
@@ -12147,6 +12771,7 @@
     {
       "key": "sound-one-hoover-synth-stab-answering-the-guitar-riff",
       "type": "knob",
+      "family": "guitar",
       "label": {
         "en": "one hoover synth stab answering the guitar riff",
         "ru": "хувер-удар в ответ риффу"
@@ -12161,6 +12786,7 @@
     {
       "key": "sound-rave-siren-rising-through-the-build",
       "type": "knob",
+      "family": "moment",
       "label": {
         "en": "rave siren rising through the build",
         "ru": "рейв-сирена в нарастании"
@@ -12175,6 +12801,7 @@
     {
       "key": "sound-noise-guitar-bursts-between-phrases",
       "type": "knob",
+      "family": "guitar",
       "label": {
         "en": "noise guitar bursts between phrases",
         "ru": "шумовые вспышки гитары между фразами"
@@ -12189,6 +12816,7 @@
     {
       "key": "sound-palm-muted-guitar-stabs-locked-to-the-kick-pattern",
       "type": "knob",
+      "family": "guitar",
       "label": {
         "en": "palm-muted guitar stabs locked to the kick pattern",
         "ru": "приглушённые гитарные удары по бочке"
@@ -12203,6 +12831,7 @@
     {
       "key": "sound-the-break-supplies-all-the-motion",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "the break supplies all the motion",
         "ru": "всё движение даёт брейк"
@@ -12217,6 +12846,7 @@
     {
       "key": "sound-no-drop-and-no-build-up",
       "type": "knob",
+      "family": "mix",
       "label": {
         "en": "no drop and no build-up",
         "ru": "без дропа и нарастания"
@@ -12231,6 +12861,7 @@
     {
       "key": "sound-soft-distant-break-running-at-double-time",
       "type": "knob",
+      "family": "break",
       "label": {
         "en": "soft distant break running at double time",
         "ru": "мягкий далёкий брейк вдвое быстрее"

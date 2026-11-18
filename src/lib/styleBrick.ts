@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { StyleBrick, StyleType } from '@/lib/api/types'
+import type { ProfileConfig, StyleBrick, StyleType } from '@/lib/api/types'
 import { say } from '@/lib/useProfile'
 
 /*
@@ -130,6 +130,63 @@ export function slotsOf(text: string): string[] {
     if (name !== undefined && !out.includes(name)) out.push(name)
   }
   return out
+}
+
+/**
+ * The family a brick is filed under is switched off whole in the profile
+ * (v0.132, FR-05 5.3). A brick filed under none - the owner's own - never is.
+ */
+function familyOff(
+  types: readonly StyleType[],
+  brick: Pick<StyleBrick, 'type_key' | 'family'>,
+): boolean {
+  if (brick.family === null) return false
+  const type = types.find((one) => one.key === brick.type_key)
+  return type?.families?.some((one) => one.key === brick.family && one.off === true) ?? false
+}
+
+/**
+ * What a picker or a composer offers: a ready brick whose family is on - the
+ * backend's `style_brick::offered`.
+ */
+export function isOffered(types: readonly StyleType[], brick: StyleBrick): boolean {
+  return brick.status === 'ready' && !familyOff(types, brick)
+}
+
+/** The order a picker offers in: the channel's house styles, then the starred. */
+export function byOffer(house: ReadonlySet<string>) {
+  return (a: StyleBrick, b: StyleBrick): number =>
+    Number(house.has(b.id)) - Number(house.has(a.id)) ||
+    Number(b.favorite === true) - Number(a.favorite === true)
+}
+
+/** The profile with one family of a type switched off or on again. */
+export function withFamilyOff(
+  config: ProfileConfig,
+  typeKey: string,
+  family: string,
+  off: boolean,
+): ProfileConfig {
+  return {
+    ...config,
+    style_types: (config.style_types ?? []).map((type) =>
+      type.key !== typeKey
+        ? type
+        : {
+            ...type,
+            families: (type.families ?? []).map((one) =>
+              one.key !== family ? one : off ? { ...one, off: true } : withoutOff(one),
+            ),
+          },
+    ),
+  }
+}
+
+/** A family that is on says nothing about it, as the backend writes it. */
+function withoutOff<T extends { off?: boolean }>(family: T): T {
+  const rest = { ...family }
+  delete rest.off
+  return rest
 }
 
 /** The types a new brick may be made in: every one the profile has not retired. */

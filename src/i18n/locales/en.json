@@ -1505,7 +1505,7 @@
     "status": {
       "draft": "Draft",
       "ready": "Ready",
-      "dropped": "Retired"
+      "dropped": "Off"
     },
     "empty": "No styles yet",
     "emptyBody": "A style is a part a picture prompt is built from — a look, a character, a place. Make one, drop the pictures in, and let the assistant describe it.",
@@ -1544,7 +1544,7 @@
     "statusFilter": {
       "draft": "Drafts",
       "ready": "Ready",
-      "dropped": "Retired"
+      "dropped": "Switched off"
     },
     "restore": "Restore as in the set",
     "restoreFailed": "Couldn't restore the style",
@@ -1580,7 +1580,17 @@
     "explanationHint": "What it is and what it gives - for whoever reads it, in this window's language. Never part of a prompt.",
     "house": "House",
     "half": "Half of the dictionary",
-    "picture": "Picture"
+    "picture": "Picture",
+    "favorite": "Favorite: lifted in the pickers",
+    "favorites": "Favorites",
+    "enabled": "On: offered in the pickers",
+    "enabledDraft": "A draft is offered once it is described",
+    "sets": "Sets",
+    "setOn": "Offer the set “{{set}}”",
+    "noSet": "No set",
+    "fillExplanations_one": "Explain {{count}} phrase",
+    "fillExplanations_other": "Explain {{count}} phrases",
+    "explainThis": "Write what it means"
   },
   "editor": {
     "parts": "Parts of the profile",
@@ -4667,7 +4677,10 @@
     "fromTextsBody": "The phrases your texts say that the dictionary does not know yet, the most widely written first. Tick the ones to explain - the answer comes back as bricks to keep one by one.",
     "fromTextsNone": "Every phrase your texts say is in the dictionary.",
     "pick": "Explain “{{phrase}}”",
-    "writtenIn": "{{works}} works, {{versions}} versions"
+    "writtenIn": "{{works}} works, {{versions}} versions",
+    "pickAll": "Pick every phrase",
+    "picked": "{{count}} of {{total}} picked",
+    "fills": "fills the style already in the dictionary"
   },
   "compose": {
     "open": "From the dictionary",

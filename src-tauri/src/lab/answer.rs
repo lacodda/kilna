@@ -497,7 +497,7 @@ pub fn choices_sheet(conn: &Connection, work: &Work) -> Result<String> {
         };
         let mut of_type: Vec<&StyleBrick> = bricks
             .iter()
-            .filter(|brick| brick.type_key == part.type_key && brick.status == style_brick::READY)
+            .filter(|brick| brick.type_key == part.type_key && style_brick::offered(&config, brick))
             .collect();
         if of_type.is_empty() {
             continue;

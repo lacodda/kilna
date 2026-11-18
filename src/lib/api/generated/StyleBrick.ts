@@ -65,6 +65,11 @@ set_key: string | null,
  */
 source?: string | null, 
 /**
+ * Starred by the owner: lifted in the pickers (v0.132). Not part of what
+ * the brick says - a starred shipped brick still reads untouched.
+ */
+favorite?: boolean, 
+/**
  * Where it came from and whether it was changed since - see [`Origin`].
  */
 origin: StyleOrigin, 

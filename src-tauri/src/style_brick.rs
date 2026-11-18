@@ -64,6 +64,11 @@ pub struct StyleBrick {
     /// (v0.131). Empty for the starter set's and the owner's own.
     #[ts(optional = nullable)]
     pub source: Option<String>,
+    /// Starred by the owner: lifted in the pickers (v0.132). Not part of what
+    /// the brick says - a starred shipped brick still reads untouched.
+    #[serde(default)]
+    #[ts(optional, as = "Option<bool>")]
+    pub favorite: bool,
     /// Where it came from and whether it was changed since - see [`Origin`].
     pub origin: Origin,
     /// The fingerprint of the set entry last written into it. Bookkeeping of
@@ -139,6 +144,21 @@ impl StyleBrick {
     }
 }
 
+/// What a picker, a composer or an assistant choosing styles is offered
+/// (v0.132, FR-05 5.3): a ready brick whose family is not switched off. A
+/// brick filed under no family - the owner's own - is always on.
+pub fn offered(config: &crate::profile::config::ProfileConfig, brick: &StyleBrick) -> bool {
+    brick.status == READY
+        && brick.family.as_deref().is_none_or(|family| {
+            config.style_type(&brick.type_key).is_none_or(|style| {
+                !style
+                    .families
+                    .iter()
+                    .any(|one| one.key == family && one.off)
+            })
+        })
+}
+
 /// A brick is a draft until it carries a description, ready once it does, and
 /// dropped when the owner retires it without losing what it was.
 pub const DRAFT: &str = "draft";
@@ -151,7 +171,7 @@ const SELECT: &str = "SELECT b.id, b.profile_id, b.type_key, b.name, b.descripti
      b.status, b.created_at, b.updated_at, \
      (SELECT count(*) FROM asset a WHERE a.style_brick_id = b.id), \
      b.label, b.family, b.when_to_use, b.colours, b.sample, b.set_key, b.set_digest, \
-     b.explanation, b.trial_id, b.source \
+     b.explanation, b.trial_id, b.source, b.favorite \
      FROM style_brick b";
 
 /// What to make a brick out of.
@@ -248,6 +268,8 @@ pub struct StyleBrickPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub explanation: Option<Option<Label>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub favorite: Option<bool>,
     /// The fingerprint of the set entry the brick now matches - written by
     /// "restore as in the set", so a restored brick reads untouched again.
     /// Travels in the log like any field; the window never sends it.
@@ -531,6 +553,9 @@ pub fn update_at(
     if let Some(next) = patch.set_digest {
         set(&mut assignments, &mut values, "set_digest", Box::new(next));
     }
+    if let Some(next) = patch.favorite {
+        set(&mut assignments, &mut values, "favorite", Box::new(next));
+    }
     if let Some(next) = patch.name {
         let trimmed = next.trim().to_owned();
         if trimmed.is_empty() {
@@ -712,6 +737,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
         origin: Origin::Own,
         trial_id: row.get(18)?,
         source: row.get(19)?,
+        favorite: row.get(20)?,
     };
     brick.origin = match (&brick.set_key, &brick.set_digest) {
         (Some(_), Some(digest)) if *digest == brick.content().digest() => Origin::Set,

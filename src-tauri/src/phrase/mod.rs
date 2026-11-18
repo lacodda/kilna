@@ -598,6 +598,7 @@ mod tests {
     fn brick(id: &str, phrase: &str) -> StyleBrick {
         StyleBrick {
             source: None,
+            favorite: false,
             id: id.into(),
             profile_id: "p".into(),
             type_key: "groove".into(),

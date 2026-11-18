@@ -1585,6 +1585,7 @@ fn read_styles(
                 "id": b.id, "type": b.type_key, "name": b.name, "family": b.family,
                 "phrase": b.description, "explanation": b.explanation, "when": b.when_to_use,
                 "house": house.contains(&b.id), "origin": b.origin, "status": b.status,
+                "favorite": b.favorite,
             })
         })
         .collect();

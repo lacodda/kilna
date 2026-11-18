@@ -71,6 +71,7 @@ describe('the bricks offered', () => {
       ],
       'groove',
       new Set(['b']),
+      [],
     )
     expect(offered.map((one) => one.id)).toEqual(['b', 'a'])
   })

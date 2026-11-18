@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import type { CoverAccent, CoverPaletteColour, StyleBrick } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
-import { HEX, colourFill, styleName } from '@/lib/styleBrick'
+import { HEX, byOffer, colourFill, isOffered, styleName } from '@/lib/styleBrick'
 import { styleTypesOf, useProfile } from '@/lib/useProfile'
 import { TileButton } from '@/components/ui/tile-button'
 import { DraftText } from '@/features/cover/Section'
@@ -36,10 +36,15 @@ export function AccentPick({ accent, palette, disabled, onChange }: Props) {
       .filter((type) => type.form === 'accent')
       .map((type) => type.key),
   )
-  const dictionary = (all.data ?? []).filter(
-    (brick) =>
-      accentTypes.has(brick.type_key) && brick.status === 'ready' && brick.colours[0] !== undefined,
-  )
+  const dictionary = (all.data ?? [])
+    .filter(
+      (brick) =>
+        accentTypes.has(brick.type_key) &&
+        isOffered(styleTypesOf(config), brick) &&
+        brick.colours[0] !== undefined,
+    )
+    // The starred first (v0.132).
+    .sort(byOffer(new Set()))
   const stops = accent?.stops ?? []
 
   return (

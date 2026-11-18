@@ -2333,6 +2333,64 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "hand",
+            "label": {
+              "en": "Hand-drawn",
+              "ru": "От руки"
+            }
+          },
+          {
+            "key": "street",
+            "label": {
+              "en": "Street",
+              "ru": "Улица"
+            }
+          },
+          {
+            "key": "tattoo",
+            "label": {
+              "en": "Tattoo and metal",
+              "ru": "Тату и метал"
+            }
+          },
+          {
+            "key": "heritage",
+            "label": {
+              "en": "Old scripts",
+              "ru": "Старое письмо"
+            }
+          },
+          {
+            "key": "world",
+            "label": {
+              "en": "Scripts of the East",
+              "ru": "Письмо Востока"
+            }
+          },
+          {
+            "key": "era",
+            "label": {
+              "en": "Eras",
+              "ru": "Эпохи"
+            }
+          },
+          {
+            "key": "paper",
+            "label": {
+              "en": "Paper and print",
+              "ru": "Бумага и печать"
+            }
+          },
+          {
+            "key": "digital",
+            "label": {
+              "en": "Screen and 3D",
+              "ru": "Экран и 3D"
+            }
+          }
+        ],
         "form": "lettering",
         "hint": {
           "en": "Describe the lettering: the character of the typeface, weight, the size accents, colour, effects, how the text sits in the frame.",
@@ -2346,6 +2404,29 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "quiet",
+            "label": {
+              "en": "Quiet",
+              "ru": "Тихое"
+            }
+          },
+          {
+            "key": "document",
+            "label": {
+              "en": "Document",
+              "ru": "Документ"
+            }
+          },
+          {
+            "key": "loud",
+            "label": {
+              "en": "Loud",
+              "ru": "Громкое"
+            }
+          }
+        ],
         "form": "dressing",
         "hint": {
           "en": "Describe the small furniture around the title: labels, numbers, stamps, rules, stickers. Write each caption as a {slot} and wrap the phrase that needs it in [square brackets], so the phrase drops out when the caption is empty.",
@@ -2359,6 +2440,43 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "neutral",
+            "label": {
+              "en": "Paper and neutrals",
+              "ru": "Бумага и нейтральные"
+            }
+          },
+          {
+            "key": "pastel",
+            "label": {
+              "en": "Pastel",
+              "ru": "Пастель"
+            }
+          },
+          {
+            "key": "bright",
+            "label": {
+              "en": "Bright",
+              "ru": "Яркие"
+            }
+          },
+          {
+            "key": "dark",
+            "label": {
+              "en": "Dark",
+              "ru": "Тёмные"
+            }
+          },
+          {
+            "key": "gradient",
+            "label": {
+              "en": "Gradients",
+              "ru": "Градиенты"
+            }
+          }
+        ],
         "form": "colour",
         "hint": {
           "en": "Describe the ground the picture stands on: the colour or the gradient, its texture, and what is not there.",
@@ -2372,6 +2490,36 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "warm",
+            "label": {
+              "en": "Warm",
+              "ru": "Тёплые"
+            }
+          },
+          {
+            "key": "cool",
+            "label": {
+              "en": "Cool",
+              "ru": "Холодные"
+            }
+          },
+          {
+            "key": "metal",
+            "label": {
+              "en": "Metal",
+              "ru": "Металл"
+            }
+          },
+          {
+            "key": "gradient",
+            "label": {
+              "en": "Gradients",
+              "ru": "Градиенты"
+            }
+          }
+        ],
         "form": "accent",
         "hint": {
           "en": "Name the colour the picture and the lettering lean on and give it as #RRGGBB. Several colours are a gradient, in their order.",
@@ -2542,6 +2690,36 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "voice",
+            "label": {
+              "en": "Voice",
+              "ru": "Голос"
+            }
+          },
+          {
+            "key": "delivery",
+            "label": {
+              "en": "Delivery",
+              "ru": "Подача"
+            }
+          },
+          {
+            "key": "backing",
+            "label": {
+              "en": "Backing",
+              "ru": "Бэк-вокал"
+            }
+          },
+          {
+            "key": "device",
+            "label": {
+              "en": "Voice as an instrument",
+              "ru": "Голос как инструмент"
+            }
+          }
+        ],
         "form": "phrase",
         "hint": {
           "en": "How the voice is delivered: close or distant, whispered or belted, doubled or bare, with or without backing. Explain what the delivery does to the song.",
@@ -2648,6 +2826,29 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "synth",
+            "label": {
+              "en": "Synth bass",
+              "ru": "Синт-бас"
+            }
+          },
+          {
+            "key": "played",
+            "label": {
+              "en": "Played bass",
+              "ru": "Живой бас"
+            }
+          },
+          {
+            "key": "sparse",
+            "label": {
+              "en": "Little or none",
+              "ru": "Мало или нет"
+            }
+          }
+        ],
         "form": "phrase",
         "hint": {
           "en": "The low end: which bass and how it sits. Explain the weight and the character it gives.",
@@ -2661,6 +2862,36 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "longing",
+            "label": {
+              "en": "Longing",
+              "ru": "Тоска"
+            }
+          },
+          {
+            "key": "dark",
+            "label": {
+              "en": "Dark",
+              "ru": "Мрак"
+            }
+          },
+          {
+            "key": "warm",
+            "label": {
+              "en": "Warm and bright",
+              "ru": "Тепло и свет"
+            }
+          },
+          {
+            "key": "dream",
+            "label": {
+              "en": "Dream",
+              "ru": "Сон"
+            }
+          }
+        ],
         "form": "phrase",
         "hint": {
           "en": "The feeling of the track in a word or two. Explain what a listener should feel and what it pulls the arrangement towards.",
@@ -2674,6 +2905,36 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "wear",
+            "label": {
+              "en": "Tape and wear",
+              "ru": "Плёнка и износ"
+            }
+          },
+          {
+            "key": "space",
+            "label": {
+              "en": "Room and space",
+              "ru": "Комната и пространство"
+            }
+          },
+          {
+            "key": "noise",
+            "label": {
+              "en": "Noise and density",
+              "ru": "Шум и плотность"
+            }
+          },
+          {
+            "key": "polish",
+            "label": {
+              "en": "Polish",
+              "ru": "Полировка"
+            }
+          }
+        ],
         "form": "phrase",
         "hint": {
           "en": "The surface of the recording: grain, noise, space, how polished or raw. Explain what it does to the sound.",
@@ -2687,6 +2948,22 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "slow",
+            "label": {
+              "en": "Slow",
+              "ru": "Медленно"
+            }
+          },
+          {
+            "key": "moving",
+            "label": {
+              "en": "Moving",
+              "ru": "В движении"
+            }
+          }
+        ],
         "form": "phrase",
         "hint": {
           "en": "The tempo or the feel of it in words. Explain how fast it feels and why.",
@@ -2700,6 +2977,29 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "arc",
+            "label": {
+              "en": "Arc",
+              "ru": "Дуга"
+            }
+          },
+          {
+            "key": "contrast",
+            "label": {
+              "en": "Contrast",
+              "ru": "Контраст"
+            }
+          },
+          {
+            "key": "steady",
+            "label": {
+              "en": "Steady",
+              "ru": "Ровно"
+            }
+          }
+        ],
         "form": "phrase",
         "hint": {
           "en": "How the arrangement moves from start to end: builds, drops, contrasts. Explain the path it gives the track.",
@@ -2713,6 +3013,36 @@
         }
       },
       {
+        "families": [
+          {
+            "key": "break",
+            "label": {
+              "en": "The break",
+              "ru": "Брейк"
+            }
+          },
+          {
+            "key": "guitar",
+            "label": {
+              "en": "Guitar against the beat",
+              "ru": "Гитара против бита"
+            }
+          },
+          {
+            "key": "mix",
+            "label": {
+              "en": "The whole mix",
+              "ru": "Весь микс"
+            }
+          },
+          {
+            "key": "moment",
+            "label": {
+              "en": "One moment",
+              "ru": "Один момент"
+            }
+          }
+        ],
         "form": "phrase",
         "hint": {
           "en": "One line appended to any core to push one thing - one at a time, so it is heard what moved. Explain what it pushes and how far.",

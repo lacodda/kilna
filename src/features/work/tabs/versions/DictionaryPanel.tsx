@@ -48,8 +48,8 @@ export function DictionaryPanel({ composition, onPick }: Props) {
         {composition.parts.map((part) => {
           const type = types.find((one) => one.key === part.type)
           const Icon = styleIconOf(type)
-          const offered = offeredBricks(bricks.data ?? [], part.type, houseSet).filter((brick) =>
-            brickMatches(brick, query),
+          const offered = offeredBricks(bricks.data ?? [], part.type, houseSet, types).filter(
+            (brick) => brickMatches(brick, query),
           )
           if (offered.length === 0) return null
           return (

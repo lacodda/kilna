@@ -130,7 +130,7 @@ export function ComposeDialog({
           {composition.parts.map((part) => {
             const type = types.find((one) => one.key === part.type)
             const Icon = styleIconOf(type)
-            const offered = offeredBricks(bricks.data ?? [], part.type, houseSet).filter(
+            const offered = offeredBricks(bricks.data ?? [], part.type, houseSet, types).filter(
               (brick) => brickMatches(brick, query) || picked.includes(brick.id),
             )
             const count = picked.filter((id) => byId.get(id)?.type_key === part.type).length

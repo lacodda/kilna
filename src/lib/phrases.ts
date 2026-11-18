@@ -1,3 +1,4 @@
+import { byOffer, isOffered } from '@/lib/styleBrick'
 import type { Composition, ProfileConfig, StyleBrick, StyleType, TextCheck } from '@/lib/api/types'
 
 /*
@@ -84,20 +85,19 @@ export function insertPhrase(
   return { text: `${inserted}${tail}`, caret: inserted.length }
 }
 
-/** The bricks of a composition's types, house ones first within a type,
- *  then by name - the order a picker offers them in. */
+/** The bricks of a composition's types the dictionary offers - ready, of a
+ *  family that is on - house ones first within a type, then the starred,
+ *  then by name: the order a picker offers them in. */
 export function offeredBricks(
   bricks: readonly StyleBrick[],
   typeKey: string,
   house: ReadonlySet<string>,
+  types: readonly StyleType[],
 ): StyleBrick[] {
+  const order = byOffer(house)
   return bricks
-    .filter((brick) => brick.type_key === typeKey && brick.status === 'ready')
-    .sort(
-      (a, b) =>
-        Number(house.has(b.id)) - Number(house.has(a.id)) ||
-        (a.description ?? a.name).localeCompare(b.description ?? b.name),
-    )
+    .filter((brick) => brick.type_key === typeKey && isOffered(types, brick))
+    .sort((a, b) => order(a, b) || (a.description ?? a.name).localeCompare(b.description ?? b.name))
 }
 
 /** Whether a brick answers a search typed in any language: its phrase, its
