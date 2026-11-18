@@ -50,8 +50,10 @@ export function RhythmEditor({
     <>
       <FieldGroup label={t('editor.rhythm')} help={t('editor.rhythmHint')}>
         <div className="flex items-center gap-2">
+          {/* Wide enough for its unit in every language: "дней между
+              выпусками" took the number's room at w-44 (v0.150 live run). */}
           <NumberField
-            className="w-44"
+            className="w-72"
             min={1}
             step={1}
             value={rhythm?.every_days ?? null}
