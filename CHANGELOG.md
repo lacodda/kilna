@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.147.0] - 2026-11-18
+
+Places, the channel's dressing, and the vault's notes put in their place.
+A place of the canon has a passport, words for a picture generator, angles
+- wide, medium, detail - with their references, and picture bans; a variant
+of a place, its epoch or its state, is read over its base. The channel card
+keeps its dressing: avatar, banner and watermark kits with their prompts,
+the picture in use, and the look before a rebranding in the archive. A
+competing channel is a card that is never drawn. A work shows the reviews
+and documents attached to it on its Overview, and a cover can be marked to
+redraw from its own tab. `kilna --convert-notes` turns notes brought in from
+a vault into cards, kits, reviews on their works and marks, by a file of
+rules in the owner's words: a plan first, one undo when applied.
+
+### Bug Fixes
+- Kits in use before the archive, a kit's texts clamped, and a converted document retitled
+
+### Features
+- Places in detail, a place's variants, the channel's dressing, competitors, reviews of a video, and notes converted by rules
+
+### Testing
+- The reviews widget in the rule of what applies
+
 ## [0.146.0] - 2026-11-18
 
 A song's material. A song now has an emotional arc on its Overview: a row
