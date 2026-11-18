@@ -540,8 +540,8 @@
         "icon": "radio",
         "key": "channel",
         "label": {
-          "en": "Channel",
-          "ru": "Канал"
+          "en": "Project / Brand",
+          "ru": "Проект / Бренд"
         },
         "root": true,
         "sections": [
@@ -562,6 +562,7 @@
             "shape": "slots"
           },
           {
+            "advanced": true,
             "hint": {
               "en": "→ the switches of the cover and frame constructor",
               "ru": "→ переключатели конструктора обложки и кадра"
@@ -592,6 +593,7 @@
             "shape": "marks"
           },
           {
+            "advanced": true,
             "hint": {
               "en": "→ the slots of a frame's lettering",
               "ru": "→ слоты обвязки"
@@ -636,6 +638,7 @@
             ]
           },
           {
+            "advanced": true,
             "hint": {
               "en": "→ the text a release goes out under: its tail, hashtags, base tags",
               "ru": "→ мета выпуска: хвост, хэштеги, теги-основа"
@@ -651,6 +654,7 @@
             "shape": "slots"
           },
           {
+            "advanced": true,
             "draw": 8,
             "hint": {
               "en": "→ what a release goes out under: a text is handed a few, drawn at random",
@@ -666,6 +670,7 @@
             ]
           },
           {
+            "advanced": true,
             "draw": 3,
             "hint": {
               "en": "→ how a description puts its moves together: a few drawn at random",
@@ -681,6 +686,7 @@
             ]
           },
           {
+            "advanced": true,
             "draw": 4,
             "hint": {
               "en": "→ the comment pinned under a release: a few drawn at random",

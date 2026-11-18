@@ -421,6 +421,272 @@
     ],
     "note_kinds": [
       {
+        "icon": "newspaper",
+        "key": "publication",
+        "label": {
+          "en": "Publication / Blog",
+          "ru": "Издание / Блог"
+        },
+        "root": true,
+        "sections": [
+          {
+            "hint": {
+              "en": "Name, what the blog is about, for whom, where it lives",
+              "ru": "Название, о чём блог, для кого, где живёт"
+            },
+            "key": "identity",
+            "label": {
+              "en": "Who we are",
+              "ru": "Кто мы и о чём"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "The beats the posts keep to",
+              "ru": "Темы, которых держатся посты"
+            },
+            "key": "topics",
+            "label": {
+              "en": "What we write about",
+              "ru": "О чём пишем"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "→ what goes out under a release, and replies",
+              "ru": "→ тексты выпусков и ответы"
+            },
+            "key": "voice",
+            "label": {
+              "en": "Voice of public texts",
+              "ru": "Голос публичных текстов"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "→ accents and backgrounds",
+              "ru": "→ акцент и фоны"
+            },
+            "key": "palette",
+            "label": {
+              "en": "Palette",
+              "ru": "Палитра"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "palette"
+          },
+          {
+            "hint": {
+              "en": "→ what a public text never says",
+              "ru": "→ чего не бывает в публичных текстах"
+            },
+            "key": "bans",
+            "label": {
+              "en": "Rules and bans",
+              "ru": "Правила и запреты"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "bans"
+          },
+          {
+            "hint": {
+              "en": "→ the negative of a cover and a frame",
+              "ru": "→ негатив обложки и кадра"
+            },
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "bans"
+          }
+        ]
+      },
+      {
+        "icon": "user",
+        "key": "persona",
+        "label": {
+          "en": "Persona",
+          "ru": "Персона"
+        },
+        "sections": [
+          {
+            "hint": {
+              "en": "Who this is, in a line",
+              "ru": "Кто это, одной строкой"
+            },
+            "key": "identity",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "voice",
+            "label": {
+              "en": "How they speak",
+              "ru": "Как говорит"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "bio",
+            "label": {
+              "en": "Story",
+              "ru": "История"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Around them",
+              "ru": "Вокруг"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "advanced": true,
+            "key": "open",
+            "label": {
+              "en": "Open questions",
+              "ru": "Открытые вопросы"
+            }
+          }
+        ]
+      },
+      {
+        "icon": "hash",
+        "key": "topic",
+        "label": {
+          "en": "Topic",
+          "ru": "Тема"
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "What it covers",
+              "ru": "Что охватывает"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "What we say that others do not",
+              "ru": "Что говорим мы, а не другие"
+            },
+            "key": "angle",
+            "label": {
+              "en": "Our angle",
+              "ru": "Наш угол"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "related",
+            "label": {
+              "en": "Related",
+              "ru": "Связанное"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "advanced": true,
+            "key": "open",
+            "label": {
+              "en": "Open questions",
+              "ru": "Открытые вопросы"
+            }
+          }
+        ]
+      },
+      {
+        "icon": "briefcase",
+        "key": "case",
+        "label": {
+          "en": "Case",
+          "ru": "Кейс"
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "What happened",
+              "ru": "Что произошло"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "outcome",
+            "label": {
+              "en": "How it ended",
+              "ru": "Чем кончилось"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "lessons",
+            "label": {
+              "en": "What it teaches",
+              "ru": "Чему учит"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "related",
+            "label": {
+              "en": "Related",
+              "ru": "Связанное"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          }
+        ]
+      },
+      {
         "icon": "library",
         "key": "source",
         "label": {
@@ -759,6 +1025,36 @@
         "when": {
           "en": "When a person wants to take a post all the way, or asks what to do next with one.",
           "ru": "Когда человек хочет провести пост целиком или спрашивает, что делать с ним дальше."
+        }
+      }
+    ],
+    "relation_kinds": [
+      {
+        "key": "author",
+        "label": {
+          "en": "Author",
+          "ru": "Автор"
+        }
+      },
+      {
+        "key": "topic",
+        "label": {
+          "en": "On the topic",
+          "ru": "По теме"
+        }
+      },
+      {
+        "key": "example",
+        "label": {
+          "en": "Example of",
+          "ru": "Пример"
+        }
+      },
+      {
+        "key": "related",
+        "label": {
+          "en": "Related",
+          "ru": "Связано"
         }
       }
     ],

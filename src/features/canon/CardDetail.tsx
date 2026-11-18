@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight, Pencil } from 'lucide-react'
+import { ArrowUpRight, Pencil, Plus } from 'lucide-react'
 import { startCardTask } from '@/lib/api/canon'
 import { deleteNote, updateNote } from '@/lib/api/notes'
 import type { CardView, Layer, NotePatch } from '@/lib/api/types'
@@ -15,7 +15,7 @@ import { announceDeleted } from '@/lib/trash'
 import { useAssistant } from '@/lib/useAssistant'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { Chip, ChipGroup } from '@/components/ui/chip'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { Input } from '@/components/ui/input'
 import { SaveState } from '@/components/ui/save-state'
 import { Select } from '@/components/AppSelect'
@@ -25,6 +25,8 @@ import { Pane } from '@/components/ui/frame'
 import { CardAvatar } from '@/features/canon/CardAvatar'
 import { ChannelView } from '@/features/canon/ChannelView'
 import { PromptBox } from '@/features/canon/PromptBox'
+import { ProposalsBanner } from '@/features/canon/ProposalsBanner'
+import { Detailed, isDetailed } from '@/features/canon/disclosure'
 import { SectionBlock } from '@/features/canon/SectionBlock'
 import { NoteBodyEditor } from '@/features/notes/NoteBodyEditor'
 import { useNoteBody } from '@/features/notes/useNoteBody'
@@ -54,7 +56,8 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
   const { config } = useProfile()
   const card = view.card
   const kind = cardKindOf(config, card.kind)
-  const [section, setSection] = useState<string>('all')
+  // Sections opened from "+ Add section" (v0.141), shown though still empty.
+  const [opened, setOpened] = useState<string[]>([])
   const [title, setTitle] = useState(card.title ?? '')
   const [aliases, setAliases] = useState(card.aliases.join(', '))
   const [editingNote, setEditingNote] = useState(false)
@@ -112,9 +115,19 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
       : shape === 'appearances'
         ? view.appearances.length
         : factsIn(view.facts, key).length
-  const shown = section === 'all' ? sections : sections.filter((one) => one.key === section)
   // The description sits under the first section it is written from.
   const describedUnder = kind?.describe_from?.[0]
+  // Only the sections that hold something, and those just opened (v0.141,
+  // FR-18 18.2); the section a description is written under stays while
+  // there is a description. The rest wait under "+ Add section" - all but
+  // those turned off in the profile.
+  const holds = (one: (typeof sections)[number]) =>
+    countOf(one.key, one.shape) > 0 ||
+    opened.includes(one.key) ||
+    (one.key === describedUnder && (card.prompt ?? '') !== '')
+  const shown = sections.filter(holds)
+  const addable = sections.filter((one) => !holds(one) && one.off !== true)
+  const detailed = isDetailed(view, lens)
   // Facts under a section the profile no longer names still read, at the end.
   const orphans = view.facts.filter(
     (read) => !sections.some((one) => one.key === read.fact.section),
@@ -245,98 +258,103 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
               </Button>
             </p>
           )}
-          {/* The sections as a row of chips, the way the notes narrow to a kind:
-              one section is one click, and letting go of it is every section. */}
-          <ChipGroup
-            aria-label={t('canon.sections')}
-            value={[section]}
-            onValueChange={(next) => setSection(next[0] ?? 'all')}
-          >
-            <Chip value="all">{t('canon.allSections')}</Chip>
-            {sections.map((one) => {
-              const count = countOf(one.key, one.shape)
-              return (
-                <Chip key={one.key} value={one.key} count={count > 0 ? count : undefined}>
-                  {sayLabel(one.label)}
-                </Chip>
-              )
-            })}
-          </ChipGroup>
+          <ProposalsBanner view={view} />
         </div>
       }
     >
-      {shown.map((one) => (
-        <div key={one.key}>
-          <SectionBlock view={view} section={one} lens={lens} onOpen={onOpen} />
-          {one.key === describedUnder && (
-            <PromptBox
+      <Detailed.Provider value={detailed}>
+        {shown.map((one) => (
+          <div key={one.key}>
+            <SectionBlock
               view={view}
-              onDescribe={
-                describeAction === undefined ? undefined : () => task.mutate(describeAction.key)
-              }
-              describing={task.isPending}
+              section={one}
+              lens={lens}
+              onOpen={onOpen}
+              startAdding={opened.includes(one.key) && countOf(one.key, one.shape) === 0}
             />
-          )}
-        </div>
-      ))}
+            {one.key === describedUnder && (
+              <PromptBox
+                view={view}
+                onDescribe={
+                  describeAction === undefined ? undefined : () => task.mutate(describeAction.key)
+                }
+                describing={task.isPending}
+              />
+            )}
+          </div>
+        ))}
 
-      {section === 'all' && orphans.length > 0 && (
-        <SectionBlock
-          view={view}
-          section={{ key: '', label: t('canon.otherSection') }}
-          facts={orphans}
-          lens={lens}
-          onOpen={onOpen}
-        />
-      )}
+        {addable.length > 0 && (
+          <Menu>
+            <MenuTrigger render={<Button size="sm" variant="ghost" className="mt-2 self-start" />}>
+              <Plus aria-hidden />
+              {t('canon.addSection')}
+            </MenuTrigger>
+            <MenuPopup align="start">
+              {addable.map((one) => (
+                <MenuItem key={one.key} onClick={() => setOpened([...opened, one.key])}>
+                  {sayLabel(one.label)}
+                </MenuItem>
+              ))}
+            </MenuPopup>
+          </Menu>
+        )}
+        {orphans.length > 0 && (
+          <SectionBlock
+            view={view}
+            section={{ key: '', label: t('canon.otherSection') }}
+            facts={orphans}
+            lens={lens}
+            onOpen={onOpen}
+          />
+        )}
+      </Detailed.Provider>
 
       {/* The card's free note: what it was before it had facts, and whatever
           is still not worth a fact. The assistant gathers facts out of it. */}
-      {section === 'all' && (
-        <section className="pt-4">
-          <header className="mb-1 flex items-center gap-2">
-            <b className="text-sm font-semibold">{t('canon.note')}</b>
-            <span className="text-xs text-faint">{t('canon.noteHint')}</span>
-            <Button
-              size="xs"
-              variant="ghost"
-              className="ml-auto"
-              aria-pressed={editingNote}
-              onClick={() => {
-                if (editingNote) void body.flush()
-                setEditingNote(!editingNote)
-              }}
-            >
-              <Pencil aria-hidden />
-              {editingNote ? t('notes.done') : t('notes.edit')}
-            </Button>
-          </header>
-          {editingNote ? (
-            <NoteBodyEditor
-              noteId={card.id}
-              autoFocus
-              autoResize
-              rows={4}
-              value={body.text}
-              onText={(text) => body.setText(text)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') {
-                  void body.flush()
-                  setEditingNote(false)
-                }
-              }}
-              aria-label={t('canon.note')}
-              className="font-mono text-sm leading-relaxed"
-            />
-          ) : body.text.trim() === '' ? (
-            <p className="px-2 text-xs text-faint">{t('canon.noteEmpty')}</p>
-          ) : (
-            <div className="selectable px-2" onDoubleClick={() => setEditingNote(true)}>
-              <Markdown body={body.text} className="text-sm" />
-            </div>
-          )}
-        </section>
-      )}
+      <section className="pt-4">
+        <header className="mb-1 flex items-center gap-2">
+          <b className="text-sm font-semibold">{t('canon.note')}</b>
+          <span className="text-xs text-faint">{t('canon.noteHint')}</span>
+          <Button
+            size="xs"
+            variant="ghost"
+            className="ml-auto"
+            aria-pressed={editingNote}
+            onClick={() => {
+              if (editingNote) void body.flush()
+              setEditingNote(!editingNote)
+            }}
+          >
+            <Pencil aria-hidden />
+            {editingNote ? t('notes.done') : t('notes.edit')}
+          </Button>
+        </header>
+        {editingNote ? (
+          <NoteBodyEditor
+            noteId={card.id}
+            autoFocus
+            autoResize
+            rows={4}
+            value={body.text}
+            onText={(text) => body.setText(text)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                void body.flush()
+                setEditingNote(false)
+              }
+            }}
+            aria-label={t('canon.note')}
+            className="font-mono text-sm leading-relaxed"
+          />
+        ) : body.text.trim() === '' ? (
+          <p className="px-2 text-xs text-faint">{t('canon.noteEmpty')}</p>
+        ) : (
+          <div className="selectable px-2" onDoubleClick={() => setEditingNote(true)}>
+            <Markdown body={body.text} className="text-sm" />
+          </div>
+        )}
+      </section>
     </Pane>
   )
 }

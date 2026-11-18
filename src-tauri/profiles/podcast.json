@@ -78,6 +78,105 @@
     ],
     "note_kinds": [
       {
+        "key": "show",
+        "label": {
+          "en": "Show / Podcast",
+          "ru": "Шоу / Подкаст"
+        },
+        "icon": "mic",
+        "root": true,
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "Who we are",
+              "ru": "Кто мы и о чём"
+            },
+            "hint": {
+              "en": "Name, what the show is about, hosts, where it is heard",
+              "ru": "Название, о чём шоу, ведущие, где слушают"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "key": "format",
+            "label": {
+              "en": "Format",
+              "ru": "Формат"
+            },
+            "hint": {
+              "en": "How an episode goes: length, segments, rituals",
+              "ru": "Как устроен выпуск: длина, рубрики, ритуалы"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "voice",
+            "label": {
+              "en": "Voice of public texts",
+              "ru": "Голос публичных текстов"
+            },
+            "hint": {
+              "en": "→ what goes out under a release, and replies",
+              "ru": "→ тексты выпусков и ответы"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "palette",
+            "label": {
+              "en": "Palette",
+              "ru": "Палитра"
+            },
+            "hint": {
+              "en": "→ accents and backgrounds",
+              "ru": "→ акцент и фоны"
+            },
+            "shape": "palette",
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "bans",
+            "label": {
+              "en": "Rules and bans",
+              "ru": "Правила и запреты"
+            },
+            "hint": {
+              "en": "→ what a public text never says",
+              "ru": "→ чего не бывает в публичных текстах"
+            },
+            "shape": "bans",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "hint": {
+              "en": "→ the negative of a cover and a frame",
+              "ru": "→ негатив обложки и кадра"
+            },
+            "shape": "bans",
+            "lenses": [
+              "cover"
+            ]
+          }
+        ]
+      },
+      {
         "key": "guest",
         "label": { "en": "Guest", "ru": "Гость" },
         "icon": "user",
@@ -202,6 +301,36 @@
             "label": { "en": "Place", "ru": "Место" }
           }
         ]
+      }
+    ],
+    "relation_kinds": [
+      {
+        "key": "host",
+        "label": {
+          "en": "Host",
+          "ru": "Ведущий"
+        }
+      },
+      {
+        "key": "guest",
+        "label": {
+          "en": "Guest of",
+          "ru": "Гость"
+        }
+      },
+      {
+        "key": "segment",
+        "label": {
+          "en": "Segment of",
+          "ru": "Рубрика"
+        }
+      },
+      {
+        "key": "related",
+        "label": {
+          "en": "Related",
+          "ru": "Связано"
+        }
       }
     ],
     "collection_kinds": [

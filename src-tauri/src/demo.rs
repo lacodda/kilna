@@ -611,17 +611,38 @@ pub fn seed_in(conn: &Connection, language: &str) -> Result<DemoReport> {
         report.notes += 1;
     }
     if let Some((card_kind, name, body)) = corpus.card
-        && config.card_kind(card_kind).is_some()
+        && let Some(kind) = config.card_kind(card_kind)
     {
-        actions::canon::create_card(
-            conn,
-            NewNote {
-                body: body.to_owned(),
-                kind: Some(card_kind.to_owned()),
-                title: Some(name.to_owned()),
-                ..NewNote::default()
-            },
-        )?;
+        let profile_id = actions::active_profile_id(conn)?;
+        let passport = if kind.root {
+            crate::note::root_card(conn, &profile_id, config)?
+        } else {
+            None
+        };
+        match passport {
+            Some(card) => {
+                actions::note::update(
+                    conn,
+                    &card.id,
+                    crate::note::NotePatch {
+                        title: Some(Some(name.to_owned())),
+                        body: Some(body.to_owned()),
+                        ..crate::note::NotePatch::default()
+                    },
+                )?;
+            }
+            None => {
+                actions::canon::create_card(
+                    conn,
+                    NewNote {
+                        body: body.to_owned(),
+                        kind: Some(card_kind.to_owned()),
+                        title: Some(name.to_owned()),
+                        ..NewNote::default()
+                    },
+                )?;
+            }
+        }
         report.notes += 1;
     }
 

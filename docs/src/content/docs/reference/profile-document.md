@@ -686,9 +686,10 @@ and lore; Podcast ships guests and segments; Blog ships only plain kinds.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`, `lightbulb`, `quote`, `library`. Anything else draws a plain note. |
+| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`, `lightbulb`, `quote`, `library`, and since v0.141 `globe`, `newspaper`, `mic`, `hash`, `briefcase`. Anything else draws a plain note. |
 | `sections` | list, optional | What a card of this kind knows, in the order the card reads. Empty or absent: a plain note. |
-| `root` | boolean, optional | One card of this kind per workspace — the channel, the root of the world. Studio's `channel` is the root. A second card of a root kind is refused, and a profile with two root kinds is refused when it is saved. |
+| `root` | boolean, optional | One card of this kind per workspace — the passport, the root of the world. Studio's `channel` (worded *Project / Brand* since v0.141), a novel's `world`, a blog's `publication` and a podcast's `show` are roots. A new space is made with its passport, named after it. A second card of a root kind is refused, and a profile with two root kinds is refused when it is saved. |
+| `off` | boolean, optional | Turned off in the profile editor: the kind is not offered for a new card, and no passport is made of it with a space. Cards of it already made stay. Added in v0.141. |
 | `describe_from` | list of strings, optional | The sections the card's description for a picture generator is written from — a person's looks, not their biography. When a settled public fact in one of them changes, the description says it is stale. Absent: the description is written by hand and never goes stale. Each key must be a section of the kind. |
 
 A section:
@@ -701,6 +702,8 @@ A section:
 | `shape` | string, optional | What an entry of the section is (below). Statements when absent. |
 | `lenses` | list, optional | The outward tasks that read this section: `cover` (a picture — a cover, a frame) and `public` (what is said in public — a release's text, a reply). The work itself reads every section, so `work` need not be named. A section naming none is read by the work alone. |
 | `kinds` | list of strings, optional | For a section of relations: the kinds of card it gathers — Studio's character keeps the events she was part of apart from the people around her. Empty gathers every relation no other section of the card claims. |
+| `advanced` | boolean, optional | A section an automation reads rather than a person - the templates a release's text is written from. The passport folds such sections under one group. Studio marks its channel's `template`, `moves`, `assemblies`, `pinned_forms`, `captions` and `details`. Added in v0.141. |
+| `off` | boolean, optional | Turned off in the profile editor: the section is not offered when one is added to a card. One that holds facts still shows them. Added in v0.141. |
 | `draw` | number, optional | How many of the section's entries a prompt is handed, drawn at random each time one is written: a pool a text is built from reaches every text as a different handful, because a model handed the whole pool reaches for the same few every time. The prompt heads the section *Moves (8 of 144, drawn at random for this text)*; the card always shows every entry and says how many a prompt reads. Only a section of statements (`facts`, `slots`, `bans`) is drawn from, and `0` is refused. Studio's channel draws 8 of its `moves`, 3 of its `assemblies` and 4 of its `pinned_forms`. Absent hands over every entry. Added in v0.100.2. |
 
 The shapes:

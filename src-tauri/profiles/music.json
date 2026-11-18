@@ -1291,8 +1291,8 @@
       {
         "key": "channel",
         "label": {
-          "en": "Channel",
-          "ru": "Канал"
+          "en": "Project / Brand",
+          "ru": "Проект / Бренд"
         },
         "icon": "radio",
         "root": true,
@@ -1326,7 +1326,8 @@
             "shape": "details",
             "lenses": [
               "cover"
-            ]
+            ],
+            "advanced": true
           },
           {
             "key": "mark",
@@ -1356,7 +1357,8 @@
             "shape": "slots",
             "lenses": [
               "cover"
-            ]
+            ],
+            "advanced": true
           },
           {
             "key": "palette",
@@ -1400,7 +1402,8 @@
             "shape": "slots",
             "lenses": [
               "public"
-            ]
+            ],
+            "advanced": true
           },
           {
             "key": "moves",
@@ -1415,7 +1418,8 @@
             "lenses": [
               "public"
             ],
-            "draw": 8
+            "draw": 8,
+            "advanced": true
           },
           {
             "key": "assemblies",
@@ -1430,7 +1434,8 @@
             "lenses": [
               "public"
             ],
-            "draw": 3
+            "draw": 3,
+            "advanced": true
           },
           {
             "key": "pinned_forms",
@@ -1445,7 +1450,8 @@
             "lenses": [
               "public"
             ],
-            "draw": 4
+            "draw": 4,
+            "advanced": true
           },
           {
             "key": "bans",

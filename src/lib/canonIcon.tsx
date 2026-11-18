@@ -1,4 +1,9 @@
 import {
+  Briefcase,
+  Globe,
+  Hash,
+  Mic,
+  Newspaper,
   BookOpen,
   Box,
   CalendarDays,
@@ -38,6 +43,11 @@ const CANON_ICONS: Record<string, LucideIcon> = {
   lightbulb: Lightbulb,
   quote: Quote,
   library: Library,
+  globe: Globe,
+  newspaper: Newspaper,
+  mic: Mic,
+  hash: Hash,
+  briefcase: Briefcase,
 }
 
 /** The names, for the reference and for a picker. */

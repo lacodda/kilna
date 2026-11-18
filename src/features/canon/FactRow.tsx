@@ -28,6 +28,7 @@ import { RowMenu, type RowAction } from '@/components/RowMenu'
 import { CardPicture } from '@/features/canon/CardPicture'
 import { FactEditor } from '@/features/canon/FactEditor'
 import { LayerMark } from '@/features/canon/SectionBlock'
+import { useDetailed } from '@/features/canon/disclosure'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -46,6 +47,7 @@ interface Props {
  */
 export function FactRow({ read, view, shape, lens }: Props) {
   const { t } = useTranslation()
+  const detailed = useDetailed()
   const navigate = useNavigate()
   const client = useQueryClient()
   const [editing, setEditing] = useState(false)
@@ -199,8 +201,10 @@ export function FactRow({ read, view, shape, lens }: Props) {
 
   return (
     <div
+      data-draft={fact.status === 'draft' ? '' : undefined}
       className={cn(
-        'grid grid-cols-[24px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-md px-2 py-1.5 transition-opacity hover:bg-soft/50',
+        'grid items-start gap-2.5 rounded-md px-2 py-1.5 transition-opacity hover:bg-soft/50',
+        detailed ? 'grid-cols-[24px_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]',
         !seenThrough(read.lenses, lens) && 'opacity-25',
         fact.status === 'draft' && 'bg-info-soft/60',
       )}
@@ -227,16 +231,19 @@ export function FactRow({ read, view, shape, lens }: Props) {
         )}
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
           {when !== null && <span className="font-mono text-2xs text-dim">{when}</span>}
-          <span
-            className={cn(
-              'rounded-sm px-1 text-2xs',
-              fact.status === 'canon' && 'bg-good-soft text-good',
-              (fact.status === 'draft' || fact.status === 'open') && 'bg-info-soft text-info',
-              retired && 'bg-soft text-faint',
-            )}
-          >
-            {t(`canon.status.${fact.status}`)}
-          </span>
+          {/* How settled it is, where the card says such things (v0.141). */}
+          {(detailed || retired) && (
+            <span
+              className={cn(
+                'rounded-sm px-1 text-2xs',
+                fact.status === 'canon' && 'bg-good-soft text-good',
+                (fact.status === 'draft' || fact.status === 'open') && 'bg-info-soft text-info',
+                retired && 'bg-soft text-faint',
+              )}
+            >
+              {t(`canon.status.${fact.status}`)}
+            </span>
+          )}
           {source !== null && source !== undefined && (
             <span
               className="rounded-sm border border-line px-1 text-2xs text-dim"

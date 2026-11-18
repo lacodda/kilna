@@ -39,6 +39,35 @@ pub fn create_card(conn: &Connection, new: NewNote) -> Result<Note> {
     })
 }
 
+/// The passport of a new space (v0.141, FR-18 18.1): a card of the profile's
+/// root kind, named after the space, made with the space so the Canon opens
+/// on something to fill in. Nothing when the profile has no root kind, when
+/// it is turned off, or when the space holds a root card already. The card's
+/// own gesture, so an undo takes it back like any card made by hand.
+pub fn seed_passport(conn: &Connection, name: &str) -> Result<Option<Note>> {
+    let profile_id = super::active_profile_id(conn)?;
+    let config = crate::profile::config_for(conn, &profile_id)?;
+    let Some(root) = config
+        .note_kinds
+        .iter()
+        .find(|kind| kind.root && kind.is_card() && !kind.off)
+    else {
+        return Ok(None);
+    };
+    if note::root_card(conn, &profile_id, &config)?.is_some() {
+        return Ok(None);
+    }
+    create_card(
+        conn,
+        NewNote {
+            kind: Some(root.key.clone()),
+            title: Some(name.trim().to_owned()),
+            ..NewNote::default()
+        },
+    )
+    .map(Some)
+}
+
 /// Write the description a generator is given for a card, or clear it.
 ///
 /// The fingerprint of the facts it answers to is taken here, at the moment it

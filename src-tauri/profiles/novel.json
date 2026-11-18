@@ -86,6 +86,131 @@
     ],
     "note_kinds": [
       {
+        "key": "world",
+        "label": {
+          "en": "World / Book",
+          "ru": "Мир / Книга"
+        },
+        "icon": "globe",
+        "root": true,
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "What the book is",
+              "ru": "О чём книга"
+            },
+            "hint": {
+              "en": "Title, premise, genre, where it is told from",
+              "ru": "Название, замысел, жанр, откуда рассказано"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "key": "setting",
+            "label": {
+              "en": "Setting",
+              "ru": "Сеттинг"
+            },
+            "hint": {
+              "en": "Time, place, the shape of the world",
+              "ru": "Время, место, устройство мира"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "key": "laws",
+            "label": {
+              "en": "Laws of the world",
+              "ru": "Законы мира"
+            },
+            "hint": {
+              "en": "What can and cannot happen here",
+              "ru": "Что здесь может и не может случиться"
+            }
+          },
+          {
+            "key": "references",
+            "label": {
+              "en": "Visual references",
+              "ru": "Визуальные референсы"
+            },
+            "hint": {
+              "en": "→ covers and frames are drawn toward these",
+              "ru": "→ обложки и кадры тянутся к ним"
+            },
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "voice",
+            "label": {
+              "en": "Voice of public texts",
+              "ru": "Голос публичных текстов"
+            },
+            "hint": {
+              "en": "→ what goes out under a release, and replies",
+              "ru": "→ тексты выпусков и ответы"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "palette",
+            "label": {
+              "en": "Palette",
+              "ru": "Палитра"
+            },
+            "hint": {
+              "en": "→ accents and backgrounds",
+              "ru": "→ акцент и фоны"
+            },
+            "shape": "palette",
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "bans",
+            "label": {
+              "en": "Rules and bans",
+              "ru": "Правила и запреты"
+            },
+            "hint": {
+              "en": "→ what a public text never says",
+              "ru": "→ чего не бывает в публичных текстах"
+            },
+            "shape": "bans",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "hint": {
+              "en": "→ the negative of a cover and a frame",
+              "ru": "→ негатив обложки и кадра"
+            },
+            "shape": "bans",
+            "lenses": [
+              "cover"
+            ]
+          }
+        ]
+      },
+      {
         "key": "character",
         "label": { "en": "Character", "ru": "Персонаж" },
         "icon": "user",
@@ -134,6 +259,7 @@
           },
           {
             "key": "symbols",
+            "advanced": true,
             "label": { "en": "Symbols", "ru": "Символы" },
             "lenses": [
               "cover",
@@ -157,6 +283,7 @@
           },
           {
             "key": "open",
+            "advanced": true,
             "label": { "en": "Live zones", "ru": "Живые зоны" },
             "hint": { "en": "What is deliberately left open, for the next chapters to build", "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили" }
           }
@@ -201,6 +328,7 @@
           },
           {
             "key": "open",
+            "advanced": true,
             "label": { "en": "Live zones", "ru": "Живые зоны" },
             "hint": { "en": "What is deliberately left open, for the next chapters to build", "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили" }
           }
@@ -282,6 +410,7 @@
           },
           {
             "key": "open",
+            "advanced": true,
             "label": { "en": "Live zones", "ru": "Живые зоны" },
             "hint": { "en": "What is deliberately left open, for the next chapters to build", "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили" }
           }
@@ -313,6 +442,7 @@
           },
           {
             "key": "open",
+            "advanced": true,
             "label": { "en": "Live zones", "ru": "Живые зоны" },
             "hint": { "en": "What is deliberately left open, for the next chapters to build", "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили" }
           }
@@ -377,6 +507,7 @@
           },
           {
             "key": "open",
+            "advanced": true,
             "label": { "en": "Live zones", "ru": "Живые зоны" },
             "hint": { "en": "What is deliberately left open, for the next chapters to build", "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили" }
           }

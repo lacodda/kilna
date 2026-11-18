@@ -12,6 +12,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say as sayLabel } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { RowMenu } from '@/components/RowMenu'
+import { useDetailed } from '@/features/canon/disclosure'
 import { FactEditor } from '@/features/canon/FactEditor'
 import { FactRow } from '@/features/canon/FactRow'
 import { RelationDialog } from '@/features/canon/RelationDialog'
@@ -28,6 +29,8 @@ interface Props {
   /** Drawn as a panel of the channel's board rather than a stretch of the
    *  card's column. */
   panel?: boolean
+  /** Opened from "+ Add section": the way to its first fact is open. */
+  startAdding?: boolean
 }
 
 /**
@@ -35,10 +38,18 @@ interface Props {
  * one, the card's relations with the way to draw one, or the works it
  * appears in, counted and never written.
  */
-export function SectionBlock({ view, section, lens, onOpen, facts, panel = false }: Props) {
+export function SectionBlock({
+  view,
+  section,
+  lens,
+  onOpen,
+  facts,
+  panel = false,
+  startAdding = false,
+}: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState(startAdding)
   const [relating, setRelating] = useState(false)
   const [changing, setChanging] = useState<Relation | null>(null)
   const client = useQueryClient()
@@ -265,6 +276,8 @@ export function SectionBlock({ view, section, lens, onOpen, facts, panel = false
  *  internal, C only in the works. */
 export function LayerMark({ layer }: { layer: 'public' | 'internal' | 'inWorks' }) {
   const { t } = useTranslation()
+  // A card of public, settled facts shows no letters (v0.141).
+  if (!useDetailed()) return null
   return (
     <span
       title={t(`canon.layer.long.${layer}`)}

@@ -13,6 +13,10 @@ import { RowMenu } from '@/components/RowMenu'
 import { Scroll } from '@/components/Scroll'
 import { CardAvatar } from '@/features/canon/CardAvatar'
 import { PromptBox } from '@/features/canon/PromptBox'
+import { ProposalsBanner } from '@/features/canon/ProposalsBanner'
+import { Detailed, isDetailed } from '@/features/canon/disclosure'
+import { Button } from '@/components/ui/button'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { SectionBlock } from '@/features/canon/SectionBlock'
 import { cn } from '@/lib/utils'
 
@@ -60,6 +64,30 @@ export function ChannelView({ view, lens, onOpen, onGone }: Props) {
   const sections = kind?.sections ?? []
   // The mark's variants are read as a row across the board; the rest pair up.
   const wide = (shape: string | undefined) => shape === 'marks'
+  // The passport's panels on show, empty or not - it is a form to fill - and
+  // the templates an automation reads folded under one group (v0.141, FR-18
+  // 18.2). A panel turned off in the profile shows only while it holds
+  // something.
+  const [templates, setTemplates] = useState(false)
+  const holds = (key: string) =>
+    view.facts.some(({ fact }) => fact.section === key) ||
+    view.relations.some((relation) => relation.section === key)
+  const kept = sections.filter((one) => one.off !== true || holds(one.key))
+  const main = kept.filter((one) => one.advanced !== true)
+  const advanced = kept.filter((one) => one.advanced === true)
+  const board = (list: typeof sections) => (
+    <div className="grid grid-cols-2 items-start gap-2.5 max-[1100px]:grid-cols-1">
+      {list.map((section) => (
+        <div
+          key={section.key}
+          className={cn(wide(section.shape) && 'col-span-2 max-[1100px]:col-span-1')}
+        >
+          <SectionBlock view={view} section={section} lens={lens} onOpen={onOpen} panel />
+          {section.shape === 'marks' && <PromptBox view={view} describing={false} />}
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
@@ -102,18 +130,25 @@ export function ChannelView({ view, lens, onOpen, onGone }: Props) {
           ]}
         />
       </header>
+      <ProposalsBanner view={view} />
       <Scroll label={card.title ?? t('canon.untitled')} contentClassName="p-0.5">
-        <div className="grid grid-cols-2 items-start gap-2.5 max-[1100px]:grid-cols-1">
-          {sections.map((section) => (
-            <div
-              key={section.key}
-              className={cn(wide(section.shape) && 'col-span-2 max-[1100px]:col-span-1')}
-            >
-              <SectionBlock view={view} section={section} lens={lens} onOpen={onOpen} panel />
-              {section.shape === 'marks' && <PromptBox view={view} describing={false} />}
-            </div>
-          ))}
-        </div>
+        <Detailed.Provider value={isDetailed(view, lens)}>
+          {board(main)}
+          {advanced.length > 0 && (
+            <section className="mt-3">
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-expanded={templates}
+                onClick={() => setTemplates(!templates)}
+              >
+                {templates ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
+                {t('canon.advancedTemplates', { count: advanced.length })}
+              </Button>
+              {templates && <div className="mt-2">{board(advanced)}</div>}
+            </section>
+          )}
+        </Detailed.Provider>
       </Scroll>
     </section>
   )

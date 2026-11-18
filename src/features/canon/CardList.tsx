@@ -89,9 +89,11 @@ export function CardList({ query, total, text, onText, status, onStatus, openId,
             {groupCards(cards, config).map((group) => {
               const Icon = canonIconOf(group.kind)
               const caption =
-                group.kind !== undefined
-                  ? sayLabel(group.kind.label)
-                  : t(group.key === 'heroes' ? 'canon.heroes' : 'canon.otherKinds')
+                group.kind?.root === true
+                  ? t('canon.passport')
+                  : group.kind !== undefined
+                    ? sayLabel(group.kind.label)
+                    : t(group.key === 'heroes' ? 'canon.heroes' : 'canon.otherKinds')
               return (
                 <section key={group.key} aria-label={caption}>
                   <h2 className="flex items-center gap-1.5 px-2 pt-2.5 pb-1 text-2xs font-semibold tracking-caption text-faint uppercase">

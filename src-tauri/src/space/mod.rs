@@ -272,6 +272,9 @@ pub fn create(
         None => crate::profile::seed(&conn, &manifest.kind)?,
     }
     crate::style_set::seed(&conn)?;
+    // The passport, named after the space, where the profile keeps one
+    // (v0.141, FR-18 18.1).
+    crate::actions::canon::seed_passport(&conn, &manifest.name)?;
     drop(conn);
 
     registry::add(app, app_dir, &manifest.id, folder.path())?;
@@ -547,6 +550,53 @@ mod tests {
             "a space holds its own kind, not every craft kilna ships"
         );
         assert!(profiles[0].is_active);
+    }
+
+    /// A space opens on its passport (v0.141): a card of the profile's root
+    /// kind named after it - and a profile with no root kind makes none.
+    #[test]
+    fn a_space_is_made_with_its_passport() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = crate::db::open_app_in_memory().unwrap();
+        let passport = |name: &str, kind: &str| {
+            let space = create(
+                &app,
+                dir.path(),
+                &NewSpace {
+                    name: name.into(),
+                    kind: kind.into(),
+                    colour: None,
+                    mark: None,
+                    type_id: None,
+                },
+                None,
+            )
+            .unwrap();
+            let conn =
+                crate::db::open(&Path::new(&space.path).join(crate::db::DATABASE_FILE)).unwrap();
+            let profile_id = crate::actions::active_profile_id(&conn).unwrap();
+            let config = crate::profile::config_for(&conn, &profile_id).unwrap();
+            crate::note::root_card(&conn, &profile_id, &config)
+                .unwrap()
+                .map(|card| (card.kind, card.title.unwrap_or_default()))
+        };
+        assert_eq!(
+            passport("Night Shift", "music"),
+            Some(("channel".into(), "Night Shift".into()))
+        );
+        assert_eq!(
+            passport("Field Notes", "blog"),
+            Some(("publication".into(), "Field Notes".into()))
+        );
+        assert_eq!(
+            passport("Lighthouse", "novel"),
+            Some(("world".into(), "Lighthouse".into()))
+        );
+        assert_eq!(
+            passport("Late Talk", "podcast"),
+            Some(("show".into(), "Late Talk".into()))
+        );
+        assert_eq!(passport("Empty", "blank"), None);
     }
 
     #[test]

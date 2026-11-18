@@ -74,11 +74,25 @@ describe('a card of the canon', () => {
     expect(dimmed(main, coat)).toBe(false)
     expect(dimmed(main, bridge)).toBe(false)
 
-    fireEvent.click(screen.getByRole('radio', { name: en.canon.lensName.cover }))
+    // The lens waits behind "How the AI reads this" (v0.141).
+    fireEvent.click(screen.getByRole('button', { name: en.canon.howAiReads }))
+    fireEvent.click(await screen.findByRole('radio', { name: en.canon.lensName.cover }))
     await settled(client)
 
     expect(dimmed(main, coat), 'a settled public look is what a cover reads').toBe(false)
     expect(dimmed(main, bridge), 'an internal draft of the biography reached a cover').toBe(true)
+  })
+
+  it('shows the sections that hold something, and adds an empty one on request (v0.141)', async () => {
+    const { main } = await keeper()
+    expect(within(main).getByRole('region', { name: 'Appearance' })).toBeInTheDocument()
+    expect(within(main).queryByRole('region', { name: 'Tastes' })).toBeNull()
+
+    fireEvent.click(within(main).getByRole('button', { name: en.canon.addSection }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Tastes' }))
+
+    const tastes = within(main).getByRole('region', { name: 'Tastes' })
+    expect(within(tastes).getByRole('textbox', { name: en.canon.factWords })).toBeInTheDocument()
   })
 
   it('writes a fact into the section it was added under', async () => {

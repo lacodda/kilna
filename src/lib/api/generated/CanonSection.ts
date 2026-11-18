@@ -36,4 +36,15 @@ kinds?: Array<string>,
  * time, which is the sameness the pool is there to break. Absent hands
  * over every entry; the card itself always shows them all.
  */
-draw?: number | null, };
+draw?: number | null, 
+/**
+ * A section an automation reads rather than a person (v0.141, FR-18):
+ * the templates a release's text is written from. The card gathers such
+ * sections under one folded group, out of the way of the passport.
+ */
+advanced?: boolean, 
+/**
+ * Turned off in the profile editor (v0.141): not offered when a section
+ * is added to a card. One that holds facts still shows them.
+ */
+off?: boolean, };

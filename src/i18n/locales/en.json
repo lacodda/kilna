@@ -1902,7 +1902,10 @@
         "relations": "Relations",
         "appearances": "Appearances"
       },
-      "wordOf": "The word of {{key}} in {{kind}}"
+      "wordOf": "The word of {{key}} in {{kind}}",
+      "kindOffered": "{{kind}}: offered for new cards",
+      "kindOfferedOf": "Offer {{kind}} for new cards",
+      "sectionOfferedOf": "Offer the section {{key}} of {{kind}}"
     },
     "vibe": {
       "hint": "The three lines a work’s feel is said along. A mood is drawn in its colour (#RRGGBB, as it reads on the dark theme), a character in its shape, a complexity in its strokes.",
@@ -4101,8 +4104,6 @@
   "canon": {
     "noCanon": "This craft keeps no canon",
     "noCanonBody": "The profile names no kind of card. Give a kind of note sections in the profile, and its notes become cards.",
-    "empty": "The canon is empty",
-    "emptyBody": "A card holds what the world knows about someone or something, as facts the assistant can read.",
     "pick": "Open a card on the left",
     "gone": "This card is gone",
     "goneBody": "It may be in the trash.",
@@ -4153,8 +4154,6 @@
     "outgrown_other": "This hero appears in {{count}} works - it may belong to the whole channel.",
     "deleteCard": "Delete the card",
     "cardDeleted": "Card «{{title}}» deleted",
-    "sections": "Sections",
-    "allSections": "All",
     "drawn_one": "a prompt reads {{count}} at random",
     "drawn_other": "a prompt reads {{count}} at random",
     "otherSection": "Other",
@@ -4207,7 +4206,8 @@
       "details": "Detail: name · template · where · on by default",
       "palette": "Colour",
       "marks": "Variant of the mark",
-      "styles": "House style"
+      "styles": "House style",
+      "bans": "Ban"
     },
     "placeholder": {
       "facts": "One short statement, true of the world",
@@ -4304,7 +4304,7 @@
     "around": "Around",
     "aroundHint": "a graph, not a paragraph",
     "howRead": "How the assistant reads it",
-    "howReadBody": "The MCP tool `canon` gives the card by sections and layers, and `propose_canon` proposes facts and relations - kept with one click. The actions take what their task may see: the switch at the top shows exactly that.",
+    "howReadBody": "The MCP tool `canon` gives the card by sections and layers, and `propose_canon` proposes facts and relations - kept with one click. The actions take what their task may see: How the AI reads this, over the cards, shows exactly that.",
     "seeAsTask": "Show what a task receives",
     "seeAsTaskBody": "The very text the assistant is handed for this card, through the lens chosen.",
     "copySeen": "Copy the text",
@@ -4369,7 +4369,24 @@
     "timeline": "Timeline",
     "timelineHint": "Every fact with a time inside the world, in the order it happened.",
     "timelineEmpty": "Nothing is dated yet",
-    "timelineEmptyBody": "Give a fact a time in the world - winter 2022/23, the summer before the flood - and it takes its place here."
+    "timelineEmptyBody": "Give a fact a time in the world - winter 2022/23, the summer before the flood - and it takes its place here.",
+    "passport": "Project passport",
+    "quickStart": "Start the canon",
+    "quickStartBody": "The canon keeps the world your works are made from: who you are, how you sound, what never happens. Begin with the passport, or with a first card.",
+    "fillPassport": "Fill in the passport",
+    "firstCard": "Make the first card",
+    "setUpWithAi": "Set up with the assistant",
+    "setUpChat": "Setting up the canon",
+    "howAiReads": "How the AI reads this",
+    "howAiReadsAs": "Read as: {{lens}}",
+    "addSection": "Add a section",
+    "proposalsWaiting_one": "{{count}} new proposal from the assistant",
+    "proposalsWaiting_other": "{{count}} new proposals from the assistant",
+    "reviewProposals": "Review",
+    "acceptProposals": "Accept all",
+    "advancedTemplates_one": "Advanced publication templates ({{count}})",
+    "advancedTemplates_other": "Advanced publication templates ({{count}})",
+    "moreOptions": "More options"
   },
   "register": {
     "new": "Term",

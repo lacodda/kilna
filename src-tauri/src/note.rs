@@ -286,6 +286,27 @@ pub fn clean_aliases(aliases: Vec<String>) -> Vec<String> {
     kept
 }
 
+/// The space's root card - its passport - when it has one (v0.141).
+pub fn root_card(
+    conn: &Connection,
+    profile_id: &str,
+    config: &crate::profile::config::ProfileConfig,
+) -> Result<Option<Note>> {
+    for kind in config.note_kinds.iter().filter(|kind| kind.root) {
+        let id: Option<String> = conn
+            .query_row(
+                "SELECT id FROM note WHERE profile_id = ?1 AND kind = ?2 LIMIT 1",
+                params![profile_id, kind.key],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if let Some(id) = id {
+            return get(conn, &id);
+        }
+    }
+    Ok(None)
+}
+
 /// The canon has one root: a second card of the root kind is refused, whether
 /// it is made or an existing note is turned into one. `except` is the note
 /// being changed, which may of course be the root already.

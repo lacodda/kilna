@@ -60,6 +60,11 @@ pub struct NoteKind {
     /// reads them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub media: Vec<Medium>,
+    /// Turned off in the profile editor (v0.141, FR-18): a kind of card not
+    /// offered for a new card, and no passport made of it with a space.
+    /// Cards of it already made stay, and read as they did.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub off: bool,
 }
 
 /// What a work of culture is in - literature, film, music - as an entry of
@@ -96,6 +101,7 @@ impl NoteKind {
             line: false,
             library: false,
             media: Vec::new(),
+            off: false,
         }
     }
 
@@ -234,6 +240,15 @@ pub struct CanonSection {
     /// over every entry; the card itself always shows them all.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub draw: Option<u16>,
+    /// A section an automation reads rather than a person (v0.141, FR-18):
+    /// the templates a release's text is written from. The card gathers such
+    /// sections under one folded group, out of the way of the passport.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub advanced: bool,
+    /// Turned off in the profile editor (v0.141): not offered when a section
+    /// is added to a card. One that holds facts still shows them.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub off: bool,
 }
 
 impl CanonSection {
@@ -246,6 +261,8 @@ impl CanonSection {
             lenses: Vec::new(),
             kinds: Vec::new(),
             draw: None,
+            advanced: false,
+            off: false,
         }
     }
 

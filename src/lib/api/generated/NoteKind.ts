@@ -63,4 +63,10 @@ library?: boolean,
  * music. Only on a library kind; in the order the board's "by kind"
  * reads them.
  */
-media?: Array<Medium>, };
+media?: Array<Medium>, 
+/**
+ * Turned off in the profile editor (v0.141, FR-18): a kind of card not
+ * offered for a new card, and no passport made of it with a space.
+ * Cards of it already made stay, and read as they did.
+ */
+off?: boolean, };

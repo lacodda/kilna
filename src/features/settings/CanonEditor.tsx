@@ -1,3 +1,4 @@
+import { Switch } from '@/components/ui/switch'
 import { useTranslation } from 'react-i18next'
 import type { CanonSection, NoteKind, SectionShape } from '@/lib/api/types'
 import { say as sayLabel } from '@/lib/useProfile'
@@ -42,57 +43,78 @@ export function CanonEditor({
   }
   const setSections = (key: string, sections: CanonSection[]) =>
     onChange(kinds.map((kind) => (kind.key === key ? { ...kind, sections } : kind)))
+  // Off, a kind is not offered for a new card and a section is not offered
+  // to add (v0.141, FR-18 18.1); what was made of them stays.
+  const setOff = (key: string, off: boolean) =>
+    onChange(kinds.map((kind) => (kind.key === key ? { ...kind, off: off || undefined } : kind)))
 
   return (
     <section className="flex flex-col gap-5">
       <p className="text-xs text-dim">{t('editor.canon.hint')}</p>
       {cards.map((kind) => (
-        <KeyedList<CanonSection>
-          key={kind.key}
-          boxed
-          label={t('editor.canon.sectionsOf', { kind: sayLabel(kind.label) })}
-          entries={kind.sections ?? []}
-          onChange={(sections) => setSections(kind.key, sections)}
-          make={(key) => ({ key, label: key, shape: 'facts' })}
-          addLabel={t('editor.canon.addSection')}
-          problems={(key) => problemsAt(['noteKind', kind.key], ['section', key])}
-          below={(section, set) => (
-            <LabelInput
-              optional
-              label={section.hint}
-              placeholder={t('editor.canon.sectionHint')}
-              aria-label={t('editor.canon.sectionHintOf', {
-                key: section.key,
-                kind: sayLabel(kind.label),
-              })}
-              onChange={(hint) => set({ hint })}
+        <div key={kind.key} className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={kind.off !== true}
+              onCheckedChange={(on) => setOff(kind.key, !on)}
+              aria-label={t('editor.canon.kindOfferedOf', { kind: sayLabel(kind.label) })}
             />
-          )}
-        >
-          {(section, set) => (
-            <>
+            <span>{t('editor.canon.kindOffered', { kind: sayLabel(kind.label) })}</span>
+          </label>
+          <KeyedList<CanonSection>
+            boxed
+            label={t('editor.canon.sectionsOf', { kind: sayLabel(kind.label) })}
+            entries={kind.sections ?? []}
+            onChange={(sections) => setSections(kind.key, sections)}
+            make={(key) => ({ key, label: key, shape: 'facts' })}
+            addLabel={t('editor.canon.addSection')}
+            problems={(key) => problemsAt(['noteKind', kind.key], ['section', key])}
+            below={(section, set) => (
               <LabelInput
-                className="flex-1"
-                label={section.label}
-                onChange={(label) => set({ label: label ?? '' })}
-                aria-label={t('editor.canon.wordOf', {
+                optional
+                label={section.hint}
+                placeholder={t('editor.canon.sectionHint')}
+                aria-label={t('editor.canon.sectionHintOf', {
                   key: section.key,
                   kind: sayLabel(kind.label),
                 })}
+                onChange={(hint) => set({ hint })}
               />
-              <Select
-                className="w-40"
-                aria-label={t('editor.canon.shapeOf', {
-                  key: section.key,
-                  kind: sayLabel(kind.label),
-                })}
-                value={section.shape ?? 'facts'}
-                onChange={(shape) => set({ shape: shape as SectionShape })}
-                options={shapes}
-              />
-            </>
-          )}
-        </KeyedList>
+            )}
+          >
+            {(section, set) => (
+              <>
+                <LabelInput
+                  className="flex-1"
+                  label={section.label}
+                  onChange={(label) => set({ label: label ?? '' })}
+                  aria-label={t('editor.canon.wordOf', {
+                    key: section.key,
+                    kind: sayLabel(kind.label),
+                  })}
+                />
+                <Select
+                  className="w-40"
+                  aria-label={t('editor.canon.shapeOf', {
+                    key: section.key,
+                    kind: sayLabel(kind.label),
+                  })}
+                  value={section.shape ?? 'facts'}
+                  onChange={(shape) => set({ shape: shape as SectionShape })}
+                  options={shapes}
+                />
+                <Switch
+                  checked={section.off !== true}
+                  onCheckedChange={(on) => set({ off: on ? undefined : true })}
+                  aria-label={t('editor.canon.sectionOfferedOf', {
+                    key: section.key,
+                    kind: sayLabel(kind.label),
+                  })}
+                />
+              </>
+            )}
+          </KeyedList>
+        </div>
       ))}
     </section>
   )

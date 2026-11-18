@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Link2, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Link2, X } from 'lucide-react'
 import { addFact, updateFact } from '@/lib/api/canon'
 import type {
   CardView,
@@ -76,6 +76,17 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
     fact?.source?.kind === 'work' ? '' : (fact?.source?.label ?? ''),
   )
   const [picking, setPicking] = useState(false)
+  // The layer, the state, the time in the world and the source wait under
+  // "More options" (v0.141, FR-18 18.2): a fact is public and settled unless
+  // someone says otherwise, and a fact that already says otherwise opens
+  // with them on show.
+  const [more, setMore] = useState(
+    fact !== undefined &&
+      (fact.layer !== 'public' ||
+        (fact.status !== 'canon' && fact.status !== 'retired') ||
+        fact.when != null ||
+        fact.source != null),
+  )
   const [slot, setSlot] = useState(text('slot'))
   const [template, setTemplate] = useState(text('template'))
   const [places, setPlaces] = useState<string[]>(
@@ -284,26 +295,8 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <SegmentedControl
-          aria-label={t('canon.layerLabel')}
-          value={layer}
-          onValueChange={(next) => setLayer(next as Layer)}
-        >
-          {LAYERS.map((one) => (
-            <Segment key={one} value={one}>
-              {t(`canon.layer.short.${one}`)} · {t(`canon.layer.name.${one}`)}
-            </Segment>
-          ))}
-        </SegmentedControl>
-        <Select
-          value={status}
-          onChange={(next) => setStatus(next as FactStatus)}
-          options={SETTLED.map((one) => ({ value: one, label: t(`canon.status.${one}`) }))}
-          aria-label={t('canon.statusLabel')}
-          className="w-36"
-        />
-        {fact !== undefined && sections.length > 1 && (
+      {fact !== undefined && sections.length > 1 && (
+        <div className="flex items-center gap-2">
           <Select
             value={inSection}
             onChange={setInSection}
@@ -311,70 +304,105 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
             aria-label={t('canon.moveTo')}
             className="w-44"
           />
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="grid grid-cols-[minmax(0,1fr)_140px] gap-2">
-        <Input
-          value={whenLabel}
-          onChange={(event) => setWhenLabel(event.target.value)}
-          placeholder={t('canon.whenPlaceholder')}
-          aria-label={t('canon.when')}
-        />
-        <Input
-          value={whenSort}
-          onChange={(event) => setWhenSort(event.target.value)}
-          placeholder={t('canon.sortPlaceholder')}
-          aria-label={t('canon.sort')}
-          title={t('canon.sortHint')}
-          className="font-mono"
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={sourceKind}
-          onChange={(next) => setSourceKind(next as FactSourceKind | '')}
-          options={[
-            { value: '', label: t('canon.source.none') },
-            { value: 'work', label: t('canon.source.work') },
-            { value: 'decision', label: t('canon.source.decision') },
-            { value: 'document', label: t('canon.source.document') },
-          ]}
-          aria-label={t('canon.sourceLabel')}
-          className="w-40"
-        />
-        {sourceKind === 'work' && (
-          <>
-            {sourceWork === null ? (
-              <Button size="sm" variant="ghost" onClick={() => setPicking(true)}>
-                <Link2 aria-hidden />
-                {t('canon.pickWork')}
-              </Button>
-            ) : (
-              <Chip onRemove={() => setSourceWork(null)} removeLabel={t('canon.dropWork')}>
-                {sourceWork.title}
-              </Chip>
-            )}
-            <Input
-              value={sourceLine}
-              onChange={(event) => setSourceLine(event.target.value)}
-              placeholder={t('canon.linePlaceholder')}
-              aria-label={t('canon.line')}
-              className="min-w-48 flex-1"
+      <Button
+        size="xs"
+        variant="ghost"
+        className="self-start"
+        aria-expanded={more}
+        onClick={() => setMore(!more)}
+      >
+        {more ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
+        {t('canon.moreOptions')}
+      </Button>
+      {more && (
+        <div className="flex flex-col gap-2 rounded-md border border-line p-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <SegmentedControl
+              aria-label={t('canon.layerLabel')}
+              value={layer}
+              onValueChange={(next) => setLayer(next as Layer)}
+            >
+              {LAYERS.map((one) => (
+                <Segment key={one} value={one}>
+                  {t(`canon.layer.short.${one}`)} · {t(`canon.layer.name.${one}`)}
+                </Segment>
+              ))}
+            </SegmentedControl>
+            <Select
+              value={status}
+              onChange={(next) => setStatus(next as FactStatus)}
+              options={SETTLED.map((one) => ({ value: one, label: t(`canon.status.${one}`) }))}
+              aria-label={t('canon.statusLabel')}
+              className="w-36"
             />
-          </>
-        )}
-        {(sourceKind === 'decision' || sourceKind === 'document') && (
-          <Input
-            value={sourceLabel}
-            onChange={(event) => setSourceLabel(event.target.value)}
-            placeholder={t(`canon.sourcePlaceholder.${sourceKind}`)}
-            aria-label={t('canon.sourceName')}
-            className="min-w-48 flex-1"
-          />
-        )}
-      </div>
+          </div>
+
+          <div className="grid grid-cols-[minmax(0,1fr)_140px] gap-2">
+            <Input
+              value={whenLabel}
+              onChange={(event) => setWhenLabel(event.target.value)}
+              placeholder={t('canon.whenPlaceholder')}
+              aria-label={t('canon.when')}
+            />
+            <Input
+              value={whenSort}
+              onChange={(event) => setWhenSort(event.target.value)}
+              placeholder={t('canon.sortPlaceholder')}
+              aria-label={t('canon.sort')}
+              title={t('canon.sortHint')}
+              className="font-mono"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={sourceKind}
+              onChange={(next) => setSourceKind(next as FactSourceKind | '')}
+              options={[
+                { value: '', label: t('canon.source.none') },
+                { value: 'work', label: t('canon.source.work') },
+                { value: 'decision', label: t('canon.source.decision') },
+                { value: 'document', label: t('canon.source.document') },
+              ]}
+              aria-label={t('canon.sourceLabel')}
+              className="w-40"
+            />
+            {sourceKind === 'work' && (
+              <>
+                {sourceWork === null ? (
+                  <Button size="sm" variant="ghost" onClick={() => setPicking(true)}>
+                    <Link2 aria-hidden />
+                    {t('canon.pickWork')}
+                  </Button>
+                ) : (
+                  <Chip onRemove={() => setSourceWork(null)} removeLabel={t('canon.dropWork')}>
+                    {sourceWork.title}
+                  </Chip>
+                )}
+                <Input
+                  value={sourceLine}
+                  onChange={(event) => setSourceLine(event.target.value)}
+                  placeholder={t('canon.linePlaceholder')}
+                  aria-label={t('canon.line')}
+                  className="min-w-48 flex-1"
+                />
+              </>
+            )}
+            {(sourceKind === 'decision' || sourceKind === 'document') && (
+              <Input
+                value={sourceLabel}
+                onChange={(event) => setSourceLabel(event.target.value)}
+                placeholder={t(`canon.sourcePlaceholder.${sourceKind}`)}
+                aria-label={t('canon.sourceName')}
+                className="min-w-48 flex-1"
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <Button

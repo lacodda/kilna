@@ -421,6 +421,131 @@
     ],
     "note_kinds": [
       {
+        "icon": "globe",
+        "key": "world",
+        "label": {
+          "en": "World / Book",
+          "ru": "Мир / Книга"
+        },
+        "root": true,
+        "sections": [
+          {
+            "hint": {
+              "en": "Title, premise, genre, where it is told from",
+              "ru": "Название, замысел, жанр, откуда рассказано"
+            },
+            "key": "identity",
+            "label": {
+              "en": "What the book is",
+              "ru": "О чём книга"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "Time, place, the shape of the world",
+              "ru": "Время, место, устройство мира"
+            },
+            "key": "setting",
+            "label": {
+              "en": "Setting",
+              "ru": "Сеттинг"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "What can and cannot happen here",
+              "ru": "Что здесь может и не может случиться"
+            },
+            "key": "laws",
+            "label": {
+              "en": "Laws of the world",
+              "ru": "Законы мира"
+            }
+          },
+          {
+            "hint": {
+              "en": "→ covers and frames are drawn toward these",
+              "ru": "→ обложки и кадры тянутся к ним"
+            },
+            "key": "references",
+            "label": {
+              "en": "Visual references",
+              "ru": "Визуальные референсы"
+            },
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "hint": {
+              "en": "→ what goes out under a release, and replies",
+              "ru": "→ тексты выпусков и ответы"
+            },
+            "key": "voice",
+            "label": {
+              "en": "Voice of public texts",
+              "ru": "Голос публичных текстов"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "→ accents and backgrounds",
+              "ru": "→ акцент и фоны"
+            },
+            "key": "palette",
+            "label": {
+              "en": "Palette",
+              "ru": "Палитра"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "palette"
+          },
+          {
+            "hint": {
+              "en": "→ what a public text never says",
+              "ru": "→ чего не бывает в публичных текстах"
+            },
+            "key": "bans",
+            "label": {
+              "en": "Rules and bans",
+              "ru": "Правила и запреты"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "bans"
+          },
+          {
+            "hint": {
+              "en": "→ the negative of a cover and a frame",
+              "ru": "→ негатив обложки и кадра"
+            },
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "bans"
+          }
+        ]
+      },
+      {
         "describe_from": [
           "looks"
         ],
@@ -492,6 +617,7 @@
             "shape": "relations"
           },
           {
+            "advanced": true,
             "key": "symbols",
             "label": {
               "en": "Symbols",
@@ -530,6 +656,7 @@
             "shape": "appearances"
           },
           {
+            "advanced": true,
             "hint": {
               "en": "What is deliberately left open, for the next chapters to build",
               "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
@@ -601,6 +728,7 @@
             "shape": "appearances"
           },
           {
+            "advanced": true,
             "hint": {
               "en": "What is deliberately left open, for the next chapters to build",
               "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
@@ -730,6 +858,7 @@
             "shape": "appearances"
           },
           {
+            "advanced": true,
             "hint": {
               "en": "What is deliberately left open, for the next chapters to build",
               "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
@@ -785,6 +914,7 @@
             "shape": "appearances"
           },
           {
+            "advanced": true,
             "hint": {
               "en": "What is deliberately left open, for the next chapters to build",
               "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"
@@ -891,6 +1021,7 @@
             "shape": "appearances"
           },
           {
+            "advanced": true,
             "hint": {
               "en": "What is deliberately left open, for the next chapters to build",
               "ru": "Что намеренно оставлено открытым, чтобы следующие главы это развили"

@@ -32,6 +32,7 @@ export function NewCardDialog({ open, onOpenChange, cards, onCreated }: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
   const kinds = cardKindsOf(config).filter((key) => {
+    if (cardKindOf(config, key)?.off === true) return false
     const kind = cardKindOf(config, key)
     return kind?.root !== true || !cards.some((card) => card.kind === key)
   })

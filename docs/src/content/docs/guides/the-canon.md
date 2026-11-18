@@ -21,8 +21,17 @@ in the [profile document](/kilna/reference/profile-document/#cards-of-the-canon)
 ## The Canon screen
 
 **Canon** in the menu opens every card: the list on the left, grouped by
-kind — the channel first, the heroes of single works last — the open card in
-the middle, its pictures and relations on the right.
+kind — the project passport first, the heroes of single works last — the
+open card in the middle, its pictures and relations on the right.
+
+**Every shipped profile but the blank one has a canon** since v0.141, and
+each has a **passport** - the root card of the project: *Project / Brand* in
+Studio, *World / Book* for a novel, *Publication / Blog* for a blog, *Show /
+Podcast* for a podcast. A new space is made with its passport, named after
+the space, and while the canon holds nothing else the screen offers a
+**quick start**: fill in the passport, make the first card, or set it up
+with the assistant in a chat of its own. A blog's canon also keeps personas,
+topics and cases; a podcast's, guests and segments.
 
 - **The search** finds a card by its name, its other names and its facts.
 - **The chips** narrow the list to cards holding settled facts, drafts to
@@ -35,12 +44,30 @@ the middle, its pictures and relations on the right.
 Along the top: the card's face (its newest portrait, or its initial), its
 name, its **other names** — the forms the texts use, comma separated, which
 is how kilna finds where it appears — and **who may know it exists**:
-known to all, internal only, or only in the works. The chips below jump to
-one section; **All** reads the whole card.
+known to all, internal only, or only in the works.
 
-Every section is a list. **+ fact** opens the editor: the statement, the
-layer, the state, the source, and when it happened. `Ctrl+Enter` saves,
-`Esc` leaves.
+**A card shows the sections that hold something.** The rest wait under
+**+ Add section**, which opens the one you pick ready for its first fact; a
+section turned off in the profile is not offered there, though one that
+holds facts still shows them. When the assistant has proposed facts nobody
+has settled, a line over the card says how many, with **Review** - to the
+first of them - and **Accept all**.
+
+Every section is a list. **+ fact** opens the editor: the statement, and
+under **More options** the layer, the state, the source and when it
+happened - a new fact is public and settled unless you say otherwise, and a
+fact that already says otherwise opens with them on show. `Ctrl+Enter`
+saves, `Esc` leaves.
+
+The layers' letters and the states' words appear on a card only where they
+say something: a card holding a fact that is not public, or one still a
+draft or a live zone - or while a task's reading is looked at. A card of
+public, settled facts reads as a plain list.
+
+**The passport** is a board of panels, every main one on show - it is a form
+to fill - and the templates a release's text is written from (Studio's
+description template, moves, assemblies, pinned forms, captions and signature
+details) folded under **Advanced publication templates**.
 
 ### Layers
 
@@ -144,8 +171,10 @@ description, never its name.
 
 ## Through the eyes of a task
 
-The switch at the top — **Everything**, **Cover**, **The work**, **Public
-text** — shows the card as that task sees it, dimming what it may not read:
+**How the AI reads this**, over the cards, opens a switch — **Everything**,
+**Cover**, **The work**, **Public text** — that shows the card as that task
+sees it, dimming what it may not read; the button says the lens while one is
+on, and nothing dims until you pick one:
 
 - **The work** — a lyric, a chapter, a script — reads every fact that is
   not retired, drafts and live zones included.
