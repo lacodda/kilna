@@ -198,6 +198,12 @@ shortlist is searched. Every section folds by its title, and a folded
 section says in one line what is chosen in it; which sections are folded is
 remembered for the whole application, not per work.
 
+The shortlist folds the same way (v0.146): folded, it is one line - how many
+are starred and the one the cover is built from. The button at the end of
+the Ideas and Constructor switch gives the constructor the whole window, as
+the text editor's does; **Esc** brings it back to the card, with everything
+in it as it was.
+
 The frame's layouts are searched, a starred layout comes first on every
 work, and **No frame** clears the frame in one press. How big the subject is
 and how much of it shows are two scales of named stops; the second starts at
