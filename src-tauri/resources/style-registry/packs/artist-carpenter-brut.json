@@ -1,0 +1,81 @@
+{
+  "id": "artist-carpenter-brut",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "aggressive-darksynth",
+      "type": "genre",
+      "label": {
+        "en": "aggressive darksynth",
+        "ru": "агрессивный дарксинт"
+      },
+      "family": "artist-carpenter-brut",
+      "description": "aggressive darksynth",
+      "when": "For a night chase.",
+      "explanation": {
+        "en": "Dark, heavy retro synth music with metal energy.",
+        "ru": "Тёмная тяжёлая ретро-синт-музыка с энергией метала."
+      }
+    },
+    {
+      "key": "distorted-saw-bass-at-a-driving-tempo",
+      "type": "bass",
+      "label": {
+        "en": "distorted saw bass at a driving tempo",
+        "ru": "перегруженный пилообразный бас на гоне"
+      },
+      "family": "artist-carpenter-brut",
+      "description": "distorted saw bass at a driving tempo",
+      "when": "When the track should never let up.",
+      "explanation": {
+        "en": "A gritty, buzzing synth bass pushing fast.",
+        "ru": "Грязный жужжащий синт-бас, гонящий вперёд."
+      }
+    },
+    {
+      "key": "horror-movie-synth-leads",
+      "type": "instrument",
+      "label": {
+        "en": "horror-movie synth leads",
+        "ru": "синт-лиды как из хоррора"
+      },
+      "family": "artist-carpenter-brut",
+      "description": "horror-movie synth leads",
+      "when": "For dread with style.",
+      "explanation": {
+        "en": "Ominous synth melodies of old horror soundtracks.",
+        "ru": "Зловещие синт-мелодии старых хоррор-саундтреков."
+      }
+    },
+    {
+      "key": "gated-reverb-80s-drums-at-high-tempo",
+      "type": "groove",
+      "label": {
+        "en": "gated-reverb 80s drums at high tempo",
+        "ru": "гейтованные барабаны 80-х на высоком темпе"
+      },
+      "family": "artist-carpenter-brut",
+      "description": "gated-reverb 80s drums at high tempo",
+      "when": "For retro power.",
+      "explanation": {
+        "en": "Huge, cut-off snares of the eighties, played fast.",
+        "ru": "Огромные обрубленные малые 80-х, сыгранные быстро."
+      }
+    },
+    {
+      "key": "neon-menace",
+      "type": "mood",
+      "label": {
+        "en": "neon menace",
+        "ru": "неоновая угроза"
+      },
+      "family": "artist-carpenter-brut",
+      "description": "neon menace",
+      "when": "When danger should glow.",
+      "explanation": {
+        "en": "Stylish and threatening, like a city at night.",
+        "ru": "Стильно и угрожающе, как город ночью."
+      }
+    }
+  ]
+}

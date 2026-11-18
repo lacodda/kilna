@@ -1,0 +1,108 @@
+{
+  "id": "photo-studio",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "editorial-fashion",
+      "type": "image-style",
+      "label": {
+        "en": "Editorial medium format",
+        "ru": "Эдиториал на среднем формате"
+      },
+      "family": "photo-studio",
+      "description": "STYLE: a medium-format editorial studio photograph on 120 colour negative film with an 80mm lens: authentic skin micro-texture and pores (zero plastic airbrushing), crisp weave of wool and denim, soft diffused key light with gentle falloff into dark neutral shadows, calm desaturated natural colour. Avoid HDR oversharpening, glossy beauty retouching, neon glow, or painterly illustration.",
+      "when": "A grounded, adult portrait for a calm song.",
+      "colours": [
+        "#C9B8A6",
+        "#6E6259",
+        "#2B2724"
+      ]
+    },
+    {
+      "key": "direct-flash-night",
+      "type": "image-style",
+      "label": {
+        "en": "Direct flash at night",
+        "ru": "Прямая вспышка ночью"
+      },
+      "family": "photo-studio",
+      "description": "STYLE: a candid night photograph with on-camera direct flash: harsh frontal light, glossy specular skin, hard shadows cast on the wall behind, the background falling into black, slightly saturated party colours. Avoid studio softness, painterly rendering, or cinematic grading.",
+      "when": "A party, a confession at 3 a.m., a snapshot.",
+      "colours": [
+        "#F2E6D8",
+        "#B23A48",
+        "#0B0B0E"
+      ]
+    },
+    {
+      "key": "medium-format-portrait",
+      "type": "image-style",
+      "label": {
+        "en": "Medium format portrait",
+        "ru": "Среднеформатный портрет"
+      },
+      "family": "photo-studio",
+      "description": "STYLE: a medium-format portrait with very shallow depth of field: tack-sharp eyes, creamy smooth background falloff, gentle window light, fine film grain and true natural colour. Avoid wide-angle distortion, heavy filters, or digital beauty smoothing.",
+      "when": "A close, honest face.",
+      "colours": [
+        "#D8C3A5",
+        "#8A7967",
+        "#3A332D"
+      ]
+    },
+    {
+      "key": "polaroid-sx70",
+      "type": "image-style",
+      "label": {
+        "en": "Instant film",
+        "ru": "Моментальная плёнка"
+      },
+      "family": "photo-studio",
+      "description": "STYLE: an instant-film photograph: soft dreamy focus, washed pastel colours with a slight cyan-green cast, gently lifted blacks, a little chemical unevenness at the edges. Avoid crisp digital sharpness, HDR, or modern colour grading.",
+      "when": "Summer, a memory, a love that is over.",
+      "colours": [
+        "#E8D9C0",
+        "#9BB7B0",
+        "#5C6B73"
+      ]
+    },
+    {
+      "key": "macro-still-life",
+      "type": "image-style",
+      "label": {
+        "en": "Macro still life",
+        "ru": "Макро-натюрморт"
+      },
+      "family": "photo-studio",
+      "description": "STYLE: a macro still-life photograph: one small object filling the frame, razor-thin plane of focus, everything else melting into soft bokeh, controlled side light revealing surface texture. Avoid busy backgrounds, people, or illustration.",
+      "when": "When one object tells the song.",
+      "colours": [
+        "#2E2A24",
+        "#A68A64",
+        "#E9DFCF"
+      ],
+      "needs": [
+        "crop:max:head"
+      ]
+    },
+    {
+      "key": "wet-plate-collodion",
+      "type": "image-style",
+      "label": {
+        "en": "Wet-plate collodion",
+        "ru": "Мокрый коллодион"
+      },
+      "family": "photo-studio",
+      "description": "STYLE: a wet-plate collodion tintype: silvery metallic tones on dark plate, swirling chemical flow marks and pour edges, very shallow focus with ghostly falloff, long-exposure stillness. Monochrome silver only; no modern colour, no crisp digital grain.",
+      "when": "For the past, the dead, a ghost story.",
+      "colours": [
+        "#1B1A17",
+        "#7C766B",
+        "#D6D0C2"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    }
+  ]
+}

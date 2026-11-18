@@ -139,6 +139,17 @@ English, naming no artist - `when`, `explanation`, `colours`, `sample`), with
 an optional `preview_webp` and what a style `needs`, `provides` and
 `conflicts` with. A pack whose file does not match its digest is refused.
 
+Since v0.137 the snapshot holds thirty packs: black and white, a photo studio,
+Soviet print, cinematic light, the city at night, film stocks, stage looks,
+rain and snow, small movements of a hero, and sixteen sound packs **in the
+spirit of** an artist - the name stands in the pack's title only; every style
+in it is production tags, and a test keeps any artist's name out of them. The
+picture packs set their contracts: a monochrome style brings `color:mono`, a
+place needs `scenery:yes`, a look needs a person shown to the bust. Whoever
+keeps a registry of their own runs `node tools/style-registry.mjs` after
+editing a pack: it writes each pack's digest, count and date into
+`index.json` (`--check` says what is out of date).
+
 ## Sets, stars and the switch
 
 Every style kilna ships is filed under a **set** - since v0.132 the

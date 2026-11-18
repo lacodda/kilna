@@ -1,0 +1,81 @@
+{
+  "id": "artist-depeche",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "dark-synth-pop-with-industrial-edges",
+      "type": "genre",
+      "label": {
+        "en": "dark synth-pop with industrial edges",
+        "ru": "тёмный синтипоп с индастриал-краем"
+      },
+      "family": "artist-depeche",
+      "description": "dark synth-pop with industrial edges",
+      "when": "For a song that is catchy and grim at once.",
+      "explanation": {
+        "en": "Melodic electronic pop with a cold, metallic undertone.",
+        "ru": "Мелодичный электронный поп с холодным металлическим подтоном."
+      }
+    },
+    {
+      "key": "cold-analog-synth-arpeggios-and-sampled-metallic-percussion",
+      "type": "instrument",
+      "label": {
+        "en": "cold analog synth arpeggios and sampled metallic percussion",
+        "ru": "холодные арпеджио и металлическая перкуссия"
+      },
+      "family": "artist-depeche",
+      "description": "cold analog synth arpeggios and sampled metallic percussion",
+      "when": "When the arrangement should feel built from machines.",
+      "explanation": {
+        "en": "Precise sequenced synth patterns against hits sampled from metal objects.",
+        "ru": "Точные секвенсорные узоры синта на фоне ударов по металлу."
+      }
+    },
+    {
+      "key": "deep-brooding-baritone-lead",
+      "type": "vocal",
+      "label": {
+        "en": "deep brooding baritone lead",
+        "ru": "низкий мрачный баритон"
+      },
+      "family": "artist-depeche",
+      "description": "deep brooding baritone lead",
+      "when": "For a verse that sounds like a confession at night.",
+      "explanation": {
+        "en": "A low, dark, controlled lead voice with gravity.",
+        "ru": "Низкий тёмный сдержанный ведущий голос с весом."
+      }
+    },
+    {
+      "key": "sequenced-synth-bass-pulse",
+      "type": "bass",
+      "label": {
+        "en": "sequenced synth bass pulse",
+        "ru": "секвенсорный пульс синт-баса"
+      },
+      "family": "artist-depeche",
+      "description": "sequenced synth bass pulse",
+      "when": "When the groove should be relentless but restrained.",
+      "explanation": {
+        "en": "A steady machine-like bass pattern driving the track.",
+        "ru": "Ровный машинный басовый рисунок, который тянет трек вперёд."
+      }
+    },
+    {
+      "key": "sensual-melancholy",
+      "type": "mood",
+      "label": {
+        "en": "sensual melancholy",
+        "ru": "чувственная меланхолия"
+      },
+      "family": "artist-depeche",
+      "description": "sensual melancholy",
+      "when": "For a love song with a shadow over it.",
+      "explanation": {
+        "en": "Sad and seductive at the same time.",
+        "ru": "Грусть и соблазн одновременно."
+      }
+    }
+  ]
+}

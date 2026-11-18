@@ -1,0 +1,81 @@
+{
+  "id": "artist-tame-impala",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "psychedelic-pop",
+      "type": "genre",
+      "label": {
+        "en": "psychedelic pop",
+        "ru": "психоделический поп"
+      },
+      "family": "artist-tame-impala",
+      "description": "psychedelic pop",
+      "when": "For a sunny, hazy trip.",
+      "explanation": {
+        "en": "Catchy songs wrapped in swirling, dreamy production.",
+        "ru": "Цепкие песни в кружащемся мечтательном продакшне."
+      }
+    },
+    {
+      "key": "melodic-fuzzy-bass-groove",
+      "type": "bass",
+      "label": {
+        "en": "melodic fuzzy bass groove",
+        "ru": "мелодичный фуззовый бас-грув"
+      },
+      "family": "artist-tame-impala",
+      "description": "melodic fuzzy bass groove",
+      "when": "When the bass should dance.",
+      "explanation": {
+        "en": "A warm, slightly distorted bass playing a tune.",
+        "ru": "Тёплый чуть перегруженный бас, играющий мелодию."
+      }
+    },
+    {
+      "key": "phased-dreamy-synths-and-flanged-guitars",
+      "type": "instrument",
+      "label": {
+        "en": "phased dreamy synths and flanged guitars",
+        "ru": "фазированные синты и гитары с флэнжером"
+      },
+      "family": "artist-tame-impala",
+      "description": "phased dreamy synths and flanged guitars",
+      "when": "For a woozy head-rush.",
+      "explanation": {
+        "en": "Swirling, sweeping modulation on keys and guitars.",
+        "ru": "Кружащаяся, плывущая модуляция на клавишах и гитарах."
+      }
+    },
+    {
+      "key": "airy-falsetto-with-heavy-reverb",
+      "type": "vocal",
+      "label": {
+        "en": "airy falsetto with heavy reverb",
+        "ru": "воздушный фальцет в сильном реверберации"
+      },
+      "family": "artist-tame-impala",
+      "description": "airy falsetto with heavy reverb",
+      "when": "For dreamlike lines.",
+      "explanation": {
+        "en": "A light, high voice floating in a big space.",
+        "ru": "Лёгкий высокий голос, парящий в большом пространстве."
+      }
+    },
+    {
+      "key": "punchy-compressed-vintage-drums",
+      "type": "groove",
+      "label": {
+        "en": "punchy compressed vintage drums",
+        "ru": "плотные компрессированные винтажные барабаны"
+      },
+      "family": "artist-tame-impala",
+      "description": "punchy compressed vintage drums",
+      "when": "For a hypnotic, bouncy beat.",
+      "explanation": {
+        "en": "Drums squashed hard so they thump like an old record.",
+        "ru": "Барабаны, сильно сжатые, бьют как со старой пластинки."
+      }
+    }
+  ]
+}

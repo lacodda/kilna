@@ -1,0 +1,81 @@
+{
+  "id": "artist-kino-molchat",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "chorused-mid-focused-bassline",
+      "type": "bass",
+      "label": {
+        "en": "chorused mid-focused bassline",
+        "ru": "бас с хорусом в середине"
+      },
+      "family": "artist-kino-molchat",
+      "description": "chorused mid-focused bassline",
+      "when": "When the bass should be the hook.",
+      "explanation": {
+        "en": "A melodic bass with chorus, carrying the tune in the middle of the mix.",
+        "ru": "Мелодичный бас с хорусом, ведущий мелодию в середине микса."
+      }
+    },
+    {
+      "key": "crisp-80s-drum-machine",
+      "type": "groove",
+      "label": {
+        "en": "crisp 80s drum machine",
+        "ru": "чёткая драм-машина 80-х"
+      },
+      "family": "artist-kino-molchat",
+      "description": "crisp 80s drum machine",
+      "when": "For a cold, motorik pulse.",
+      "explanation": {
+        "en": "A dry, tight programmed beat of the early drum machines.",
+        "ru": "Сухой плотный бит ранних драм-машин."
+      }
+    },
+    {
+      "key": "jangly-chorus-electric-guitar-with-tape-delay",
+      "type": "instrument",
+      "label": {
+        "en": "jangly chorus electric guitar with tape delay",
+        "ru": "звенящая гитара с хорусом и ленточным дилеем"
+      },
+      "family": "artist-kino-molchat",
+      "description": "jangly chorus electric guitar with tape delay",
+      "when": "For the melody that answers the voice.",
+      "explanation": {
+        "en": "Bright clean guitar shimmering with chorus and echo.",
+        "ru": "Яркая чистая гитара, мерцающая хорусом и эхом."
+      }
+    },
+    {
+      "key": "monotone-baritone-vocal-in-the-low-register",
+      "type": "vocal",
+      "label": {
+        "en": "monotone baritone vocal in the low register",
+        "ru": "монотонный баритон в низком регистре"
+      },
+      "family": "artist-kino-molchat",
+      "description": "monotone baritone vocal in the low register",
+      "when": "When the words matter more than the singing.",
+      "explanation": {
+        "en": "A low voice that stays on few notes, calm and distant.",
+        "ru": "Низкий голос на немногих нотах, спокойный и отстранённый."
+      }
+    },
+    {
+      "key": "analog-cassette-warmth",
+      "type": "texture",
+      "label": {
+        "en": "analog cassette warmth",
+        "ru": "тёплая кассетная плёнка"
+      },
+      "family": "artist-kino-molchat",
+      "description": "analog cassette warmth",
+      "when": "For a home-recorded, nostalgic finish.",
+      "explanation": {
+        "en": "The soft saturation and hiss of a cassette recording.",
+        "ru": "Мягкое насыщение и шип кассетной записи."
+      }
+    }
+  ]
+}

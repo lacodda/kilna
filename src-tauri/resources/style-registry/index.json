@@ -90,6 +90,456 @@
       "brick_count": 5,
       "updated_at": "2026-11-18",
       "manifest_url": "packs/camera-moves.json"
+    },
+    {
+      "id": "artist-prodigy",
+      "version": "1.0.0",
+      "digest": "2ca1598495d6428baedbf62abf4d8d1b07491e52c8033b150ff812ef6bda1c09",
+      "title": {
+        "en": "In the spirit of The Prodigy",
+        "ru": "В духе The Prodigy"
+      },
+      "description": {
+        "en": "Big beat with punk teeth: chopped breaks, acid riffs, shouted hooks, sirens into the drop.",
+        "ru": "Биг-бит с панковскими зубами: рубленые брейки, кислотные риффы, выкрикнутые хуки, сирены перед дропом."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-prodigy.json"
+    },
+    {
+      "id": "artist-depeche",
+      "version": "1.0.0",
+      "digest": "187ee3b151c49bb7e7abd206a3b28f554092adc3641ba8e8eeadefbdd9ef9cd0",
+      "title": {
+        "en": "In the spirit of Depeche Mode",
+        "ru": "В духе Depeche Mode"
+      },
+      "description": {
+        "en": "Dark synth-pop: cold arpeggios, metallic sampled percussion, a brooding baritone, a sensual melancholy.",
+        "ru": "Тёмный синтипоп: холодные арпеджио, металлическая сэмплированная перкуссия, мрачный баритон, чувственная меланхолия."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-depeche.json"
+    },
+    {
+      "id": "artist-kino-molchat",
+      "version": "1.0.0",
+      "digest": "72bebc61329ad4ab6b7a3817a3fafa3f73ff590de4fef64872ad7f418e593d40",
+      "title": {
+        "en": "In the spirit of Kino / Molchat Doma",
+        "ru": "В духе Кино / Молчат Дома"
+      },
+      "description": {
+        "en": "Eighties post-punk: a chorused bass up front, a crisp drum machine, jangly delayed guitar, a low monotone voice, cassette warmth.",
+        "ru": "Постпанк восьмидесятых: бас с хорусом впереди, чёткая драм-машина, звенящая гитара с дилеем, низкий монотонный голос, тепло кассеты."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-kino-molchat.json"
+    },
+    {
+      "id": "artist-portishead",
+      "version": "1.0.0",
+      "digest": "5d17f2b6511f9473d48d6fefaee1bdc676fe1e348253ecda4f8a398964cf7e91",
+      "title": {
+        "en": "In the spirit of Portishead / Massive Attack",
+        "ru": "В духе Portishead / Massive Attack"
+      },
+      "description": {
+        "en": "Trip-hop: a dusty break at a crawl, whining synth and scratches, a fragile torch-song voice, warped vinyl.",
+        "ru": "Трип-хоп: пыльный брейк на ползущем темпе, воющий синт и скретчи, хрупкий голос торч-сонга, покоробленный винил."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-portishead.json"
+    },
+    {
+      "id": "artist-radiohead",
+      "version": "1.0.0",
+      "digest": "539d8548114b2b644daec03aec40027a54b0f26e9f29ab3fdcf794c3b9c18907",
+      "title": {
+        "en": "In the spirit of Radiohead",
+        "ru": "В духе Radiohead"
+      },
+      "description": {
+        "en": "Art rock with glitches: odd-patterned clean guitars, skittering programmed drums, a plaintive falsetto, anxious beauty.",
+        "ru": "Арт-рок с глитчами: чистые гитары в странных узорах, дробные программные барабаны, жалобный фальцет, тревожная красота."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-radiohead.json"
+    },
+    {
+      "id": "artist-billie-finneas",
+      "version": "1.0.0",
+      "digest": "7141ab648f10ebb750b2b71d3a79ec943f2e85a9487e026cc36c93128008279d",
+      "title": {
+        "en": "In the spirit of Billie Eilish / Finneas",
+        "ru": "В духе Billie Eilish / Finneas"
+      },
+      "description": {
+        "en": "Minimal dark bedroom pop: whispered close vocals, sub-heavy 808s under sparse beats, a dry mix with small foley sounds, eerie calm.",
+        "ru": "Минималистичный тёмный бедрум-поп: шёпот у самого микрофона, тяжёлые 808 под редким битом, сухой микс с мелкими фоли-звуками, жуткий покой."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-billie-finneas.json"
+    },
+    {
+      "id": "artist-bmth-lp",
+      "version": "1.0.0",
+      "digest": "c58796342523ca7c4691c25454b242ef255241aeb345d3809a2ce24dbf66a2b3",
+      "title": {
+        "en": "In the spirit of Linkin Park / Bring Me The Horizon",
+        "ru": "В духе Linkin Park / Bring Me The Horizon"
+      },
+      "description": {
+        "en": "Nu-metal crossover: electronic layers, down-tuned chugging guitars, sung verses breaking into screams, a breakdown before the last chorus.",
+        "ru": "Ню-метал кроссовер: электронные слои, низко строенные чаггинг-гитары, спетые куплеты, срывающиеся в крик, брейкдаун перед последним припевом."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-bmth-lp.json"
+    },
+    {
+      "id": "artist-carpenter-brut",
+      "version": "1.0.0",
+      "digest": "eaaab1fe5355e8ec080f54719ff94fea40002efa63d20972a8f2b6dbc9d4843b",
+      "title": {
+        "en": "In the spirit of Carpenter Brut / Perturbator",
+        "ru": "В духе Carpenter Brut / Perturbator"
+      },
+      "description": {
+        "en": "Aggressive darksynth: distorted saw bass at a driving tempo, horror-film leads, gated eighties drums, neon menace.",
+        "ru": "Агрессивный дарксинт: перегруженный пилообразный бас на гоне, хоррор-синты, гейтованные барабаны 80-х, неоновая угроза."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-carpenter-brut.json"
+    },
+    {
+      "id": "artist-zemfira-splin",
+      "version": "1.0.0",
+      "digest": "85b749017ec868e6e8da9231f88cc16afed36d68b1e79dc10e6c43e719dc02df",
+      "title": {
+        "en": "In the spirit of Zemfira / Splin",
+        "ru": "В духе Земфиры / Сплина"
+      },
+      "description": {
+        "en": "Russian guitar rock: a hoarse confessional voice, an overdriven riff with a simple hook, a quiet verse growing into an anthemic chorus, urban loneliness.",
+        "ru": "Русский гитарный рок: хрипловатый исповедальный голос, перегруженный рифф с простым хуком, тихий куплет, вырастающий в гимновый припев, городское одиночество."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-zemfira-splin.json"
+    },
+    {
+      "id": "artist-richter-arnalds",
+      "version": "1.0.0",
+      "digest": "cccf02d0142d3c509ad5fa5bfe653ef5734b27b7676b079edf2a67bf580c1933",
+      "title": {
+        "en": "In the spirit of Max Richter / Ólafur Arnalds",
+        "ru": "В духе Max Richter / Ólafur Arnalds"
+      },
+      "description": {
+        "en": "Modern neoclassical: felt piano with its mechanism audible, slow string swells, tape-treated reverb, a small motif slowly building.",
+        "ru": "Современная неоклассика: фортепиано с войлоком и слышной механикой, медленные волны струнных, ленточный реверб, маленький мотив, медленно растущий."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-richter-arnalds.json"
+    },
+    {
+      "id": "artist-deftones",
+      "version": "1.0.0",
+      "digest": "085e9a9225df95884b2b1d18aa492b3b82a57e00980cb3159fc4addbaa1d158e",
+      "title": {
+        "en": "In the spirit of Deftones",
+        "ru": "В духе Deftones"
+      },
+      "description": {
+        "en": "Dreamy alternative metal: a wall of down-tuned shoegaze guitars, an airy croon cutting into a scream, washed-out reverb over heavy riffs.",
+        "ru": "Мечтательный альтернативный метал: стена низко строенных шугейз-гитар, воздушное пение, переходящее в крик, размытый реверб над тяжёлыми риффами."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-deftones.json"
+    },
+    {
+      "id": "artist-nin",
+      "version": "1.0.0",
+      "digest": "b34ab3ac9a8e8e1d2162ee23583aaaa1c7cfc52722d79aaa252230a07d5bcd97",
+      "title": {
+        "en": "In the spirit of Nine Inch Nails",
+        "ru": "В духе Nine Inch Nails"
+      },
+      "description": {
+        "en": "Industrial rock: mechanical distorted drum loops, abrasive noise layers, whispered verses exploding into shouts, a cut to a quiet piano.",
+        "ru": "Индастриал-рок: механические перегруженные барабанные петли, абразивные шумовые слои, шёпот в куплетах, взрывающийся криком, обрыв в тихое фортепиано."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-nin.json"
+    },
+    {
+      "id": "artist-m83-kavinsky",
+      "version": "1.0.0",
+      "digest": "c2d49a476a235043a710498c862b064587e8b1d5e066d21fca4ade7e11677ca4",
+      "title": {
+        "en": "In the spirit of M83 / Kavinsky",
+        "ru": "В духе M83 / Kavinsky"
+      },
+      "description": {
+        "en": "Cinematic synthwave: soaring retro pads and arpeggios, a driving four-on-the-floor with big snares, nostalgic euphoria, a distant drenched voice.",
+        "ru": "Кинематографичный синтвейв: парящие ретро-пэды и арпеджио, гонящая прямая бочка с большими малыми, ностальгическая эйфория, далёкий утопленный в реверб голос."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-m83-kavinsky.json"
+    },
+    {
+      "id": "artist-burial-moderat",
+      "version": "1.0.0",
+      "digest": "95b0f16b9fc202c02cdb7ee165f095b000a71524f2fe7c4cb6cd4148f628d830",
+      "title": {
+        "en": "In the spirit of Burial / Moderat",
+        "ru": "В духе Burial / Moderat"
+      },
+      "description": {
+        "en": "Nocturnal electronica: a shuffling 2-step beat with ghost percussion, pitched vocal fragments, rain and vinyl hiss, longing.",
+        "ru": "Ночная электроника: шаркающий 2-step бит с призрачной перкуссией, сдвинутые обрывки голоса, дождь и шип винила, тоска."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-burial-moderat.json"
+    },
+    {
+      "id": "artist-tame-impala",
+      "version": "1.0.0",
+      "digest": "01f0ed3d19edd32e93ab5b562378be1298284e55f434e8f780ef583c943e6163",
+      "title": {
+        "en": "In the spirit of Tame Impala",
+        "ru": "В духе Tame Impala"
+      },
+      "description": {
+        "en": "Psychedelic pop: a melodic fuzzy bass, phased dreamy synths and flanged guitars, an airy reverbed falsetto, punchy compressed vintage drums.",
+        "ru": "Психоделический поп: мелодичный фуззовый бас, фазированные мечтательные синты и гитары с флэнжером, воздушный фальцет в реверберации, плотные компрессированные винтажные барабаны."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-tame-impala.json"
+    },
+    {
+      "id": "artist-shortparis-auktyon",
+      "version": "1.0.0",
+      "digest": "6eb3f6ba491d741ade5eed87f872c6a21e22e3d4c43acbc0772ecc79e851df9d",
+      "title": {
+        "en": "In the spirit of Shortparis / AuktYon",
+        "ru": "В духе Shortparis / АукцЫон"
+      },
+      "description": {
+        "en": "Avant-garde post-punk cabaret: theatrical falsetto declamation, dissonant brass and jagged guitar, lurching irregular rhythms, absurd tension.",
+        "ru": "Авангардное постпанк-кабаре: театральная декламация фальцетом, диссонирующая медь и рваная гитара, спотыкающиеся неровные ритмы, абсурдное напряжение."
+      },
+      "half": "sound",
+      "category": "artist-spirit",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/artist-shortparis-auktyon.json"
+    },
+    {
+      "id": "monochrome",
+      "version": "1.0.0",
+      "digest": "632fa7e0b7e8182614533096e8a814113b261ea8d1015859f44081ed096f7148",
+      "title": {
+        "en": "Black and white",
+        "ru": "Чёрно-белое"
+      },
+      "description": {
+        "en": "Eight monochrome looks, from pushed street film to cyanotype: every one keeps colour out, so an accent becomes the only colour.",
+        "ru": "Восемь монохромных техник - от вытянутой уличной плёнки до цианотипии: цвет не пускает ни одна, и акцент становится единственным цветом."
+      },
+      "half": "picture",
+      "category": "photo-trends",
+      "brick_count": 8,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/monochrome.json"
+    },
+    {
+      "id": "photo-studio",
+      "version": "1.0.0",
+      "digest": "2453d1f5f14952c4c091c22f27782b7e9b8160e95dfa735ca253add02f7e9b7b",
+      "title": {
+        "en": "Photo studio",
+        "ru": "Фотостудия"
+      },
+      "description": {
+        "en": "Six photographic looks of camera and light, from medium-format editorial to wet-plate collodion.",
+        "ru": "Шесть фотографических решений камеры и света - от среднеформатного эдиториала до мокрого коллодиона."
+      },
+      "half": "picture",
+      "category": "photo-trends",
+      "brick_count": 6,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/photo-studio.json"
+    },
+    {
+      "id": "soviet-retro-press",
+      "version": "1.0.0",
+      "digest": "80c95ea064ae3e28f35a5adc0175774055a9b64ccadb29163ce8ce273c9a7a92",
+      "title": {
+        "en": "Soviet print",
+        "ru": "Советский принт"
+      },
+      "description": {
+        "en": "Six looks of Soviet print: a sci-fi magazine, a record sleeve, a linocut book, a filmstrip, an etching and a tourist badge.",
+        "ru": "Шесть решений советской печати: научно-фантастический журнал, конверт пластинки, книжная линогравюра, диафильм, офорт и туристический значок."
+      },
+      "half": "picture",
+      "category": "genres",
+      "brick_count": 6,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/soviet-retro-press.json"
+    },
+    {
+      "id": "dramatic-cinema",
+      "version": "1.0.0",
+      "digest": "5d4c84aa0593da337ac8eeced94bebb7567181c6da95f6331e46ebfaa4d2a7ed",
+      "title": {
+        "en": "Cinematic light",
+        "ru": "Кинематографичный свет"
+      },
+      "description": {
+        "en": "Five lighting setups of the screen: split colour, a Rembrandt key, a lamp pool, a hard noon and a blue hour.",
+        "ru": "Пять схем света из кино: раздельный цвет, рембрандтовский ключ, пятно лампы, жёсткий полдень и синий час."
+      },
+      "half": "picture",
+      "category": "angles-light",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/dramatic-cinema.json"
+    },
+    {
+      "id": "city-night",
+      "version": "1.0.0",
+      "digest": "d6734d0b630ddc5a4c3e40db4963314921b5ad0aea402cd12dd84d8d8dfc14f4",
+      "title": {
+        "en": "City at night",
+        "ru": "Ночной город"
+      },
+      "description": {
+        "en": "Five places of a city at night: a wet alley, an empty platform, a rooftop, a laundromat and the underside of an overpass.",
+        "ru": "Пять мест ночного города: мокрый переулок, пустая платформа, крыша, прачечная и низ эстакады."
+      },
+      "half": "picture",
+      "category": "angles-light",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/city-night.json"
+    },
+    {
+      "id": "film-stocks",
+      "version": "1.0.0",
+      "digest": "4992d016f78243b14bdcaebd03591365718976c0957aa0fa4a147538621f0e76",
+      "title": {
+        "en": "Film stocks",
+        "ru": "Плёнки"
+      },
+      "description": {
+        "en": "Five colour grades of real film: tungsten night, black-and-white, warm portrait, classic slide and vivid landscape.",
+        "ru": "Пять цветокоррекций настоящих плёнок: вольфрамовая ночь, чёрно-белая, тёплая портретная, классический слайд и яркий пейзаж."
+      },
+      "half": "picture",
+      "category": "photo-trends",
+      "brick_count": 5,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/film-stocks.json"
+    },
+    {
+      "id": "stage-editorial",
+      "version": "1.0.0",
+      "digest": "56f3e0cd8d9da96deb0312359a4d1d5dcee5bce699daa1ace39f630d7efe9302",
+      "title": {
+        "en": "Stage and editorial looks",
+        "ru": "Сценические и эдиториал-образы"
+      },
+      "description": {
+        "en": "Four looks a hero can wear: a noir trench, oversized tailoring, a stage sequin jacket and a worn leather jacket.",
+        "ru": "Четыре образа для героя: нуарный тренч, оверсайз-костюм, сценический пиджак в пайетках и потёртая косуха."
+      },
+      "half": "picture",
+      "category": "genres",
+      "brick_count": 4,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/stage-editorial.json"
+    },
+    {
+      "id": "precipitation",
+      "version": "1.0.0",
+      "digest": "43a7142508a1db72fd506ef721eb747eea3cbd1f363b243717025f0258d834c6",
+      "title": {
+        "en": "Rain, snow and ash",
+        "ru": "Дождь, снег и пепел"
+      },
+      "description": {
+        "en": "Four movements of what falls from the sky, each keeping the rest of the frame still.",
+        "ru": "Четыре движения того, что падает с неба; остальной кадр неподвижен."
+      },
+      "half": "motion",
+      "category": "frame-animation",
+      "brick_count": 4,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/precipitation.json"
+    },
+    {
+      "id": "subject-micro",
+      "version": "1.0.0",
+      "digest": "8ff8a246332d4e15983d5d306b81b330391ecf2d55e71a4a90e6fc8988e00a78",
+      "title": {
+        "en": "Small movements of a hero",
+        "ru": "Мелкие движения героя"
+      },
+      "description": {
+        "en": "Four small movements of a person that keep a still picture alive: a blink, wind in the hair, a cold breath and a coat hem.",
+        "ru": "Четыре мелких движения человека, которые оживляют неподвижную картинку: моргание, ветер в волосах, пар дыхания и пола пальто."
+      },
+      "half": "motion",
+      "category": "frame-animation",
+      "brick_count": 4,
+      "updated_at": "2026-11-18",
+      "manifest_url": "packs/subject-micro.json"
     }
   ]
 }

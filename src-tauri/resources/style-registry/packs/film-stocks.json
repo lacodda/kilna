@@ -1,0 +1,98 @@
+{
+  "id": "film-stocks",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "cinestill-800t",
+      "type": "grading",
+      "label": {
+        "en": "Tungsten night film",
+        "ru": "Вольфрамовая ночная плёнка"
+      },
+      "family": "film-stocks",
+      "description": "GRADING: tungsten-balanced night film emulation: cool cyan-slate shadows, honest natural skin warmth, a gentle red halation blooming around bright lights, smooth rolled-off highlights.",
+      "when": "Night streets, neon, a film still.",
+      "colours": [
+        "#1F3A4A",
+        "#D9A07A",
+        "#C7372F"
+      ]
+    },
+    {
+      "key": "ilford-hp5-bw",
+      "type": "grading",
+      "label": {
+        "en": "Black-and-white film",
+        "ru": "Чёрно-белая плёнка"
+      },
+      "family": "film-stocks",
+      "description": "GRADING: black-and-white film stock: rich midtone silver gradation, crisp blacks without muddy compression, fine uniform grain, strictly no colour.",
+      "when": "A timeless, serious picture.",
+      "colours": [
+        "#121212",
+        "#7B7B7B",
+        "#EAEAEA"
+      ],
+      "provides": [
+        "color:mono"
+      ],
+      "conflicts": [
+        "color:vivid"
+      ]
+    },
+    {
+      "key": "portra-400",
+      "type": "grading",
+      "label": {
+        "en": "Warm portrait film",
+        "ru": "Тёплая портретная плёнка"
+      },
+      "family": "film-stocks",
+      "description": "GRADING: warm portrait colour-negative look: soft contrast, creamy skin tones, gentle pastel greens and blues, slightly lifted shadows and fine grain.",
+      "when": "People, warmth, a gentle story.",
+      "colours": [
+        "#E2C2A0",
+        "#8FAE9A",
+        "#4E5A63"
+      ]
+    },
+    {
+      "key": "kodachrome-64",
+      "type": "grading",
+      "label": {
+        "en": "Classic slide film",
+        "ru": "Классический слайд"
+      },
+      "family": "film-stocks",
+      "description": "GRADING: classic slide film: deep saturated reds and blues, dense shadows, crisp contrast and a slightly warm mid-century tone.",
+      "when": "Nostalgia, the sixties, a holiday postcard.",
+      "colours": [
+        "#B32E25",
+        "#2B4F8C",
+        "#E8C77A"
+      ]
+    },
+    {
+      "key": "fuji-velvia-50",
+      "type": "grading",
+      "label": {
+        "en": "Vivid landscape film",
+        "ru": "Яркая пейзажная плёнка"
+      },
+      "family": "film-stocks",
+      "description": "GRADING: vivid landscape slide film: punchy saturated greens and blues, strong contrast, deep skies and luminous colour.",
+      "when": "Nature, a big open space, joy.",
+      "colours": [
+        "#2E7D32",
+        "#1565C0",
+        "#F9A825"
+      ],
+      "provides": [
+        "color:vivid"
+      ],
+      "conflicts": [
+        "color:mono"
+      ]
+    }
+  ]
+}

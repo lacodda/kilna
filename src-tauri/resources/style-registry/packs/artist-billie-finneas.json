@@ -1,0 +1,81 @@
+{
+  "id": "artist-billie-finneas",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "minimal-dark-bedroom-pop",
+      "type": "genre",
+      "label": {
+        "en": "minimal dark bedroom pop",
+        "ru": "минималистичный тёмный бедрум-поп"
+      },
+      "family": "artist-billie-finneas",
+      "description": "minimal dark bedroom pop",
+      "when": "For a song whispered into one ear.",
+      "explanation": {
+        "en": "Sparse, moody pop made to sound close and private.",
+        "ru": "Скупой мрачный поп, звучащий близко и лично."
+      }
+    },
+    {
+      "key": "whispered-close-mic-vocal-with-breathy-doubles",
+      "type": "vocal",
+      "label": {
+        "en": "whispered close-mic vocal with breathy doubles",
+        "ru": "шёпот у микрофона с дыханием в дублях"
+      },
+      "family": "artist-billie-finneas",
+      "description": "whispered close-mic vocal with breathy doubles",
+      "when": "When the singer should feel in the room.",
+      "explanation": {
+        "en": "A soft, intimate voice right at the microphone, doubled with breath.",
+        "ru": "Мягкий интимный голос у самого микрофона, удвоенный дыханием."
+      }
+    },
+    {
+      "key": "sub-heavy-808-bass-under-sparse-beats",
+      "type": "bass",
+      "label": {
+        "en": "sub-heavy 808 bass under sparse beats",
+        "ru": "тяжёлый 808 под редким битом"
+      },
+      "family": "artist-billie-finneas",
+      "description": "sub-heavy 808 bass under sparse beats",
+      "when": "For weight without noise.",
+      "explanation": {
+        "en": "Deep booming bass with very little else around it.",
+        "ru": "Глубокий гулкий бас почти без ничего вокруг."
+      }
+    },
+    {
+      "key": "dry-intimate-mix-with-tiny-foley-percussion",
+      "type": "texture",
+      "label": {
+        "en": "dry intimate mix with tiny foley percussion",
+        "ru": "сухой интимный микс с мелкой фоли-перкуссией"
+      },
+      "family": "artist-billie-finneas",
+      "description": "dry intimate mix with tiny foley percussion",
+      "when": "For a strange, homemade closeness.",
+      "explanation": {
+        "en": "Little reverb; clicks, snaps and small sounds as rhythm.",
+        "ru": "Почти без реверба; щелчки и мелкие звуки как ритм."
+      }
+    },
+    {
+      "key": "eerie-calm",
+      "type": "mood",
+      "label": {
+        "en": "eerie calm",
+        "ru": "жуткий покой"
+      },
+      "family": "artist-billie-finneas",
+      "description": "eerie calm",
+      "when": "When calm should feel like a warning.",
+      "explanation": {
+        "en": "Quiet on the surface, unsettling underneath.",
+        "ru": "Тихо на поверхности, тревожно внутри."
+      }
+    }
+  ]
+}

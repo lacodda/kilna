@@ -700,6 +700,92 @@ mod tests {
         }
     }
 
+    /// A pack "in the spirit of" an artist names the artist in its title
+    /// only (FR-06, the catalogue 2.2): the words a generator reads are
+    /// production tags, never a person's name.
+    #[test]
+    fn no_description_in_the_snapshot_names_an_artist() {
+        let index = index(&Source::Builtin, &snapshot()).unwrap();
+        let mut names: Vec<String> = Vec::new();
+        for entry in &index.packs {
+            if entry.category != "artist-spirit" {
+                continue;
+            }
+            let Label::PerLocale(words) = &entry.title else {
+                panic!("{} has a title in one language", entry.id);
+            };
+            for title in words.values() {
+                let named = title
+                    .trim_start_matches("In the spirit of ")
+                    .trim_start_matches("В духе ");
+                for name in named.split('/') {
+                    let name = name.trim().trim_start_matches("The ").to_lowercase();
+                    if name.len() > 2 {
+                        names.push(name);
+                    }
+                }
+            }
+        }
+        assert!(names.len() >= 16, "{names:?}");
+        for entry in &index.packs {
+            for brick in manifest(&Source::Builtin, &snapshot(), entry)
+                .unwrap()
+                .bricks
+            {
+                let said = brick.description.to_lowercase();
+                for name in &names {
+                    assert!(
+                        !said.contains(name.as_str()),
+                        "{}: {} names {name}: {}",
+                        entry.id,
+                        brick.key,
+                        brick.description
+                    );
+                }
+            }
+        }
+    }
+
+    /// Every pack of the snapshot installs whole into Studio - no type it
+    /// lacks, no name the starter set or another pack already has - and
+    /// speaks only the resolver's tags.
+    #[test]
+    fn every_pack_of_the_snapshot_installs_into_studio() {
+        let conn = studio();
+        for entry in index(&Source::Builtin, &snapshot()).unwrap().packs {
+            let done = install_from(&conn, &Source::Builtin, &snapshot(), &entry.id, None)
+                .unwrap_or_else(|e| panic!("{}: {e:?}", entry.id));
+            assert_eq!(
+                (done.added, done.unfit),
+                (entry.brick_count, 0),
+                "{}",
+                entry.id
+            );
+            for brick in manifest(&Source::Builtin, &snapshot(), &entry)
+                .unwrap()
+                .bricks
+            {
+                for tag in brick
+                    .needs
+                    .iter()
+                    .chain(&brick.provides)
+                    .chain(&brick.conflicts)
+                {
+                    let space = tag.split(':').next().unwrap_or_default();
+                    assert!(
+                        [
+                            "subject", "crop", "scenery", "title", "camera", "color", "depth"
+                        ]
+                        .contains(&space),
+                        "{}: {} speaks {tag}",
+                        entry.id,
+                        brick.key
+                    );
+                }
+            }
+        }
+    }
+
     #[test]
     fn a_pack_installs_whole_under_its_family_once() {
         let conn = studio();

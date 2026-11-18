@@ -1,0 +1,81 @@
+{
+  "id": "artist-burial-moderat",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "UK-garage-inflected-ambient-electronica",
+      "type": "genre",
+      "label": {
+        "en": "UK garage-inflected ambient electronica",
+        "ru": "эмбиент-электроника с привкусом UK garage"
+      },
+      "family": "artist-burial-moderat",
+      "description": "UK garage-inflected ambient electronica",
+      "when": "For a lonely night bus.",
+      "explanation": {
+        "en": "Dark, atmospheric electronic music with a garage pulse.",
+        "ru": "Тёмная атмосферная электроника с гаражным пульсом."
+      }
+    },
+    {
+      "key": "shuffling-2-step-beat-with-ghost-percussion",
+      "type": "groove",
+      "label": {
+        "en": "shuffling 2-step beat with ghost percussion",
+        "ru": "шаркающий 2-step бит с призрачной перкуссией"
+      },
+      "family": "artist-burial-moderat",
+      "description": "shuffling 2-step beat with ghost percussion",
+      "when": "When the rhythm should limp beautifully.",
+      "explanation": {
+        "en": "A skipping, swung beat with faint background hits.",
+        "ru": "Подпрыгивающий свингованный бит с едва слышными ударами."
+      }
+    },
+    {
+      "key": "pitched-and-chopped-vocal-fragments",
+      "type": "vocal",
+      "label": {
+        "en": "pitched and chopped vocal fragments",
+        "ru": "сдвинутые по высоте и нарезанные обрывки голоса"
+      },
+      "family": "artist-burial-moderat",
+      "description": "pitched and chopped vocal fragments",
+      "when": "For a ghost of a song.",
+      "explanation": {
+        "en": "Bits of a voice shifted in pitch and cut into phrases.",
+        "ru": "Кусочки голоса, сдвинутые по высоте и нарезанные."
+      }
+    },
+    {
+      "key": "rain-and-vinyl-hiss-under-the-beat",
+      "type": "texture",
+      "label": {
+        "en": "rain and vinyl hiss under the beat",
+        "ru": "дождь и шип винила под битом"
+      },
+      "family": "artist-burial-moderat",
+      "description": "rain and vinyl hiss under the beat",
+      "when": "For a wet city feeling.",
+      "explanation": {
+        "en": "Field-recorded rain and record noise as a bed.",
+        "ru": "Записанный дождь и шум пластинки как подложка."
+      }
+    },
+    {
+      "key": "nocturnal-longing",
+      "type": "mood",
+      "label": {
+        "en": "nocturnal longing",
+        "ru": "ночная тоска"
+      },
+      "family": "artist-burial-moderat",
+      "description": "nocturnal longing",
+      "when": "For the hour after the party.",
+      "explanation": {
+        "en": "Missing someone at three in the morning.",
+        "ru": "Скучать по кому-то в три часа ночи."
+      }
+    }
+  ]
+}

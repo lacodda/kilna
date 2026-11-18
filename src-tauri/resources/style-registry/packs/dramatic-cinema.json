@@ -1,0 +1,98 @@
+{
+  "id": "dramatic-cinema",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "split-cyan-magenta",
+      "type": "lighting",
+      "label": {
+        "en": "Split cyan and magenta",
+        "ru": "Раздельный циан и маджента"
+      },
+      "family": "dramatic-cinema",
+      "description": "LIGHTING: controlled theatrical split lighting: a cool cyan-slate key grazing one side of the frame against a restrained deep magenta-amber rim separating shoulders and silhouette from dark shadows; crisp falloff without clipping skin highlights.",
+      "when": "A night club, a dream, a duality.",
+      "colours": [
+        "#1F6F8B",
+        "#A3336B",
+        "#0D0D12"
+      ],
+      "provides": [
+        "color:vivid"
+      ],
+      "conflicts": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "rembrandt-key",
+      "type": "lighting",
+      "label": {
+        "en": "Rembrandt key",
+        "ru": "Рембрандтовский ключ"
+      },
+      "family": "dramatic-cinema",
+      "description": "LIGHTING: a single soft key from high to one side, leaving a small triangle of light on the shadow cheek, deep warm shadows and a dark background; painterly, quiet and sculptural.",
+      "when": "A portrait with weight and dignity.",
+      "colours": [
+        "#C8955A",
+        "#5A3A22",
+        "#120D09"
+      ]
+    },
+    {
+      "key": "practical-lamp-pool",
+      "type": "lighting",
+      "label": {
+        "en": "Lamp pool",
+        "ru": "Пятно лампы"
+      },
+      "family": "dramatic-cinema",
+      "description": "LIGHTING: the only light is a practical lamp in the scene, throwing a warm pool on the nearest surfaces and leaving the room around it in soft darkness; gentle falloff, no fill light.",
+      "when": "Loneliness at night, a desk, a kitchen.",
+      "colours": [
+        "#E8A64A",
+        "#5C3B1E",
+        "#0F0C0A"
+      ]
+    },
+    {
+      "key": "hard-noon-sun",
+      "type": "lighting",
+      "label": {
+        "en": "Hard noon sun",
+        "ru": "Жёсткое полуденное солнце"
+      },
+      "family": "dramatic-cinema",
+      "description": "LIGHTING: hard overhead noon sunlight: short black shadows under every form, bleached highlights, saturated sky and heat; no soft fill, no golden glow.",
+      "when": "Heat, a desert, a harsh truth.",
+      "colours": [
+        "#F4E1A1",
+        "#3E7CB1",
+        "#1A1712"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    },
+    {
+      "key": "blue-hour-ambient",
+      "type": "lighting",
+      "label": {
+        "en": "Blue hour",
+        "ru": "Синий час"
+      },
+      "family": "dramatic-cinema",
+      "description": "LIGHTING: blue-hour ambient light after sunset: soft shadowless cool sky light, first warm windows and streetlights glowing, low contrast and a calm deep-blue cast.",
+      "when": "An ending day, a quiet longing.",
+      "colours": [
+        "#2C4A73",
+        "#E8B86A",
+        "#141C2B"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    }
+  ]
+}

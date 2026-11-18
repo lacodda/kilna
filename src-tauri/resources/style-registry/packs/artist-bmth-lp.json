@@ -1,0 +1,81 @@
+{
+  "id": "artist-bmth-lp",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "nu-metal-crossover-with-electronic-layers",
+      "type": "genre",
+      "label": {
+        "en": "nu-metal crossover with electronic layers",
+        "ru": "ню-метал кроссовер с электроникой"
+      },
+      "family": "artist-bmth-lp",
+      "description": "nu-metal crossover with electronic layers",
+      "when": "For anger with a pop hook.",
+      "explanation": {
+        "en": "Heavy rock fused with synths and programmed elements.",
+        "ru": "Тяжёлый рок, сплавленный с синтами и программингом."
+      }
+    },
+    {
+      "key": "down-tuned-chugging-guitars",
+      "type": "instrument",
+      "label": {
+        "en": "down-tuned chugging guitars",
+        "ru": "низко строенные чаггинг-гитары"
+      },
+      "family": "artist-bmth-lp",
+      "description": "down-tuned chugging guitars",
+      "when": "When the riff should hit the chest.",
+      "explanation": {
+        "en": "Low, palm-muted rhythmic guitar riffs.",
+        "ru": "Низкие глушёные ритмичные гитарные риффы."
+      }
+    },
+    {
+      "key": "sung-verses-breaking-into-screamed-choruses",
+      "type": "vocal",
+      "label": {
+        "en": "sung verses breaking into screamed choruses",
+        "ru": "спетые куплеты, срывающиеся в крик в припевах"
+      },
+      "family": "artist-bmth-lp",
+      "description": "sung verses breaking into screamed choruses",
+      "when": "For a release of pent-up feeling.",
+      "explanation": {
+        "en": "A melodic voice that explodes into screaming.",
+        "ru": "Мелодичный голос, взрывающийся криком."
+      }
+    },
+    {
+      "key": "electronic-breakdown-before-the-final-chorus",
+      "type": "knob",
+      "label": {
+        "en": "electronic breakdown before the final chorus",
+        "ru": "электронный брейкдаун перед последним припевом"
+      },
+      "family": "artist-bmth-lp",
+      "description": "electronic breakdown before the final chorus",
+      "when": "To make the last chorus land harder.",
+      "explanation": {
+        "en": "The band drops out for a synthetic interlude, then returns.",
+        "ru": "Группа исчезает ради синтетической вставки и возвращается."
+      }
+    },
+    {
+      "key": "punchy-hybrid-rock-electronic-drums",
+      "type": "groove",
+      "label": {
+        "en": "punchy hybrid rock-electronic drums",
+        "ru": "плотные гибридные рок-электронные барабаны"
+      },
+      "family": "artist-bmth-lp",
+      "description": "punchy hybrid rock-electronic drums",
+      "when": "For modern, powerful drums.",
+      "explanation": {
+        "en": "Live drums layered with programmed hits.",
+        "ru": "Живые барабаны, сложенные с программными ударами."
+      }
+    }
+  ]
+}

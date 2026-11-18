@@ -1,0 +1,81 @@
+{
+  "id": "artist-m83-kavinsky",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "cinematic-synthwave",
+      "type": "genre",
+      "label": {
+        "en": "cinematic synthwave",
+        "ru": "кинематографичный синтвейв"
+      },
+      "family": "artist-m83-kavinsky",
+      "description": "cinematic synthwave",
+      "when": "For a night drive with the windows down.",
+      "explanation": {
+        "en": "Big, emotional retro electronic music like a film score.",
+        "ru": "Большая эмоциональная ретро-электроника, как саундтрек."
+      }
+    },
+    {
+      "key": "soaring-retro-synth-pads-and-arpeggios",
+      "type": "instrument",
+      "label": {
+        "en": "soaring retro synth pads and arpeggios",
+        "ru": "парящие ретро-пэды и арпеджио"
+      },
+      "family": "artist-m83-kavinsky",
+      "description": "soaring retro synth pads and arpeggios",
+      "when": "When the track should lift off.",
+      "explanation": {
+        "en": "Wide warm chords and sparkling arpeggiated lines.",
+        "ru": "Широкие тёплые аккорды и искрящиеся арпеджио."
+      }
+    },
+    {
+      "key": "driving-four-on-the-floor-with-big-snares",
+      "type": "groove",
+      "label": {
+        "en": "driving four-on-the-floor with big snares",
+        "ru": "гонящая прямая бочка с большими малыми"
+      },
+      "family": "artist-m83-kavinsky",
+      "description": "driving four-on-the-floor with big snares",
+      "when": "For forward motion.",
+      "explanation": {
+        "en": "A steady dance kick with huge reverberant snares.",
+        "ru": "Ровная танцевальная бочка с огромными гулкими малыми."
+      }
+    },
+    {
+      "key": "distant-reverb-drenched-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "distant reverb-drenched vocal",
+        "ru": "далёкий утопленный в реверб голос"
+      },
+      "family": "artist-m83-kavinsky",
+      "description": "distant reverb-drenched vocal",
+      "when": "When the voice is a memory, not a speaker.",
+      "explanation": {
+        "en": "A voice far back in the mix, swimming in echo.",
+        "ru": "Голос далеко в миксе, плывущий в эхе."
+      }
+    },
+    {
+      "key": "nostalgic-euphoria",
+      "type": "mood",
+      "label": {
+        "en": "nostalgic euphoria",
+        "ru": "ностальгическая эйфория"
+      },
+      "family": "artist-m83-kavinsky",
+      "description": "nostalgic euphoria",
+      "when": "For a bittersweet high.",
+      "explanation": {
+        "en": "Joy for something already gone.",
+        "ru": "Радость о том, что уже ушло."
+      }
+    }
+  ]
+}

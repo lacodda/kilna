@@ -1,0 +1,50 @@
+{
+  "id": "precipitation",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "rain-steady-streaks",
+      "type": "motion-atmosphere",
+      "label": {
+        "en": "Rain in depth",
+        "ru": "Дождь в глубину"
+      },
+      "family": "precipitation",
+      "description": "MOTION: steady diagonal rain streaks fall at an even natural pace across foreground, mid-ground and background planes, tiny crisp splashes where drops strike dark pavement and roof edges, puddles rippling softly; the subject and the scene stay still.",
+      "when": "Any rainy night picture that must breathe."
+    },
+    {
+      "key": "downpour-sheets",
+      "type": "motion-atmosphere",
+      "label": {
+        "en": "Downpour",
+        "ru": "Ливень"
+      },
+      "family": "precipitation",
+      "description": "MOTION: a heavy downpour moving in dense sheets that sweep across the frame every few seconds, water running off edges in thin streams; everything solid in the frame stays completely still.",
+      "when": "A storm, a breakdown, a climax."
+    },
+    {
+      "key": "snow-three-planes",
+      "type": "motion-atmosphere",
+      "label": {
+        "en": "Snow in three planes",
+        "ru": "Снег в трёх планах"
+      },
+      "family": "precipitation",
+      "description": "MOTION: snow falls slowly in three depth planes - large soft flakes near the lens, medium flakes around the subject, fine dust far away - each at its own speed; nothing else in the frame moves.",
+      "when": "Winter, silence, a fairy tale."
+    },
+    {
+      "key": "ash-embers-drift",
+      "type": "motion-atmosphere",
+      "label": {
+        "en": "Ash and embers",
+        "ru": "Пепел и угольки"
+      },
+      "family": "precipitation",
+      "description": "MOTION: grey ash flakes and a few glowing orange embers drift slowly upward and sideways on warm air, flickering faintly; the rest of the frame holds still.",
+      "when": "After a fire, a war, an ending."
+    }
+  ]
+}

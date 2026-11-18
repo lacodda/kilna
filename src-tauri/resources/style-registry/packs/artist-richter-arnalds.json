@@ -1,0 +1,81 @@
+{
+  "id": "artist-richter-arnalds",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "modern-neoclassical-ambient",
+      "type": "genre",
+      "label": {
+        "en": "modern neoclassical ambient",
+        "ru": "современный неоклассический эмбиент"
+      },
+      "family": "artist-richter-arnalds",
+      "description": "modern neoclassical ambient",
+      "when": "For a reflective, cinematic piece.",
+      "explanation": {
+        "en": "Quiet chamber music with electronic space around it.",
+        "ru": "Тихая камерная музыка с электронным пространством вокруг."
+      }
+    },
+    {
+      "key": "felt-piano-with-soft-mechanical-noise",
+      "type": "instrument",
+      "label": {
+        "en": "felt piano with soft mechanical noise",
+        "ru": "фортепиано с войлоком и мягким шумом механики"
+      },
+      "family": "artist-richter-arnalds",
+      "description": "felt piano with soft mechanical noise",
+      "when": "When intimacy should be physical.",
+      "explanation": {
+        "en": "A muted piano close-miked, hammers and pedals audible.",
+        "ru": "Приглушённое фортепиано близко к микрофону, слышны молоточки и педали."
+      }
+    },
+    {
+      "key": "minimalist-repeating-motif-slowly-building",
+      "type": "dynamics",
+      "label": {
+        "en": "minimalist repeating motif slowly building",
+        "ru": "минималистичный повторяющийся мотив, медленно растущий"
+      },
+      "family": "artist-richter-arnalds",
+      "description": "minimalist repeating motif slowly building",
+      "when": "For patient, rising emotion.",
+      "explanation": {
+        "en": "A short figure repeated and layered until it swells.",
+        "ru": "Короткая фигура, повторяемая и наслаиваемая, пока не разрастётся."
+      }
+    },
+    {
+      "key": "tape-treated-piano-reverb",
+      "type": "texture",
+      "label": {
+        "en": "tape-treated piano reverb",
+        "ru": "реверб фортепиано через ленту"
+      },
+      "family": "artist-richter-arnalds",
+      "description": "tape-treated piano reverb",
+      "when": "For a memory-like haze.",
+      "explanation": {
+        "en": "A soft, slightly worn halo around the notes.",
+        "ru": "Мягкий, чуть потёртый ореол вокруг нот."
+      }
+    },
+    {
+      "key": "tender-grief",
+      "type": "mood",
+      "label": {
+        "en": "tender grief",
+        "ru": "нежное горе"
+      },
+      "family": "artist-richter-arnalds",
+      "description": "tender grief",
+      "when": "For a goodbye.",
+      "explanation": {
+        "en": "Sorrow held gently rather than cried out.",
+        "ru": "Печаль, которую держат бережно, а не выкрикивают."
+      }
+    }
+  ]
+}

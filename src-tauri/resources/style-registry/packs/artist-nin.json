@@ -1,0 +1,81 @@
+{
+  "id": "artist-nin",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "industrial-rock",
+      "type": "genre",
+      "label": {
+        "en": "industrial rock",
+        "ru": "индастриал-рок"
+      },
+      "family": "artist-nin",
+      "description": "industrial rock",
+      "when": "For rage that sounds manufactured.",
+      "explanation": {
+        "en": "Rock built from machines, noise and distortion.",
+        "ru": "Рок, собранный из машин, шума и перегруза."
+      }
+    },
+    {
+      "key": "mechanical-distorted-drum-loops",
+      "type": "groove",
+      "label": {
+        "en": "mechanical distorted drum loops",
+        "ru": "механические перегруженные барабанные петли"
+      },
+      "family": "artist-nin",
+      "description": "mechanical distorted drum loops",
+      "when": "When the beat should feel like a factory.",
+      "explanation": {
+        "en": "Repetitive, crushed electronic drum patterns.",
+        "ru": "Повторяющиеся сплющенные электронные барабанные рисунки."
+      }
+    },
+    {
+      "key": "abrasive-noise-layers-and-crushed-synths",
+      "type": "texture",
+      "label": {
+        "en": "abrasive noise layers and crushed synths",
+        "ru": "абразивные шумовые слои и сплющенные синты"
+      },
+      "family": "artist-nin",
+      "description": "abrasive noise layers and crushed synths",
+      "when": "For discomfort as texture.",
+      "explanation": {
+        "en": "Harsh noise and degraded synth sounds under the song.",
+        "ru": "Жёсткий шум и деградированные синты под песней."
+      }
+    },
+    {
+      "key": "whispered-verses-exploding-into-a-shout",
+      "type": "vocal",
+      "label": {
+        "en": "whispered verses exploding into a shout",
+        "ru": "шёпот в куплетах, взрывающийся криком"
+      },
+      "family": "artist-nin",
+      "description": "whispered verses exploding into a shout",
+      "when": "For sudden violence.",
+      "explanation": {
+        "en": "Intimate whispering that bursts into yelling.",
+        "ru": "Интимный шёпот, срывающийся в крик."
+      }
+    },
+    {
+      "key": "sudden-cut-to-a-quiet-piano-coda",
+      "type": "knob",
+      "label": {
+        "en": "sudden cut to a quiet piano coda",
+        "ru": "внезапный обрыв в тихую фортепианную коду"
+      },
+      "family": "artist-nin",
+      "description": "sudden cut to a quiet piano coda",
+      "when": "For a devastating ending.",
+      "explanation": {
+        "en": "Everything stops and a soft piano ends the song.",
+        "ru": "Всё обрывается, и песню заканчивает тихое фортепиано."
+      }
+    }
+  ]
+}

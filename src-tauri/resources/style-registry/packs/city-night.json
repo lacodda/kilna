@@ -1,0 +1,101 @@
+{
+  "id": "city-night",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "wet-neon-alley",
+      "type": "environment",
+      "label": {
+        "en": "Wet neon alley",
+        "ru": "Мокрый неоновый переулок"
+      },
+      "family": "city-night",
+      "description": "ENVIRONMENT: a narrow wet asphalt alley at night after steady rain, dark brick and shuttered storefronts on both sides, shallow puddles reflecting blurred distant signage, damp fire-escape shadows and mist near the streetlights; atmospheric depth with little clutter.",
+      "when": "A noir story, a chase, a goodbye in the rain.",
+      "colours": [
+        "#1C2230",
+        "#C2365A",
+        "#3BA7B5"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    },
+    {
+      "key": "empty-metro-platform",
+      "type": "environment",
+      "label": {
+        "en": "Empty metro platform",
+        "ru": "Пустая платформа метро"
+      },
+      "family": "city-night",
+      "description": "ENVIRONMENT: an empty underground metro platform late at night, long tiled walls and columns receding into the distance, cold fluorescent light, a polished floor reflecting it, no crowd.",
+      "when": "Waiting, loneliness, the last train.",
+      "colours": [
+        "#C8CFC6",
+        "#5E6F6A",
+        "#1E2422"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    },
+    {
+      "key": "rooftop-water-tower",
+      "type": "environment",
+      "label": {
+        "en": "City rooftop",
+        "ru": "Крыша города"
+      },
+      "family": "city-night",
+      "description": "ENVIRONMENT: a flat city rooftop at night with an old water tower and antennas, the city lights spread below to the horizon, a hazy orange sky glow, wind and open space.",
+      "when": "Freedom, a promise, looking at the city.",
+      "colours": [
+        "#D9893B",
+        "#2A2E3F",
+        "#0E1018"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    },
+    {
+      "key": "late-laundromat",
+      "type": "environment",
+      "label": {
+        "en": "Late laundromat",
+        "ru": "Ночная прачечная"
+      },
+      "family": "city-night",
+      "description": "ENVIRONMENT: a small laundromat open late, rows of round washing-machine doors, flat fluorescent light, a plastic chair, the dark street visible through the big window.",
+      "when": "An ordinary night, a small sadness.",
+      "colours": [
+        "#E6EDE8",
+        "#8FB9C2",
+        "#2C3638"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    },
+    {
+      "key": "overpass-underside",
+      "type": "environment",
+      "label": {
+        "en": "Under the overpass",
+        "ru": "Под эстакадой"
+      },
+      "family": "city-night",
+      "description": "ENVIRONMENT: the concrete underside of a city overpass at night, heavy pillars, sodium-vapour light, graffiti on the walls and cars passing above as streaks of light.",
+      "when": "For the street, rap, a hard place.",
+      "colours": [
+        "#C98A2E",
+        "#4B4B4B",
+        "#141414"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    }
+  ]
+}

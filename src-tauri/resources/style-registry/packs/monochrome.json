@@ -1,0 +1,157 @@
+{
+  "id": "monochrome",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "moriyama-street",
+      "type": "image-style",
+      "label": {
+        "en": "Pushed street film",
+        "ru": "Уличная плёнка с пуш-проявкой"
+      },
+      "family": "monochrome",
+      "description": "STYLE: raw monochrome 35mm black-and-white street photograph shot on pushed ISO 3200 film with silver-gelatin darkroom contrast: coarse organic silver grain, crushed ink-black shadows swallowing background clutter, chalk-white blown highlights under direct compact flash, slight motion blur and candid asymmetrical framing, zero grey digital smoothness. Strictly black-and-white; no colour tint, no sepia, no CGI polish.",
+      "when": "A raw night, a city, a song without comfort.",
+      "colours": [
+        "#0B0B0B",
+        "#5A5A5A",
+        "#EDEDED"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "silver-gelatin",
+      "type": "image-style",
+      "label": {
+        "en": "Silver gelatin print",
+        "ru": "Серебряно-желатиновый отпечаток"
+      },
+      "family": "monochrome",
+      "description": "STYLE: a fine-art silver gelatin darkroom print on fibre paper: long smooth tonal range from deep velvet blacks to soft paper whites, fine even grain, gentle edge burning and a faint warm paper base. Strictly monochrome; no colour, no harsh digital contrast, no HDR.",
+      "when": "A quiet, timeless portrait or still life.",
+      "colours": [
+        "#141210",
+        "#7D7A74",
+        "#F1EEE7"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "lith-print",
+      "type": "image-style",
+      "label": {
+        "en": "Lith print",
+        "ru": "Лит-печать"
+      },
+      "family": "monochrome",
+      "description": "STYLE: a lith darkroom print: grainy infectious-developer blacks with sharp contrast, soft creamy highlights and slightly peppery shadow texture, a subtle warm-brown tone in the midtones only. Black-and-white with a faint chemical warmth; no colour objects, no clean digital gradients.",
+      "when": "For melancholy with a handmade, chemical feel.",
+      "colours": [
+        "#1A1310",
+        "#8C6F5A",
+        "#EFE4D3"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "charcoal-chiaroscuro",
+      "type": "image-style",
+      "label": {
+        "en": "Charcoal chiaroscuro",
+        "ru": "Угольное кьяроскуро"
+      },
+      "family": "monochrome",
+      "description": "STYLE: a charcoal drawing on rough toothy paper in strong chiaroscuro: soft smudged blacks built in layers, kneaded-eraser highlights lifting light out of the dark, visible paper grain and finger smears. Monochrome charcoal only; no ink lines, no colour, no digital brushes.",
+      "when": "Drama, a face out of darkness, a heavy verse.",
+      "colours": [
+        "#0F0F0F",
+        "#6B6B6B",
+        "#E6E3DC"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "ink-linocut-bold",
+      "type": "image-style",
+      "label": {
+        "en": "Bold linocut",
+        "ru": "Жирная линогравюра"
+      },
+      "family": "monochrome",
+      "description": "STYLE: a bold relief linocut print: carved white gouge marks cutting through flat black ink, chunky simplified shapes, slight ink-starved texture and paper show-through at the edges. Pure black ink on off-white paper only; no greys, no shading gradients, no colour.",
+      "when": "For a protest, a myth, a stark poster.",
+      "colours": [
+        "#0A0A0A",
+        "#F3EFE6"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "xray-radiograph",
+      "type": "image-style",
+      "label": {
+        "en": "X-ray radiograph",
+        "ru": "Рентгенограмма"
+      },
+      "family": "monochrome",
+      "description": "STYLE: a medical X-ray radiograph look: translucent glowing white structures against a deep black field, soft internal density layers, faint film scratches and a cool neutral tone. Monochrome only; no colour, no anatomical gore, no illustration lines.",
+      "when": "For what is inside, a hidden truth, fragility.",
+      "colours": [
+        "#030303",
+        "#6F757A",
+        "#F4F6F7"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "halftone-newsprint",
+      "type": "image-style",
+      "label": {
+        "en": "Halftone newsprint",
+        "ru": "Газетный растр"
+      },
+      "family": "monochrome",
+      "description": "STYLE: a coarse black halftone newspaper print: visible round dot screen, slight misregistration and ink bleed into cheap grey newsprint, high contrast and crushed midtones. Black ink on grey paper only; no colour, no smooth photo gradients.",
+      "when": "For news, propaganda, a scandal.",
+      "colours": [
+        "#111111",
+        "#8A8780",
+        "#D9D6CE"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "cyanotype-botanical",
+      "type": "image-style",
+      "label": {
+        "en": "Cyanotype",
+        "ru": "Цианотипия"
+      },
+      "family": "monochrome",
+      "description": "STYLE: a cyanotype sun print: deep Prussian-blue ground with pale white silhouettes and soft exposure falloff, slight brush-coated edges and paper fibres. Blue monochrome only; no other colours, no sharp digital edges.",
+      "when": "For botany, memory, a dream in blue.",
+      "colours": [
+        "#0E2F5A",
+        "#3E6A9B",
+        "#E8EEF4"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    }
+  ]
+}

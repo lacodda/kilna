@@ -1,0 +1,81 @@
+{
+  "id": "artist-shortparis-auktyon",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "avant-garde-post-punk-cabaret",
+      "type": "genre",
+      "label": {
+        "en": "avant-garde post-punk cabaret",
+        "ru": "авангардное постпанк-кабаре"
+      },
+      "family": "artist-shortparis-auktyon",
+      "description": "avant-garde post-punk cabaret",
+      "when": "For a song that is a performance.",
+      "explanation": {
+        "en": "Strange, theatrical rock between a stage play and a riot.",
+        "ru": "Странный театральный рок между спектаклем и бунтом."
+      }
+    },
+    {
+      "key": "theatrical-falsetto-declamation",
+      "type": "vocal",
+      "label": {
+        "en": "theatrical falsetto declamation",
+        "ru": "театральная декламация фальцетом"
+      },
+      "family": "artist-shortparis-auktyon",
+      "description": "theatrical falsetto declamation",
+      "when": "When the singer plays a character.",
+      "explanation": {
+        "en": "A high voice half-singing, half-proclaiming words.",
+        "ru": "Высокий голос, наполовину поющий, наполовину провозглашающий."
+      }
+    },
+    {
+      "key": "dissonant-brass-and-jagged-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "dissonant brass and jagged guitar",
+        "ru": "диссонирующая медь и рваная гитара"
+      },
+      "family": "artist-shortparis-auktyon",
+      "description": "dissonant brass and jagged guitar",
+      "when": "For deliberate chaos.",
+      "explanation": {
+        "en": "Clashing horns and sharp, angular guitar.",
+        "ru": "Сталкивающиеся духовые и резкая угловатая гитара."
+      }
+    },
+    {
+      "key": "lurching-irregular-rhythms",
+      "type": "groove",
+      "label": {
+        "en": "lurching irregular rhythms",
+        "ru": "спотыкающиеся неровные ритмы"
+      },
+      "family": "artist-shortparis-auktyon",
+      "description": "lurching irregular rhythms",
+      "when": "For unease in the body.",
+      "explanation": {
+        "en": "Beats that stumble and change step.",
+        "ru": "Ритмы, которые спотыкаются и меняют шаг."
+      }
+    },
+    {
+      "key": "absurd-tension",
+      "type": "mood",
+      "label": {
+        "en": "absurd tension",
+        "ru": "абсурдное напряжение"
+      },
+      "family": "artist-shortparis-auktyon",
+      "description": "absurd tension",
+      "when": "For a grotesque story.",
+      "explanation": {
+        "en": "Funny and frightening at the same time.",
+        "ru": "Смешно и страшно одновременно."
+      }
+    }
+  ]
+}

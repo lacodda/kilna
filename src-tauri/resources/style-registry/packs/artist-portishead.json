@@ -1,0 +1,81 @@
+{
+  "id": "artist-portishead",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "slow-trip-hop",
+      "type": "genre",
+      "label": {
+        "en": "slow trip-hop",
+        "ru": "медленный трип-хоп"
+      },
+      "family": "artist-portishead",
+      "description": "slow trip-hop",
+      "when": "For a smoky, nocturnal track.",
+      "explanation": {
+        "en": "Downtempo hip-hop beats with cinematic, dark atmosphere.",
+        "ru": "Медленные хип-хоп биты с кинематографичной тёмной атмосферой."
+      }
+    },
+    {
+      "key": "dusty-sampled-hip-hop-break-at-a-crawling-tempo",
+      "type": "groove",
+      "label": {
+        "en": "dusty sampled hip-hop break at a crawling tempo",
+        "ru": "пыльный сэмплированный брейк на ползущем темпе"
+      },
+      "family": "artist-portishead",
+      "description": "dusty sampled hip-hop break at a crawling tempo",
+      "when": "When the beat should drag like a heavy heart.",
+      "explanation": {
+        "en": "An old drum break, slowed and heavy, with vinyl dust.",
+        "ru": "Старый брейк, замедленный и тяжёлый, с виниловой пылью."
+      }
+    },
+    {
+      "key": "theremin-like-whining-synth-and-scratched-vinyl",
+      "type": "instrument",
+      "label": {
+        "en": "theremin-like whining synth and scratched vinyl",
+        "ru": "воющий синт как терменвокс и скретчи"
+      },
+      "family": "artist-portishead",
+      "description": "theremin-like whining synth and scratched vinyl",
+      "when": "For unease under a beautiful voice.",
+      "explanation": {
+        "en": "An eerie gliding lead and turntable scratches.",
+        "ru": "Жутковатая скользящая партия и скретчи вертушки."
+      }
+    },
+    {
+      "key": "fragile-torch-song-female-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "fragile torch-song female vocal",
+        "ru": "хрупкий женский торч-вокал"
+      },
+      "family": "artist-portishead",
+      "description": "fragile torch-song female vocal",
+      "when": "For heartbreak sung almost under the breath.",
+      "explanation": {
+        "en": "A vulnerable, aching female voice of an old ballad.",
+        "ru": "Ранимый, щемящий женский голос старой баллады."
+      }
+    },
+    {
+      "key": "warped-vinyl-sample-texture",
+      "type": "texture",
+      "label": {
+        "en": "warped vinyl sample texture",
+        "ru": "текстура покоробленного винила"
+      },
+      "family": "artist-portishead",
+      "description": "warped vinyl sample texture",
+      "when": "When the whole track should feel like a found memory.",
+      "explanation": {
+        "en": "Wobbling, aged sampled sound as from a bent record.",
+        "ru": "Плывущий состаренный звук, как с покоробленной пластинки."
+      }
+    }
+  ]
+}

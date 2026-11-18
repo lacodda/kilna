@@ -1,0 +1,81 @@
+{
+  "id": "artist-deftones",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "dreamy-alternative-metal",
+      "type": "genre",
+      "label": {
+        "en": "dreamy alternative metal",
+        "ru": "мечтательный альтернативный метал"
+      },
+      "family": "artist-deftones",
+      "description": "dreamy alternative metal",
+      "when": "For heaviness that floats.",
+      "explanation": {
+        "en": "Heavy music with a hazy, sensual atmosphere.",
+        "ru": "Тяжёлая музыка с туманной чувственной атмосферой."
+      }
+    },
+    {
+      "key": "wall-of-down-tuned-shoegaze-guitars",
+      "type": "instrument",
+      "label": {
+        "en": "wall of down-tuned shoegaze guitars",
+        "ru": "стена низко строенных шугейз-гитар"
+      },
+      "family": "artist-deftones",
+      "description": "wall of down-tuned shoegaze guitars",
+      "when": "When the guitars should be weather.",
+      "explanation": {
+        "en": "Thick, blurred heavy guitars filling the whole space.",
+        "ru": "Густые размытые тяжёлые гитары, заполняющие всё пространство."
+      }
+    },
+    {
+      "key": "airy-croon-cutting-into-a-scream",
+      "type": "vocal",
+      "label": {
+        "en": "airy croon cutting into a scream",
+        "ru": "воздушное пение, переходящее в крик"
+      },
+      "family": "artist-deftones",
+      "description": "airy croon cutting into a scream",
+      "when": "For beauty with a wound in it.",
+      "explanation": {
+        "en": "A breathy, soft voice that suddenly tears open.",
+        "ru": "Придыхательный мягкий голос, внезапно рвущийся."
+      }
+    },
+    {
+      "key": "washed-out-reverb-haze-over-heavy-riffs",
+      "type": "texture",
+      "label": {
+        "en": "washed-out reverb haze over heavy riffs",
+        "ru": "размытая дымка реверба над тяжёлыми риффами"
+      },
+      "family": "artist-deftones",
+      "description": "washed-out reverb haze over heavy riffs",
+      "when": "For a dream that is also a storm.",
+      "explanation": {
+        "en": "Long reverb blurring the edges of hard playing.",
+        "ru": "Длинный реверб, размывающий края жёсткой игры."
+      }
+    },
+    {
+      "key": "sensual-dread",
+      "type": "mood",
+      "label": {
+        "en": "sensual dread",
+        "ru": "чувственный страх"
+      },
+      "family": "artist-deftones",
+      "description": "sensual dread",
+      "when": "For a dark love song.",
+      "explanation": {
+        "en": "Desire and fear tangled together.",
+        "ru": "Желание и страх, сплетённые вместе."
+      }
+    }
+  ]
+}

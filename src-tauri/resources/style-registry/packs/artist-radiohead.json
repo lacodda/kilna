@@ -1,0 +1,81 @@
+{
+  "id": "artist-radiohead",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "art-rock-with-electronic-glitches",
+      "type": "genre",
+      "label": {
+        "en": "art rock with electronic glitches",
+        "ru": "арт-рок с электронными глитчами"
+      },
+      "family": "artist-radiohead",
+      "description": "art rock with electronic glitches",
+      "when": "For a song that refuses to be simple.",
+      "explanation": {
+        "en": "Guitar rock crossed with broken electronic textures.",
+        "ru": "Гитарный рок, скрещённый с ломаной электроникой."
+      }
+    },
+    {
+      "key": "layered-clean-guitar-arpeggios-in-odd-patterns",
+      "type": "instrument",
+      "label": {
+        "en": "layered clean guitar arpeggios in odd patterns",
+        "ru": "слои чистых гитарных арпеджио в странных узорах"
+      },
+      "family": "artist-radiohead",
+      "description": "layered clean guitar arpeggios in odd patterns",
+      "when": "When the harmony should feel restless.",
+      "explanation": {
+        "en": "Interlocking guitar figures that do not resolve where expected.",
+        "ru": "Переплетённые гитарные фигуры, разрешающиеся не там, где ждёшь."
+      }
+    },
+    {
+      "key": "falsetto-leaning-plaintive-male-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "falsetto-leaning plaintive male vocal",
+        "ru": "жалобный мужской голос с уходом в фальцет"
+      },
+      "family": "artist-radiohead",
+      "description": "falsetto-leaning plaintive male vocal",
+      "when": "For fragile, searching lines.",
+      "explanation": {
+        "en": "A high, aching male voice slipping into falsetto.",
+        "ru": "Высокий щемящий мужской голос, срывающийся в фальцет."
+      }
+    },
+    {
+      "key": "skittering-programmed-drums",
+      "type": "groove",
+      "label": {
+        "en": "skittering programmed drums",
+        "ru": "дробные программные барабаны"
+      },
+      "family": "artist-radiohead",
+      "description": "skittering programmed drums",
+      "when": "For anxiety in the rhythm.",
+      "explanation": {
+        "en": "Fast, nervous electronic percussion patterns.",
+        "ru": "Быстрые нервные электронные ударные."
+      }
+    },
+    {
+      "key": "anxious-beauty",
+      "type": "mood",
+      "label": {
+        "en": "anxious beauty",
+        "ru": "тревожная красота"
+      },
+      "family": "artist-radiohead",
+      "description": "anxious beauty",
+      "when": "When beauty should not feel safe.",
+      "explanation": {
+        "en": "Lovely and unsettled at once.",
+        "ru": "Красиво и тревожно одновременно."
+      }
+    }
+  ]
+}

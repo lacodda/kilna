@@ -1,0 +1,81 @@
+{
+  "id": "artist-zemfira-splin",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "Russian-guitar-rock-ballad",
+      "type": "genre",
+      "label": {
+        "en": "Russian guitar rock ballad",
+        "ru": "русская гитарная рок-баллада"
+      },
+      "family": "artist-zemfira-splin",
+      "description": "Russian guitar rock ballad",
+      "when": "For a song people sing along in the kitchen.",
+      "explanation": {
+        "en": "A guitar-driven song built around its words.",
+        "ru": "Гитарная песня, построенная вокруг текста."
+      }
+    },
+    {
+      "key": "hoarse-confessional-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "hoarse confessional vocal",
+        "ru": "хрипловатый исповедальный вокал"
+      },
+      "family": "artist-zemfira-splin",
+      "description": "hoarse confessional vocal",
+      "when": "When the voice must be believed.",
+      "explanation": {
+        "en": "A rough, sincere voice that sounds like speaking the truth.",
+        "ru": "Шершавый искренний голос, как будто говорит правду."
+      }
+    },
+    {
+      "key": "overdriven-guitar-riff-with-a-simple-melodic-hook",
+      "type": "instrument",
+      "label": {
+        "en": "overdriven guitar riff with a simple melodic hook",
+        "ru": "перегруженный рифф с простым мелодичным хуком"
+      },
+      "family": "artist-zemfira-splin",
+      "description": "overdriven guitar riff with a simple melodic hook",
+      "when": "For the riff that starts the song.",
+      "explanation": {
+        "en": "A crunchy guitar line that is easy to remember.",
+        "ru": "Хрустящая гитарная линия, которую легко запомнить."
+      }
+    },
+    {
+      "key": "quiet-verse-building-into-an-anthemic-chorus",
+      "type": "dynamics",
+      "label": {
+        "en": "quiet verse building into an anthemic chorus",
+        "ru": "тихий куплет, вырастающий в гимновый припев"
+      },
+      "family": "artist-zemfira-splin",
+      "description": "quiet verse building into an anthemic chorus",
+      "when": "For a chorus a crowd can sing.",
+      "explanation": {
+        "en": "Restrained verses that open into a big shared chorus.",
+        "ru": "Сдержанные куплеты, раскрывающиеся в большой общий припев."
+      }
+    },
+    {
+      "key": "urban-loneliness",
+      "type": "mood",
+      "label": {
+        "en": "urban loneliness",
+        "ru": "городское одиночество"
+      },
+      "family": "artist-zemfira-splin",
+      "description": "urban loneliness",
+      "when": "For a night walk through a city.",
+      "explanation": {
+        "en": "Alone among lights and people.",
+        "ru": "Один среди огней и людей."
+      }
+    }
+  ]
+}

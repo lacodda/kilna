@@ -1,0 +1,86 @@
+{
+  "id": "stage-editorial",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "noir-trench",
+      "type": "look",
+      "label": {
+        "en": "Noir trench coat",
+        "ru": "Нуарный тренч"
+      },
+      "family": "stage-editorial",
+      "description": "LOOK: a dark heavyweight waterproof gabardine trench coat with the collar turned up against the wind, a damp matte wool scarf tucked under the lapels, rain-darkened fabric on the shoulders showing the twill texture; restrained moody styling, no bright logos or neon zippers.",
+      "when": "A detective, a stranger, a rainy goodbye.",
+      "colours": [
+        "#2B2A28",
+        "#5B5246",
+        "#8C7F6B"
+      ],
+      "needs": [
+        "subject:person",
+        "crop:min:bust"
+      ]
+    },
+    {
+      "key": "oversized-tailoring",
+      "type": "look",
+      "label": {
+        "en": "Oversized tailoring",
+        "ru": "Оверсайз-костюм"
+      },
+      "family": "stage-editorial",
+      "description": "LOOK: an oversized tailored suit in a muted neutral wool, wide soft shoulders and fluid trousers, a plain T-shirt underneath, minimal accessories; relaxed confident styling, no shiny fabrics.",
+      "when": "A modern, calm, self-assured hero.",
+      "colours": [
+        "#8E8576",
+        "#C9C1B1",
+        "#2F2D29"
+      ],
+      "needs": [
+        "subject:person",
+        "crop:min:bust"
+      ]
+    },
+    {
+      "key": "stage-sequin-jacket",
+      "type": "look",
+      "label": {
+        "en": "Sequin stage jacket",
+        "ru": "Сценический пиджак в пайетках"
+      },
+      "family": "stage-editorial",
+      "description": "LOOK: a stage jacket covered in small sequins catching the light in sparks, dark trousers, a slightly theatrical silhouette; glamorous but worn, no costume-party cheapness.",
+      "when": "A performer, a star, a last show.",
+      "colours": [
+        "#C9A227",
+        "#7A1F3D",
+        "#0F0F12"
+      ],
+      "needs": [
+        "subject:person",
+        "crop:min:bust"
+      ]
+    },
+    {
+      "key": "worn-leather-biker",
+      "type": "look",
+      "label": {
+        "en": "Worn leather jacket",
+        "ru": "Потёртая косуха"
+      },
+      "family": "stage-editorial",
+      "description": "LOOK: a worn black leather biker jacket with creased elbows and scuffed edges, a faded band T-shirt underneath, silver zips dulled with age; rough honest styling, no new shiny leather.",
+      "when": "Rock, rebellion, a road.",
+      "colours": [
+        "#141414",
+        "#5C5C5C",
+        "#A8A8A8"
+      ],
+      "needs": [
+        "subject:person",
+        "crop:min:bust"
+      ]
+    }
+  ]
+}

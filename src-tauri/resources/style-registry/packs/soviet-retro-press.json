@@ -1,0 +1,107 @@
+{
+  "id": "soviet-retro-press",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "tnm-scifi-mag",
+      "type": "image-style",
+      "label": {
+        "en": "Sci-fi magazine",
+        "ru": "Научно-фантастический журнал"
+      },
+      "family": "soviet-retro-press",
+      "description": "STYLE: a mid-century retro-futuristic gouache and tempera magazine illustration on slightly matte paper: bold heroic diagonal geometry, visible dry opaque brushstrokes over clean underdrawing, warm ochre, cobalt blue, vermilion and slate-green mineral pigments, subtle offset halftone registration and paper tooth. No modern glossy digital painting, no anime lineart, no neon cyberpunk.",
+      "when": "For space, the future as it was imagined, hope.",
+      "colours": [
+        "#C8892E",
+        "#2F4F8F",
+        "#C2432E",
+        "#4F6B5E"
+      ]
+    },
+    {
+      "key": "melodia-sleeve-graphic",
+      "type": "image-style",
+      "label": {
+        "en": "Record sleeve graphic",
+        "ru": "Графика конверта пластинки"
+      },
+      "family": "soviet-retro-press",
+      "description": "STYLE: a Soviet-era record sleeve design: flat two- or three-colour screen-printed shapes, simple bold geometry and a stylised figure, slight ink misregistration on matte card. Avoid gradients, photorealism, or modern vector gloss.",
+      "when": "For a song that should feel like an old LP.",
+      "colours": [
+        "#D9C9A3",
+        "#B33A2E",
+        "#23395B"
+      ]
+    },
+    {
+      "key": "thaw-linocut-book",
+      "type": "image-style",
+      "label": {
+        "en": "Book linocut",
+        "ru": "Книжная линогравюра"
+      },
+      "family": "soviet-retro-press",
+      "description": "STYLE: a 1960s book-illustration linocut in two colours: carved black lines and one warm flat colour, lyrical simplified figures and landscapes, paper texture showing through. Avoid shading gradients, photographs, or digital effects.",
+      "when": "A lyrical story, a childhood, a village.",
+      "colours": [
+        "#1A1A1A",
+        "#C46A3A",
+        "#EFE6D2"
+      ]
+    },
+    {
+      "key": "soviet-diafilm-frame",
+      "type": "image-style",
+      "label": {
+        "en": "Filmstrip frame",
+        "ru": "Кадр диафильма"
+      },
+      "family": "soviet-retro-press",
+      "description": "STYLE: a frame of a Soviet children’s filmstrip: soft gouache illustration with gentle colours faded by projection light, a slightly soft focus, a rounded-corner frame and a faint caption band below. Avoid modern crispness, neon, or 3D.",
+      "when": "Childhood memory, a fairy tale, nostalgia.",
+      "colours": [
+        "#E3C79A",
+        "#7FA3B8",
+        "#B85C4A"
+      ]
+    },
+    {
+      "key": "nii-modernist-etching",
+      "type": "image-style",
+      "label": {
+        "en": "Modernist etching",
+        "ru": "Модернистский офорт"
+      },
+      "family": "soviet-retro-press",
+      "description": "STYLE: a modernist technical etching: fine cross-hatched lines bitten into copper, precise architectural and scientific forms, crisp black ink on warm paper with a soft plate tone. Avoid colour, painterly brushwork, or digital lines.",
+      "when": "Science, a research institute, cold reason.",
+      "colours": [
+        "#141414",
+        "#6B5E4E",
+        "#EDE5D4"
+      ],
+      "provides": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "tourism-badge-80s",
+      "type": "image-style",
+      "label": {
+        "en": "Tourist badge",
+        "ru": "Туристический значок"
+      },
+      "family": "soviet-retro-press",
+      "description": "STYLE: an 1980s Soviet souvenir enamel badge: glossy coloured enamel fields inside thin gold metal outlines, a tiny emblem of a city or mountain, slight metallic shine and stamped relief. Avoid realism, gradients outside the enamel, or plastic CGI.",
+      "when": "For a trip, a city, a kitsch memory.",
+      "colours": [
+        "#C9A227",
+        "#B23A3A",
+        "#2D5E9E",
+        "#F2F0E8"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "artist-prodigy",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "big-beat-breakbeat-with-punk-energy",
+      "type": "genre",
+      "label": {
+        "en": "big beat breakbeat with punk energy",
+        "ru": "биг-бит с панк-энергией"
+      },
+      "family": "artist-prodigy",
+      "description": "big beat breakbeat with punk energy",
+      "when": "When the track should hit like a riot on a dancefloor.",
+      "explanation": {
+        "en": "Breakbeat dance music played with the attitude of a punk band.",
+        "ru": "Брейкбит, сыгранный с напором панк-группы."
+      }
+    },
+    {
+      "key": "chopped-breakbeats-with-distorted-kicks",
+      "type": "groove",
+      "label": {
+        "en": "chopped breakbeats with distorted kicks",
+        "ru": "рубленые брейки с перегруженной бочкой"
+      },
+      "family": "artist-prodigy",
+      "description": "chopped breakbeats with distorted kicks",
+      "when": "For a beat that feels aggressive rather than polite.",
+      "explanation": {
+        "en": "Sampled drum breaks cut up and driven hard, the kick clipping on purpose.",
+        "ru": "Нарезанные брейки, бочка намеренно перегружена."
+      }
+    },
+    {
+      "key": "acid-synth-riffs-and-gritty-rave-stabs",
+      "type": "instrument",
+      "label": {
+        "en": "acid synth riffs and gritty rave stabs",
+        "ru": "кислотные риффы и грязные рейв-стэбы"
+      },
+      "family": "artist-prodigy",
+      "description": "acid synth riffs and gritty rave stabs",
+      "when": "When the hook should be a sound, not a melody.",
+      "explanation": {
+        "en": "A squelching resonant synth line and short dirty chord hits.",
+        "ru": "Хлюпающая резонансная линия синта и короткие грязные аккорды."
+      }
+    },
+    {
+      "key": "shouted-punk-vocal-hooks",
+      "type": "vocal",
+      "label": {
+        "en": "shouted punk vocal hooks",
+        "ru": "выкрикнутые панк-хуки"
+      },
+      "family": "artist-prodigy",
+      "description": "shouted punk vocal hooks",
+      "when": "For a chant the listener shouts back.",
+      "explanation": {
+        "en": "Short phrases barked rather than sung, repeated as hooks.",
+        "ru": "Короткие фразы, выкрикнутые, а не спетые, повторяются как хуки."
+      }
+    },
+    {
+      "key": "siren-risers-into-a-breakbeat-drop",
+      "type": "knob",
+      "label": {
+        "en": "siren risers into a breakbeat drop",
+        "ru": "сирены-райзеры перед брейкбит-дропом"
+      },
+      "family": "artist-prodigy",
+      "description": "siren risers into a breakbeat drop",
+      "when": "Before the biggest moment of the track.",
+      "explanation": {
+        "en": "Rising alarm-like synths that build tension and fall into the beat.",
+        "ru": "Нарастающие синты-сирены, которые накаляют и обрываются в бит."
+      }
+    }
+  ]
+}

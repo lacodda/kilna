@@ -1,0 +1,66 @@
+{
+  "id": "subject-micro",
+  "version": "1.0.0",
+  "bricks": [
+    {
+      "key": "blink-natural-periodic",
+      "type": "motion-subject",
+      "label": {
+        "en": "Natural blink",
+        "ru": "Естественное моргание"
+      },
+      "family": "subject-micro",
+      "description": "MOTION: the subject stands nearly still and blinks once naturally every few seconds with soft unhurried eyelids, posture, head angle and expression completely calm between blinks; the scene does not move.",
+      "when": "Any portrait that must not read as a photograph.",
+      "needs": [
+        "subject:person",
+        "crop:min:head"
+      ]
+    },
+    {
+      "key": "hair-strands-wind-gusts",
+      "type": "motion-subject",
+      "label": {
+        "en": "Hair in gusts",
+        "ru": "Волосы в порывах ветра"
+      },
+      "family": "subject-micro",
+      "description": "MOTION: gentle intermittent wind gusts lift and sway loose fine strands of hair around the face and collar, moving organically before settling, never blown wildly; the face and body stay still.",
+      "when": "Outdoors, an evening, a pause.",
+      "needs": [
+        "subject:person",
+        "crop:min:head"
+      ]
+    },
+    {
+      "key": "cold-breath-exhale",
+      "type": "motion-subject",
+      "label": {
+        "en": "Cold breath",
+        "ru": "Пар дыхания"
+      },
+      "family": "subject-micro",
+      "description": "MOTION: a soft cloud of breath appears with each slow exhale every four seconds and dissolves in the cold air; the subject otherwise holds still.",
+      "when": "Winter, a cold night, waiting.",
+      "needs": [
+        "subject:person",
+        "crop:min:head"
+      ]
+    },
+    {
+      "key": "coat-hem-flutter",
+      "type": "motion-subject",
+      "label": {
+        "en": "Coat hem in the wind",
+        "ru": "Пола пальто на ветру"
+      },
+      "family": "subject-micro",
+      "description": "MOTION: the hem and loose edges of a long coat flutter in a light steady wind, small ripples running along the fabric; the body underneath and the scene stay still.",
+      "when": "A lone figure in an open place.",
+      "needs": [
+        "subject:person",
+        "crop:min:waist"
+      ]
+    }
+  ]
+}
