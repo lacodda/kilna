@@ -312,7 +312,7 @@
         "requires": [
           "draft"
         ],
-        "icon": "quote",
+        "icon": "mic",
         "fields": [
           {
             "key": "venue",

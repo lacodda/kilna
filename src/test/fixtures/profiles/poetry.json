@@ -1021,7 +1021,7 @@
                 "type": "text"
               }
             ],
-            "icon": "quote",
+            "icon": "mic",
             "key": "reading",
             "label": {
               "en": "Reading",
@@ -1344,7 +1344,7 @@
                 "type": "text"
               }
             ],
-            "icon": "quote",
+            "icon": "mic",
             "key": "reading",
             "label": {
               "en": "Reading",
@@ -1667,7 +1667,7 @@
                 "type": "text"
               }
             ],
-            "icon": "quote",
+            "icon": "mic",
             "key": "reading",
             "label": {
               "en": "Reading",
