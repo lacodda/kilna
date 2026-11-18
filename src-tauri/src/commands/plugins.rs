@@ -217,6 +217,16 @@ pub fn run_plugin(
     })
 }
 
+/// What a work's simple video is built from: its picture and its track
+/// (v0.149) - what the Build tab previews and the renderer renders.
+#[tauri::command]
+pub fn build_sources(
+    state: State<'_, AppState>,
+    work_id: String,
+) -> Result<crate::build::BuildSources> {
+    crate::build::sources(&state.conn(), &work_id)
+}
+
 /// Stop a run the window started. A run already over is nothing to stop.
 #[tauri::command]
 pub fn cancel_plugin(run: String) {

@@ -1,5 +1,6 @@
 import type {
   Asset,
+  Plugin,
   Space,
   CardCounts,
   CardSummary,
@@ -1349,6 +1350,9 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     check_spend: () => ({ spend: { today: 0, week: 0, budget: null }, crossed: false }),
     set_weekly_budget: ({ budget }) => budget ?? null,
     list_plugins: () => [],
+    // A work's simple video is built from nothing until a test gives it a
+    // picture and a track (v0.149).
+    build_sources: () => ({ picture: null, looped: false, track: null }),
     plugins_folder: () => 'C:/workspace/plugins',
     assistant_settings: () => ({
       parallel_runs: 3,
@@ -1385,4 +1389,43 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     history_keeping: () => ({ days: 7, archive: 'C:/workspace/history' }),
     mcp_registration: () => 'claude mcp add kilna -- kilna --mcp',
   }
+}
+
+/** The simple-video plugin, installed and on (v0.149): what makes a work that
+ *  goes out itself draw its Build tab. */
+export function simpleVideoPlugin(): Plugin {
+  return {
+    executable: 'kilna-plugin-simple-video',
+    path: 'C:/plugins/kilna-plugin-simple-video.exe',
+    manifest: {
+      protocol_version: 1,
+      name: 'simple-video',
+      version: '0.1.0',
+      description: null,
+      descriptions: {},
+      commands: [
+        {
+          key: 'render',
+          label: 'Render the video',
+          labels: {},
+          description: null,
+          descriptions: {},
+          target: 'work',
+        },
+        {
+          key: 'analyze_audio',
+          label: 'Measure the loudness',
+          labels: {},
+          description: null,
+          descriptions: {},
+          target: 'work',
+        },
+      ],
+      settings: [],
+    },
+    usable: true,
+    reason: null,
+    enabled: true,
+    settings: { fade_out: 6 },
+  } as unknown as Plugin
 }

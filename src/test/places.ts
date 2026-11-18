@@ -50,6 +50,8 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.video, 'scenes', en.scenes.readiness],
   // A cover with nothing in it opens on its board of ideas (v0.89).
   [IDS.video, 'cover', en.ideas.own],
+  // The simple video on two tracks (v0.149), with the renderer installed.
+  [IDS.video, 'build', en.build.v1],
   [IDS.video, 'cuts', 'Paper Lanterns'],
   [IDS.video, 'score', 'Paper Lanterns (clip)'],
   [IDS.video, 'files', 'Paper Lanterns (clip)'],

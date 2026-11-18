@@ -70,7 +70,9 @@ describe("the card's tabs", () => {
       },
       { splice: true, links: true },
     )
-    expect(tabsOf(everything)).toEqual([...TABS])
+    // The Build tab needs the renderer installed (v0.149).
+    expect(tabsOf({ ...everything, renderer: true })).toEqual([...TABS])
+    expect(tabsOf(everything)).not.toContain('build')
   })
 
   it('stand where the kind names what each is for', () => {

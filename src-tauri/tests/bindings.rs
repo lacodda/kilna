@@ -307,6 +307,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::plugin::manifest::Plugin,
         kilna_lib::plugin::manifest::Target,
         kilna_lib::commands::plugins::PluginReply,
+        kilna_lib::build::BuildSources,
         kilna_lib::commands::plugins::PluginProgress,
         // error.rs - carried inside `Skipped` and every refusal reason
         kilna_lib::error::Reason,

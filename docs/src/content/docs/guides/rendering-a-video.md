@@ -56,11 +56,33 @@ Two presets:
 **Bring the sound to the loudness** brings the track to -14 LUFS - what
 YouTube and Spotify play at - with its peaks under -1 dBTP.
 
-A work can keep a timeline of its own, under `simple_video` in its fields:
-what of the track plays, how loud, its fades, the picture held before and
-after the sound. A render reads it when it is there - see
+## The Build tab
+
+Since v0.149 a work that goes out itself - a clip, an audio release, a
+short - has a **Build** tab while the plugin is installed and on. It lays the
+video out on two tracks:
+
+- **V1 - the picture**: the cover, a still or a loop, and the bar of the
+  whole video - the picture held **before the sound**, the sound, the picture
+  held **after** it - with its fades **from black** and **to black**.
+- **A1 - the sound**: the track's waveform, what plays lit and the rest
+  dimmed. Drag an edge of the lit part to trim it, or type **From** and
+  **To**; its **fade in** and **fade out**; its **gain**, from -24 to +18 dB,
+  by the slider or a decibel at a time. **Optimal loudness** measures the
+  track and sets the gain that brings it to the loudness set in the plugin
+  (-14 LUFS unless set otherwise); the gain says **clips** in red when the
+  track's peaks would go over full scale.
+
+**Preview** plays it all before anything is rendered - the picture with its
+fades, the sound with its trim, gain and fades - by the button or the space
+bar, and the slider under it goes to any second.
+
+What is set is kept in the work's fields under `simple_video`, a moment after
+the last change, as an ordinary edit: undo takes it back. It is the shape the
+plugin renders by - see
 [the plugin's README](https://github.com/lacodda/kilna-plugin-simple-video#the-works-own-timeline)
-for its shape. The timeline editor that writes it comes in v0.149.
+- so the preview is what the render makes. **Render the video** runs the
+render, with its progress and **Stop**.
 
 **Render by the preset** is the same render with no editor, marked in
 Settings as **for many works at once**: a render that needs nothing but the

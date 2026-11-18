@@ -4,7 +4,7 @@ import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { CARD_TABS, SCREENS } from '@/test/places'
 import { regionsHaveHeight } from '@/test/regions'
-import { answersFor, IDS, NOW, studio } from '@/test/workspace'
+import { answersFor, IDS, NOW, simpleVideoPlugin, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
 /*
@@ -154,6 +154,8 @@ describe('every screen opens', () => {
 describe('every tab of a card opens', () => {
   for (const [workId, tab, shows] of CARD_TABS) {
     test(`${workId}, on ${tab}`, async () => {
+      // The Build tab stands while the simple-video plugin is installed.
+      if (tab === 'build') backend.answer('list_plugins', () => [simpleVideoPlugin()])
       const { area, screen: main } = await open(`/works/${workId}/${tab}`, shows)
       // The address named this tab; the bar must agree, or a tab the kind
       // does not have fell back to another and the case tested that one.

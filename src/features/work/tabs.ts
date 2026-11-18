@@ -30,6 +30,7 @@ export const TABS = [
   'scenes',
   'cover',
   'frame',
+  'build',
   'cuts',
   'score',
   'files',
@@ -97,6 +98,9 @@ export interface CardFacts {
         whole, under one frame, and has nothing to splice. */
     splice: boolean
   }
+  /** The simple-video plugin is installed and on (v0.149): a work that goes
+      out itself can be built into a video. */
+  renderer?: boolean
 }
 
 /** Whether a tab exists for these facts; `null` for a tab every work has. */
@@ -120,6 +124,9 @@ const RULES: Readonly<Record<Tab, Rule>> = {
   // Nothing is held here that another kind could strand: the backend refuses
   // a frame on a kind without one (`work.noFrame`).
   frame: ({ names }) => names.frame,
+  // A simple video is built for a work that goes out itself, by the plugin
+  // that renders one (v0.149, FR-15).
+  build: ({ names, renderer }) => names.doors && renderer === true,
   cuts: ({ holds }) => holds.splice,
   score: ({ names, holds }) => names.axes || holds.scores,
   // A work's files are its cover, what its releases go out with, and what
@@ -210,10 +217,12 @@ export function factsOf(
   config: ProfileConfig,
   work: Pick<Work, 'kind' | 'cover'>,
   counts?: CardCounts,
+  renderer = false,
 ): CardFacts {
   const vocabulary = vocabularyOf(config, work.kind)
   const known = counts !== undefined
   return {
+    renderer,
     names: namesOf(config, work.kind),
     holds: {
       versions: !known || counts.versions > 0,

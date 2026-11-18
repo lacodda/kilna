@@ -282,6 +282,7 @@ export const keys = {
   focusNotes: ['focus', 'notes'] as const,
 
   plugins: ['plugins'] as const,
+  buildSources: (workId: string) => ['plugins', 'build', workId] as const,
   pluginsFolder: ['pluginsFolder'] as const,
 
   // Facts about this machine's install, asked once per screen that shows them.

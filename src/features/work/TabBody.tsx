@@ -3,6 +3,7 @@ import type { Work } from '@/lib/api/types'
 import type { Tab } from '@/features/work/tabs'
 import { AssistantPanel } from '@/features/work/tabs/assistant/AssistantPanel'
 import { CommentsPanel } from '@/features/work/tabs/comments/CommentsPanel'
+import { BuildTab } from '@/features/work/tabs/build/BuildTab'
 import { CoverTab } from '@/features/work/tabs/cover/CoverTab'
 import { CutsTab } from '@/features/work/tabs/cuts/CutsTab'
 import { FilesTab } from '@/features/work/tabs/files/FilesTab'
@@ -41,6 +42,8 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   // prompt, and the still and the loop an audio release plays under.
   cover: ({ work }) => <CoverTab work={work} />,
   frame: ({ work }) => <FrameTab work={work} />,
+  // The simple video, on two tracks, rendered by its plugin (v0.149).
+  build: ({ work }) => <BuildTab work={work} />,
   cuts: ({ work }) => <CutsTab work={work} />,
   score: ({ workId }) => <ScorePanel workId={workId} />,
   files: ({ work }) => <FilesTab work={work} />,

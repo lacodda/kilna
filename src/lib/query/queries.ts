@@ -55,7 +55,7 @@ import {
   wordsFromTexts,
   workRepeats,
 } from '@/lib/api/register'
-import { listPlugins, pluginsFolder } from '@/lib/api/plugins'
+import { buildSources, listPlugins, pluginsFolder } from '@/lib/api/plugins'
 import {
   calendar,
   previewLanding,
@@ -450,6 +450,8 @@ export const queries = {
     }),
 
   plugins: () => queryOptions({ queryKey: keys.plugins, queryFn: listPlugins }),
+  buildSources: (workId: string) =>
+    queryOptions({ queryKey: keys.buildSources(workId), queryFn: () => buildSources(workId) }),
   pluginsFolder: () => queryOptions({ queryKey: keys.pluginsFolder, queryFn: pluginsFolder }),
   workspacePath: () => queryOptions({ queryKey: keys.workspacePath, queryFn: workspacePath }),
   // Read from the disk each time it is asked: a file chosen a moment ago may

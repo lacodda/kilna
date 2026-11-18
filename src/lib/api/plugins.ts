@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import type { JsonValue, Plugin, PluginProgress, PluginReply } from '@/lib/api/types'
+import type { BuildSources, JsonValue, Plugin, PluginProgress, PluginReply } from '@/lib/api/types'
 
 // Plugins: programs beside kilna that act on a work.
 
@@ -30,6 +30,9 @@ export const runPlugin = (
   id: string,
   run: string,
 ) => invoke<PluginReply>('run_plugin', { executable, command, target, id, run })
+
+/** What a work's simple video is built from: its picture and its track (v0.149). */
+export const buildSources = (workId: string) => invoke<BuildSources>('build_sources', { workId })
 
 /** Stop a run before it finishes. */
 export const cancelPlugin = (run: string) => invoke<void>('cancel_plugin', { run })

@@ -3,6 +3,7 @@ pub mod activity;
 pub mod asset;
 pub mod assistant;
 pub mod board;
+pub mod build;
 pub mod canon;
 pub mod card;
 pub mod clock;
@@ -634,6 +635,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::plugins::set_plugin_setting,
             commands::plugins::run_plugin,
             commands::plugins::cancel_plugin,
+            commands::plugins::build_sources,
         ])
         .build({
             let mut context = tauri::generate_context!();

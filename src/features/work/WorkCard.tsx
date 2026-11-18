@@ -27,6 +27,7 @@ import {
 } from '@/features/work/tabs'
 import { TabBody } from '@/features/work/TabBody'
 import { WorkPlayerProvider } from '@/features/work/player'
+import { useRenderer } from '@/features/work/tabs/build/useBuild'
 
 interface Props {
   workId: string
@@ -48,6 +49,9 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const profile = useProfile()
+  // The simple-video plugin, when it is installed and on: a work that goes
+  // out itself has a Build tab (v0.149).
+  const renderer = useRenderer()
   const work = useQuery(queries.work(workId))
   // Judging blind belongs to the card, not the Score tab: the header above the
   // tab shows the last verdict too (see `lib/blindJudging`). The card is keyed
@@ -137,7 +141,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   // hides it. It used to draw an empty tab with nothing lit in the bar. What a
   // work holds is only known once its counts have loaded: until then the
   // address is trusted rather than bounced.
-  const tabs = tabsOf(factsOf(profile.config, current, counts.data))
+  const tabs = tabsOf(factsOf(profile.config, current, counts.data, renderer !== undefined))
   if (!tabs.includes(tab)) {
     return <Navigate to={`/works/${workId}/${DEFAULT_TAB}`} replace />
   }
@@ -151,7 +155,14 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
         <div className="flex min-h-0 flex-1 flex-col">
           <CardHeader
             work={current}
-            tabs={tabsOf(factsOf(profile.config, current, counts.data ?? NOTHING_COUNTED))}
+            tabs={tabsOf(
+              factsOf(
+                profile.config,
+                current,
+                counts.data ?? NOTHING_COUNTED,
+                renderer !== undefined,
+              ),
+            )}
             counts={counts.data === undefined ? {} : tabCounts(counts.data)}
             onDelete={() => remove.mutate()}
           />
