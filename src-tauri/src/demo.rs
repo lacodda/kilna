@@ -269,24 +269,263 @@ const NEWSLETTER: Corpus = Corpus {
     card: None,
 };
 
+// The same demos in Russian, the window's second language (v0.130): what a
+// person who reads the window in Russian is given, in place of the English.
+const STUDIO_RU: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Бумажные фонари",
+            stage: 100,
+            versions: &[
+                "Мы повесили фонари на забор\nи два из них ветер унёс к десяти\n\nСчитай те, что остались\nсчитай те, что остались",
+                "Мы повесили фонари на забор\nдва унесло, пока не пошёл дождь\n\nСчитай те, что горят\nсчитай те, что остались",
+            ],
+        },
+        Piece {
+            title: "Часы отлива",
+            stage: 75,
+            versions: &[
+                "В полдень гавань показывает рёбра\nлодки легли на ил, как усталые люди\nя держу часы, что держит вода\nи жду, когда она вернётся",
+            ],
+        },
+        Piece {
+            title: "Стеклянный сад",
+            stage: 50,
+            versions: &[
+                "Стеклянные яблоки на проволочном дереве\nзвенят, когда проходит автобус\n(второй куплет - что-то про иней)",
+            ],
+        },
+        Piece {
+            title: "На север",
+            stage: 25,
+            versions: &[],
+        },
+        Piece {
+            title: "Песня про лифт",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## О чём это\nНочной поезд на север и человек, который не скажет, зачем он в нём.\n\n## Настроение\nТихое, ровное, чуть холодное.",
+    notes: &[
+        ("phrase", "те, что горят"),
+        ("phrase", "лодки легли на ил, как усталые люди"),
+        (
+            "note",
+            "Песня, в которой ничего не происходит, только меняется свет. Может, это песня про лифт.",
+        ),
+    ],
+    card: Some((
+        "channel",
+        "Демо-канал",
+        "Небольшая выдуманная студия, которая пишет тихие песни про обычные места: гавани, сады, ночные поезда.",
+    )),
+};
+
+const NOVEL_RU: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Глава 1. Дочь смотрителя",
+            stage: 100,
+            versions: &[
+                "Маяк на Чаячьем мысу не гас сорок лет. Мира всё равно проверяла его каждую ночь, как отец.",
+                "Маяк на Чаячьем мысу не гас сорок лет. Мира всё равно поднималась на девяносто ступеней каждую ночь, как отец, считая их вполголоса.",
+            ],
+        },
+        Piece {
+            title: "Глава 2. Письмо",
+            stage: 50,
+            versions: &[
+                "Письмо пришло во вторник, и это было неправильно: катер приходил только по пятницам.",
+            ],
+        },
+        Piece {
+            title: "Глава 3",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## Что происходит\nМира узнаёт, кто прислал письмо.\n\n## Что это меняет\nОна перестаёт считать ступени.",
+    notes: &[
+        ("phrase", "считая их вполголоса"),
+        (
+            "note",
+            "Приходит ли катер хоть раз вовремя? Решить до четвёртой главы.",
+        ),
+    ],
+    card: Some((
+        "character",
+        "Мира",
+        "Смотрит за маяком на Чаячьем мысу после отца. Считает, когда ей страшно.",
+    )),
+};
+
+const PODCAST_RU: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Эпизод 1. Начать с тишины",
+            stage: 100,
+            versions: &[
+                "Холодное начало: звук пустой комнаты. ВЕДУЩИЙ: Так звучала наша студия до первого эпизода. Сегодня - почему мы чуть не начали.",
+            ],
+        },
+        Piece {
+            title: "Эпизод 2. Гость, который не пришёл",
+            stage: 50,
+            versions: &[
+                "ВЕДУЩИЙ: У нас был гость. У нас были вопросы. У нас был кофе. Вот что вышло вместо этого.",
+            ],
+        },
+        Piece {
+            title: "Эпизод 3",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## Вопрос\nЧто делать с часом, который гость оставил пустым?\n\n## Вход\nНачать с остывающего кофе.",
+    notes: &[
+        ("phrase", "вот что вышло вместо этого"),
+        (
+            "note",
+            "Рубрика вопросов слушателей - когда появятся слушатели.",
+        ),
+    ],
+    card: Some((
+        "guest",
+        "Гость, которого стоит позвать",
+        "Выдуманный гость: смотритель маяка, который каждую ночь записывает море.",
+    )),
+};
+
+const BLOG_RU: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Почему маленькие инструменты выигрывают",
+            stage: 100,
+            versions: &[
+                "Маленький инструмент делает одно дело. Вот и весь довод, и его хватает.",
+                "Маленький инструмент делает одно дело, и его видно целиком. Вот и весь довод, и его, оказывается, хватает.",
+            ],
+        },
+        Piece {
+            title: "Неделя без уведомлений",
+            stage: 50,
+            versions: &[
+                "День первый: выключил всё. День второй: включил одно обратно, и вот почему.",
+            ],
+        },
+        Piece {
+            title: "Заметки о том, чтобы писать каждый день",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## Мысль\nПисать каждый день важно меньше, чем писать в плохие дни.\n\n## Для кого\nДля всех, кто бросил через неделю.",
+    notes: &[
+        ("phrase", "его видно целиком"),
+        (
+            "note",
+            "Пост о том, что вырезать из черновика, - с настоящим черновиком, вырезанным на странице.",
+        ),
+    ],
+    card: None,
+};
+
+const POETRY_RU: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Опись ночной кухни",
+            stage: 100,
+            versions: &[
+                "чайник остывает\nнож уснул на доске\nчашка вверх дном",
+                "чайник остывает\nнож уснул на своей доске\nчашка вверх дном и ждёт",
+            ],
+        },
+        Piece {
+            title: "Зимний паром",
+            stage: 50,
+            versions: &[
+                "Паром уходит в шесть, и никто не машет.\nВода складывает город обратно в серое.",
+            ],
+        },
+        Piece {
+            title: "Стихотворение про лестницу",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## Образ, с которого начинается\nСвет, оставленный в пустом подъезде.\n\n## На чём поворот\nДля кого его оставили.",
+    notes: &[
+        ("phrase", "чашка вверх дном и ждёт"),
+        ("note", "Попробовать паром двустишиями."),
+    ],
+    card: None,
+};
+
+const NEWSLETTER_RU: Corpus = Corpus {
+    pieces: &[
+        Piece {
+            title: "Выпуск 1. Зачем я это начал",
+            stage: 100,
+            versions: &[
+                "Привет. Это письмо о маленьких инструментах, раз в неделю.",
+                "Привет. Это еженедельное письмо о маленьких инструментах - тех, что видно целиком.",
+            ],
+        },
+        Piece {
+            title: "Выпуск 2. Три инструмента, которые я бросил",
+            stage: 50,
+            versions: &[
+                "На этой неделе: три инструмента, от которых я отказался, и то, что каждый делал лучше замены.",
+            ],
+        },
+        Piece {
+            title: "Выпуск 3",
+            stage: 0,
+            versions: &[],
+        },
+    ],
+    brief: "## О чём этот выпуск\nИнструмент, которым я пользуюсь каждый день и никогда не упоминаю.\n\n## Что унести\nСкучные инструменты живут дольше всех.",
+    notes: &[
+        ("phrase", "те, что видно целиком"),
+        (
+            "note",
+            "Читатель спросил про резервные копии - выпуск об этом.",
+        ),
+    ],
+    card: None,
+};
+
 /// Put the demo of the space's craft into it. Refused for a space that
 /// already holds works: a demo is a way to look around a new space, never
 /// something mixed into a person's own.
 pub fn seed(conn: &Connection) -> Result<DemoReport> {
+    seed_in(conn, "en")
+}
+
+/// The demo in a language: Russian for the window's second language, English
+/// - the product's - for any other.
+pub fn seed_in(conn: &Connection, language: &str) -> Result<DemoReport> {
     let works: i64 = conn.query_row("SELECT count(*) FROM work", [], |row| row.get(0))?;
     if works > 0 {
         return Err(Error::refused("demo.notEmpty"));
     }
     let profile =
         crate::profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
-    let corpus = match profile.key.as_str() {
-        "music" => &STUDIO,
-        "novel" => &NOVEL,
-        "podcast" => &PODCAST,
-        "blog" => &BLOG,
-        "poetry" => &POETRY,
-        "newsletter" => &NEWSLETTER,
-        _ => &BLOG,
+    let russian = language.starts_with("ru");
+    let corpus = match (profile.key.as_str(), russian) {
+        ("music", false) => &STUDIO,
+        ("music", true) => &STUDIO_RU,
+        ("novel", false) => &NOVEL,
+        ("novel", true) => &NOVEL_RU,
+        ("podcast", false) => &PODCAST,
+        ("podcast", true) => &PODCAST_RU,
+        ("poetry", false) => &POETRY,
+        ("poetry", true) => &POETRY_RU,
+        ("newsletter", false) => &NEWSLETTER,
+        ("newsletter", true) => &NEWSLETTER_RU,
+        (_, false) => &BLOG,
+        (_, true) => &BLOG_RU,
     };
     let config = &profile.config;
     let kind = first_writing_kind(config).ok_or_else(|| Error::refused("demo.noKind"))?;
@@ -421,7 +660,8 @@ pub fn seed(conn: &Connection) -> Result<DemoReport> {
             .take(2)
             .collect();
         for (offset, made_kind) in made_of.iter().enumerate() {
-            let made = actions::work::derive(conn, &source, made_kind, None, Some("en"), None)?;
+            let locale = if russian { "ru" } else { "en" };
+            let made = actions::work::derive(conn, &source, made_kind, None, Some(locale), None)?;
             report.works += 1;
             if let Some(release) = made.release_id {
                 let day = days_from_today(3 + 4 * offset as i64);
@@ -431,6 +671,99 @@ pub fn seed(conn: &Connection) -> Result<DemoReport> {
         }
     }
     Ok(report)
+}
+
+/// The file that marks an application folder as a demo stand: one kilna
+/// made with `--demo-all`, and may wipe and make again.
+pub const STAND_MARKER: &str = "demo-stand";
+
+/// A demo stand (v0.130, FR-16): an application folder holding one space of
+/// every shipped craft, each filled with its demo - made from nothing, or
+/// wiped and made again. Refused for a folder that holds spaces and was not
+/// made a stand: nothing a person wrote is ever wiped by a flag.
+pub fn stand(app_dir: &std::path::Path) -> Result<Vec<(String, DemoReport)>> {
+    let marker = app_dir.join(STAND_MARKER);
+    let spaces = app_dir.join(crate::space::SPACES_DIR);
+    let database = app_dir.join(crate::db::APP_DATABASE_FILE);
+    let holds = spaces.is_dir()
+        && std::fs::read_dir(&spaces)
+            .map(|mut entries| entries.next().is_some())
+            .unwrap_or(false);
+    if holds && !marker.is_file() {
+        return Err(Error::refused("demo.notAStand").param("path", app_dir.display().to_string()));
+    }
+    if spaces.is_dir() {
+        std::fs::remove_dir_all(&spaces).map_err(|cause| {
+            Error::refused("file.notWritten")
+                .param("path", spaces.display().to_string())
+                .param("cause", cause.to_string())
+        })?;
+    }
+    for file in ["", "-wal", "-shm"] {
+        let path = std::path::PathBuf::from(format!("{}{file}", database.display()));
+        if path.is_file() {
+            std::fs::remove_file(&path).map_err(|cause| {
+                Error::refused("file.notWritten")
+                    .param("path", path.display().to_string())
+                    .param("cause", cause.to_string())
+            })?;
+        }
+    }
+    std::fs::create_dir_all(app_dir).map_err(|cause| {
+        Error::refused("file.notWritten")
+            .param("path", app_dir.display().to_string())
+            .param("cause", cause.to_string())
+    })?;
+    std::fs::write(
+        &marker,
+        "Made by kilna --demo-all: wiped and made again by it.\n",
+    )
+    .map_err(|cause| {
+        Error::refused("file.notWritten")
+            .param("path", marker.display().to_string())
+            .param("cause", cause.to_string())
+    })?;
+
+    let app = crate::db::open_app(&database)?;
+    let mut made = Vec::new();
+    for profile in crate::profile::builtin()? {
+        if profile.key == crate::profile::BLANK_KIND {
+            continue;
+        }
+        let space = crate::space::create(
+            &app,
+            app_dir,
+            &crate::space::NewSpace {
+                name: format!("Demo - {}", profile.name),
+                kind: profile.key.clone(),
+                colour: None,
+                mark: None,
+                type_id: None,
+            },
+            None,
+        )?;
+        let folder = crate::space::registry::folder(&app, app_dir, &space.id)?;
+        let (conn, _) = crate::state::open_space(&folder, crate::state::Role::Companion)?;
+        made.push((space.name.clone(), seed(&conn)?));
+    }
+    Ok(made)
+}
+
+/// Seed the demo into one space of an application folder: the one named, or
+/// the one kilna last opened - when it holds no works yet.
+pub fn seed_space(app_dir: &std::path::Path, name: Option<&str>) -> Result<(String, DemoReport)> {
+    use crate::space::registry;
+    let app = crate::db::open_app(&app_dir.join(crate::db::APP_DATABASE_FILE))?;
+    let found = match name {
+        Some(name) => registry::by_name(&app, app_dir, name)?,
+        None => registry::newest(&app, app_dir)?.ok_or_else(|| Error::refused("space.none"))?,
+    };
+    let folder = registry::folder(&app, app_dir, &found.id)?;
+    let (conn, held_by) = crate::state::open_space(&folder, crate::state::Role::Companion)?;
+    if held_by.is_some() {
+        return Err(Error::refused("space.unreachable").param("path", found.path.clone()));
+    }
+    Ok((found.name, seed(&conn)?))
 }
 
 /// The kind a craft writes in: the first one with a role to write into.
@@ -531,6 +864,59 @@ mod tests {
             booked.iter().all(|day| day.as_str() > today.as_str()),
             "{booked:?}"
         );
+    }
+
+    #[test]
+    fn a_stand_holds_one_demo_space_of_every_craft_and_is_made_again_whole() {
+        let dir = tempfile::tempdir().unwrap();
+        let made = stand(dir.path()).unwrap();
+        let shipped = profile::builtin().unwrap().len() - 1;
+        assert_eq!(made.len(), shipped, "{made:?}");
+        assert!(made.iter().all(|(_, report)| report.works >= 3));
+        assert!(dir.path().join(STAND_MARKER).is_file());
+
+        // Made again: wiped first, never doubled.
+        let again = stand(dir.path()).unwrap();
+        assert_eq!(again.len(), shipped);
+        let app = crate::db::open_app(&dir.path().join(crate::db::APP_DATABASE_FILE)).unwrap();
+        let listed = crate::space::registry::list(&app, dir.path(), None).unwrap();
+        assert_eq!(listed.len(), shipped);
+    }
+
+    #[test]
+    fn a_folder_of_someone_s_spaces_is_never_made_a_stand() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = crate::state::AppState::start(dir.path(), None).unwrap();
+        drop(state);
+        assert_eq!(
+            stand(dir.path()).unwrap_err().refusal().map(|r| r.code),
+            Some("demo.notAStand")
+        );
+        assert!(
+            dir.path().join(crate::space::SPACES_DIR).is_dir(),
+            "nothing was wiped"
+        );
+    }
+
+    #[test]
+    fn a_demo_comes_in_russian_for_the_window_s_second_language() {
+        for kind in ["music", "novel", "podcast", "blog", "poetry", "newsletter"] {
+            let conn = space(kind);
+            seed_in(&conn, "ru").unwrap();
+            let title: String = conn
+                .query_row(
+                    "SELECT title FROM work ORDER BY created_at LIMIT 1",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(
+                title
+                    .chars()
+                    .any(|c| ('\u{0400}'..='\u{04FF}').contains(&c)),
+                "{kind}: {title}"
+            );
+        }
     }
 
     #[test]

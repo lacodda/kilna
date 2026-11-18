@@ -69,8 +69,11 @@ pub fn read_skill_set(path: String) -> Result<Vec<crate::assistant::prompt::Prom
 /// Put the demo of the space's craft into the open space, when it holds no
 /// works yet (FR-16).
 #[tauri::command]
-pub fn seed_demo(state: State<'_, AppState>) -> Result<crate::demo::DemoReport> {
-    crate::demo::seed(&state.conn())
+pub fn seed_demo(
+    state: State<'_, AppState>,
+    language: Option<String>,
+) -> Result<crate::demo::DemoReport> {
+    crate::demo::seed_in(&state.conn(), language.as_deref().unwrap_or("en"))
 }
 
 /// The thin trigger each agent is given, and where it goes (FR-17).

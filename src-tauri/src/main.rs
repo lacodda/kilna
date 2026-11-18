@@ -34,6 +34,42 @@ fn main() {
             }
         });
     }
+    // `kilna --demo-all` makes a demo stand in the application folder (or the
+    // one `--workspace` names): a space of every shipped craft with its demo,
+    // wiped and made again on the next call. `kilna --seed-demo` fills one
+    // space - the last opened, or `--space <name>` - while it holds no works.
+    if args.iter().any(|arg| arg == "--demo-all") {
+        std::process::exit(match demo_all(&args) {
+            Ok(made) => {
+                for (name, report) in made {
+                    println!(
+                        "{name}: {} works, {} notes, {} releases",
+                        report.works, report.notes, report.releases
+                    );
+                }
+                0
+            }
+            Err(err) => {
+                eprintln!("kilna --demo-all: {err}");
+                1
+            }
+        });
+    }
+    if args.iter().any(|arg| arg == "--seed-demo") {
+        std::process::exit(match seed_demo(&args) {
+            Ok((name, report)) => {
+                println!(
+                    "{name}: {} works, {} notes, {} releases",
+                    report.works, report.notes, report.releases
+                );
+                0
+            }
+            Err(err) => {
+                eprintln!("kilna --seed-demo: {err}");
+                1
+            }
+        });
+    }
     // A `space.kilna` double-clicked, or a `kilna://` link followed, arrives
     // as an argument (ADR 0077).
     let target = kilna_lib::commands::spaces::target_in(&args);
@@ -72,6 +108,23 @@ fn rehome(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
         args.iter().any(|arg| arg == "--apply"),
         &also,
     )
+}
+
+fn demo_all(args: &[String]) -> kilna_lib::Result<Vec<(String, kilna_lib::demo::DemoReport)>> {
+    let app_dir = match workspace_arg(args) {
+        Some(dir) => dir,
+        None => kilna_lib::space::app_dir()?,
+    };
+    kilna_lib::demo::stand(&app_dir)
+}
+
+fn seed_demo(args: &[String]) -> kilna_lib::Result<(String, kilna_lib::demo::DemoReport)> {
+    let app_dir = match workspace_arg(args) {
+        Some(dir) => dir,
+        None => kilna_lib::space::app_dir()?,
+    };
+    let space = values_of(args, "--space").first().map(|name| name.as_str());
+    kilna_lib::demo::seed_space(&app_dir, space)
 }
 
 fn serve_mcp(args: &[String]) -> kilna_lib::Result<()> {

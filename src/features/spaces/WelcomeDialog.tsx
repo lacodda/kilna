@@ -134,7 +134,7 @@ function Shape({
   kind: string
   onShaped: (demo: boolean) => Promise<void>
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const types = useQuery(queries.spaceTypes()).data ?? []
   const [madeOf, setMadeOf] = useState<string>(made)
   const type = types.find((entry) => `type:${entry.id}` === madeOf)
@@ -157,7 +157,7 @@ function Shape({
         ...(type === undefined ? {} : { type_id: type.id }),
       })
       if (demo) {
-        const report = await seedDemo()
+        const report = await seedDemo(i18n.resolvedLanguage ?? 'en')
         say.ok(t('welcome.demoAdded', { count: report.works }))
       }
     },

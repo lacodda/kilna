@@ -3632,7 +3632,8 @@
     },
     "demo": {
       "notEmpty": "A demo goes only into a space with no works yet: it is a way to look around a new space, never mixed into your own.",
-      "noKind": "This space has no kind of work a demo could be written in."
+      "noKind": "This space has no kind of work a demo could be written in.",
+      "notAStand": "The folder {{path}} holds spaces and is not a demo stand: --demo-all makes a stand only in an empty folder, or in one it made."
     }
   },
   "proposalBody": {
@@ -5064,7 +5065,8 @@
     "forget": "Forget",
     "trashed": "In the trash",
     "forgetDescription": "A space in the trash keeps its folder. Forgetting one takes it off this list and leaves the folder where it is: double-click its space.kilna to open it again.",
-    "actions": "What to do with {{name}}"
+    "actions": "What to do with {{name}}",
+    "fillDemo": "Fill with a demo"
   },
   "welcome": {
     "next": "Continue",

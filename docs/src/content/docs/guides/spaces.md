@@ -142,6 +142,21 @@ data, its log and the spaces it makes live in a `data` folder beside it, and a
 space under it is remembered by its place there, so the copy keeps its spaces
 when the drive it is on changes its letter.
 
+**One instance per folder of data** (since v0.130). Starting kilna again on
+the same data brings the open window forward; a portable copy, or a copy
+started with `--workspace <dir>`, is an instance of its own and runs beside
+the installed kilna - with its own window state and its own webview storage.
+
+**A demo stand.** `kilna --demo-all` (with `--workspace <dir>` for a folder
+other than the copy's own) makes a stand: one space of every shipped craft,
+each filled with its demo; run again, it wipes the stand and makes it anew.
+It refuses a folder that holds spaces and was not made a stand by it - a
+file `demo-stand` marks one. `kilna --seed-demo` fills one space with its
+demo - the last opened, or `--space <name>` - while it holds no works; in the
+window, **Settings → Spaces** offers **Fill with a demo** on the open space.
+The demo speaks the window's language: Russian when the window is in Russian,
+English otherwise.
+
 ## From one database to spaces
 
 Until v0.109 one database held every profile, and the picker at the foot of

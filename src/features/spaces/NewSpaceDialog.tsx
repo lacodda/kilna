@@ -31,7 +31,7 @@ interface Props {
  * are two registers of repeats, two canons and two calendars that never mix.
  */
 export function NewSpaceDialog({ open, onOpenChange }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [name, setName] = useState('')
   // What it is made of: a shipped kind by its key, or a type as `type:<id>`.
   const [madeOf, setMadeOf] = useState<string>(SPACE_KINDS[0])
@@ -59,7 +59,7 @@ export function NewSpaceDialog({ open, onOpenChange }: Props) {
         onSuccess: () => {
           if (!demo) return
           setDemo(false)
-          seedDemo()
+          seedDemo(i18n.resolvedLanguage ?? 'en')
             .then(async (report) => {
               await client.resetQueries()
               say.ok(t('welcome.demoAdded', { count: report.works }))

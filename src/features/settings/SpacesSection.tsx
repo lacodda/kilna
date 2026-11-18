@@ -1,9 +1,16 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { Plus } from 'lucide-react'
-import { forgetSpace, renameSpace, restoreSpace, restyleSpace, trashSpace } from '@/lib/api/spaces'
+import {
+  forgetSpace,
+  renameSpace,
+  restoreSpace,
+  restyleSpace,
+  seedDemo,
+  trashSpace,
+} from '@/lib/api/spaces'
 import type { Space } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -26,7 +33,8 @@ import { useOpenSpace } from '@/features/spaces/useOpenSpace'
  * folder where it is: kilna never deletes a space's files.
  */
 export function SpacesSection() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const client = useQueryClient()
   const spaces = useQuery(queries.spaces())
   const current = useQuery(queries.currentSpace())
   const open = useOpenSpace()
@@ -57,10 +65,24 @@ export function SpacesSection() {
     revealItemInDir(path).catch((cause: unknown) => say.failed(cause))
   }
 
+  const demo = useAppMutation({
+    mutationFn: () => seedDemo(i18n.resolvedLanguage ?? 'en'),
+    failure: 'welcome.failed',
+    onSuccess: async (report) => {
+      await client.resetQueries()
+      say.ok(t('welcome.demoAdded', { count: report.works }))
+    },
+  })
+
   const actionsOf = (space: Space): RowAction[] => {
     const actions: RowAction[] = []
     if (!space.open && space.reachable && space.trashed_at === null) {
       actions.push({ key: 'open', label: t('spaces.open'), onSelect: () => open.mutate(space.id) })
+    }
+    // The open space, while it holds no works, can be filled with the demo
+    // of its craft (v0.130); one with works says so and is left alone.
+    if (space.open && current.data?.held_by == null) {
+      actions.push({ key: 'demo', label: t('spaces.fillDemo'), onSelect: () => demo.mutate() })
     }
     if (space.reachable) {
       actions.push(

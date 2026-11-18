@@ -65,4 +65,4 @@ export const onOpenRequest = (handler: (target: string) => void): Promise<Unlist
 export const welcomeSpace = (choice: WelcomeChoice) =>
   invoke<CurrentSpace>('welcome_space', { choice })
 /** Fill the open space, while it holds no works, with the demo of its craft. */
-export const seedDemo = () => invoke<DemoReport>('seed_demo')
+export const seedDemo = (language: string) => invoke<DemoReport>('seed_demo', { language })

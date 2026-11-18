@@ -80,6 +80,20 @@ pub fn run() {
     run_in(None, None)
 }
 
+/// The identifier an instance of kilna on another folder of data runs under:
+/// the installed one's, marked with that folder - so the single instance,
+/// the window's state and the webview's storage are the copy's own, and the
+/// installed kilna and a portable copy run side by side.
+pub fn instance_identifier(base: &str, folder: &std::path::Path) -> String {
+    let said = folder
+        .canonicalize()
+        .unwrap_or_else(|_| folder.to_path_buf())
+        .display()
+        .to_string()
+        .to_lowercase();
+    format!("{base}.copy{}", &origin::fingerprint(&said)[..10])
+}
+
 /// The event the window hears something to open by: a `space.kilna` double-
 /// clicked or a `kilna://` link followed while kilna is already open.
 pub const OPEN_EVENT: &str = "app:open";
@@ -95,11 +109,13 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
     let mut builder = tauri::Builder::default();
     // kilna started again while it is open - or waiting behind the tray -
     // brings that window forward instead of opening a second one on the same
-    // workspace (v0.107), and opens the space or the link it was started on.
-    // First, as the plugin asks: the second process ends inside it. Not for a
-    // run on another directory (`--workspace`): that is a rehearsal on a
-    // copy, and must stand beside the real one.
-    if workspace.is_none() {
+    // folder of data (v0.107), and opens the space or the link it was started
+    // on. First, as the plugin asks: the second process ends inside it. One
+    // instance per folder of data (v0.130): a portable copy or a rehearsal on
+    // another folder (`--workspace`) is an instance of its own, beside the
+    // installed one, and a second start on the same folder comes to it.
+    let copy = workspace.clone().or_else(space::portable_dir);
+    {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             tray::show_main(app);
             // A link arrives through the deep-link plugin, which the single
@@ -600,7 +616,14 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::plugins::run_plugin,
             commands::plugins::cancel_plugin,
         ])
-        .build(tauri::generate_context!())
+        .build({
+            let mut context = tauri::generate_context!();
+            if let Some(copy) = &copy {
+                let identifier = instance_identifier(&context.config().identifier, copy);
+                context.config_mut().identifier = identifier;
+            }
+            context
+        })
         .expect("failed to start kilna")
         .run(|app, event| {
             // Assistant runs are separate processes, and they outlive the
@@ -620,4 +643,29 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod instance_tests {
+    use super::*;
+
+    #[test]
+    fn a_copy_on_another_folder_runs_under_an_identifier_of_its_own() {
+        let one = tempfile::tempdir().unwrap();
+        let two = tempfile::tempdir().unwrap();
+        let first = instance_identifier("com.lacodda.kilna", one.path());
+        assert!(first.starts_with("com.lacodda.kilna.copy"), "{first}");
+        assert_eq!(
+            first,
+            instance_identifier("com.lacodda.kilna", one.path()),
+            "the same folder, the same instance"
+        );
+        assert_ne!(first, instance_identifier("com.lacodda.kilna", two.path()));
+        assert!(
+            first
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-'),
+            "a reverse-domain identifier: {first}"
+        );
+    }
 }
