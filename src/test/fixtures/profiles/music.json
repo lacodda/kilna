@@ -1396,6 +1396,7 @@
     ],
     "prompts": [
       {
+        "category": "critique",
         "description": {
           "en": "Weak lines, tired images, anything that does not sing — kept as a critique beside the text.",
           "ru": "Слабые строки, затёртые образы, всё, что не поётся, — останется критикой рядом с текстом."
@@ -1414,6 +1415,7 @@
         "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\n{register}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? A word the register bans, or leans on past its limit, is a finding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong."
       },
       {
+        "category": "critique",
         "description": {
           "en": "Where the song says a spent image in other words, and which works it says the same thing as",
           "ru": "Где песня говорит истраченный образ другими словами и с какими работами она говорит одно и то же"
@@ -1432,6 +1434,7 @@
         "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{register}\n\n{neighbours}\n\nFind where this song says, in other words, what is already spent."
       },
       {
+        "category": "canon",
         "description": {
           "en": "Images and scenes this song shares with the songs already out, proposed as links in the register",
           "ru": "Образы и сцены, которые песня делит с уже вышедшими, — предложением связей в реестре"
@@ -1450,6 +1453,7 @@
         "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{register}\n\n{released}\n\nFind the meanings this song shares with the songs that went out."
       },
       {
+        "category": "writing",
         "description": {
           "en": "The homographs and unknown words of the lyric, stressed as this song means them - proposed as a new version",
           "ru": "Омографы и незнакомые слова текста с ударениями по смыслу этой песни — предложением новой версии"
@@ -1468,6 +1472,7 @@
         "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{stress}\n\nMark the stress of each of these words in the lyric."
       },
       {
+        "category": "writing",
         "description": {
           "en": "A rewrite to react to, not to accept.",
           "ru": "Переписанный вариант, чтобы оттолкнуться, а не чтобы принять."
@@ -1484,6 +1489,7 @@
         "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\n{register}\n\nSuggest one revision that keeps the voice but fixes what is weakest, reaching for nothing the register bans. Show the changed lines only, with a sentence on why each changed."
       },
       {
+        "category": "styles",
         "description": {
           "en": "A production description from the text.",
           "ru": "Описание продакшна, выведенное из текста."
@@ -1500,6 +1506,7 @@
         "template": "These are the lyrics of \"{title}\":\n\n{role:lyrics}\n\nWrite a short production description — genre, instruments, tempo feel, vocal treatment — that would suit them. One paragraph, concrete, no adjectives that mean nothing."
       },
       {
+        "category": "styles",
         "description": {
           "en": "The phrases picked for the sound, written up as one style prompt in sentences.",
           "ru": "Выбранные фразы звука, сведённые в один промпт стиля предложениями."
@@ -1518,6 +1525,7 @@
         "template": "A song called \"{title}\".\n\nIts fields:\n\n{fields}\n\nThe phrases picked for its sound, in the order they were picked, each with what it means:\n\n{styles}\n\nWrite the style prompt."
       },
       {
+        "category": "writing",
         "description": {
           "en": "Other ways to name it.",
           "ru": "Как это можно назвать иначе."
@@ -1534,6 +1542,7 @@
         "template": "A song currently called \"{title}\" with these lyrics:\n\n{role:lyrics}\n\nSuggest six alternative titles. Take them from the text itself where you can. No explanations."
       },
       {
+        "category": "critique",
         "description": {
           "en": "Where the song stands among the album's tracks, and what it does there.",
           "ru": "Где песня стоит среди треков альбома и что она там делает."
@@ -1550,6 +1559,7 @@
         "template": "A song called \"{title}\", with these lyrics:\n\n{role:lyrics}\n\nThe collection it stands in:\n\n{collection}\n\nSay where this song belongs in the order and why: what it follows well, what it should not sit beside, whether it opens, closes or turns the record. If it stands in no collection, say which kind of record it asks for instead. Name tracks by their titles; do not rewrite the song."
       },
       {
+        "category": "scoring",
         "description": {
           "en": "Rate it along the profile axes, with a reason.",
           "ru": "Оценить по осям профиля, с обоснованием."
@@ -1565,6 +1575,7 @@
         "template": "Here is “{title}”, a {kind}.\n\n{body}\n\nJudge it as finished work, along the axes below. Be honest rather than kind: a score that flatters is worth nothing."
       },
       {
+        "category": "video",
         "description": {
           "en": "The video’s story, beat by beat against the source — kept as the plot.",
           "ru": "История видео, доля за долей против источника, — останется сюжетом."
@@ -1584,6 +1595,7 @@
         "template": "A {kind} called \"{title}\", made from {donor}.\n\nThe source text:\n\n{donor:lyrics}\n\nWrite the plot of the video: what it tells, beat by beat, against the sections of the source."
       },
       {
+        "category": "video",
         "description": {
           "en": "The plot broken into scenes for the board — a proposal to replace it.",
           "ru": "Сюжет, разбитый на сцены для доски, — предложение заменить её."
@@ -1603,6 +1615,7 @@
         "template": "A {kind} called \"{title}\".\n\nThe plot:\n\n{role:plot}\n\nWhat every scene shares:\n\n{role:context}\n\nThe board as it stands:\n\n{scenes}\n\nBreak the plot into scenes for the board."
       },
       {
+        "category": "video",
         "description": {
           "en": "The still, the animation and the negative for this scene — a revision of it.",
           "ru": "Стоп-кадр, анимация и негатив этой сцены — её новая редакция."
@@ -1623,6 +1636,7 @@
         "template": "A {kind} called \"{title}\".\n\nWhat every scene shares:\n\n{role:context}\n\nThe board, for continuity:\n\n{scenes}\n\nThe scene:\n\n{scene}\n\nWrite the prompt blocks for this scene."
       },
       {
+        "category": "styles",
         "description": {
           "en": "The picked bricks written up as one prompt, not glued together.",
           "ru": "Выбранные кирпичики, сведённые в один промпт, а не склейка."
@@ -1641,6 +1655,7 @@
         "template": "A {kind} called \"{title}\".\n\nThe parts to build from, each under what it contributes:\n\n{styles}\n\nWrite the prompt."
       },
       {
+        "category": "styles",
         "description": {
           "en": "Reference pictures read into a description the brick can carry.",
           "ru": "Картинки-референсы, прочитанные в описание для кирпичика."
@@ -1657,6 +1672,7 @@
         "template": "Write the description for this style brick."
       },
       {
+        "category": "styles",
         "description": {
           "en": "Phrases the dictionary does not know, proposed as bricks with what they mean in every language.",
           "ru": "Фразы, которых нет в словаре, - предложением кирпичиков с пояснением на всех языках."
@@ -1673,6 +1689,7 @@
         "template": "The phrases to explain, each with how often it is written:\n\n{phrases}\n\nThe types a phrase can be filed under:\n\n{types}\n\nPropose a brick for each phrase that is one."
       },
       {
+        "category": "release",
         "description": {
           "en": "A pasted screenshot of a comment, copied out word for word.",
           "ru": "Вставленный скриншот комментария, переписанный слово в слово."
@@ -1689,6 +1706,7 @@
         "template": "Read the comment in this screenshot."
       },
       {
+        "category": "release",
         "description": {
           "en": "A reply in the voice the channel already speaks in, for you to post.",
           "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами."
@@ -1705,6 +1723,7 @@
         "template": "Write the reply."
       },
       {
+        "category": "canon",
         "description": {
           "en": "What the text says about the world, proposed as facts with the line each was read off; contradictions shown before anything is applied.",
           "ru": "Что текст говорит о мире — факты со строкой-источником; противоречия с каноном видны до применения."
@@ -1720,6 +1739,7 @@
         "template": "The work is “{title}”. Its text:\n\n{body}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what this text adds to the canon."
       },
       {
+        "category": "canon",
         "description": {
           "en": "The selected lines, proposed as facts of the canon with their source.",
           "ru": "Выделенные строки — предложением фактов канона с источником."
@@ -1736,6 +1756,7 @@
         "template": "The work is “{title}”. The author selected these lines of it:\n\n{selection}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what these lines add to the canon."
       },
       {
+        "category": "canon",
         "description": {
           "en": "The card's free note, proposed as facts filed under its sections.",
           "ru": "Свободная заметка карточки — предложением фактов по разделам."
@@ -1752,6 +1773,7 @@
         "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
       },
       {
+        "category": "canon",
         "description": {
           "en": "An English description of the card written from its facts, given to a picture generator instead of the name.",
           "ru": "Английское описание из фактов карточки — генератор получает его вместо имени."
@@ -1768,6 +1790,7 @@
         "template": "Write the description of this card for a picture generator."
       },
       {
+        "category": "release",
         "description": {
           "en": "The title, description, tags and pinned comment of this release, in the channel’s voice and unlike the last ones.",
           "ru": "Название, описание, теги и закреп выпуска голосом канала — не так, как в прошлых."
@@ -1789,6 +1812,7 @@
         "template": "Write what this release goes out under.\n\n{release}\n\nThe work: “{title}”.\n\n{fields}\n\nWhat it was made from:\n\n{source}\n\nThe channel and the world it tells of, as a public text may see them:\n\n{canon:public}\n\nWhat went out lately, newest first:\n\n{releases}"
       },
       {
+        "category": "cover",
         "description": {
           "en": "Ideas for this publication's cover from different angles - the hero of the song, the mark's status for its meaning, the channel's house styles.",
           "ru": "Идеи обложки этой публикации с разных ракурсов - герой песни, статус знака под её смысл, домашние стили канала."
@@ -1810,6 +1834,7 @@
         "template": "Ideas for the cover of “{title}”.\n\n{ideas}\n\nWhat it is made from:\n\n{source}\n\nThe world it tells of, as a picture may see it:\n\n{canon:cover}\n\nWhat a cover is built from:\n\n{choices}"
       },
       {
+        "category": "workflow",
         "description": {
           "en": "Trials for the board: a sweep of the field, variations around a core, or the fix for what went wrong - each held to the anchors.",
           "ru": "Пробы на доску: разведка поля, вариации вокруг ядра или починка того, что пошло не так, - каждая держится якорей."
@@ -1829,6 +1854,7 @@
         "template": "Trials for the experiment “{title}”.\n\n{trials}\n\nIts fields:\n\n{fields}\n\nWhat a trial is written from:\n\n{choices}"
       },
       {
+        "category": "workflow",
         "description": {
           "en": "The brief and what is starred, worked into one idea - and the brief set straight.",
           "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел."
@@ -1847,6 +1873,7 @@
         "template": "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the song is about."
       },
       {
+        "category": "workflow",
         "description": {
           "en": "Works of culture, primary sources and concepts the song could draw on, quotes checked on the web - put on the research board.",
           "ru": "Произведения, первоисточники и понятия, на которые может опереться песня, - цитаты сверены в сети - на доску исследования."
@@ -1867,6 +1894,7 @@
         "web": true
       },
       {
+        "category": "workflow",
         "description": {
           "en": "Ways the song could go, put on the board of scenarios.",
           "ru": "Как может пойти песня - на доску сценариев."
@@ -1886,6 +1914,7 @@
         "template": "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}"
       },
       {
+        "category": "writing",
         "description": {
           "en": "The lyrics, written from the whole order - to talk over in the chat and insert once they are right.",
           "ru": "Текст по всему заказу - обсудить в чате и вставить, когда он хорош."

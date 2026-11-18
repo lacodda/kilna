@@ -7,6 +7,7 @@ import type {
   TrialRequest,
 } from '@/lib/api/types'
 import { vocabularyOf } from '@/lib/useProfile'
+import { isButton } from '@/lib/actions'
 
 /**
  * An experiment's board of trials (v0.95, ADR 0061), as the window reads it:
@@ -133,12 +134,14 @@ export function labActionOf(
   config: ProfileConfig,
   kind: string | undefined,
 ): PromptTemplate | undefined {
-  return config.prompts.find(
-    (prompt) =>
-      prompt.scope === 'lab' &&
-      prompt.produces === 'trials' &&
-      ((prompt.kinds ?? []).length === 0 || (kind !== undefined && prompt.kinds!.includes(kind))),
-  )
+  return config.prompts
+    .filter(isButton)
+    .find(
+      (prompt) =>
+        prompt.scope === 'lab' &&
+        prompt.produces === 'trials' &&
+        ((prompt.kinds ?? []).length === 0 || (kind !== undefined && prompt.kinds!.includes(kind))),
+    )
 }
 
 /** The key a board's task runs under - the backend's `lab_key`. */

@@ -10,6 +10,7 @@ import type {
   PromptTemplate,
   WorkedIn,
 } from '@/lib/api/types'
+import { isButton } from '@/lib/actions'
 
 /**
  * The boards of a work's conception (v0.99, ADR 0065), as the window reads
@@ -179,12 +180,14 @@ export function boardActionOf(
   kind: string | undefined,
   board: string,
 ): PromptTemplate | undefined {
-  return config.prompts.find(
-    (prompt) =>
-      prompt.scope === 'board' &&
-      prompt.produces?.trim() === `cards:${board}` &&
-      ((prompt.kinds ?? []).length === 0 || (kind !== undefined && prompt.kinds!.includes(kind))),
-  )
+  return config.prompts
+    .filter(isButton)
+    .find(
+      (prompt) =>
+        prompt.scope === 'board' &&
+        prompt.produces?.trim() === `cards:${board}` &&
+        ((prompt.kinds ?? []).length === 0 || (kind !== undefined && prompt.kinds!.includes(kind))),
+    )
 }
 
 /** The key a board's task runs under - the backend's `board_key`. */

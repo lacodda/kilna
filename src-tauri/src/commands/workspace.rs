@@ -32,6 +32,40 @@ pub fn shipped_offers(
     profile::shipped::offers(&state.conn(), &id)
 }
 
+/// Where each shipped entry of one list stands in a profile, with the
+/// version a reset puts back.
+#[tauri::command]
+pub fn shipped_standing(
+    state: State<'_, AppState>,
+    id: String,
+    collection: String,
+) -> Result<Vec<profile::shipped::EntryStanding>> {
+    profile::shipped::standing(&state.conn(), &id, &collection)
+}
+
+/// A skill as the assistant would be handed it, for a kind of work: read
+/// from the action as it stands in the editor, saved or not.
+#[tauri::command]
+pub fn preview_skill(
+    state: State<'_, AppState>,
+    kind: String,
+    action: crate::assistant::prompt::PromptTemplate,
+) -> Result<crate::assistant::task::SkillPreview> {
+    let profile = profile::active(&state.conn())?
+        .ok_or_else(|| crate::error::Error::refused("profile.noneActive"))?;
+    Ok(crate::assistant::task::preview(
+        &profile.config,
+        &kind,
+        &action,
+    ))
+}
+
+/// The skills a file holds, to be laid over the profile's draft.
+#[tauri::command]
+pub fn read_skill_set(path: String) -> Result<Vec<crate::assistant::prompt::PromptTemplate>> {
+    crate::assistant::prompt::read_set(std::path::Path::new(&path))
+}
+
 /// Take the shipped version of one entry over the owner's.
 #[tauri::command]
 pub fn take_shipped(

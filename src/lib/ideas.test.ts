@@ -108,8 +108,20 @@ describe('a task about a board', () => {
 describe('the profile', () => {
   const config = {
     prompts: [
-      { key: 'release-meta', scope: 'release', produces: 'release', kinds: ['audio'] },
-      { key: 'cover-ideas', scope: 'cover', produces: 'cover-ideas', kinds: ['audio', 'short'] },
+      {
+        key: 'release-meta',
+        template: 'Write {release}',
+        scope: 'release',
+        produces: 'release',
+        kinds: ['audio'],
+      },
+      {
+        key: 'cover-ideas',
+        template: 'Ideas for {title}',
+        scope: 'cover',
+        produces: 'cover-ideas',
+        kinds: ['audio', 'short'],
+      },
     ],
   } as unknown as ProfileConfig
 

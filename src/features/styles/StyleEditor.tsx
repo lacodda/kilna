@@ -35,6 +35,7 @@ import { ColoursField } from '@/features/styles/ColoursField'
 import { StyleReferences } from '@/features/styles/StyleReferences'
 import { useStyleDraft } from '@/features/styles/useStyleDraft'
 import { ORIGIN_TONE } from '@/features/styles/StyleBrickCard'
+import { isButton } from '@/lib/actions'
 
 /** The action of the profile that writes a description from references. */
 const DESCRIBE = 'describe-style'
@@ -157,7 +158,9 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
   const hasReferences = brick.reference_count > 0
   // The profile's describe action, for its words in the preview: the task
   // is read before it is sent, as a work's action is.
-  const describeAction = useProfile().config.prompts.find((action) => action.key === DESCRIBE)
+  const describeAction = useProfile()
+    .config.prompts.filter(isButton)
+    .find((action) => action.key === DESCRIBE)
   const [previewing, setPreviewing] = useState(false)
 
   return (

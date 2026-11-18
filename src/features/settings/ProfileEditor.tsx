@@ -3,10 +3,9 @@ import { useTranslation } from 'react-i18next'
 import type { ProfileConfig, WorkKind } from '@/lib/api/types'
 import { sayReason } from '@/lib/errors'
 import { hasRow, partOf, type ProfilePart } from '@/lib/profileProblems'
-import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { StatusDot } from '@/components/ui/status-dot'
-import { ActionsEditor } from '@/features/settings/ActionsEditor'
 import { CraftEditor } from '@/features/settings/CraftEditor'
 import { KindVocabulary } from '@/features/settings/KindVocabulary'
 import { MetaFieldsEditor } from '@/features/settings/MetaFieldsEditor'
@@ -36,7 +35,11 @@ export function ProfileEditor() {
   const { t } = useTranslation()
   const profile = useProfile()
   const { config, edit, dirty } = useProfileDraft()
-  const problems = useProfileProblems(config, dirty)
+  // What is wrong with an action is said in Skills, where actions are
+  // edited (v0.126).
+  const problems = useProfileProblems(config, dirty).filter(
+    (problem) => partOf(problem) !== 'actions',
+  )
   const problemsAt = useSaidProblems(problems)
   const [chosen, setChosenPart] = useState<ProfilePart>(lastOpen)
   const setChosen = (part: ProfilePart) => {
@@ -66,7 +69,6 @@ export function ProfileEditor() {
       label: sayLabel(kind.label) || kind.key,
     })),
     { id: 'fields', label: t('editor.part.fields') },
-    { id: 'actions', label: t('editor.part.actions') },
   ]
   // A kind taken out while its part was open leaves the craft open instead.
   const part = parts.some((entry) => entry.id === chosen) ? chosen : 'craft'
@@ -140,16 +142,6 @@ export function ProfileEditor() {
           kinds={config.work_kinds}
           onChange={(work_meta_fields) => patch({ work_meta_fields })}
           problems={(key) => problemsAt(['metaField', key])}
-        />
-      )}
-      {part === 'actions' && (
-        <ActionsEditor
-          actions={config.prompts}
-          kinds={config.work_kinds}
-          roles={allOf(config, 'version_roles')}
-          boards={config.boards ?? []}
-          onChange={(prompts) => patch({ prompts })}
-          problems={(key) => problemsAt(['action', key])}
         />
       )}
     </div>

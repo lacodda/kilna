@@ -23,10 +23,22 @@ import { FieldGroup } from '@/components/ui/field'
  * and nothing is written until a person chooses. Nothing waits, nothing is
  * shown.
  */
-export function ShippedOffers() {
+export function ShippedOffers({
+  only,
+  except,
+}: {
+  /** The one list shown: Skills shows the actions. */
+  only?: string
+  /** A list left out: the profile leaves the actions to Skills. */
+  except?: string
+} = {}) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const offers = useQuery(queries.shippedOffers(profile.id)).data ?? []
+  const offers = (useQuery(queries.shippedOffers(profile.id)).data ?? []).filter(
+    (offer) =>
+      (only === undefined || offer.collection === only) &&
+      (except === undefined || offer.collection !== except),
+  )
 
   const take = useAppMutation({
     mutationFn: (offer: OfferRef) => takeShipped(profile.id, offer),

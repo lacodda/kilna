@@ -285,30 +285,35 @@
       {
         "key": "critique",
         "label": { "en": "Critique the script", "ru": "Разобрать сценарий" },
+        "category": "critique",
         "description": { "en": "Where a listener would tap away.", "ru": "Где слушатель переключится." },
         "template": "Here is the script for an episode called \"{title}\".\n\n{role:script}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a listener stop listening? Be specific about timestamps or sections. Name what rambles, what over-explains, and what the episode is avoiding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong."
       },
       {
         "key": "cold_open",
         "label": { "en": "Test the cold open", "ru": "Проверить начало" },
+        "category": "writing",
         "description": { "en": "Is the first thirty seconds worth the listener's time?", "ru": "Стоят ли первые тридцать секунд времени слушателя?" },
         "template": "The opening of an episode called \"{title}\":\n\n{role:script}\n\nJudge only the first thirty seconds as written. Would a new listener keep going? Give three concrete ways to make the open sharper, and say what to cut, not what to add."
       },
       {
         "key": "notes_check",
         "label": { "en": "Check show notes against the script", "ru": "Сверить шоу-ноты со сценарием" },
+        "category": "critique",
         "description": { "en": "Do the notes actually describe what was said?", "ru": "Описывают ли ноты то, что действительно было сказано?" },
         "template": "The script for \"{title}\":\n\n{role:script}\n\nThe show notes for it:\n\n{role:notes}\n\nWhat does the episode cover that the notes miss? What do the notes promise that the script never delivers? List the gaps, do not rewrite the notes."
       },
       {
         "key": "clip_picks",
         "label": { "en": "Pick clip candidates", "ru": "Подобрать моменты для клипов" },
+        "category": "video",
         "description": { "en": "Moments worth cutting for social.", "ru": "Моменты, которые стоит вырезать для соцсетей." },
         "template": "The script for an episode called \"{title}\":\n\n{role:script}\n\nPick three moments that would work as a standalone clip under ninety seconds. For each, give the rough boundary and one sentence on why it stands alone. No explanations beyond that."
       },
       {
         "key": "score",
         "label": { "en": "Score the episode", "ru": "Оценить выпуск" },
+        "category": "scoring",
         "description": { "en": "Rate it along the profile axes, with a reason.", "ru": "Оценить по осям профиля, с обоснованием." },
         "template": "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing.",
         "produces": "score",
@@ -317,6 +322,7 @@
       {
         "key": "read-comment",
         "label": { "en": "Read a comment", "ru": "Прочитать комментарий" },
+        "category": "release",
         "description": { "en": "A pasted screenshot of a comment, copied out word for word.", "ru": "Вставленный скриншот комментария, переписанный слово в слово." },
         "icon": "eye",
         "template": "Read the comment in this screenshot.",
@@ -327,6 +333,7 @@
       {
         "key": "reply-to-comment",
         "label": { "en": "Draft a reply", "ru": "Черновик ответа" },
+        "category": "release",
         "description": { "en": "A reply in the voice the channel already speaks in, for you to post.", "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами." },
         "icon": "reply",
         "template": "Write the reply.",
@@ -337,6 +344,7 @@
       {
         "key": "gather-card",
         "label": { "en": "Gather facts from the note", "ru": "Собрать факты из заметки" },
+        "category": "canon",
         "description": { "en": "The card's free note, proposed as facts filed under its sections.", "ru": "Свободная заметка карточки — предложением фактов по разделам." },
         "icon": "list",
         "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact.",
@@ -347,6 +355,7 @@
       {
         "key": "refine",
         "label": { "en": "Refine the idea", "ru": "Уточнить идею" },
+        "category": "workflow",
         "description": { "en": "The brief and what is starred, worked into one idea - and the brief set straight.", "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел." },
         "icon": "wand",
         "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the episode is about.",
@@ -361,6 +370,7 @@
       {
         "key": "research",
         "label": { "en": "Research", "ru": "Исследовать" },
+        "category": "workflow",
         "description": { "en": "Works of culture, primary sources and concepts the episode could draw on, quotes checked on the web - put on the research board.", "ru": "Произведения культуры, первоисточники и понятия, на которые мог бы опереться выпуск, с цитатами, сверенными в сети, — на доске исследования." },
         "icon": "globe",
         "template": "An episode called \"{title}\" is being prepared.\n\n{prepared}\n\n{cards}",
@@ -377,6 +387,7 @@
       {
         "key": "scenarios",
         "label": { "en": "Propose ways in", "ru": "Предложить входы" },
+        "category": "workflow",
         "description": { "en": "Ways the episode could go, put on the board.", "ru": "Варианты, как мог бы пойти выпуск, — на доске." },
         "icon": "lightbulb",
         "template": "An episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}",
@@ -392,6 +403,7 @@
       {
         "key": "write",
         "label": { "en": "Write from the brief", "ru": "Написать по замыслу" },
+        "category": "writing",
         "description": { "en": "The script, written from the whole order - to talk over in the chat and insert once it is right.", "ru": "Сценарий, написанный по всему заказу, — обсудить в чате и вставить, когда он будет верным." },
         "icon": "pen",
         "template": "{order}\n\nWrite the script.",

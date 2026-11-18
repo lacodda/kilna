@@ -674,8 +674,23 @@ impl ProfileConfig {
 
         for (index, prompt) in self.prompts.iter().enumerate() {
             let place = action_at(index, &prompt.key);
-            if prompt.template.trim().is_empty() {
+            // A button sends its message; a playbook is read by its method.
+            // Either way a skill says something (FR-17).
+            if prompt.show_in_ui && !prompt.sends() {
                 problems.push(Reason::of("problem.actionNoMessage").param("place", place.clone()));
+            }
+            if !prompt.show_in_ui && prompt.method().is_none() {
+                problems.push(Reason::of("problem.playbookNoMethod").param("place", place.clone()));
+            }
+            if let Some(category) = prompt.category.as_deref()
+                && !crate::assistant::prompt::CATEGORIES.contains(&category)
+            {
+                problems.push(
+                    Reason::of("problem.actionCategory")
+                        .param("place", place.clone())
+                        .param("category", category)
+                        .param("known", crate::assistant::prompt::CATEGORIES.join(", ")),
+                );
             }
             for kind in &prompt.kinds {
                 if self.kind(kind).is_none() {

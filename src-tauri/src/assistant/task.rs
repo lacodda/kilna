@@ -63,6 +63,83 @@ pub struct Composed {
 /// The `produces` value naming a scoring action.
 pub const SCORE: &str = "score";
 
+/// What a skill hands the assistant, read before anything is run (FR-17):
+/// its method, which goes as the system instruction, and the shape of the
+/// answer it asks for, said with the profile's live vocabulary - the axes
+/// with their rubrics, a role's name, the canon's kinds. For a kind of work,
+/// since the axes and the roles are a kind's.
+#[derive(Debug, Clone, serde::Serialize, ts_rs::TS)]
+pub struct SkillPreview {
+    /// The method as it reaches the model; none when the skill has none.
+    pub method: Option<String>,
+    /// What is appended to its message so the answer comes back in a shape
+    /// kilna reads; none for prose, or for an answer whose shape depends on
+    /// what it is started on (a scene, a release, a board).
+    pub answer: Option<String>,
+    /// The placeholders its message reads.
+    pub placeholders: Vec<String>,
+}
+
+/// Read a skill as the assistant would be handed it, for a kind of work.
+pub fn preview(
+    config: &crate::profile::config::ProfileConfig,
+    kind: &str,
+    action: &PromptTemplate,
+) -> SkillPreview {
+    let vocabulary = config.vocabulary(kind);
+    let answer = match action.produces() {
+        Produces::Score => Some(super::proposal::scoring_instruction(config, kind)),
+        Produces::Version(role) => {
+            let label = vocabulary
+                .version_roles
+                .iter()
+                .find(|r| r.key == role)
+                .map(|r| r.label.as_str().to_owned())
+                .unwrap_or(role);
+            Some(super::proposal::version_instruction(&label))
+        }
+        Produces::Scenes(change) if scene::kind_has_scenes(config, kind) => Some(
+            super::proposal::scenes_instruction(vocabulary, change, None, None),
+        ),
+        Produces::Canon => Some(crate::canon::proposal::instruction(config)),
+        Produces::Words => Some(crate::register::proposal::INSTRUCTION.to_owned()),
+        Produces::Conception => config.conception(kind).map(|conception| {
+            let idea = conception.idea.as_deref().and_then(|key| {
+                config
+                    .work_meta_fields
+                    .iter()
+                    .find(|field| field.key == key)
+                    .map(|field| field.label.as_str().to_lowercase())
+            });
+            let brief = vocabulary
+                .version_roles
+                .iter()
+                .find(|role| role.key == conception.brief)
+                .map_or_else(
+                    || "brief".to_owned(),
+                    |role| role.label.as_str().to_lowercase(),
+                );
+            super::proposal::conception_instruction(idea.as_deref(), &brief)
+        }),
+        _ => None,
+    };
+    SkillPreview {
+        method: action.method().map(str::to_owned),
+        answer: answer.map(|text| text.trim().to_owned()),
+        placeholders: action.placeholders(),
+    }
+}
+
+/// An action as a task is started from: one with a message to send. A skill
+/// that is only a method is read by an agent, never run as a button (FR-17).
+fn sendable(action: &PromptTemplate) -> Result<&PromptTemplate> {
+    if action.sends() {
+        Ok(action)
+    } else {
+        Err(Error::refused("task.noMessage").param("action", action.label.as_str()))
+    }
+}
+
 /// What a task is, as a key: this action, on this work.
 ///
 /// Two clicks on the same button produce the same key; the same action on
@@ -163,7 +240,8 @@ pub fn compose(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
 
     let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
     if !template.applies_to(&work.kind) {
@@ -533,7 +611,8 @@ pub fn compose_for_style(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
 
     let brick = crate::style_brick::get(conn, brick_id)?
         .ok_or_else(|| Error::not_found("style", brick_id))?;
@@ -666,7 +745,8 @@ pub fn compose_for_card(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
     if template.scope() != Scope::Canon {
         return Err(Error::refused("task.notCanonAction").param("action", template.label.as_str()));
     }
@@ -828,7 +908,8 @@ fn comment_action<'a>(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
     if template.scope() != Scope::Comment {
         return Err(
             Error::refused("task.notCommentAction").param("action", template.label.as_str())
@@ -1108,7 +1189,8 @@ pub fn compose_for_release(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
     if template.scope() != Scope::Release || template.produces() != Produces::Release {
         return Err(
             Error::refused("task.notReleaseAction").param("action", template.label.as_str())
@@ -1212,7 +1294,8 @@ pub fn compose_for_cover(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
     if template.scope() != Scope::Cover || template.produces() != Produces::CoverIdeas {
         return Err(Error::refused("task.notCoverAction").param("action", template.label.as_str()));
     }
@@ -1323,7 +1406,8 @@ pub fn compose_for_lab(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
     if template.scope() != Scope::Lab || template.produces() != Produces::Trials {
         return Err(Error::refused("task.notLabAction").param("action", template.label.as_str()));
     }
@@ -1436,7 +1520,8 @@ pub fn compose_for_board(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
     let Produces::Cards(board_key_of) = template.produces() else {
         return Err(Error::refused("task.notBoardAction").param("action", template.label.as_str()));
     };
@@ -1565,7 +1650,8 @@ pub fn compose_for_phrases(
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::not_found("prompt", action))?;
+        .ok_or_else(|| Error::not_found("prompt", action))
+        .and_then(sendable)?;
     if template.scope() != Scope::Phrases {
         return Err(Error::refused("task.notAboutPhrases").param("action", template.label.as_str()));
     }
@@ -1748,6 +1834,52 @@ mod tests {
         );
         assert_eq!(comment_of_key("critique:work-1"), None);
         assert_eq!(comment_of_key("critique:work-1:scene-2"), None);
+    }
+
+    /// A skill that is only a method is read by an agent, never run as a
+    /// button: a task refuses it by name (FR-17).
+    #[test]
+    fn a_playbook_is_not_run_as_a_button() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let mut config = profile::config_for(&conn, &profile_id).unwrap();
+        let mut playbook = config.prompts[0].clone();
+        playbook.key = "workflow".into();
+        playbook.template = String::new();
+        playbook.show_in_ui = false;
+        playbook.method = Some("Go through the song in order.".into());
+        config.prompts.push(playbook);
+        profile::update_config(&conn, &profile_id, &config).unwrap();
+
+        let refused = compose(&conn, &song.id, "workflow", About::default()).unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("task.noMessage"));
+    }
+
+    /// Read before it runs: the method, and the answer's shape in the
+    /// profile's live words - a score names every axis with its rubric.
+    #[test]
+    fn a_skill_is_previewed_with_its_method_and_the_live_axes() {
+        let (conn, profile_id) = fixtures::workspace();
+        let config = profile::config_for(&conn, &profile_id).unwrap();
+        let score = config
+            .prompts
+            .iter()
+            .find(|p| p.produces.as_deref() == Some("score"))
+            .expect("a scoring action")
+            .clone();
+        let seen = preview(&config, "song", &score);
+        let answer = seen.answer.expect("a score says its shape");
+        for axis in &config.vocabulary("song").axes {
+            assert!(answer.contains(&format!("`{}`", axis.key)), "{answer}");
+        }
+        assert_eq!(seen.method.as_deref(), score.method());
+
+        let mut prose = score.clone();
+        prose.produces = None;
+        prose.template = "Read {title} and {role:lyrics}".into();
+        let seen = preview(&config, "song", &prose);
+        assert!(seen.answer.is_none());
+        assert_eq!(seen.placeholders, ["title", "role:lyrics"]);
     }
 
     fn action_of_key_str(key: &str) -> &str {

@@ -1,3 +1,5 @@
+import { Badge } from '@/components/ui/badge'
+import { useProfile } from '@/lib/useProfile'
 import { Navigate, NavLink, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -12,6 +14,7 @@ import { DataSection } from '@/features/settings/DataSection'
 import { GeneralSection } from '@/features/settings/GeneralSection'
 import { PluginsSection } from '@/features/settings/PluginsSection'
 import { ProfileDraftBar } from '@/features/settings/ProfileDraftBar'
+import { SkillsSection } from '@/features/settings/SkillsSection'
 import { ProfileSection } from '@/features/settings/ProfileSection'
 import { SpacesSection } from '@/features/settings/SpacesSection'
 import { useProfileDraft } from '@/features/settings/useProfileDraft'
@@ -32,6 +35,7 @@ export const SECTIONS = [
   'agents',
   'spaces',
   'profile',
+  'skills',
   'plugins',
   'data',
 ] as const
@@ -45,7 +49,7 @@ export type Section = (typeof SECTIONS)[number]
  */
 const GROUPS: { key: 'app' | 'space'; sections: readonly Section[] }[] = [
   { key: 'app', sections: ['general', 'card', 'assistant', 'agents', 'spaces'] },
-  { key: 'space', sections: ['profile', 'plugins', 'data'] },
+  { key: 'space', sections: ['profile', 'skills', 'plugins', 'data'] },
 ]
 
 const DEFAULT_SECTION: Section = 'general'
@@ -62,6 +66,8 @@ function Body({ section }: { section: Section }) {
       return <CardSection />
     case 'profile':
       return <ProfileSection />
+    case 'skills':
+      return <SkillsSection />
     case 'assistant':
       return <AssistantSection />
     case 'plugins':
@@ -129,7 +135,8 @@ export function SettingsView() {
                       <span className="font-semibold text-text">
                         {t(`settings.section.${entry}`)}
                       </span>
-                      {entry === 'profile' && draft.dirty && (
+                      <WaitingCount entry={entry} />
+                      {(entry === 'profile' || entry === 'skills') && draft.dirty && (
                         <StatusDot
                           status="warn"
                           size="sm"
@@ -156,7 +163,9 @@ export function SettingsView() {
             // the foot of the pane, in sight however far down the edit was,
             // and only while there is something to save.
             foot={
-              section === 'profile' && draft.dirty ? <ProfileDraftBar draft={draft} /> : undefined
+              (section === 'profile' || section === 'skills') && draft.dirty ? (
+                <ProfileDraftBar draft={draft} />
+              ) : undefined
             }
           >
             <Body section={section} />
@@ -164,5 +173,33 @@ export function SettingsView() {
         }
       />
     </Frame>
+  )
+}
+
+/**
+ * How many shipped versions wait beside the owner's entries, by the section
+ * that shows them (ADR 0087): the actions in Skills, the rest in Profile.
+ * Nothing waits, nothing is drawn.
+ */
+function WaitingCount({ entry }: { entry: Section }) {
+  const { t } = useTranslation()
+  const profile = useProfile()
+  const offers = useQuery({
+    ...queries.shippedOffers(profile.id),
+    enabled: entry === 'profile' || entry === 'skills',
+  }).data
+  if (offers === undefined) return null
+  const count = offers.filter((offer) =>
+    entry === 'skills' ? offer.collection === 'prompts' : offer.collection !== 'prompts',
+  ).length
+  if (count === 0) return null
+  return (
+    <Badge
+      variant="accent"
+      className="ml-1.5 align-middle"
+      title={t('settings.shipped.waiting', { count })}
+    >
+      {count}
+    </Badge>
   )
 }

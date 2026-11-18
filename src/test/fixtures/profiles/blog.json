@@ -408,6 +408,7 @@
     ],
     "prompts": [
       {
+        "category": "critique",
         "description": {
           "en": "Where a reader would bounce.",
           "ru": "Где читатель закроет страницу."
@@ -420,6 +421,7 @@
         "template": "Here is a post called \"{title}\".\n\n{role:draft}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a stranger stop reading? Be specific about paragraphs. Name what is padded, what is obvious, and what the post is avoiding saying. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong."
       },
       {
+        "category": "critique",
         "description": {
           "en": "Does the first paragraph earn the second?",
           "ru": "Заслуживает ли первый абзац второго?"
@@ -432,6 +434,7 @@
         "template": "The opening of a post called \"{title}\":\n\n{role:draft}\n\nJudge only the first paragraph. Would it make a stranger keep reading, or is it throat-clearing? Give three concrete ways to sharpen it, and say what to cut, not what to add."
       },
       {
+        "category": "critique",
         "description": {
           "en": "Does the post still make the point it set out to make?",
           "ru": "Говорит ли пост то, ради чего задумывался?"
@@ -444,6 +447,7 @@
         "template": "The intended angle for \"{title}\":\n\n{role:angle}\n\nThe draft as written:\n\n{role:draft}\n\nWhat did the draft promise and not deliver? Where did it drift from the angle, and is the drift an improvement or a problem? Be specific."
       },
       {
+        "category": "writing",
         "description": {
           "en": "Other ways to title it.",
           "ru": "Другие варианты заголовка."
@@ -456,6 +460,7 @@
         "template": "A post currently called \"{title}\" with this draft:\n\n{role:draft}\n\nSuggest six alternative headlines. Take them from claims actually made in the text, not generic phrasing. No explanations."
       },
       {
+        "category": "scoring",
         "description": {
           "en": "Rate it along the profile axes, with a reason.",
           "ru": "Оценить по осям профиля, с обоснованием."
@@ -470,6 +475,7 @@
         "template": "Here is a post called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing."
       },
       {
+        "category": "release",
         "description": {
           "en": "A pasted screenshot of a comment, copied out word for word.",
           "ru": "Вставленный скриншот комментария, переписанный слово в слово."
@@ -486,6 +492,7 @@
         "template": "Read the comment in this screenshot."
       },
       {
+        "category": "release",
         "description": {
           "en": "A reply in the voice the channel already speaks in, for you to post.",
           "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами."
@@ -502,6 +509,7 @@
         "template": "Write the reply."
       },
       {
+        "category": "workflow",
         "description": {
           "en": "The brief and what is starred, worked into one idea - and the brief set straight.",
           "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел."
@@ -522,6 +530,7 @@
         "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the post is about."
       },
       {
+        "category": "workflow",
         "description": {
           "en": "Works of culture, primary sources and concepts the post could draw on, quotes checked on the web - put on the research board.",
           "ru": "Произведения культуры, первоисточники и понятия, на которые мог бы опереться пост, с цитатами, сверенными в сети, — на доске исследования."
@@ -544,6 +553,7 @@
         "web": true
       },
       {
+        "category": "workflow",
         "description": {
           "en": "Ways the post could go, put on the board.",
           "ru": "Варианты, как мог бы пойти пост, — на доске."
@@ -565,6 +575,7 @@
         "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}"
       },
       {
+        "category": "writing",
         "description": {
           "en": "The post, written from the whole order - to talk over in the chat and insert once it is right.",
           "ru": "Пост, написанный по всему заказу, — обсудить в чате и вставить, когда он будет верным."

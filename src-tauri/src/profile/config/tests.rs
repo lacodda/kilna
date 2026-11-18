@@ -742,6 +742,9 @@ fn studio() -> ProfileConfig {
 
 fn action(template: &str) -> crate::assistant::prompt::PromptTemplate {
     crate::assistant::prompt::PromptTemplate {
+        show_in_ui: true,
+        when: None,
+        category: None,
         key: "x".into(),
         label: "X".into(),
         template: template.into(),
@@ -1860,5 +1863,83 @@ fn two_compositions_of_one_role_and_kind_are_two_answers_and_refused() {
     assert!(
         problems.contains("compositions `sound` and `twin` both write the `style` role of `song`"),
         "{problems}"
+    );
+}
+
+/// A skill is a button with a message, or a playbook read by its method
+/// (FR-17): a button needs its message, a playbook its method, and a hidden
+/// button keeps its message.
+#[test]
+fn a_playbook_needs_its_method_and_a_button_its_message() {
+    let mut config = studio();
+    let mut playbook = action("");
+    playbook.show_in_ui = false;
+    playbook.method = Some("Work through the song in this order.".into());
+    config.prompts = vec![playbook.clone()];
+    assert!(config.validate().is_empty(), "{:?}", config.validate());
+
+    // A hidden button keeps its message and needs nothing more.
+    let mut hidden = action("Critique {title}");
+    hidden.show_in_ui = false;
+    hidden.method = Some("Read it slowly.".into());
+    config.prompts = vec![hidden];
+    assert!(config.validate().is_empty(), "{:?}", config.validate());
+
+    let mut bare = playbook.clone();
+    bare.method = None;
+    config.prompts = vec![bare];
+    assert!(
+        config
+            .validate()
+            .iter()
+            .any(|p| p.contains("is not a button and has no method")),
+        "{:?}",
+        config.validate()
+    );
+
+    config.prompts = vec![action("  ")];
+    assert!(
+        config
+            .validate()
+            .iter()
+            .any(|p| p.contains("has no message")),
+        "{:?}",
+        config.validate()
+    );
+
+    let mut grouped = action("Critique {title}");
+    grouped.category = Some("critique".into());
+    config.prompts = vec![grouped.clone()];
+    assert!(config.validate().is_empty(), "{:?}", config.validate());
+    grouped.category = Some("misc".into());
+    config.prompts = vec![grouped];
+    assert!(
+        config.validate().iter().any(|p| p.contains("“misc”")),
+        "{:?}",
+        config.validate()
+    );
+}
+
+/// A button is written as it always was: an action stored before skills
+/// reads the same, and keeps its fingerprint (ADR 0087).
+#[test]
+fn a_shown_action_is_written_as_before_and_a_hidden_one_says_so() {
+    let shown = serde_json::to_value(action("Critique {title}")).unwrap();
+    assert!(shown.get("show_in_ui").is_none(), "{shown}");
+    let read: crate::assistant::prompt::PromptTemplate =
+        serde_json::from_value(serde_json::json!({ "key": "x", "label": "X", "template": "t" }))
+            .unwrap();
+    assert!(read.show_in_ui);
+    let mut hidden = action("");
+    hidden.show_in_ui = false;
+    let written = serde_json::to_value(&hidden).unwrap();
+    assert_eq!(written["show_in_ui"], false);
+    let read: crate::assistant::prompt::PromptTemplate = serde_json::from_value(
+        serde_json::json!({ "key": "x", "label": "X", "show_in_ui": false, "method": "m" }),
+    )
+    .unwrap();
+    assert_eq!(
+        read.template, "",
+        "a playbook may be stored without a message"
     );
 }

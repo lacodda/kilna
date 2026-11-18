@@ -8,7 +8,7 @@ import { StatusDrift } from '@/features/settings/StatusDrift'
 export function ProfileSection() {
   return (
     <div className="flex flex-col gap-4">
-      <ShippedOffers />
+      <ShippedOffers except="prompts" />
       <ProfileEditor />
       <Divider />
       <StatusDrift />

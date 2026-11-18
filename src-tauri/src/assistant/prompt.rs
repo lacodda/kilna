@@ -17,7 +17,27 @@ use crate::work::{self, version};
 pub struct PromptTemplate {
     pub key: String,
     pub label: Label,
+    /// The message a button sends, `{placeholders}` filled from what it is
+    /// started on. May be empty for a skill that is only a method - a
+    /// playbook an agent reads (v0.126, FR-17) - and is kept when the button
+    /// is hidden, so turning it back on loses nothing.
+    #[serde(default)]
     pub template: String,
+    /// Whether the window offers it as a button. Off: a playbook for an
+    /// agent and the assistant, read by its method, never a button on a card.
+    /// Written only when off, so every action stored before it reads the
+    /// same and keeps its fingerprint (ADR 0087).
+    #[serde(default = "shown", skip_serializing_if = "is_shown")]
+    #[ts(optional, as = "Option<bool>")]
+    pub show_in_ui: bool,
+    /// When to reach for it, and how it differs from the ones beside it: what
+    /// an agent picking among skills reads first.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub when: Option<Label>,
+    /// The group it is shown in among the skills: `writing`, `critique`,
+    /// `scoring`, `video`, `cover`, `styles`, `canon`, `release`, `workflow`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<Label>,
     /// Name of the glyph the button is drawn with, from the fixed set the
@@ -60,6 +80,45 @@ pub struct PromptTemplate {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub web: bool,
 }
+
+/// Read a set of skills from a file: what Settings exported - marked as
+/// kilna's skills - or a bare list of them. Checked against a profile when it
+/// is saved, as anything typed is.
+pub fn read_set(path: &std::path::Path) -> Result<Vec<PromptTemplate>> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Set {
+        Marked {
+            kilna: String,
+            skills: Vec<PromptTemplate>,
+        },
+        Bare(Vec<PromptTemplate>),
+    }
+    let shown_path = path.display().to_string();
+    let text = std::fs::read_to_string(path).map_err(|cause| {
+        Error::refused("skills.unreadable")
+            .param("path", shown_path.as_str())
+            .param("cause", cause.to_string())
+    })?;
+    match serde_json::from_str::<Set>(&text) {
+        Ok(Set::Marked { kilna, skills }) if kilna == "skills" => Ok(skills),
+        Ok(Set::Bare(skills)) => Ok(skills),
+        _ => Err(Error::refused("skills.notASet").param("path", shown_path.as_str())),
+    }
+}
+
+fn shown() -> bool {
+    true
+}
+
+fn is_shown(shown: &bool) -> bool {
+    *shown
+}
+
+/// The groups the skills are shown in, in their order (FR-17).
+pub const CATEGORIES: [&str; 9] = [
+    "writing", "critique", "scoring", "video", "cover", "styles", "canon", "release", "workflow",
+];
 
 /// What an action asks the answer to be, read off `produces`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -246,6 +305,11 @@ impl PromptTemplate {
     }
 
     /// The method, when the action states one worth sending: blank is none.
+    /// Whether a button can send it: it has a message to send.
+    pub fn sends(&self) -> bool {
+        !self.template.trim().is_empty()
+    }
+
     pub fn method(&self) -> Option<&str> {
         self.method
             .as_deref()
@@ -1378,6 +1442,44 @@ fn span(starts_at: Option<f64>, ends_at: Option<f64>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_set_of_skills_is_read_marked_or_bare_and_anything_else_refused() {
+        let folder = tempfile::tempdir().unwrap();
+        let marked = folder.path().join("marked.json");
+        std::fs::write(
+            &marked,
+            r#"{"kilna": "skills", "version": 1, "skills": [{"key": "a", "label": "A", "template": "Read {title}"}]}"#,
+        )
+        .unwrap();
+        let read = read_set(&marked).unwrap();
+        assert_eq!(read.len(), 1);
+        assert!(read[0].show_in_ui);
+
+        let bare = folder.path().join("bare.json");
+        std::fs::write(
+            &bare,
+            r#"[{"key": "p", "label": "P", "show_in_ui": false, "method": "Do it in order."}]"#,
+        )
+        .unwrap();
+        let read = read_set(&bare).unwrap();
+        assert!(!read[0].show_in_ui);
+        assert_eq!(read[0].template, "");
+
+        let other = folder.path().join("other.json");
+        std::fs::write(&other, r#"{"kilna": "profile", "skills": []}"#).unwrap();
+        assert_eq!(
+            read_set(&other).unwrap_err().refusal().map(|r| r.code),
+            Some("skills.notASet")
+        );
+        assert_eq!(
+            read_set(&folder.path().join("missing.json"))
+                .unwrap_err()
+                .refusal()
+                .map(|r| r.code),
+            Some("skills.unreadable")
+        );
+    }
     use crate::fixtures;
     use crate::link::{self, NewLink};
     use crate::scene::{self, NewScene};
@@ -1747,6 +1849,9 @@ mod tests {
     #[test]
     fn produces_reads_scenes_and_what_they_do_to_the_board() {
         let action = |produces: &str| PromptTemplate {
+            show_in_ui: true,
+            when: None,
+            category: None,
             key: "k".into(),
             label: "K".into(),
             template: String::new(),
@@ -2039,6 +2144,9 @@ mod version_tests {
     #[test]
     fn produces_is_read_as_the_application_understands_it() {
         let action = |produces: Option<&str>| PromptTemplate {
+            show_in_ui: true,
+            when: None,
+            category: None,
             key: "k".into(),
             label: "K".into(),
             template: String::new(),

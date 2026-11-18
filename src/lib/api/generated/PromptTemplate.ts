@@ -8,7 +8,31 @@ import type { Label } from "./Label";
  * context, so "Critique the lyrics" means the right thing in a music profile
  * and something else entirely in a novel one.
  */
-export type PromptTemplate = { key: string, label: Label, template: string, description?: Label | null, 
+export type PromptTemplate = { key: string, label: Label, 
+/**
+ * The message a button sends, `{placeholders}` filled from what it is
+ * started on. May be empty for a skill that is only a method - a
+ * playbook an agent reads (v0.126, FR-17) - and is kept when the button
+ * is hidden, so turning it back on loses nothing.
+ */
+template: string, 
+/**
+ * Whether the window offers it as a button. Off: a playbook for an
+ * agent and the assistant, read by its method, never a button on a card.
+ * Written only when off, so every action stored before it reads the
+ * same and keeps its fingerprint (ADR 0087).
+ */
+show_in_ui?: boolean, 
+/**
+ * When to reach for it, and how it differs from the ones beside it: what
+ * an agent picking among skills reads first.
+ */
+when?: Label | null, 
+/**
+ * The group it is shown in among the skills: `writing`, `critique`,
+ * `scoring`, `video`, `cover`, `styles`, `canon`, `release`, `workflow`.
+ */
+category?: string | null, description?: Label | null, 
 /**
  * Name of the glyph the button is drawn with, from the fixed set the
  * window knows. Carried, never read here: which picture goes with an

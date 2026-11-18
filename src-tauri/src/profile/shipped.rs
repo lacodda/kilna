@@ -468,6 +468,60 @@ pub fn settle(conn: &Connection, profile_id: &str) -> Result<()> {
     ledger.save(conn, profile_id, &origin_of(&key))
 }
 
+/// Where an entry of a list stands against what ships.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ts_rs::TS)]
+#[serde(rename_all = "snake_case")]
+pub enum Standing {
+    /// Reads as it ships, or will at the next start.
+    Standard,
+    /// Its owner's words, and nothing newer ships - or they kept theirs.
+    Changed,
+    /// Its owner's words, and a newer version waits beside them.
+    Update,
+}
+
+/// An entry of a list kilna ships, where it stands, and the shipped version
+/// a reset puts back.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+pub struct EntryStanding {
+    pub key: String,
+    pub standing: Standing,
+    #[ts(type = "Record<string, unknown>")]
+    pub standard: Value,
+}
+
+/// Where each shipped entry of one list stands in a profile. An entry the
+/// list has that kilna does not ship is its owner's own, and not here.
+pub fn standing(
+    conn: &Connection,
+    profile_id: &str,
+    collection: &str,
+) -> Result<Vec<EntryStanding>> {
+    let Some((_, stored, shipped)) = both(conn, profile_id)? else {
+        return Ok(Vec::new());
+    };
+    let mut ledger = Ledger::load(conn, profile_id)?;
+    let mut doc = serde_json::to_value(&stored)?;
+    let ship = serde_json::to_value(&shipped)?;
+    Ok(sync(&mut doc, &ship, &mut ledger)
+        .into_iter()
+        .filter(|one| one.collection == collection)
+        .filter_map(|one| {
+            let standing = match one.verdict {
+                Verdict::Current | Verdict::Adopted | Verdict::Renewed => Standing::Standard,
+                Verdict::Kept => Standing::Changed,
+                Verdict::Offered => Standing::Update,
+                Verdict::Added | Verdict::Deleted => return None,
+            };
+            Some(EntryStanding {
+                key: one.key,
+                standing,
+                standard: one.standard,
+            })
+        })
+        .collect())
+}
+
 /// A shipped version waiting beside its owner's: what Settings shows to be
 /// kept or taken.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -910,5 +964,37 @@ mod tests {
         profile::seed(&conn, DEFAULT_KIND).unwrap();
         assert_eq!(label_now(&conn), "Sketch");
         assert!(offers(&conn, &id).unwrap().is_empty());
+    }
+
+    #[test]
+    fn each_shipped_action_says_where_it_stands_and_what_a_reset_puts_back() {
+        let conn = db::open_in_memory().unwrap();
+        profile::seed(&conn, DEFAULT_KIND).unwrap();
+        let id = profile::id_for_key(&conn, DEFAULT_KIND).unwrap().unwrap();
+        let stood = standing(&conn, &id, "prompts").unwrap();
+        assert_eq!(stood.len(), studio().prompts.len());
+        assert!(stood.iter().all(|one| one.standing == Standing::Standard));
+
+        let mut config = profile::config_for(&conn, &id).unwrap();
+        let key = config.prompts[0].key.clone();
+        let shipped = config.prompts[0].template.clone();
+        config.prompts[0].template = "My own message".into();
+        let mut own = config.prompts[0].clone();
+        own.key = "mine".into();
+        config.prompts.push(own);
+        profile::update_config(&conn, &id, &config).unwrap();
+
+        let stood = standing(&conn, &id, "prompts").unwrap();
+        let first = stood.iter().find(|one| one.key == key).unwrap();
+        assert_eq!(first.standing, Standing::Changed);
+        assert_eq!(
+            first.standard["template"],
+            shipped.as_str(),
+            "the reset's version"
+        );
+        assert!(
+            stood.iter().all(|one| one.key != "mine"),
+            "the owner's own is not shipped"
+        );
     }
 }

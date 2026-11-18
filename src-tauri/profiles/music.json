@@ -3514,6 +3514,7 @@
           "en": "Critique the lyrics",
           "ru": "Критика текста"
         },
+        "category": "critique",
         "description": {
           "en": "Weak lines, tired images, anything that does not sing — kept as a critique beside the text.",
           "ru": "Слабые строки, затёртые образы, всё, что не поётся, — останется критикой рядом с текстом."
@@ -3532,6 +3533,7 @@
           "en": "Neighbours in meaning",
           "ru": "Смысловые соседи"
         },
+        "category": "critique",
         "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{register}\n\n{neighbours}\n\nFind where this song says, in other words, what is already spent.",
         "description": {
           "en": "Where the song says a spent image in other words, and which works it says the same thing as",
@@ -3550,6 +3552,7 @@
           "en": "Meanings",
           "ru": "Смыслы"
         },
+        "category": "canon",
         "description": {
           "en": "Images and scenes this song shares with the songs already out, proposed as links in the register",
           "ru": "Образы и сцены, которые песня делит с уже вышедшими, — предложением связей в реестре"
@@ -3568,6 +3571,7 @@
           "en": "Stresses for the singer",
           "ru": "Ударения для исполнителя"
         },
+        "category": "writing",
         "description": {
           "en": "The homographs and unknown words of the lyric, stressed as this song means them - proposed as a new version",
           "ru": "Омографы и незнакомые слова текста с ударениями по смыслу этой песни — предложением новой версии"
@@ -3586,6 +3590,7 @@
           "en": "Suggest a revision",
           "ru": "Правка текста"
         },
+        "category": "writing",
         "description": {
           "en": "A rewrite to react to, not to accept.",
           "ru": "Переписанный вариант, чтобы оттолкнуться, а не чтобы принять."
@@ -3602,6 +3607,7 @@
           "en": "Draft a style prompt",
           "ru": "Промпт стиля"
         },
+        "category": "styles",
         "description": {
           "en": "A production description from the text.",
           "ru": "Описание продакшна, выведенное из текста."
@@ -3618,6 +3624,7 @@
           "en": "Write the style as prose",
           "ru": "Написать стиль прозой"
         },
+        "category": "styles",
         "description": {
           "en": "The phrases picked for the sound, written up as one style prompt in sentences.",
           "ru": "Выбранные фразы звука, сведённые в один промпт стиля предложениями."
@@ -3636,6 +3643,7 @@
           "en": "Alternative titles",
           "ru": "Другие названия"
         },
+        "category": "writing",
         "description": {
           "en": "Other ways to name it.",
           "ru": "Как это можно назвать иначе."
@@ -3652,6 +3660,7 @@
           "en": "Place in the album",
           "ru": "Место в альбоме"
         },
+        "category": "critique",
         "description": {
           "en": "Where the song stands among the album's tracks, and what it does there.",
           "ru": "Где песня стоит среди треков альбома и что она там делает."
@@ -3668,6 +3677,7 @@
           "en": "Score the song",
           "ru": "Оценка песни"
         },
+        "category": "scoring",
         "description": {
           "en": "Rate it along the profile axes, with a reason.",
           "ru": "Оценить по осям профиля, с обоснованием."
@@ -3683,6 +3693,7 @@
           "en": "Plot from the source",
           "ru": "Сюжет по источнику"
         },
+        "category": "video",
         "description": {
           "en": "The video’s story, beat by beat against the source — kept as the plot.",
           "ru": "История видео, доля за долей против источника, — останется сюжетом."
@@ -3702,6 +3713,7 @@
           "en": "Storyboard from the plot",
           "ru": "Раскадровка по сюжету"
         },
+        "category": "video",
         "description": {
           "en": "The plot broken into scenes for the board — a proposal to replace it.",
           "ru": "Сюжет, разбитый на сцены для доски, — предложение заменить её."
@@ -3721,6 +3733,7 @@
           "en": "Prompts for the scene",
           "ru": "Промпты сцены"
         },
+        "category": "video",
         "description": {
           "en": "The still, the animation and the negative for this scene — a revision of it.",
           "ru": "Стоп-кадр, анимация и негатив этой сцены — её новая редакция."
@@ -3741,6 +3754,7 @@
           "en": "Build a prompt from styles",
           "ru": "Собрать промпт из стилей"
         },
+        "category": "styles",
         "description": {
           "en": "The picked bricks written up as one prompt, not glued together.",
           "ru": "Выбранные кирпичики, сведённые в один промпт, а не склейка."
@@ -3759,6 +3773,7 @@
           "en": "Describe a style from references",
           "ru": "Описать стиль по референсам"
         },
+        "category": "styles",
         "description": {
           "en": "Reference pictures read into a description the brick can carry.",
           "ru": "Картинки-референсы, прочитанные в описание для кирпичика."
@@ -3775,6 +3790,7 @@
           "en": "Explain",
           "ru": "Пояснить"
         },
+        "category": "styles",
         "description": {
           "en": "Phrases the dictionary does not know, proposed as bricks with what they mean in every language.",
           "ru": "Фразы, которых нет в словаре, - предложением кирпичиков с пояснением на всех языках."
@@ -3791,6 +3807,7 @@
           "en": "Read a comment",
           "ru": "Прочитать комментарий"
         },
+        "category": "release",
         "description": {
           "en": "A pasted screenshot of a comment, copied out word for word.",
           "ru": "Вставленный скриншот комментария, переписанный слово в слово."
@@ -3807,6 +3824,7 @@
           "en": "Draft a reply",
           "ru": "Черновик ответа"
         },
+        "category": "release",
         "description": {
           "en": "A reply in the voice the channel already speaks in, for you to post.",
           "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами."
@@ -3823,6 +3841,7 @@
           "en": "Gather facts into the canon",
           "ru": "Собрать факты в канон"
         },
+        "category": "canon",
         "description": {
           "en": "What the text says about the world, proposed as facts with the line each was read off; contradictions shown before anything is applied.",
           "ru": "Что текст говорит о мире — факты со строкой-источником; противоречия с каноном видны до применения."
@@ -3838,6 +3857,7 @@
           "en": "To the canon",
           "ru": "В канон"
         },
+        "category": "canon",
         "description": {
           "en": "The selected lines, proposed as facts of the canon with their source.",
           "ru": "Выделенные строки — предложением фактов канона с источником."
@@ -3854,6 +3874,7 @@
           "en": "Gather facts from the note",
           "ru": "Собрать факты из заметки"
         },
+        "category": "canon",
         "description": {
           "en": "The card's free note, proposed as facts filed under its sections.",
           "ru": "Свободная заметка карточки — предложением фактов по разделам."
@@ -3870,6 +3891,7 @@
           "en": "Describe for the generator",
           "ru": "Описать для генератора"
         },
+        "category": "canon",
         "description": {
           "en": "An English description of the card written from its facts, given to a picture generator instead of the name.",
           "ru": "Английское описание из фактов карточки — генератор получает его вместо имени."
@@ -3886,6 +3908,7 @@
           "en": "Release meta",
           "ru": "Мета выпуска"
         },
+        "category": "release",
         "description": {
           "en": "The title, description, tags and pinned comment of this release, in the channel’s voice and unlike the last ones.",
           "ru": "Название, описание, теги и закреп выпуска голосом канала — не так, как в прошлых."
@@ -3907,6 +3930,7 @@
           "en": "Cover ideas",
           "ru": "Идеи обложки"
         },
+        "category": "cover",
         "description": {
           "en": "Ideas for this publication's cover from different angles - the hero of the song, the mark's status for its meaning, the channel's house styles.",
           "ru": "Идеи обложки этой публикации с разных ракурсов - герой песни, статус знака под её смысл, домашние стили канала."
@@ -3928,6 +3952,7 @@
           "en": "Propose trials",
           "ru": "Предложить пробы"
         },
+        "category": "workflow",
         "description": {
           "en": "Trials for the board: a sweep of the field, variations around a core, or the fix for what went wrong - each held to the anchors.",
           "ru": "Пробы на доску: разведка поля, вариации вокруг ядра или починка того, что пошло не так, - каждая держится якорей."
@@ -3947,6 +3972,7 @@
           "en": "Refine the idea",
           "ru": "Уточнить идею"
         },
+        "category": "workflow",
         "description": {
           "en": "The brief and what is starred, worked into one idea - and the brief set straight.",
           "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел."
@@ -3965,6 +3991,7 @@
           "en": "Research",
           "ru": "Исследовать"
         },
+        "category": "workflow",
         "description": {
           "en": "Works of culture, primary sources and concepts the song could draw on, quotes checked on the web - put on the research board.",
           "ru": "Произведения, первоисточники и понятия, на которые может опереться песня, - цитаты сверены в сети - на доску исследования."
@@ -3985,6 +4012,7 @@
           "en": "Propose scenarios",
           "ru": "Предложить сценарии"
         },
+        "category": "workflow",
         "description": {
           "en": "Ways the song could go, put on the board of scenarios.",
           "ru": "Как может пойти песня - на доску сценариев."
@@ -4004,6 +4032,7 @@
           "en": "Write from the brief",
           "ru": "Написать по замыслу"
         },
+        "category": "writing",
         "description": {
           "en": "The lyrics, written from the whole order - to talk over in the chat and insert once they are right.",
           "ru": "Текст по всему заказу - обсудить в чате и вставить, когда он хорош."

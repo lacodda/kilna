@@ -75,7 +75,7 @@ it says otherwise, 0 for none - in **Settings → Profile**.
 ### How the assistant thinks of a cover
 
 The action is the profile's - **Cover ideas** in Studio, with its method in
-**Settings → Profile → Actions**. It is given what is asked and what stands on
+**Settings → Skills**. It is given what is asked and what stands on
 the board, the song the publication is made from, the canon a picture may
 see, and everything a cover is built from, each with the id to name it by:
 the layouts and their settings, the bricks with when to reach for each (the

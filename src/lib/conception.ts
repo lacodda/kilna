@@ -7,6 +7,7 @@ import type {
   VersionRole,
 } from '@/lib/api/types'
 import { vocabularyOf } from '@/lib/useProfile'
+import { isButton } from '@/lib/actions'
 
 /**
  * A work's conception (v0.99, ADR 0065), as the window reads it off the
@@ -54,18 +55,20 @@ function offeredOn(action: PromptTemplate, kind: string): boolean {
 
 /** The profile's action that refines the brief and the idea ("Refine"). */
 export function refineActionOf(config: ProfileConfig, kind: string): PromptTemplate | undefined {
-  return config.prompts.find(
-    (action) => action.produces === 'conception' && offeredOn(action, kind),
-  )
+  return config.prompts
+    .filter(isButton)
+    .find((action) => action.produces === 'conception' && offeredOn(action, kind))
 }
 
 /** The profile's action that writes the work from the whole order: one about
  *  the work that reads `{order}` ("Write from the brief"). */
 export function writeActionOf(config: ProfileConfig, kind: string): PromptTemplate | undefined {
-  return config.prompts.find(
-    (action) =>
-      (action.scope ?? 'work') === 'work' &&
-      offeredOn(action, kind) &&
-      action.template.includes('{order}'),
-  )
+  return config.prompts
+    .filter(isButton)
+    .find(
+      (action) =>
+        (action.scope ?? 'work') === 'work' &&
+        offeredOn(action, kind) &&
+        action.template.includes('{order}'),
+    )
 }

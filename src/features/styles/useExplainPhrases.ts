@@ -6,6 +6,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { useAssistant } from '@/lib/useAssistant'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
+import { isButton } from '@/lib/actions'
 
 /**
  * "Explain": phrases the dictionary does not know, handed to the profile's
@@ -16,9 +17,9 @@ import { say as sayLabel, useProfile } from '@/lib/useProfile'
 export function useExplainPhrases(composition: string | undefined) {
   const { t } = useTranslation()
   const assistant = useAssistant()
-  const action: PromptTemplate | undefined = useProfile().config.prompts.find(
-    (prompt) => prompt.scope === 'phrases',
-  )
+  const action: PromptTemplate | undefined = useProfile()
+    .config.prompts.filter(isButton)
+    .find((prompt) => prompt.scope === 'phrases')
   const start = useAppMutation({
     mutationFn: (phrases: PhraseAsked[]) => {
       if (composition === undefined || action === undefined) {

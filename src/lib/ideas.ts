@@ -6,6 +6,7 @@ import type {
   PromptTemplate,
   SiblingCover,
 } from '@/lib/api/types'
+import { isButton } from '@/lib/actions'
 
 /**
  * The board of ideas for a publication's cover (v0.89, ADR 0050), as the
@@ -75,12 +76,14 @@ export function coverActionOf(
   config: ProfileConfig,
   kind: string | undefined,
 ): PromptTemplate | undefined {
-  return config.prompts.find(
-    (prompt) =>
-      prompt.scope === 'cover' &&
-      prompt.produces === 'cover-ideas' &&
-      ((prompt.kinds ?? []).length === 0 || (kind !== undefined && prompt.kinds!.includes(kind))),
-  )
+  return config.prompts
+    .filter(isButton)
+    .find(
+      (prompt) =>
+        prompt.scope === 'cover' &&
+        prompt.produces === 'cover-ideas' &&
+        ((prompt.kinds ?? []).length === 0 || (kind !== undefined && prompt.kinds!.includes(kind))),
+    )
 }
 
 /** The key a board's task runs under - the backend's `cover_key`. */

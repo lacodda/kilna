@@ -1586,8 +1586,7 @@
     "parts": "Parts of the profile",
     "part": {
       "craft": "The craft",
-      "fields": "Fields",
-      "actions": "Actions"
+      "fields": "Fields"
     },
     "partWrong": "Something here will not save",
     "exportProfile": "Export…",
@@ -1751,16 +1750,13 @@
     "shotTypes": "Kinds of shot",
     "layers": "Layers of a scene",
     "sceneBlocks": "Prompt blocks of a scene",
-    "prompts": "Assistant actions",
     "removeAxis": "Remove this axis",
     "save": "Save profile",
-    "promptsHint": "Each action is a short message with placeholders, a method the assistant is briefed with, and what the answer becomes. Keys are fixed once made.",
     "actionLabel": "Button text",
     "actionDescription": "A hint under the label (optional)",
     "actionTemplate": "Message",
     "actionTemplateHint": "Sent as the message, with {title}, {body}, {role:lyrics}, {scenes}, {scene} and {donor:lyrics} filled from the work. Keep it short; the method carries the how. A placeholder nothing fills is refused at save.",
     "actionMethod": "Method",
-    "actionMethodHint": "How the action is done: the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; goes to the model as a system instruction.",
     "actionMethodPlaceholder": "# Role\n\n# What to check\n\n# Output\n\n# Never write",
     "actionProduces": "The answer becomes",
     "producesProse": "Text to read",
@@ -1774,7 +1770,6 @@
     "actionScope": "About",
     "scopeWork": "The work",
     "scopeScene": "One scene of the board",
-    "addAction": "Add action",
     "removeAction": "Remove this action",
     "releaseFields": "What a release goes out as",
     "releaseFieldsHint": "The boxes a release of each kind is filled in with. Keys are fixed — a planned release stores what was written under them. A template fills the box from the work; it reads the same placeholders an action does.",
@@ -1968,7 +1963,8 @@
     "factSaveFailed": "Could not save the fact.",
     "collectionSaveFailed": "Could not save the collection.",
     "shippedTakeFailed": "Could not take the standard",
-    "shippedKeepFailed": "Could not keep yours"
+    "shippedKeepFailed": "Could not keep yours",
+    "skillPreviewFailed": "Could not read the skill as the assistant would"
   },
   "trash": {
     "hint": "Nothing leaves for good until you say so.",
@@ -2734,7 +2730,8 @@
       "agents": "Agents",
       "assistant": "Assistant",
       "plugins": "Plugins",
-      "spaces": "Spaces"
+      "spaces": "Spaces",
+      "skills": "Skills"
     },
     "hint": {
       "general": "How the window looks and speaks.",
@@ -2744,7 +2741,8 @@
       "agents": "Agents outside the window, over MCP.",
       "assistant": "Claude Code, the model, runs at once, what a run reads, the budget.",
       "plugins": "What is installed, whether it can run, and its settings.",
-      "spaces": "The folders kilna keeps your works in: make, rename, trash."
+      "spaces": "The folders kilna keeps your works in: make, rename, trash.",
+      "skills": "Buttons and methods: what the assistant and agents are asked to do."
     },
     "groups": {
       "app": "Application",
@@ -2829,8 +2827,89 @@
         "vibe_moods": "Mood",
         "vibe_characters": "Character",
         "vibe_complexities": "Complexity"
-      }
+      },
+      "waiting_one": "One newer version waits beside your entries",
+      "waiting_other": "{{count}} newer versions wait beside your entries"
     }
+  },
+  "skills": {
+    "title": "Skills",
+    "hint": "Every action of the profile: a button the window offers, with the message it sends, or a playbook - a method the assistant and agents read, never a button on a card. Edited here as part of the profile, saved with the bar below.",
+    "search": "Find a skill by its key, name, trigger or method",
+    "filterKind": "For a kind of work",
+    "anyKind": "Any kind",
+    "filterScope": "About",
+    "anyScope": "About anything",
+    "filterOrigin": "Where it stands",
+    "anyOrigin": "Wherever it stands",
+    "filterMode": "Button or method",
+    "mode": {
+      "all": "All",
+      "button": "Button",
+      "playbook": "Method only"
+    },
+    "origin": {
+      "standard": "Standard",
+      "changed": "Changed",
+      "update": "Update",
+      "own": "Own"
+    },
+    "scope": {
+      "work": "A work",
+      "scene": "A scene",
+      "selection": "A selection",
+      "style": "A style",
+      "comment": "A comment",
+      "canon": "A card",
+      "release": "A release",
+      "cover": "A cover",
+      "phrases": "Phrases",
+      "lab": "An experiment",
+      "board": "A board"
+    },
+    "category": {
+      "label": "Group",
+      "none": "No group",
+      "writing": "Writing",
+      "critique": "Critique",
+      "scoring": "Scoring",
+      "video": "Video",
+      "cover": "Cover",
+      "styles": "Styles",
+      "canon": "Canon",
+      "release": "Release",
+      "workflow": "Workflow"
+    },
+    "count": "{{shown}} of {{count}}",
+    "add": "Add a skill",
+    "addTitle": "A new skill",
+    "addDescription": "Its key is fixed once made: a running task and a chat are known by it.",
+    "key": "Key",
+    "keyShape": "A key is lower case: a letter first, then letters, digits, dashes and underscores.",
+    "keyTaken": "The profile already has a skill keyed “{{key}}”.",
+    "export": "Export the set",
+    "import": "Import a set",
+    "exportTitle": "Export the skills",
+    "importTitle": "Import skills",
+    "exported_one": "One skill exported to {{path}}.",
+    "exported_other": "{{count}} skills exported to {{path}}.",
+    "imported": "Skills read: {{replaced}} replaced, {{added}} added. Save the profile to keep them.",
+    "when": "When to use it, and how it differs from the ones beside it",
+    "showInUi": "Show as a button in the window",
+    "templateHidden": "Not a button now: the message is kept for when it is shown again.",
+    "methodHint": "How it is done, in markdown: the role, what to check and in what order, the shape of the answer. It reaches the model as its instruction, and agents read it through MCP. It may lean on the workspace, the canon, the register and the brief rather than name them.",
+    "preview": "Preview what the assistant is handed",
+    "previewKind": "For the kind",
+    "previewTitle": "What the assistant is handed",
+    "previewMethod": "Method",
+    "previewAnswer": "The shape of the answer",
+    "previewNone": "Nothing.",
+    "previewReads": "Its message reads {{placeholders}}.",
+    "previewReadsNothing": "Its message reads nothing of the work.",
+    "reset": "Reset to the standard",
+    "duplicate": "Duplicate",
+    "earlier": "Move earlier",
+    "later": "Move later"
   },
   "overview": {
     "inFull": "{{caption}}, in full",
@@ -3246,7 +3325,8 @@
       "notLabAction": "“{{action}}” does not propose trials for a board.",
       "isBoardAction": "“{{action}}” is asked from a board of the conception.",
       "actionAnswersBoard": "“{{action}}” proposes cards for a board, and is asked from the board.",
-      "notBoardAction": "“{{action}}” is not an action about a board."
+      "notBoardAction": "“{{action}}” is not an action about a board.",
+      "noMessage": "“{{action}}” is a method for an agent, not a button: it has no message to send."
     },
     "style": {
       "needsName": "A style needs a name.",
@@ -3472,6 +3552,10 @@
     },
     "rehome": {
       "tooMany": "{{path}} holds more files than a move can be planned for. Is it the media folder, and not a whole drive?"
+    },
+    "skills": {
+      "unreadable": "The file {{path}} could not be read: {{cause}}",
+      "notASet": "{{path}} is not a set of skills: kilna writes one as `{\"kilna\": \"skills\", \"skills\": [...]}`, or reads a plain list of actions."
     }
   },
   "proposalBody": {
@@ -3674,7 +3758,9 @@
     "commentMustProduce": "{{place}} is about a comment and must produce `comment` or `reply`",
     "vibeEmpty": "a work’s feel has no {{what}}: a line needs words on it",
     "vibeColour": "mood `{{key}}` has the colour `{{colour}}`, which is not written as #RRGGBB",
-    "vibeStrokes": "complexity `{{key}}` is drawn with {{strokes}} strokes: one, two or three"
+    "vibeStrokes": "complexity `{{key}}` is drawn with {{strokes}} strokes: one, two or three",
+    "playbookNoMethod": "{{place}} is not a button and has no method: a skill only an agent reads needs its method",
+    "actionCategory": "{{place}} is in the group “{{category}}”, which kilna does not know - the groups are {{known}}"
   },
   "place": {
     "workKind": "work kind {{n}} (`{{key}}`)",

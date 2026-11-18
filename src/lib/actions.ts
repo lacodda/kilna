@@ -56,7 +56,16 @@ export function scopeOf(action: Pick<PromptTemplate, 'scope'>): ActionScope {
  *  asks through here, so an action about a style or a comment never turns up
  *  on a work's card — a button there would send a prompt about nothing. */
 export function actionsOfScope(actions: PromptTemplate[], scope: ActionScope): PromptTemplate[] {
-  return actions.filter((action) => scopeOf(action) === scope)
+  return actions.filter((action) => isButton(action) && scopeOf(action) === scope)
+}
+
+/**
+ * Whether the window offers an action as a button (FR-17): one shown and
+ * with a message to send. A playbook - a method an agent reads - is never a
+ * button, and a hidden button keeps its message for when it is shown again.
+ */
+export function isButton(action: Pick<PromptTemplate, 'show_in_ui' | 'template'>): boolean {
+  return action.show_in_ui !== false && action.template.trim() !== ''
 }
 
 /** The action about a comment that produces this, if the profile has one. */

@@ -16,6 +16,7 @@ import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
 import { useAssistant } from '@/lib/useAssistant'
 import { useProfile } from '@/lib/useProfile'
 import { useExplainPhrases } from '@/features/styles/useExplainPhrases'
+import { isButton } from '@/lib/actions'
 
 interface Props {
   open: boolean
@@ -44,7 +45,9 @@ export function FromStylesDialog({ open, onOpenChange, composition }: Props) {
   const [adding, setAdding] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const assistant = useAssistant()
-  const action = useProfile().config.prompts.find((prompt) => prompt.scope === 'phrases')
+  const action = useProfile()
+    .config.prompts.filter(isButton)
+    .find((prompt) => prompt.scope === 'phrases')
 
   const all = found.data ?? []
   const ticked = (phrase: string, index: number) => toggled[phrase] ?? index < TICKED

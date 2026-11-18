@@ -147,9 +147,45 @@ Studio ships two: a critique of lyrics in blocks — rhymes, images, structure,
 singability, fit with the craft's DNA — with a section on the craft's DNA
 written to be rewritten for your own project; and a way of judging finished
 work along the profile's axes. The other profiles ship the second. Rewrite
-them in **Settings → Assistant actions**; the key of an action stays fixed,
-because a running task and its chat are recognised by it. An action can also
-be added there, or removed.
+them in **Settings → Skills**; the key of an action stays fixed, because a
+running task and its chat are recognised by it. An action can also be added
+there, or removed.
+
+## Skills
+
+Since v0.126 the profile's actions are its **skills**, and they have a section
+of their own: **Settings → Skills**. A skill is one of two things:
+
+- **a button** - the window offers it on a card, the panel, the storyboard,
+  wherever its scope says - with the message it sends and its method;
+- **a method only** - a playbook the assistant and agents read, never a
+  button on a card. Turn off **Show as a button in the window** and the
+  button goes; its message is kept for the day it is turned back on.
+
+The list is grouped - writing, critique, scoring, video, cover, styles,
+canon, release, workflow - and each row says the skill's key, its name, the
+trigger it is reached for (`when`), whether it is a button or a method, the
+kinds it is for, and where it stands against what kilna ships: **Standard**,
+**Changed**, **Update** (a newer version waits beside yours) or **Own**. Find
+one by a word of its key, name, trigger or method, and narrow by kind, by
+what it is about, by button or method, and by where it stands.
+
+A row opens into the whole skill: its name, description and trigger, its
+group, kinds and scope, what it answers with - every one of the eleven
+things a skill can be about and every answer kilna reads - the button switch
+and the message, and the method. **Preview what the assistant is handed**
+shows the method and the shape of the answer said with the profile's live
+words: a score names every axis with its rubric. **Reset to the standard**
+puts back what kilna ships, **Duplicate** copies the skill under a free key,
+and the set can be exported to a file and imported from one - a skill with a
+key the profile has replaces it, one it does not have joins at the end.
+Everything is part of the profile's draft and saved by the same bar as the
+profile.
+
+A newer version kilna ships of a skill you changed waits at the head of the
+section, field by field, to keep or take, and the count of what waits is
+beside the section's name - see
+[the profile document](/kilna/reference/profile-document/#where-the-vocabulary-lives).
 
 Where an action is started from the panel's composer, the method does not
 ride along: the composer is for reading the message before it is sent, and
@@ -232,7 +268,7 @@ plot and the context and let the action draw the board. When an answer's block
 cannot become a proposal — a kind of shot the profile does not have, a
 revision that numbered another scene — the chat says why under the answer
 rather than showing nothing. The methods behind the three are in **Settings →
-Assistant actions** like any other, and the words they use — the kinds of
+Skills** like any other, and the words they use — the kinds of
 shot, the blocks — are the profile's own.
 
 The rule underneath is the same one everywhere in kilna: **the assistant
