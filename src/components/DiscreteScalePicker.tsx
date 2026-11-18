@@ -82,7 +82,7 @@ export function DiscreteScalePicker<Value extends string>({
             tabIndex={on ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(step.value)}
-            className="group h-auto min-w-0 flex-col items-center gap-1 px-0.5 py-0 text-center font-normal whitespace-normal hover:bg-transparent"
+            className="group h-auto min-w-0 flex-col items-center justify-start gap-1 px-0.5 py-0 text-center font-normal whitespace-normal hover:bg-transparent"
           >
             <span
               aria-hidden

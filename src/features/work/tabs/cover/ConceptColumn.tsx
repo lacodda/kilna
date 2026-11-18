@@ -137,17 +137,6 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           cover.framing === null ? null : t(`cover.layout.${cover.framing.layout}`),
           cover.framing === null ? null : t(`cover.crop.${cover.framing.crop}`),
         )}
-        actions={
-          cover.framing !== null && (
-            <Button
-              variant="link"
-              className="text-xs"
-              onClick={() => change((c) => ({ ...c, framing: null }))}
-            >
-              {t('cover.framing.clear')}
-            </Button>
-          )
-        }
       >
         <FramingPicker
           framing={cover.framing}

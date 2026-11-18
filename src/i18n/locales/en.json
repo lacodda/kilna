@@ -2518,7 +2518,6 @@
     "framing": {
       "title": "Frame",
       "hint": "built in: the scheme and the prompt agree",
-      "clear": "No frame",
       "layouts": "Layouts",
       "where": "Where the hero is",
       "at": "{{column}}, {{row}}",

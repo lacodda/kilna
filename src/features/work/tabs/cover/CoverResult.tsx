@@ -172,7 +172,11 @@ export function CoverResult({ work, view, strip = false }: Props) {
     >
       <header className="flex flex-wrap items-center gap-2">
         <SectionLabel>{t('cover.result.title')}</SectionLabel>
-        <span className="text-2xs text-faint">{t('cover.result.hint')}</span>
+        {!strip && <span className="text-2xs text-faint">{t('cover.result.hint')}</span>}
+        {/* In the dock the export stands in the head: the strip is one row. */}
+        {strip && final !== undefined && (
+          <ExportButton work={work} view={view} final={final} mark={laidOver} />
+        )}
         <Button size="xs" className="ml-auto" onClick={pick} disabled={attach.isPending}>
           <ImagePlus />
           {t('cover.result.pick')}
@@ -182,7 +186,7 @@ export function CoverResult({ work, view, strip = false }: Props) {
         ref={region}
         className={cn(
           strip
-            ? 'grid auto-cols-[6rem] grid-flow-col gap-2 overflow-x-auto rounded-md p-1'
+            ? 'grid auto-cols-[4.5rem] grid-flow-col gap-2 overflow-x-auto rounded-md p-1'
             : 'grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2 rounded-md p-1',
           over && 'bg-accent-soft outline-2 outline-dashed outline-accent',
         )}
@@ -208,13 +212,13 @@ export function CoverResult({ work, view, strip = false }: Props) {
         <p
           className={cn(
             'rounded-md border border-dashed border-line-2 text-center text-xs text-faint',
-            strip ? 'flex w-40 items-center px-2 py-2' : 'col-span-full px-3 py-4',
+            strip ? 'flex w-44 items-center px-2 py-1 text-2xs' : 'col-span-full px-3 py-4',
           )}
         >
           {t('cover.result.drop')}
         </p>
       </div>
-      {final !== undefined && (
+      {!strip && final !== undefined && (
         <ExportButton work={work} view={view} final={final} mark={laidOver} />
       )}
     </Panel>
