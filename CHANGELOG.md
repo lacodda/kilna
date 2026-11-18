@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.150.0] - 2026-11-18
+
+A music channel. kilna now ships a profile for a channel that publishes
+tracks made with a generator: each track one card from its sketch to its
+release - its Suno prompt, its fields, its cover and frame, its YouTube and
+Audius releases, judged on its sound, its tradition, its mood, its cover and
+how unlike the month it is - with shorts and clips made from it, months
+gathered into packs, a passport for the channel, an action that writes the
+Suno prompt and an orchestrator that walks a track through. Its demo shows a
+month of it. And a rhythm can now keep to days of the week: Tuesday,
+Thursday and Saturday, thirteen a month, leaving out the weakest day of a
+crowded month or adding a floating peak to a short one, at the hour of the
+channel's own time zone with its summer time. The layout and the dashboard
+follow the grid.
+
+### Bug Fixes
+- The rhythm's spacing has room for its number beside a long unit
+
+### Features
+- The Music channel profile, and a rhythm of weekdays with a monthly target and a time zone
+
+### Testing
+- A finding's complaint and params may be absent
+
 ## [0.149.0] - 2026-11-18
 
 The simple video, on a timeline. A clip, an audio release or a short now has
