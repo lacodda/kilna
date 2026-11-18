@@ -62,6 +62,7 @@ pub struct StyleBrick {
     pub set_key: Option<String>,
     /// Where it came from, when a pack of a registry gave it: `pack:<id>`
     /// (v0.131). Empty for the starter set's and the owner's own.
+    #[ts(optional = nullable)]
     pub source: Option<String>,
     /// Where it came from and whether it was changed since - see [`Origin`].
     pub origin: Origin,
