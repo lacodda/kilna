@@ -47,13 +47,18 @@ export function BrickToggles({
         <Star aria-hidden className={starred ? 'fill-current text-warn' : undefined} />
       </Button>
       {withSwitch && (
-        <Switch
-          aria-label={t('styles.enabled')}
+        // The switch takes no title of its own: the hint is said around it.
+        <span
+          className="flex"
           title={brick.status === 'draft' ? t('styles.enabledDraft') : t('styles.enabled')}
-          checked={brick.status === 'ready'}
-          disabled={brick.status === 'draft' || save.isPending}
-          onCheckedChange={(on) => save.mutate({ status: on ? 'ready' : 'dropped' })}
-        />
+        >
+          <Switch
+            aria-label={t('styles.enabled')}
+            checked={brick.status === 'ready'}
+            disabled={brick.status === 'draft' || save.isPending}
+            onCheckedChange={(on) => save.mutate({ status: on ? 'ready' : 'dropped' })}
+          />
+        </span>
       )}
     </span>
   )
