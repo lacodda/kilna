@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.137.0] - 2026-11-18
+
+Starter packs. The snapshot of the style registry that ships with kilna now
+holds thirty packs: sixteen sound packs in the spirit of an artist - the name
+in the pack's title only, every phrase plain production tags - and picture
+and motion packs written to the catalogue's detail with their contracts:
+black and white, a photo studio, Soviet print, cinematic light, the city at
+night, film stocks, stage looks, rain and snow, small movements of a hero.
+Every pack installs into Studio as it is, and a registry keeper's tool writes
+the digests.
+
+### Features
+- Thirty starter packs in the snapshot, sixteen in the spirit of an artist
+
 ## [0.136.0] - 2026-11-18
 
 Frame and motion. A frame's loop is picked from the dictionary's Motion
