@@ -1,3 +1,11 @@
+import { MovementPick } from '@/features/work/tabs/frame/MovementPick'
+import { FrameResult } from '@/features/work/tabs/frame/FrameResult'
+import { BrickPick } from '@/features/cover/BrickPick'
+import { LAYERS } from '@/lib/layers'
+import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
+import { say } from '@/lib/toast'
+import { Switch } from '@/components/ui/switch'
+import type { CoverBricks } from '@/lib/api/types'
 import { fixFrame } from '@/lib/coverFix'
 import { CoverProblems } from '@/features/work/tabs/cover/CoverNotes'
 import type { ContractFix } from '@/lib/api/types'
@@ -8,7 +16,6 @@ import { updateWork } from '@/lib/api/works'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CopyButton } from '@/components/ui/copy-button'
@@ -76,6 +83,13 @@ export function FrameTab({ work }: Props) {
     })
   }
   const { frame } = work
+  const { config } = useProfile()
+  const layerTypes = LAYERS.flatMap((key) => {
+    const type = styleTypesOf(config).find((one) => one.key === key)
+    return type === undefined || (type.retired !== undefined && type.retired !== null)
+      ? []
+      : [{ key: type.key, label: sayLabel(type.label) }]
+  })
   const built = view.data?.from_cover ?? frame.built ?? frame.still.trim() === ''
 
   return (
@@ -123,8 +137,59 @@ export function FrameTab({ work }: Props) {
                       framing={frame.framing ?? work.cover.framing}
                       layouts={view.data?.layouts ?? []}
                       lettering={false}
+                      subject={
+                        frame.subject ??
+                        (work.cover.hero !== null
+                          ? 'person'
+                          : (work.cover.staging.subject ?? 'object'))
+                      }
+                      onSubject={(subject) =>
+                        change(fixFrame(frame, work.cover, { kind: 'subject', subject }))
+                      }
                       onChange={(framing) => change({ framing })}
                     />
+                  </Section>
+                  {/* The frame's own bricks over the cover's (v0.136): off,
+                      it is drawn in the cover's; on, it starts from a copy
+                      of them and goes its own way. */}
+                  <Section
+                    id="frame.bricks"
+                    title={t('frame.bricks.title')}
+                    hint={
+                      frame.bricks == null ? t('frame.framing.asCover') : t('frame.framing.own')
+                    }
+                  >
+                    <Switch
+                      checked={frame.bricks != null}
+                      onCheckedChange={(own) =>
+                        change({ bricks: own ? { ...work.cover.bricks } : undefined })
+                      }
+                    >
+                      {t('frame.bricks.own')}
+                    </Switch>
+                    {frame.bricks != null &&
+                      [{ key: 'style', label: t('cover.style.title') }, ...layerTypes].map(
+                        (place) => (
+                          <div key={place.key} className="flex flex-col gap-1">
+                            <span className="caption">{place.label}</span>
+                            <BrickPick
+                              label={place.label}
+                              form="picture"
+                              typeKey={place.key === 'style' ? undefined : place.key}
+                              brickId={frame.bricks?.[place.key as keyof CoverBricks] ?? null}
+                              houseStyles={[]}
+                              onChange={(id) =>
+                                change({
+                                  bricks: {
+                                    ...(frame.bricks ?? work.cover.bricks),
+                                    [place.key]: id,
+                                  },
+                                })
+                              }
+                            />
+                          </div>
+                        ),
+                      )}
                   </Section>
                   <Section
                     id="frame.ownWords"
@@ -178,6 +243,13 @@ export function FrameTab({ work }: Props) {
                   mono
                   placeholder={t('frame.motionPlaceholder')}
                   onCommit={(motion) => change({ motion })}
+                />
+                {/* Movements of the dictionary first, the own words after
+                    them (v0.136): up to five, read by their contracts. */}
+                <MovementPick
+                  chosen={frame.motion_bricks ?? []}
+                  stillCamera={frame.still_camera}
+                  onChange={(motion_bricks) => change({ motion_bricks })}
                 />
                 <div className="flex flex-wrap items-center gap-2.5">
                   <span className="caption">{t('frame.length')}</span>
@@ -237,6 +309,38 @@ export function FrameTab({ work }: Props) {
                 />
               )}
             </Loaded>
+            {/* The frame's dock (v0.136): all three blocks at once, and what
+                came back. */}
+            {view.data !== undefined && (
+              <div
+                role="group"
+                aria-label={t('frame.dock')}
+                className="mt-2 flex shrink-0 flex-col gap-2 border-t border-line pt-2"
+              >
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => {
+                    const { still, negative } = view.data.prompts
+                    const whole = [
+                      still,
+                      view.data.prompts.loop,
+                      negative === '' ? '' : `NEGATIVE: ${negative}`,
+                    ]
+                      .filter((part) => part.trim() !== '')
+                      .join('\n\n---\n\n')
+                    navigator.clipboard.writeText(whole).then(
+                      () => say.ok(t('cover.copied')),
+                      () => say.failed(t('work.copyFailed')),
+                    )
+                  }}
+                >
+                  {t('cover.prompt.copyAll')}
+                </Button>
+                <FrameResult work={work} />
+              </div>
+            )}
           </div>
         </div>
       </div>

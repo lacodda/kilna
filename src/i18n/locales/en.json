@@ -2788,7 +2788,26 @@
     "ownWordsHint": "added after what is built",
     "detailsHint": "the channel's, where they belong in a frame; switched as on the cover",
     "negativeOwn": "Your own words for the negative",
-    "noScheme": "The cover has no frame yet: pick a layout on the left."
+    "noScheme": "The cover has no frame yet: pick a layout on the left.",
+    "movements": "Movements",
+    "addMovement": "Add a movement",
+    "findMovement": "Find a movement",
+    "removeMovement": "Take out “{{name}}”",
+    "movementsFull": "Five movements: the most a loop takes",
+    "movesCamera": "moves the camera - left out while it holds still",
+    "dock": "The frame’s prompt and what came back",
+    "bricks": {
+      "title": "Own bricks",
+      "own": "The frame has its own style and layers"
+    },
+    "result": {
+      "title": "Result of the frame",
+      "pick": "Add a picture or a loop",
+      "files": "Pictures and clips",
+      "added": "Added to the frame’s results.",
+      "none": "A still or an mp4 loop the generator made goes here.",
+      "remove": "Take it out"
+    }
   },
   "shell": {
     "new": "New",

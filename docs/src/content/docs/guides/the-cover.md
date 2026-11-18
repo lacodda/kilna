@@ -335,6 +335,16 @@ words for what moves: `LOOP (6 s): rain falls...; the subject blinks...; a
 curtain stirs.` A frame can also hold its own subject, hero, bricks, accent
 and ground over the cover's; whatever it leaves empty is the cover's.
 
+Since v0.136 the Frame tab picks them: **Add a movement** lists the ready
+movements of the Motion branch, starred first, up to five; one that moves
+the camera says so while the camera holds still, and the frame says why it
+is left out with the one change that lets it in. The frame's layout uses the
+same list, scales and **No subject** as the cover; **Own bricks** gives the
+frame its own style and layers, starting from a copy of the cover's, and
+switching it off draws the frame in the cover's again. A dock under the
+prompts copies all three blocks at once and keeps what came back - a still
+or an mp4 loop - among the work's files.
+
 ## A scene of a clip
 
 A scene of a clip can take a built frame too, in its drawer on the
