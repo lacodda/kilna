@@ -1,3 +1,4 @@
+import { Select } from '@/components/AppSelect'
 import { useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
@@ -78,7 +79,19 @@ export function LineBank({ kind, filter, tag, filtered: narrowed, total }: Props
   const current =
     scope === ALL_LINES || scope === NO_SHELF || shelfOf(scope, list) !== null ? scope : ALL_LINES
   const shelf = shelfOf(current, list)
-  const visible = useMemo(() => linesIn(current, rows, list), [current, rows, list])
+  // The work the phrases arose at, to narrow to one (v0.145, FR-09 9.3).
+  const [origin, setOrigin] = useState('')
+  const visible = useMemo(
+    () =>
+      linesIn(current, rows, list).filter(
+        (line) => origin === '' || line.origin_work_id === origin,
+      ),
+    [current, rows, list, origin],
+  )
+  const origins = useMemo(
+    () => [...new Set(rows.map((line) => line.origin_work_id).filter((id) => id != null))],
+    [rows],
+  )
   const counts = useMemo(
     () => ({ all: rows.length, loose: linesIn(NO_SHELF, rows, list).length }),
     [rows, list],
@@ -187,22 +200,37 @@ export function LineBank({ kind, filter, tag, filtered: narrowed, total }: Props
             head={
               // One line and Enter, or a list pasted by lines: Shift+Enter
               // starts a line of the list by hand.
-              <Textarea
-                autoResize
-                maxRows={6}
-                rows={1}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault()
-                    add()
-                  }
-                }}
-                placeholder={placeholder}
-                aria-label={placeholder}
-                className="min-w-48 flex-1"
-              />
+              <>
+                <Textarea
+                  autoResize
+                  maxRows={6}
+                  rows={1}
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      add()
+                    }
+                  }}
+                  placeholder={placeholder}
+                  aria-label={placeholder}
+                  className="min-w-48 flex-1"
+                />
+                {origins.length > 0 && (
+                  <Select
+                    value={origin}
+                    onChange={setOrigin}
+                    placeholder={t('notes.anyOrigin')}
+                    options={[
+                      { value: '', label: t('notes.anyOrigin') },
+                      ...origins.map((id) => ({ value: id, label: titles.get(id) ?? '…' })),
+                    ]}
+                    aria-label={t('notes.originLabel')}
+                    className="w-48"
+                  />
+                )}
+              </>
             }
             foot={
               visible.length > shown ? (
@@ -255,6 +283,11 @@ export function LineBank({ kind, filter, tag, filtered: narrowed, total }: Props
                       shelf={shelf}
                       shelves={list}
                       work={line.work_id === null ? null : (titles.get(line.work_id) ?? '…')}
+                      origin={
+                        line.origin_work_id == null
+                          ? null
+                          : (titles.get(line.origin_work_id) ?? '…')
+                      }
                       carrying={carry.dragging?.id === line.id}
                       onGrab={(event) => {
                         // A carry let go with Escape left no drop to clear the

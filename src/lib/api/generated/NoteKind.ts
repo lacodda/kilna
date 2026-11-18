@@ -65,6 +65,12 @@ library?: boolean,
  */
 media?: Array<Medium>, 
 /**
+ * A note of this kind is a long document (v0.145, FR-09 9.1): read in a
+ * reading view of its own, with its headings as an outline, apart from
+ * the short working notes.
+ */
+document?: boolean, 
+/**
  * Turned off in the profile editor (v0.141, FR-18): a kind of card not
  * offered for a new card, and no passport made of it with a space.
  * Cards of it already made stay, and read as they did.

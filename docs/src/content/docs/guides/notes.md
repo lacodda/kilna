@@ -22,8 +22,15 @@ Since 0.98 the rest is **two shelves**: phrases and notes. See
 
 **Notes** in the menu (or `G` `N`) opens the screen. Along the top is one chip
 for each kind of note the profile names, and one chip is always on. In every
-shipped profile the chips are **Phrase**, **Note** and **Library**. There is
-no *All* chip: you are always on one shelf.
+shipped profile the chips are **Phrase**, **Note**, **Library** and, since
+v0.145, **Document**. There is no *All* chip: you are always on one shelf.
+
+**Documents** are the long pages - an analysis, an instruction, a strategy -
+kept apart from the short working notes so a list of thoughts is not buried
+under them. An open document is read rather than edited: its headings stand
+as an outline beside the text, each a press to its place, and the text is
+set at a reading size and measure; **Edit** (or a double-click) opens the
+editor as for any note.
 
 The **Library** holds the works of culture the boards of research link to,
 each once for the whole workspace (v0.100): its row reads who made it, when
@@ -52,6 +59,23 @@ notes you opened, and a search hit from `Ctrl+K` lands on the note itself.
 With a tag picked in the head, a menu beside the picker offers **Rename the
 tag**, on every note that carries it, and **Take it off every note**. Each is
 one gesture and one undo (`Ctrl+Z`).
+
+**Pin as a selection** keeps the tag and the kind on show as a **selection**
+at the top of the list (v0.145) - *strategy · Document* - one press away
+afterwards; its cross unpins it. Selections are kept on this machine.
+
+### Links between notes
+
+A note can link to another note, a work or a card of the canon:
+`[the drive](kilna://note/<id>)`, `kilna://work/<id>`, `kilna://canon/<id>`.
+The window follows such a link to the note, the work's card or the card of
+the canon. Notes brought in from a vault say `[[Night drive]]`,
+`[[Studio/Night drive]]` or `[[Night drive|the drive]]`; the link button in
+the head - **Turn [[links]] into kilna links** - finds each among the notes,
+the works and the cards of the canon (by the name as written, then by its
+last part without `.md`, then without its quotes), says how many it found in
+how many notes and lists the ones it did not, and one press turns them all -
+one change an undo takes back. A link not found stays as it was written.
 
 ## Writing a note
 
@@ -175,6 +199,10 @@ Each row shows:
   you look, the way the [register](/kilna/guides/the-register/) counts. It is
   never stored.
 - The work it is kept for, as a link.
+- The work it arose at, as *from "Orbit"* (v0.145): a phrase that came while
+  a song was written remembers the song and stays fresh for the next one -
+  arising is not spending. The picker beside the box narrows the phrases to
+  the ones that came from one work.
 
 ### Gestures
 

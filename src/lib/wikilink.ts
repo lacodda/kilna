@@ -111,3 +111,26 @@ export function hrefOf(
   const workId = workOfVersion?.(link.id)
   return workId === undefined ? undefined : `/works/${workId}/versions`
 }
+
+/** Where a `kilna://` link of a body leads in the window (v0.145, FR-09 9.2):
+ *  a note, a card of the canon, a work. */
+const IN_APP: Record<string, string> = {
+  note: '/notes/',
+  canon: '/canon/',
+  work: '/works/',
+  works: '/works/',
+}
+
+/**
+ * A body with its `kilna://note/<id>`, `kilna://canon/<id>` and
+ * `kilna://work/<id>` links written as the window's routes, before it is
+ * drawn: the sanitiser keeps a link of an unknown scheme as no link at all,
+ * and a route is followed by the window rather than the browser. The body
+ * kept on disk keeps the `kilna://` links, which mean the same anywhere.
+ */
+export function inAppLinks(body: string): string {
+  return body.replace(
+    /\]\(kilna:\/\/(note|canon|works?)\/([A-Za-z0-9_-]+)\)/g,
+    (_, kind: string, id: string) => `](${IN_APP[kind] ?? '/'}${id})`,
+  )
+}

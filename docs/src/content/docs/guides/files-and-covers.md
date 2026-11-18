@@ -280,6 +280,18 @@ finished in another program is there when you return.
 A folder is found by its template, so a template changed in the profile
 points every work at a new place at once - and the files stay where the old
 one put them. A space made before v0.120 keeps its templates for that reason.
+`kilna --import-ideas <file>` (v0.145) brings a bank of phrases kept as one
+markdown file into a space: each section whose heading names a work in
+quotes - `## From «Orbit» (draft)` - gives its list lines as fresh phrases
+that arose at that work, when the space has a work of that name (a second
+quoted name in the heading, a working title, is tried too). A phrase the
+space already holds, or the file says twice, is passed over; sections with
+no quoted name are left alone. `--documents-tagged <tag,tag>` also marks the
+notes carrying those tags as documents. Like the move below it writes a plan
+and a report (`import-ideas/<time>/import_plan.md`) and changes nothing
+unless `--apply` is said; applied, it keeps a copy of the space beside the
+report first, and everything lands as one change an undo takes back.
+
 `kilna --rehome-media` moves the files and switches the templates together,
 to the layout the shipped profile names:
 

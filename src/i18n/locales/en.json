@@ -1515,7 +1515,28 @@
     "untagged_other": "“{{tag}}” taken off {{count}} notes.",
     "retagged_one": "“{{tag}}” is “{{to}}” on {{count}} note now.",
     "retagged_other": "“{{tag}}” is “{{to}}” on {{count}} notes now.",
-    "retagFailed": "Could not change the tag."
+    "retagFailed": "Could not change the tag.",
+    "aroseAt": "from “{{title}}”",
+    "aroseAtHint": "Came while “{{title}}” was written",
+    "anyOrigin": "Any work it came from",
+    "originLabel": "The work it came from",
+    "selections": "Selections",
+    "pinSelection": "Pin as a selection",
+    "unpinSelection": "Unpin “{{tag}}”",
+    "wikilinks": "Turn [[links]] into kilna links",
+    "wikilinksHint": "The [[links]] of notes brought from a vault, found among the notes, works and cards of the canon.",
+    "wikilinksLooking": "Looking through the notes…",
+    "wikilinksFound_one": "{{count}} link found, in {{notes}} notes.",
+    "wikilinksFound_other": "{{count}} links found, in {{notes}} notes.",
+    "wikilinksUnresolved_one": "{{count}} link not found stays as it is:",
+    "wikilinksUnresolved_other": "{{count}} links not found stay as they are:",
+    "wikilinksMore_one": "and {{count}} more",
+    "wikilinksMore_other": "and {{count}} more",
+    "wikilinksApply_one": "Turn {{count}} link",
+    "wikilinksApply_other": "Turn {{count}} links",
+    "wikilinksDone_one": "{{count}} link turned, in {{notes}} notes.",
+    "wikilinksDone_other": "{{count}} links turned, in {{notes}} notes.",
+    "outline": "Outline"
   },
   "styles": {
     "new": "New style",
@@ -3482,7 +3503,9 @@
     },
     "import": {
       "notFound": "There is no database at “{{path}}”.",
-      "notASource": "This database has no “songs” table — it is not a workspace kilna can import."
+      "notASource": "This database has no “songs” table — it is not a workspace kilna can import.",
+      "noPhraseKind": "This profile keeps no phrases to bring a bank into.",
+      "noFile": "Name the file of the bank after --import-ideas."
     },
     "prompt": {
       "sceneNotOfWork": "Scene “{{scene}}” is not a scene of “{{title}}”.",

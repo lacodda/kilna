@@ -28,4 +28,8 @@ line?: boolean | null,
 /**
  * Notes in this state.
  */
-state?: NoteState | null, };
+state?: NoteState | null, 
+/**
+ * Notes that arose at this work (v0.145).
+ */
+origin_work_id?: string | null, };

@@ -67,6 +67,10 @@ pub struct ProposedNote {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub note: Option<String>,
+    /// The work a new note arose at, by id (v0.145, FR-09 9.3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub origin_work_id: Option<String>,
     /// What that note held when the change was proposed, for a person to
     /// read was against becomes. Shown, never read back.
     #[serde(default, skip_serializing_if = "Option::is_none")]

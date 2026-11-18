@@ -9,6 +9,7 @@
 pub mod backup;
 pub mod chat;
 pub mod export;
+pub mod ideas;
 pub mod import;
 pub mod intake;
 pub mod material;

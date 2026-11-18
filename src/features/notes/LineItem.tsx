@@ -26,6 +26,8 @@ interface Props {
   shelves: readonly ShelfView[]
   /** The title of the work it is kept for, when it is kept for one. */
   work: string | null
+  /** The title of the work it arose at, when it remembers one (v0.145). */
+  origin?: string | null
   /** It is the phrase being carried to a shelf. */
   carrying: boolean
   /** The pointer went down on its grip: the start of carrying it, if it moves. */
@@ -52,6 +54,7 @@ type Editing = 'line' | 'whose' | null
  * folder is the same act for a keyboard.
  */
 export function LineItem({
+  origin,
   line,
   shelf,
   shelves,
@@ -188,6 +191,16 @@ export function LineItem({
         <span className="shrink-0 text-xs text-faint tabular-nums" title={t('notes.sungInHint')}>
           {t('notes.sungIn', { count: line.uses })}
         </span>
+      )}
+      {origin != null && line.origin_work_id != null && line.work_id !== line.origin_work_id && (
+        <Button
+          variant="link"
+          className="max-w-48 min-w-0 shrink-0 text-xs text-faint"
+          title={t('notes.aroseAtHint', { title: origin })}
+          onClick={() => void navigate(`/works/${line.origin_work_id ?? ''}`)}
+        >
+          <span className="truncate">{t('notes.aroseAt', { title: origin })}</span>
+        </Button>
       )}
       {work !== null && line.work_id !== null && (
         <Button

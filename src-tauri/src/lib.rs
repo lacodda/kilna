@@ -70,6 +70,7 @@ pub mod tray;
 pub mod trigger;
 pub mod undo;
 pub mod upkeep;
+pub mod wikilinks;
 pub mod words;
 pub mod work;
 pub mod work_plan;
@@ -363,6 +364,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::assistant::stop_task,
             commands::notes::list_notes,
             commands::notes::list_lines,
+            commands::notes::convert_wikilinks,
             commands::notes::keep_lines,
             commands::notes::list_shelves,
             commands::notes::create_shelf,

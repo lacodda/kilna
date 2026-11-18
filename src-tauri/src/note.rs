@@ -51,6 +51,12 @@ pub struct Note {
     pub medium: Option<String>,
     /// When an entry of the library was made, as said: `1913`, `c. 1308`.
     pub year: Option<String>,
+    /// The work it arose at (v0.145, FR-09 9.3): a phrase that came while a
+    /// song was written, fresh for the next one - apart from `work_id`, the
+    /// work it was spent in.
+    #[serde(default)]
+    #[ts(optional)]
+    pub origin_work_id: Option<String>,
 }
 
 /// Where a material note stands (ADR 0045). The code's words, not the
@@ -130,6 +136,9 @@ pub struct NewNote {
     pub medium: Option<String>,
     #[serde(default)]
     pub year: Option<String>,
+    /// The work it arose at (v0.145).
+    #[serde(default)]
+    pub origin_work_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
@@ -190,6 +199,12 @@ pub struct NotePatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub year: Option<Option<String>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub origin_work_id: Option<Option<String>>,
 }
 
 /// Narrowing applied to a listing. Every field may be left out - serde
@@ -212,10 +227,13 @@ pub struct NoteFilter {
     pub line: Option<bool>,
     /// Notes in this state.
     pub state: Option<NoteState>,
+    /// Notes that arose at this work (v0.145).
+    pub origin_work_id: Option<String>,
 }
 
 const SELECT_NOTE: &str = "SELECT id, profile_id, work_id, kind, title, body, tags, created_at, \
-     updated_at, layer, aliases, prompt, prompt_basis, state, attribution, medium, year FROM note";
+     updated_at, layer, aliases, prompt, prompt_basis, state, attribution, medium, year, \
+     origin_work_id FROM note";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewNote) -> Result<Note> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -238,8 +256,8 @@ pub fn create_minted(
     one_root(conn, profile_id, &kind, None)?;
 
     conn.execute(
-        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases, state, attribution, medium, year)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases, state, attribution, medium, year, origin_work_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         params![
             id,
             profile_id,
@@ -255,6 +273,7 @@ pub fn create_minted(
             blank_is_none(new.attribution),
             blank_is_none(new.medium),
             blank_is_none(new.year),
+            new.origin_work_id,
         ],
     )?;
 
@@ -376,6 +395,10 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &NoteFilter) -> Result<
         values.push(Box::new(state.as_str().to_owned()));
         sql.push_str(&format!(" AND state = ?{}", values.len()));
     }
+    if let Some(origin) = &filter.origin_work_id {
+        values.push(Box::new(origin.clone()));
+        sql.push_str(&format!(" AND origin_work_id = ?{}", values.len()));
+    }
     if let Some(line) = filter.line {
         // Which kinds are lines is the profile's word, read at the moment of
         // asking, as the canon's split is.
@@ -462,6 +485,14 @@ pub fn update_at(conn: &Connection, id: &str, patch: NotePatch, at: &str) -> Res
     }
     if let Some(work_id) = patch.work_id {
         set(&mut assignments, &mut values, "work_id", Box::new(work_id));
+    }
+    if let Some(origin) = patch.origin_work_id {
+        set(
+            &mut assignments,
+            &mut values,
+            "origin_work_id",
+            Box::new(origin),
+        );
     }
     if let Some(layer) = patch.layer {
         set(
@@ -735,6 +766,7 @@ struct RawNote {
     attribution: Option<String>,
     medium: Option<String>,
     year: Option<String>,
+    origin_work_id: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
@@ -756,6 +788,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
         attribution: row.get(14)?,
         medium: row.get(15)?,
         year: row.get(16)?,
+        origin_work_id: row.get(17)?,
     })
 }
 
@@ -779,6 +812,7 @@ impl RawNote {
             prompt_basis: self.prompt_basis,
             medium: self.medium,
             year: self.year,
+            origin_work_id: self.origin_work_id,
         })
     }
 }
@@ -788,6 +822,49 @@ mod tests {
     use super::*;
     use crate::fixtures;
     use crate::work::{self, NewWork};
+
+    /// A phrase that arose at a song remembers it and stays fresh; the
+    /// listing narrows to what arose at one work (v0.145).
+    #[test]
+    fn a_phrase_remembers_the_work_it_arose_at() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Orbit");
+        let phrase = create(
+            &conn,
+            &profile_id,
+            NewNote {
+                body: "a pendulum over the table".into(),
+                kind: Some("phrase".into()),
+                origin_work_id: Some(song.id.clone()),
+                ..NewNote::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(phrase.origin_work_id.as_deref(), Some(song.id.as_str()));
+        assert_eq!(phrase.state, NoteState::Fresh);
+        assert_eq!(phrase.work_id, None, "arising is not spending");
+        let found = list(
+            &conn,
+            &profile_id,
+            &NoteFilter {
+                origin_work_id: Some(song.id.clone()),
+                ..NoteFilter::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(found.len(), 1);
+        let freed = update_at(
+            &conn,
+            &phrase.id,
+            NotePatch {
+                origin_work_id: Some(None),
+                ..NotePatch::default()
+            },
+            &crate::time::now(),
+        )
+        .unwrap();
+        assert_eq!(freed.origin_work_id, None);
+    }
 
     fn note(body: &str, tags: &[&str]) -> NewNote {
         NewNote {

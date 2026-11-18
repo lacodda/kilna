@@ -1,8 +1,10 @@
+import { useSelections } from '@/lib/selections'
+import { WikilinkDialog } from '@/features/notes/WikilinkDialog'
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { ListChecks, Plus } from 'lucide-react'
+import { Link2, ListChecks, Pin, Plus } from 'lucide-react'
 import { createNote } from '@/lib/api/notes'
 import type { Note, NoteKind, NoteState } from '@/lib/api/types'
 import { progressOf } from '@/lib/checklist'
@@ -81,6 +83,9 @@ export function NotesView() {
   const query = useDebounced(text.trim(), 200)
   // A note just made opens in the editor rather than as an empty page.
   const [fresh, setFresh] = useState<string | null>(null)
+  const [converting, setConverting] = useState(false)
+  // The pinned selections of the side panel (v0.145, FR-09 9.1).
+  const { selections, pin, unpin } = useSelections()
 
   const material = isMaterial(config, kind)
   const line = isLine(config, kind)
@@ -187,6 +192,24 @@ export function NotesView() {
           )}
           {/* The tag on show can be renamed, or taken off every note. */}
           {tag !== '' && <TagMenu tag={tag} onTag={setTag} />}
+          {/* A tag of a kind on show, pinned to the side panel. */}
+          {tag !== '' &&
+            kind !== undefined &&
+            !selections.some((one) => one.kind === kind && one.tag === tag) && (
+              <Button variant="ghost" onClick={() => pin({ kind, tag })}>
+                <Pin aria-hidden />
+                {t('notes.pinSelection')}
+              </Button>
+            )}
+          <Button
+            variant="icon"
+            size="icon-md"
+            aria-label={t('notes.wikilinks')}
+            title={t('notes.wikilinks')}
+            onClick={() => setConverting(true)}
+          >
+            <Link2 aria-hidden />
+          </Button>
           {!line && kind !== undefined && (
             <Button
               variant="primary"
@@ -207,7 +230,42 @@ export function NotesView() {
         <ListDetail
           open={selected !== undefined}
           list={
-            <Pane label={t('nav.notes')} bodyClassName="p-1.5">
+            <Pane
+              label={t('nav.notes')}
+              bodyClassName="p-1.5"
+              head={
+                selections.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    <b className="text-2xs tracking-caption text-faint uppercase">
+                      {t('notes.selections')}
+                    </b>
+                    <div className="flex flex-wrap gap-1">
+                      {selections.map((one) => (
+                        <Chip
+                          key={`${one.kind}:${one.tag}`}
+                          onRemove={() => unpin(one)}
+                          removeLabel={t('notes.unpinSelection', { tag: one.tag })}
+                        >
+                          <Button
+                            variant="link"
+                            onClick={() => {
+                              setTag(one.tag)
+                              if (one.kind !== kind) setKind(one.kind)
+                            }}
+                          >
+                            {one.tag}
+                            <span className="text-faint">
+                              {' · '}
+                              {labelOf(kinds, one.kind)}
+                            </span>
+                          </Button>
+                        </Chip>
+                      ))}
+                    </div>
+                  </div>
+                ) : undefined
+              }
+            >
               <Loaded
                 query={notes}
                 skeleton={<SkeletonList rows={6} />}
@@ -273,6 +331,7 @@ export function NotesView() {
           }
         />
       )}
+      {converting && <WikilinkDialog onClose={() => setConverting(false)} />}
     </Frame>
   )
 }

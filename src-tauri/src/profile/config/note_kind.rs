@@ -60,6 +60,11 @@ pub struct NoteKind {
     /// reads them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub media: Vec<Medium>,
+    /// A note of this kind is a long document (v0.145, FR-09 9.1): read in a
+    /// reading view of its own, with its headings as an outline, apart from
+    /// the short working notes.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub document: bool,
     /// Turned off in the profile editor (v0.141, FR-18): a kind of card not
     /// offered for a new card, and no passport made of it with a space.
     /// Cards of it already made stay, and read as they did.
@@ -101,6 +106,7 @@ impl NoteKind {
             line: false,
             library: false,
             media: Vec::new(),
+            document: false,
             off: false,
         }
     }

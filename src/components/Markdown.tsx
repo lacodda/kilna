@@ -8,7 +8,7 @@ import { marked } from 'marked'
 import type { ResolvedLink } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { BODY_PREFIX, urlOf } from '@/lib/notePictures'
-import { hrefOf, replaceWikiLinks, wikiLinks } from '@/lib/wikilink'
+import { hrefOf, inAppLinks, replaceWikiLinks, wikiLinks } from '@/lib/wikilink'
 import { cn } from '@/lib/utils'
 import { CopyButton } from '@/components/ui/copy-button'
 
@@ -92,7 +92,7 @@ export function Markdown({
             const text = (link.label ?? target.title).replace(/[[\]]/g, '')
             return href === undefined ? text : `[${text}](${href})`
           })
-    const parsed = marked.parse(source, { async: false, breaks: true })
+    const parsed = marked.parse(inAppLinks(source), { async: false, breaks: true })
     const clean = DOMPurify.sanitize(parsed)
     // After the sanitiser, which keeps a relative `src` as it is: only a bare
     // name inside `media/` becomes the workspace's file, and anything else

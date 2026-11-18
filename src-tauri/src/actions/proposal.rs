@@ -988,6 +988,7 @@ fn keep(
                                 work_id: chat.work_id.clone(),
                                 tags: one.tags,
                                 layer: one.layer,
+                                origin_work_id: one.origin_work_id,
                                 ..Default::default()
                             },
                         )?

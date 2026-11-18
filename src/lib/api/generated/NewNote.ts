@@ -18,4 +18,8 @@ state?: NoteState,
 /**
  * For an entry of the library: its medium and when it was made.
  */
-medium?: string, year?: string, };
+medium?: string, year?: string, 
+/**
+ * The work it arose at (v0.145).
+ */
+origin_work_id?: string, };

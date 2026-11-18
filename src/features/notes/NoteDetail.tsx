@@ -62,6 +62,10 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
   // workspace (ADR 0066): the boards link to it, it is attached to none and
   // grows into no work.
   const library = config.note_kinds.find((kind) => kind.key === note.kind && kind.library === true)
+  // A long document is read rather than edited until asked (v0.145).
+  const document = config.note_kinds.some(
+    (kind) => kind.key === note.kind && kind.document === true,
+  )
 
   const [title, setTitle] = useState(note.title ?? '')
   const [editing, setEditing] = useState(startEditing)
@@ -269,6 +273,8 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
               {t('notes.bodyPlaceholder')}
             </Button>
           </div>
+        ) : document ? (
+          <DocumentReader text={body.text} onEdit={() => setEditing(true)} />
         ) : (
           <div className="px-5 py-4" onDoubleClick={() => setEditing(true)}>
             <Markdown
@@ -324,4 +330,64 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       />
     </section>
   )
+}
+
+/**
+ * A long document as it is read (v0.145, FR-09 9.1): its headings as an
+ * outline beside it, each a press to its place, and the text set for reading -
+ * a measure a line can be followed along, a size a page is read at.
+ */
+function DocumentReader({ text, onEdit }: { text: string; onEdit: () => void }) {
+  const { t } = useTranslation()
+  const page = useRef<HTMLDivElement>(null)
+  const outline = outlineOf(text)
+  return (
+    <div className="flex gap-6 px-5 py-4">
+      {outline.length > 1 && (
+        <nav aria-label={t('notes.outline')} className="sticky top-0 w-48 shrink-0 self-start">
+          <b className="text-2xs tracking-caption text-faint uppercase">{t('notes.outline')}</b>
+          <ul className="mt-1 flex flex-col gap-0.5 text-xs">
+            {outline.map((heading, index) => (
+              <li
+                key={`${String(index)}-${heading.text}`}
+                style={{ paddingLeft: (heading.level - 1) * 10 }}
+              >
+                <Button
+                  variant="link"
+                  className="text-left text-xs whitespace-normal"
+                  onClick={() => {
+                    const headings = page.current?.querySelectorAll('h1, h2, h3')
+                    headings?.[index]?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                  }}
+                >
+                  {heading.text}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+      <div ref={page} className="max-w-prose min-w-0 flex-1" onDoubleClick={onEdit}>
+        <Markdown body={text} className="text-base leading-relaxed" />
+      </div>
+    </div>
+  )
+}
+
+/** The headings of a markdown text, first to third level, outside code. */
+export function outlineOf(text: string): { level: number; text: string }[] {
+  const out: { level: number; text: string }[] = []
+  let fenced = false
+  for (const line of text.split('\n')) {
+    if (line.trimStart().startsWith('```')) {
+      fenced = !fenced
+      continue
+    }
+    if (fenced) continue
+    const found = /^(#{1,3})\s+(.+?)\s*#*\s*$/.exec(line)
+    if (found?.[1] !== undefined && found[2] !== undefined) {
+      out.push({ level: found[1].length, text: found[2] })
+    }
+  }
+  return out
 }

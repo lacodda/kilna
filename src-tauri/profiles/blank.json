@@ -266,7 +266,8 @@
           "en": "Note",
           "ru": "Заметка"
         }
-      }
+      },
+      { "key": "document", "label": { "en": "Document", "ru": "Документ" }, "icon": "book", "document": true }
     ]
   }
 }

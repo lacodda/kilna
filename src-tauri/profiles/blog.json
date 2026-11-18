@@ -341,7 +341,8 @@
       },
     { "key": "source", "label": { "en": "Library", "ru": "Библиотека" }, "icon": "library", "library": true, "media": [{"key": "literature", "label": { "en": "Literature", "ru": "Литература" }}, {"key": "film", "label": { "en": "Film", "ru": "Кино" }}, {"key": "painting", "label": { "en": "Painting", "ru": "Живопись" }}, {"key": "music", "label": { "en": "Music", "ru": "Музыка" }, "quoted": false}, {"key": "scripture", "label": { "en": "Scripture", "ru": "Священный текст" }}, {"key": "myth", "label": { "en": "Myth", "ru": "Миф" }}, {"key": "history", "label": { "en": "History", "ru": "История" }}, {"key": "place", "label": { "en": "Place", "ru": "Место" }}] },
     { "key": "phrase", "label": { "en": "Phrase", "ru": "Фраза" }, "icon": "quote", "material": true, "line": true },
-    { "key": "note", "label": { "en": "Note", "ru": "Заметка" } }
+    { "key": "note", "label": { "en": "Note", "ru": "Заметка" } },
+      { "key": "document", "label": { "en": "Document", "ru": "Документ" }, "icon": "book", "document": true }
     ],
     "relation_kinds": [
       {

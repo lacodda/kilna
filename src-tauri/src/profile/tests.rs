@@ -1420,9 +1420,16 @@ fn seed_takes_a_retired_note_kind_out_of_an_existing_profile() {
         .collect();
     assert_eq!(plain, ["phrase", "note", "source"]);
     assert_eq!(kinds[0], "phrase");
+    // The document (v0.145), new to this copy, arrives after the note it
+    // follows in the shipped list, before the card that stood there.
     assert_eq!(
-        kinds[..3],
-        ["phrase".to_string(), "note".to_string(), card.key]
+        kinds[..4],
+        [
+            "phrase".to_string(),
+            "note".to_string(),
+            "document".to_string(),
+            card.key
+        ]
     );
     assert!(!kinds.contains(&"idea".to_string()));
 }

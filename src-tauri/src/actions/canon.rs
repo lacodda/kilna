@@ -504,6 +504,7 @@ pub fn keep_package(
                 state: None,
                 medium: None,
                 year: None,
+                origin_work_id: None,
             },
         )?;
         made.insert(card.handle, created.id.clone());

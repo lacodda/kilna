@@ -651,6 +651,7 @@ it was made.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `library` | boolean, optional | The kind is the library. One kind of a profile at most, and neither a card of the canon, material nor a line. |
+| `document` | boolean, optional | A note of this kind is a long document, read with its headings as an outline. Every shipped profile has a `document` kind since v0.145. |
 | `media` | list, optional | What an entry can be in, each a `key` and a `label`, in the order the board's **By kind** reads them. Only on the library. `quoted: false` marks a medium whose works are never quoted to a writer - a song's lyrics: the card names the song and says why, and its quotes never reach the order. |
 
 Shipped, the media are literature, film, painting, music (not quoted),

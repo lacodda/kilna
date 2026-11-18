@@ -2156,6 +2156,15 @@
         }
       },
       {
+        "key": "document",
+        "label": {
+          "en": "Document",
+          "ru": "Документ"
+        },
+        "icon": "book",
+        "document": true
+      },
+      {
         "key": "source",
         "label": {
           "en": "Library",

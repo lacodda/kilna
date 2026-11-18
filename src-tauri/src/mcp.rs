@@ -1113,6 +1113,7 @@ fn tools() -> Vec<Value> {
                 "body": text_arg("The note itself"),
                 "attribution": text_arg("Whose words a phrase is - the author, the film; optional"),
                 "shelf": text_arg("The shelf a phrase goes on, by name; optional"),
+                "origin_work": text_arg("The work a new note or phrase arose at, by id or exact title - it stays fresh and remembers it; optional"),
                 "tags": { "type": "array", "items": { "type": "string" }, "description": "The note's tags; for a change, the tags it will have" },
                 "layer": text_arg("Who may read it: public, internal or inWorks; optional"),
                 "note": text_arg("A note that is there, by id or exact title: propose a change to it"),
@@ -3252,6 +3253,7 @@ pub fn run_tool(
                 || args.get("tags").is_some()
                 || arg(args, "layer").is_some()
                 || arg(args, "note").is_some()
+                || arg(args, "origin_work").is_some()
             {
                 let raw: Vec<Value> = match args.get("notes") {
                     Some(Value::Array(list)) if !list.is_empty() => list.clone(),
@@ -3414,6 +3416,12 @@ fn read_proposed_note(
         _ => Vec::new(),
     };
     let body = text("body").unwrap_or_default();
+    // The work a new note arose at (v0.145): a phrase that came while a song
+    // was written remembers the song, and stays fresh for the next one.
+    let origin_work_id = match arg(object, "origin_work") {
+        Some(named) => Some(find_work(conn, profile_id, named)?.id),
+        None => None,
+    };
     let target = match arg(object, "note") {
         Some(named) => Some(find_note(conn, profile_id, named)?),
         None => None,
@@ -3436,6 +3444,7 @@ fn read_proposed_note(
             tags: found.tags.clone(),
         }),
         note: target.map(|found| found.id),
+        origin_work_id,
     })
 }
 

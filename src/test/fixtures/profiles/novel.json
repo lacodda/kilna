@@ -1118,6 +1118,15 @@
             }
           }
         ]
+      },
+      {
+        "document": true,
+        "icon": "book",
+        "key": "document",
+        "label": {
+          "en": "Document",
+          "ru": "Документ"
+        }
       }
     ],
     "prompts": [

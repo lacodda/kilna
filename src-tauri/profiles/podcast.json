@@ -301,7 +301,8 @@
             "label": { "en": "Place", "ru": "Место" }
           }
         ]
-      }
+      },
+      { "key": "document", "label": { "en": "Document", "ru": "Документ" }, "icon": "book", "document": true }
     ],
     "relation_kinds": [
       {

@@ -34,6 +34,22 @@ fn main() {
             }
         });
     }
+    // `kilna --import-ideas <file>` brings a bank of phrases kept as markdown
+    // into a space (FR-09 9.3), and with `--documents-tagged <a,b>` marks the
+    // notes carrying those tags as documents: a plan and a report unless
+    // `--apply` is said; `--space <name>` a space other than the last open.
+    if args.iter().any(|arg| arg == "--import-ideas") {
+        std::process::exit(match import_ideas(&args) {
+            Ok(report) => {
+                println!("{}", report.display());
+                0
+            }
+            Err(err) => {
+                eprintln!("kilna --import-ideas: {err}");
+                1
+            }
+        });
+    }
     // `kilna --demo-all` makes a demo stand in the application folder (or the
     // one `--workspace` names): a space of every shipped craft with its demo,
     // wiped and made again on the next call. `kilna --seed-demo` fills one
@@ -90,6 +106,30 @@ fn values_of<'a>(args: &'a [String], flag: &str) -> Vec<&'a String> {
         .filter(|pair| pair[0] == flag)
         .map(|pair| &pair[1])
         .collect()
+}
+
+fn import_ideas(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
+    let app_dir = match workspace_arg(args) {
+        Some(dir) => dir,
+        None => kilna_lib::space::app_dir()?,
+    };
+    let file = values_of(args, "--import-ideas")
+        .first()
+        .map(std::path::PathBuf::from)
+        .ok_or_else(|| kilna_lib::Error::refused("import.noFile"))?;
+    let tagged: Vec<String> = values_of(args, "--documents-tagged")
+        .into_iter()
+        .flat_map(|list| list.split(',').map(|tag| tag.trim().to_owned()))
+        .filter(|tag| !tag.is_empty())
+        .collect();
+    let space = values_of(args, "--space").first().map(|name| name.as_str());
+    kilna_lib::exchange::ideas::run(
+        &app_dir,
+        space,
+        &file,
+        &tagged,
+        args.iter().any(|arg| arg == "--apply"),
+    )
 }
 
 fn rehome(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {

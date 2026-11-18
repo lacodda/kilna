@@ -1,3 +1,4 @@
+import type { WikiReport } from '@/lib/api/types'
 import { invoke } from '@tauri-apps/api/core'
 import type {
   Kept,
@@ -51,3 +52,7 @@ export const addToShelf = (shelfId: string, noteId: string) =>
   invoke<null>('add_to_shelf', { shelfId, noteId })
 export const removeFromShelf = (shelfId: string, noteId: string) =>
   invoke<null>('remove_from_shelf', { shelfId, noteId })
+/** Obsidian's `[[links]]` in the notes, looked for - and written as kilna's
+ *  own with `apply` (v0.145). */
+export const convertWikilinks = (apply: boolean) =>
+  invoke<WikiReport>('convert_wikilinks', { apply })

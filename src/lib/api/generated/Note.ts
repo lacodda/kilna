@@ -54,4 +54,10 @@ medium: string | null,
 /**
  * When an entry of the library was made, as said: `1913`, `c. 1308`.
  */
-year: string | null, };
+year: string | null, 
+/**
+ * The work it arose at (v0.145, FR-09 9.3): a phrase that came while a
+ * song was written, fresh for the next one - apart from `work_id`, the
+ * work it was spent in.
+ */
+origin_work_id?: string, };

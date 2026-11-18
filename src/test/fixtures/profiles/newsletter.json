@@ -504,6 +504,15 @@
           "en": "Note",
           "ru": "Заметка"
         }
+      },
+      {
+        "document": true,
+        "icon": "book",
+        "key": "document",
+        "label": {
+          "en": "Document",
+          "ru": "Документ"
+        }
       }
     ],
     "prompts": [

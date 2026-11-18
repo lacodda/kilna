@@ -20,6 +20,17 @@ pub fn list_notes(state: State<'_, AppState>, filter: Option<NoteFilter>) -> Res
 
 /// The phrases a filter leaves, each with its shelves, how many works say it
 /// and how it is sung (ADR 0064).
+/// Obsidian's `[[links]]` in the notes, looked for - and with `apply`, written
+/// as kilna's own (v0.145, FR-09 9.2).
+#[tauri::command]
+pub fn convert_wikilinks(
+    state: State<'_, AppState>,
+    apply: bool,
+) -> Result<crate::wikilinks::WikiReport> {
+    let conn = state.conn();
+    crate::wikilinks::convert(&conn, &active(&conn)?, apply)
+}
+
 #[tauri::command]
 pub fn list_lines(
     state: State<'_, AppState>,
