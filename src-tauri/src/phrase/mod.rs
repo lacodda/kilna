@@ -599,6 +599,7 @@ mod tests {
         StyleBrick {
             source: None,
             favorite: false,
+            contract: Default::default(),
             id: id.into(),
             profile_id: "p".into(),
             type_key: "groove".into(),

@@ -60,6 +60,7 @@ pub mod space;
 pub mod speech;
 pub mod state;
 pub mod style_brick;
+pub mod style_proposal;
 pub mod style_set;
 pub mod time;
 pub mod time_off;

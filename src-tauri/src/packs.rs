@@ -118,6 +118,18 @@ impl PackBrick {
             colours: &self.colours,
             sample: self.sample.as_deref(),
             explanation: self.explanation.as_ref(),
+            needs: &self.needs,
+            provides: &self.provides,
+            conflicts: &self.conflicts,
+        }
+    }
+
+    /// The contract the brick carries into the dictionary.
+    pub fn contract(&self) -> crate::style_brick::Contract {
+        crate::style_brick::Contract {
+            needs: self.needs.clone(),
+            provides: self.provides.clone(),
+            conflicts: self.conflicts.clone(),
         }
     }
 
@@ -386,6 +398,7 @@ pub fn install(
                         set_key: Some(brick.key.clone()),
                         set_digest: Some(brick.digest()),
                         source: Some(source.clone()),
+                        contract: Some(brick.contract()),
                         ..NewStyleBrick::default()
                     },
                 )?;
@@ -417,6 +430,7 @@ pub fn install(
                         colours: Some(brick.colours.clone()),
                         sample: Some(brick.sample.clone()),
                         explanation: Some(brick.explanation.clone()),
+                        contract: Some(brick.contract()),
                         set_digest: Some(Some(brick.digest())),
                         ..StyleBrickPatch::default()
                     },

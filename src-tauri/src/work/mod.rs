@@ -666,6 +666,13 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
         );
     }
     if let Some(frame) = &patch.frame {
+        let profile_id = get(conn, id)?.ok_or_else(|| unknown_work(id))?.profile_id;
+        crate::cover::check_layers(
+            conn,
+            &profile_id,
+            frame.bricks.as_ref(),
+            &frame.motion_bricks,
+        )?;
         // Judged against the kind the work will have, as the cover is: a
         // frame on a kind that plays under no picture is a frame nothing
         // will ever show.

@@ -17,6 +17,10 @@ use serde::{Deserialize, Serialize};
 /// leaf to cross the frame, short enough to join without a visible seam.
 pub const DEFAULT_SECONDS: u32 = 6;
 
+/// The most movements one loop is built from (v0.134): past five a loop is
+/// a scene, and a generator follows none of them well.
+pub const MOST_MOVEMENTS: usize = 5;
+
 /// The lengths a loop may run, in seconds. A generator makes clips of a few
 /// seconds; a turn shorter than two reads as a stutter and one longer than
 /// twenty is a scene, not a loop.
@@ -58,6 +62,42 @@ pub struct Frame {
     /// different one suits a picture with no words on it. Absent, the
     /// cover's.
     pub framing: Option<crate::cover::Framing>,
+    /// What the frame does differently from the cover it is built from
+    /// (v0.134, FR-07 7.2): each absent part is the cover's.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub subject: Option<crate::cover::Subject>,
+    /// Its own hero - or `null` for none where the cover has one.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[ts(optional)]
+    pub hero: Option<Option<crate::cover::Hero>>,
+    /// Its own bricks, the whole set: the cover's are copied in to start from.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub bricks: Option<crate::cover::Bricks>,
+    /// Its own accent - or `null` for none.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[ts(optional)]
+    pub accent: Option<Option<crate::cover::Accent>>,
+    /// What its background is to it: a palette or the whole flat ground.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub ground: Option<crate::cover::Ground>,
+    /// The movements of the loop, by brick id, from the dictionary's Motion
+    /// branch (v0.134): up to [`MOST_MOVEMENTS`], read against the picture
+    /// and each other by their contracts, and written before the person's
+    /// own words for what moves.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[ts(optional, as = "Option<Vec<String>>")]
+    pub motion_bricks: Vec<String>,
 }
 
 impl Default for Frame {
@@ -71,6 +111,12 @@ impl Default for Frame {
             negative: String::new(),
             built: None,
             framing: None,
+            subject: None,
+            hero: None,
+            bricks: None,
+            accent: None,
+            ground: None,
+            motion_bricks: Vec::new(),
         }
     }
 }
@@ -118,11 +164,55 @@ impl Frame {
     /// named to move still breathes: an empty motion is the light, barely,
     /// rather than a sentence with a hole in it.
     pub fn prompts(&self) -> FramePrompts {
-        let motion = self.motion.trim().trim_end_matches('.');
-        let motion = if motion.is_empty() {
-            "barely noticeable breathing of the light"
+        self.prompts_with(&[])
+    }
+
+    /// The cover a frame built from `cover` is drawn from: the cover with
+    /// the frame's own parts over it.
+    pub fn over(&self, cover: &crate::cover::Cover) -> crate::cover::Cover {
+        let mut own = cover.clone();
+        if let Some(framing) = self.framing {
+            own.framing = Some(framing);
+        }
+        if let Some(subject) = self.subject {
+            own.staging.subject = Some(subject);
+        }
+        if let Some(hero) = &self.hero {
+            own.hero = hero.clone();
+        }
+        if let Some(bricks) = &self.bricks {
+            own.bricks = bricks.clone();
+        }
+        if let Some(accent) = &self.accent {
+            own.accent = accent.clone();
+        }
+        if let Some(ground) = self.ground {
+            own.staging.ground = ground;
+        }
+        own
+    }
+
+    /// The frame as three blocks, the loop written from `movements` - the
+    /// descriptions of the movements the contracts let in, in their order -
+    /// and then the person's own words for what moves.
+    pub fn prompts_with(&self, movements: &[String]) -> FramePrompts {
+        let mut said: Vec<String> = movements
+            .iter()
+            .map(|text| {
+                let text = text.trim();
+                let text = text.strip_prefix("MOTION:").unwrap_or(text).trim();
+                text.trim_end_matches('.').to_owned()
+            })
+            .filter(|text| !text.is_empty())
+            .collect();
+        let own = self.motion.trim().trim_end_matches('.');
+        if !own.is_empty() {
+            said.push(own.to_owned());
+        }
+        let motion = if said.is_empty() {
+            "barely noticeable breathing of the light".to_owned()
         } else {
-            motion
+            said.join("; ")
         };
         let mut sentences = vec![format!("LOOP ({} s): {motion}.", self.seconds())];
         if self.still_camera {
@@ -178,6 +268,26 @@ mod tests {
         );
         assert!(prompts.loop_.contains("The camera does not move at all."));
         assert!(prompts.loop_.contains("Seamless loop"));
+    }
+
+    #[test]
+    fn the_loop_says_the_movements_first_and_the_own_words_after() {
+        let frame = Frame {
+            motion: "a curtain stirs.".into(),
+            seconds: 8,
+            ..Frame::default()
+        };
+        let prompts = frame.prompts_with(&[
+            "MOTION: steady rain falls straight down; the rest of the frame stays still.".into(),
+            "MOTION: the subject blinks once every five seconds.".into(),
+        ]);
+        assert!(
+            prompts.loop_.starts_with(
+                "LOOP (8 s): steady rain falls straight down; the rest of the frame stays still; the subject blinks once every five seconds; a curtain stirs."
+            ),
+            "{}",
+            prompts.loop_
+        );
     }
 
     /// Each setting says its sentence and nothing else does: a camera allowed

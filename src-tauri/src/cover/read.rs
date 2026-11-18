@@ -8,6 +8,8 @@
 //! bans the negative, house styles the bricks offered first, slots the
 //! captions a dressing is filled with.
 
+use std::collections::BTreeSet;
+
 use rusqlite::Connection;
 use serde::Serialize;
 
@@ -156,6 +158,174 @@ pub enum Problem {
     /// The title and the channel's mark are both sent to the lower left
     /// corner.
     TitleOnMark,
+    /// A loop has five movements already: this one is left out (v0.134).
+    TooManyMovements { name: String },
+    /// A chosen brick needs what the picture is not (v0.134): left out of
+    /// the prompt, kept in the cover. `fix` is the one change that lets it in.
+    ContractUnmet {
+        place: String,
+        /// The brick's id and name.
+        id: String,
+        name: String,
+        need: String,
+        fix: ContractFix,
+    },
+    /// A chosen brick cannot stand a tag of the picture's, or one a brick
+    /// kept before it brings (`by`, that brick's place).
+    ContractConflict {
+        place: String,
+        id: String,
+        name: String,
+        tag: String,
+        by: Option<String>,
+        fix: ContractFix,
+    },
+}
+
+/// The one change that lets a left-out brick into the picture (v0.134).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ContractFix {
+    /// Show this much of the subject.
+    Crop { crop: framing::Crop },
+    /// Make the picture of this.
+    Subject { subject: Subject },
+    /// Take the background as a palette, or as the whole ground.
+    Ground { ground: super::Ground },
+    /// Let the camera move.
+    MovingCamera,
+    /// Take a brick out of its place - this one, or the one in its way:
+    /// nothing about the picture lets it in otherwise.
+    Remove { place: String, id: String },
+}
+
+impl ContractFix {
+    /// What would let in a brick whose `need` failed, in `place`.
+    fn for_need(place: &str, id: &str, need: &str) -> Self {
+        let crop = |word: &str| {
+            framing::Crop::ALL.into_iter().find(|crop| {
+                super::contract::crop_tag(*crop, framing::Size::Large) == format!("crop:{word}")
+            })
+        };
+        if let Some(word) = need
+            .strip_prefix("crop:min:")
+            .or_else(|| need.strip_prefix("crop:max:"))
+            && let Some(crop) = crop(word)
+        {
+            return Self::Crop { crop };
+        }
+        if let Some(subject) = Subject::ALL
+            .into_iter()
+            .find(|subject| super::contract::subject_tag(*subject) == need)
+        {
+            return Self::Subject { subject };
+        }
+        match need {
+            "scenery:yes" => Self::Ground {
+                ground: super::Ground::Palette,
+            },
+            "scenery:flat" => Self::Ground {
+                ground: super::Ground::Flat,
+            },
+            _ => Self::Remove {
+                place: place.to_owned(),
+                id: id.to_owned(),
+            },
+        }
+    }
+
+    /// What would let in a brick that cannot stand `tag`: the picture's own
+    /// tag changed, or the brick that brings it (`by`: its place and id)
+    /// taken out.
+    fn for_conflict(place: &str, id: &str, tag: &str, by: Option<(&str, &str)>) -> Self {
+        match (tag, by) {
+            ("camera:static", None) => Self::MovingCamera,
+            ("scenery:flat", None) => Self::Ground {
+                ground: super::Ground::Palette,
+            },
+            (_, Some((place, id))) => Self::Remove {
+                place: place.to_owned(),
+                id: id.to_owned(),
+            },
+            _ => Self::Remove {
+                place: place.to_owned(),
+                id: id.to_owned(),
+            },
+        }
+    }
+}
+
+/// The tags of a picture a contract is read against (v0.134): who it is of,
+/// how much of them shows, whether the ground is flat, whether a title is
+/// lettered.
+pub fn picture_tags(cover: &Cover, target: Target, title: &str) -> BTreeSet<String> {
+    let mut tags = BTreeSet::new();
+    tags.insert(super::contract::subject_tag(cover.subject_of()).to_owned());
+    if let Some(framing) = cover.framing {
+        tags.insert(super::contract::crop_tag(framing.crop, framing.size));
+    }
+    let flat = cover.bricks.background.is_some()
+        && target != Target::Scene
+        && cover.staging.ground == super::Ground::Flat;
+    tags.insert(if flat { "scenery:flat" } else { "scenery:yes" }.to_owned());
+    if target.lettering() && !title.trim().is_empty() {
+        tags.insert("title:present".to_owned());
+    }
+    tags
+}
+
+/// Read the chosen bricks of `chosen` against `tags` and say each one left
+/// out. The verdicts come back in the same order; `tags` gains what the kept
+/// ones bring.
+fn judge(
+    tags: &mut BTreeSet<String>,
+    chosen: &[(&str, &StyleBrick)],
+    problems: &mut Vec<Problem>,
+) -> Vec<bool> {
+    let read: Vec<super::contract::Chosen<'_>> = chosen
+        .iter()
+        .map(|(place, brick)| super::contract::Chosen {
+            place,
+            contract: &brick.contract,
+        })
+        .collect();
+    let verdicts = super::contract::resolve(tags, &read);
+    let mut kept = Vec::with_capacity(chosen.len());
+    for ((place, brick), verdict) in chosen.iter().zip(verdicts) {
+        let name = brick.name.clone();
+        let id = brick.id.clone();
+        match verdict {
+            super::contract::Verdict::Kept => {
+                tags.extend(brick.contract.provides.iter().cloned());
+                kept.push(true);
+            }
+            super::contract::Verdict::Unmet { need } => {
+                problems.push(Problem::ContractUnmet {
+                    place: (*place).to_owned(),
+                    fix: ContractFix::for_need(place, &id, &need),
+                    id,
+                    name,
+                    need,
+                });
+                kept.push(false);
+            }
+            super::contract::Verdict::Conflict { tag, by } => {
+                let by = by
+                    .and_then(|at| chosen.get(at))
+                    .map(|(place, other)| (*place, other.id.as_str()));
+                problems.push(Problem::ContractConflict {
+                    place: (*place).to_owned(),
+                    fix: ContractFix::for_conflict(place, &id, &tag, by),
+                    id,
+                    name,
+                    tag,
+                    by: by.map(|(place, _)| place.to_owned()),
+                });
+                kept.push(false);
+            }
+        }
+    }
+    kept
 }
 
 /// What the Cover tab draws: the prompt, the scheme, and everything the
@@ -362,6 +532,9 @@ fn colour_name(body: &str) -> String {
 /// What a cover's chosen parts read as, and what is wrong with them.
 struct Resolved {
     parts: Ingredients,
+    /// The picture's tags with what the kept bricks bring: what a frame's
+    /// movements are read against.
+    tags: BTreeSet<String>,
     hero: Option<HeroState>,
     references: Vec<Reference>,
     problems: Vec<Problem>,
@@ -419,6 +592,55 @@ fn resolve(
     } else {
         brick(cover.bricks.background.as_deref(), "background")?
     };
+    let mut layers: Vec<(&str, StyleBrick)> = Vec::new();
+    for (place, id) in cover.bricks.layers() {
+        if let Some(found) = brick(Some(id), place)? {
+            layers.push((place, found));
+        }
+    }
+
+    // One rule for every chosen brick (v0.134): read in their order against
+    // the picture's tags; a brick left out stays in the cover and is said.
+    let mut tags = picture_tags(cover, target, &title);
+    let (mut style, mut background, mut typography, mut dressing) =
+        (style, background, typography, dressing);
+    {
+        let mut chosen: Vec<(&str, &StyleBrick)> = Vec::new();
+        for (place, found) in [
+            ("style", style.as_ref()),
+            ("background", background.as_ref()),
+        ] {
+            if let Some(found) = found {
+                chosen.push((place, found));
+            }
+        }
+        chosen.extend(layers.iter().map(|(place, found)| (*place, found)));
+        for (place, found) in [
+            ("typography", typography.as_ref()),
+            ("dressing", dressing.as_ref()),
+        ] {
+            if let Some(found) = found {
+                chosen.push((place, found));
+            }
+        }
+        let kept = judge(&mut tags, &chosen, &mut problems);
+        let left_out: Vec<&str> = chosen
+            .iter()
+            .zip(&kept)
+            .filter(|(_, kept)| !**kept)
+            .map(|((place, _), _)| *place)
+            .collect();
+        drop(chosen);
+        for place in left_out {
+            match place {
+                "style" => style = None,
+                "background" => background = None,
+                "typography" => typography = None,
+                "dressing" => dressing = None,
+                layer => layers.retain(|(one, _)| *one != layer),
+            }
+        }
+    }
 
     if let Some(style) = &style {
         for picture in crate::asset::for_style_brick(conn, &style.id)? {
@@ -552,6 +774,11 @@ fn resolve(
         bans,
         channel_slots: channel.slots.clone(),
         title,
+        layers: layers
+            .into_iter()
+            .filter_map(|(place, found)| found.description.map(|text| (place.to_owned(), text)))
+            .collect(),
+        mono: tags.contains("color:mono"),
     };
     if lettering {
         for slot in required_slots_of(&parts) {
@@ -568,6 +795,7 @@ fn resolve(
     }
     Ok(Resolved {
         parts,
+        tags,
         hero: hero_state,
         references,
         problems,
@@ -812,24 +1040,23 @@ pub fn frame_view(conn: &Connection, work_id: &str) -> Result<FrameView> {
             height: 9,
         });
     let frame = &work.frame;
-    let written = frame.prompts();
+    let cover = frame.over(&work.cover);
     if !frame.from_cover() {
+        let mut problems = Vec::new();
+        let mut tags = picture_tags(&cover, Target::Frame, "");
+        let movements = movements_of(conn, frame, &mut tags, &mut problems)?;
         return Ok(FrameView {
-            prompts: written,
+            prompts: frame.prompts_with(&movements),
             from_cover: false,
             format: shape.name(),
             scheme: None,
             layouts: Vec::new(),
             details: Vec::new(),
-            problems: Vec::new(),
+            problems,
         });
     }
 
     let channel = Channel::read(conn, &work.profile_id, &config)?;
-    let mut cover = work.cover.clone();
-    if let Some(framing) = frame.framing {
-        cover.framing = Some(framing);
-    }
     let mut resolved = resolve(
         conn,
         &config,
@@ -860,6 +1087,9 @@ pub fn frame_view(conn: &Connection, work_id: &str) -> Result<FrameView> {
             mark: None,
         })
     });
+    let mut tags = resolved.tags.clone();
+    let movements = movements_of(conn, frame, &mut tags, &mut resolved.problems)?;
+    let written = frame.prompts_with(&movements);
     Ok(FrameView {
         prompts: crate::work::frame::FramePrompts {
             still: built.picture,
@@ -879,6 +1109,49 @@ pub fn frame_view(conn: &Connection, work_id: &str) -> Result<FrameView> {
     })
 }
 
+/// The movements of a frame's loop the contracts let in, as their
+/// descriptions in their order (v0.134). Read against the picture's `tags`
+/// and a camera that holds still when the frame says so; past
+/// [`crate::work::frame::MOST_MOVEMENTS`] kept, the rest are said and left
+/// out.
+fn movements_of(
+    conn: &Connection,
+    frame: &crate::work::frame::Frame,
+    tags: &mut BTreeSet<String>,
+    problems: &mut Vec<Problem>,
+) -> Result<Vec<String>> {
+    if frame.still_camera {
+        tags.insert("camera:static".to_owned());
+    }
+    let mut found = Vec::new();
+    for id in &frame.motion_bricks {
+        match crate::style_brick::get(conn, id)? {
+            Some(brick) => found.push(brick),
+            None => problems.push(Problem::BrickGone {
+                place: "motion".to_owned(),
+            }),
+        }
+    }
+    let chosen: Vec<(&str, &StyleBrick)> = found.iter().map(|brick| ("motion", brick)).collect();
+    let kept = judge(tags, &chosen, problems);
+    let mut out = Vec::new();
+    for (brick, kept) in found.iter().zip(kept) {
+        if !kept {
+            continue;
+        }
+        if out.len() == crate::work::frame::MOST_MOVEMENTS {
+            problems.push(Problem::TooManyMovements {
+                name: brick.name.clone(),
+            });
+            continue;
+        }
+        if let Some(text) = &brick.description {
+            out.push(text.clone());
+        }
+    }
+    Ok(out)
+}
+
 /// A scene's frame, built: what the drawer shows and copies.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct SceneFrameView {
@@ -891,6 +1164,10 @@ pub struct SceneFrameView {
     pub layouts: Vec<LayoutOption>,
     /// The block of the scene the still is built around.
     pub block: Option<String>,
+    /// The shot's loop, written from the movements its picture can take
+    /// (v0.134). Absent while the scene names none.
+    #[serde(rename = "loop")]
+    pub loop_: Option<String>,
     pub problems: Vec<Problem>,
 }
 
@@ -938,6 +1215,7 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
             scheme: None,
             layouts,
             block,
+            loop_: None,
             problems: Vec::new(),
         });
     };
@@ -954,13 +1232,21 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
     let cover = Cover {
         scene: scene_text,
         framing: Some(framing),
-        bricks: super::Bricks {
-            style: work.cover.bricks.style.clone(),
-            ..super::Bricks::default()
-        },
+        // The clip's style, under the scene's own bricks (v0.134).
+        bricks: scene
+            .bricks
+            .clone()
+            .unwrap_or_default()
+            .over(&super::Bricks {
+                style: work.cover.bricks.style.clone(),
+                ..super::Bricks::default()
+            }),
         accent: work.cover.accent.clone(),
         staging: super::Staging {
             disc: work.cover.staging.disc,
+            // Who the scene is of, as its cast says: what its frame places
+            // and what a brick's contract is read against.
+            subject: Some(subject),
             ..super::Staging::default()
         },
         details: work.cover.details.clone(),
@@ -1005,7 +1291,25 @@ pub fn scene_view(conn: &Connection, scene_id: &str) -> Result<SceneFrameView> {
     }
     resolved.parts.subject = subject;
     let built = prompt::build(&cover, Target::Scene, shape, &resolved.parts);
+    // The shot's movements, read against its picture: a loop as long as the
+    // shot, its camera free unless a movement holds it.
+    let shot = crate::work::frame::Frame {
+        motion_bricks: scene.motion_bricks.clone(),
+        seconds: scene
+            .starts_at
+            .zip(scene.ends_at)
+            .map_or(crate::work::frame::DEFAULT_SECONDS, |(from, to)| {
+                (to - from).round().max(0.0) as u32
+            }),
+        still_camera: false,
+        seamless: false,
+        ..crate::work::frame::Frame::default()
+    };
+    let mut tags = resolved.tags.clone();
+    let movements = movements_of(conn, &shot, &mut tags, &mut resolved.problems)?;
+    let loop_ = (!movements.is_empty()).then(|| shot.prompts_with(&movements).loop_);
     Ok(SceneFrameView {
+        loop_,
         still: Some(built.picture),
         negative: Some(built.negative),
         format: shape.name(),
@@ -1161,6 +1465,7 @@ mod tests {
                 typography: brick("dry-brush"),
                 dressing: brick("minimal"),
                 background: brick("bg-ink"),
+                ..Bricks::default()
             },
             accent: Some(Accent {
                 name: "hot pink".into(),
@@ -1447,6 +1752,220 @@ mod tests {
         );
     }
 
+    /// A brick of the owner's, of `type_key`, with `contract`.
+    fn contracted(
+        stage: &Stage,
+        type_key: &str,
+        name: &str,
+        description: &str,
+        contract: crate::style_brick::Contract,
+    ) -> String {
+        crate::actions::style::create(
+            &stage.conn,
+            crate::style_brick::NewStyleBrick {
+                type_key: type_key.into(),
+                name: name.into(),
+                description: Some(description.into()),
+                contract: Some(contract),
+                ..Default::default()
+            },
+        )
+        .unwrap()
+        .id
+    }
+
+    fn tags(list: &[&str]) -> Vec<String> {
+        list.iter().map(|tag| (*tag).to_owned()).collect()
+    }
+
+    /// One rule for every chosen layer (v0.134): a pose that needs the hero
+    /// to the waist is left out of a head-and-shoulders picture and said with
+    /// the crop that lets it in; a grade that cannot stand a monochrome style
+    /// is left out and the style named; the choice stays in the cover.
+    #[test]
+    fn a_layer_the_picture_cannot_take_is_left_out_said_and_kept() {
+        let stage = stage();
+        let pose = contracted(
+            &stage,
+            "pose",
+            "Arms crossed",
+            "POSE: arms crossed, weight on one leg.",
+            crate::style_brick::Contract {
+                needs: tags(&["subject:person", "crop:min:waist"]),
+                ..Default::default()
+            },
+        );
+        let noir = contracted(
+            &stage,
+            "image-style",
+            "Ink noir",
+            "STYLE: black ink noir, no colour at all.",
+            crate::style_brick::Contract {
+                provides: tags(&["color:mono"]),
+                ..Default::default()
+            },
+        );
+        let neon = contracted(
+            &stage,
+            "image-style",
+            "Neon grade",
+            "neon teal and magenta grade.",
+            crate::style_brick::Contract {
+                provides: tags(&["color:vivid"]),
+                conflicts: tags(&["color:mono"]),
+                ..Default::default()
+            },
+        );
+        // A grade is a brick of the grading type; Studio's types are made
+        // by the profile, so a grading type is borrowed here from an
+        // image style moved into it by its key.
+        stage
+            .conn
+            .execute(
+                "UPDATE style_brick SET type_key = 'grading' WHERE id = ?1",
+                [&neon],
+            )
+            .unwrap();
+        let mut cover = cover_of(&stage);
+        cover.framing = Some(crate::cover::Framing {
+            crop: crate::cover::framing::Crop::Bust,
+            ..Layout::Masthead.defaults()
+        });
+        cover.bricks.style = Some(noir.clone());
+        cover.bricks.pose = Some(pose.clone());
+        cover.bricks.grading = Some(neon.clone());
+        write(&stage, cover.clone());
+
+        let seen = view(&stage.conn, &stage.clip.id, None).unwrap();
+        let picture = &seen.prompts.picture;
+        assert!(picture.contains("STYLE: black ink noir"), "{picture}");
+        assert!(!picture.contains("arms crossed"), "{picture}");
+        assert!(!picture.contains("neon teal"), "{picture}");
+        assert!(
+            picture.contains("COLOUR: a monochrome picture; hot pink (#FF2E63) is its only colour"),
+            "the accent over a monochrome style is selective colour: {picture}"
+        );
+        assert!(seen.problems.contains(&Problem::ContractUnmet {
+            place: "pose".into(),
+            id: pose.clone(),
+            name: "Arms crossed".into(),
+            need: "crop:min:waist".into(),
+            fix: ContractFix::Crop {
+                crop: crate::cover::framing::Crop::Waist
+            },
+        }));
+        assert!(seen.problems.contains(&Problem::ContractConflict {
+            place: "grading".into(),
+            id: neon.clone(),
+            name: "Neon grade".into(),
+            tag: "color:mono".into(),
+            by: Some("style".into()),
+            fix: ContractFix::Remove {
+                place: "style".into(),
+                id: noir.clone(),
+            },
+        }));
+        let stored = crate::work::get(&stage.conn, &stage.clip.id)
+            .unwrap()
+            .unwrap()
+            .cover;
+        assert_eq!(
+            stored.bricks.pose.as_deref(),
+            Some(pose.as_str()),
+            "the choice stays"
+        );
+
+        // The fix the window offers lets it in.
+        cover.framing = Some(crate::cover::Framing {
+            crop: crate::cover::framing::Crop::Waist,
+            ..Layout::Masthead.defaults()
+        });
+        write(&stage, cover);
+        let seen = view(&stage.conn, &stage.clip.id, None).unwrap();
+        assert!(
+            seen.prompts.picture.contains("POSE: arms crossed"),
+            "{}",
+            seen.prompts.picture
+        );
+    }
+
+    /// A frame's loop is built of the movements its picture can take: one
+    /// that moves the camera stays out of a frame whose camera holds still,
+    /// one of a person out of a frame of a thing.
+    #[test]
+    fn a_loop_is_built_of_the_movements_the_frame_can_take() {
+        let stage = stage();
+        let rain = contracted(
+            &stage,
+            "motion-atmosphere",
+            "Rain",
+            "MOTION: steady rain falls straight down; the rest of the frame stays still.",
+            crate::style_brick::Contract::default(),
+        );
+        let push = contracted(
+            &stage,
+            "motion-camera",
+            "Push",
+            "MOTION: a slow push-in.",
+            crate::style_brick::Contract {
+                provides: tags(&["camera:moving"]),
+                conflicts: tags(&["camera:static"]),
+                ..Default::default()
+            },
+        );
+        let blink = contracted(
+            &stage,
+            "motion-subject",
+            "Blink2",
+            "MOTION: the subject blinks.",
+            crate::style_brick::Contract {
+                needs: tags(&["subject:person"]),
+                ..Default::default()
+            },
+        );
+        let push_id = push.clone();
+        let audio = fixtures::work(&stage.conn, &stage.profile_id, "audio", "Rain — audio");
+        let mut cover = cover_of(&stage);
+        cover.hero = None;
+        crate::work::update(
+            &stage.conn,
+            &audio.id,
+            WorkPatch {
+                cover: Some(cover),
+                frame: Some(crate::work::frame::Frame {
+                    motion_bricks: vec![rain, push, blink],
+                    ..Default::default()
+                }),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+
+        let frame = frame_view(&stage.conn, &audio.id).unwrap();
+        let looped = &frame.prompts.loop_;
+        assert!(
+            looped.starts_with("LOOP (6 s): steady rain falls straight down"),
+            "{looped}"
+        );
+        assert!(
+            !looped.contains("push-in") && !looped.contains("blinks"),
+            "{looped}"
+        );
+        assert!(frame.problems.contains(&Problem::ContractConflict {
+            place: "motion".into(),
+            id: push_id,
+            name: "Push".into(),
+            tag: "camera:static".into(),
+            by: None,
+            fix: ContractFix::MovingCamera,
+        }));
+        assert!(frame.problems.iter().any(|problem| matches!(
+            problem,
+            Problem::ContractUnmet { name, fix: ContractFix::Subject { subject: Subject::Person }, .. }
+                if name == "Blink2"
+        )));
+    }
+
     /// The frame of an audio release is its cover without the words: the
     /// same hero and style, the details of frames, no title, no dressing.
     #[test]
@@ -1478,6 +1997,93 @@ mod tests {
         assert!(!still.contains("barcode"), "no dressing: {still}");
         assert!(frame.prompts.loop_.starts_with("LOOP (6 s)"));
         assert!(frame.scheme.is_some());
+    }
+
+    /// A scene's own bricks lie over the clip's style, and its movements
+    /// make the shot's loop - as long as the shot (v0.134).
+    #[test]
+    fn a_scene_takes_its_own_layers_and_movements() {
+        let stage = stage();
+        write(&stage, cover_of(&stage));
+        let pose = contracted(
+            &stage,
+            "pose",
+            "Looking back",
+            "she looks back over her shoulder",
+            crate::style_brick::Contract {
+                needs: tags(&["subject:person"]),
+                ..Default::default()
+            },
+        );
+        let rain = contracted(
+            &stage,
+            "motion-atmosphere",
+            "Rain on the pier",
+            "MOTION: rain falls on the boards; nothing else moves.",
+            crate::style_brick::Contract::default(),
+        );
+        let scene = crate::actions::scene::create(
+            &stage.conn,
+            crate::scene::NewScene {
+                work_id: stage.clip.id.clone(),
+                starts_at: Some(2.0),
+                ends_at: Some(10.0),
+                blocks: json!({ "still": "the end of the pier at dusk" })
+                    .as_object()
+                    .cloned(),
+                bricks: Some(Bricks {
+                    pose: Some(pose),
+                    ..Bricks::default()
+                }),
+                motion_bricks: Some(vec![rain]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        crate::scene_note::attach(&stage.conn, &scene.id, &stage.hero).unwrap();
+        crate::scene::update(
+            &stage.conn,
+            &scene.id,
+            crate::scene::ScenePatch {
+                framing: Some(Some(Layout::CloseUp.defaults())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        let built = scene_view(&stage.conn, &scene.id).unwrap();
+        let still = built.still.unwrap();
+        assert!(
+            still.contains("STYLE: neo-traditional tattoo art"),
+            "the clip's style: {still}"
+        );
+        assert!(
+            still.contains("POSE: she looks back over her shoulder"),
+            "{still}"
+        );
+        assert_eq!(
+            built
+                .loop_
+                .as_deref()
+                .map(|text| text.starts_with("LOOP (8 s): rain falls on the boards")),
+            Some(true),
+            "{:?}",
+            built.loop_
+        );
+
+        // A movement of another form is refused at the door.
+        let refused = crate::actions::scene::update(
+            &stage.conn,
+            &scene.id,
+            crate::scene::ScenePatch {
+                motion_bricks: Some(vec![cover_of(&stage).bricks.style.unwrap()]),
+                ..Default::default()
+            },
+        );
+        assert!(
+            matches!(refused, Err(crate::error::Error::Refused(ref r)) if r.code == "cover.notAMovement"),
+            "{refused:?}"
+        );
     }
 
     /// A scene with a built frame is written around its picture block, in

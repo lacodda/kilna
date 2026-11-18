@@ -1034,7 +1034,8 @@
       "internal": "internal",
       "inWorks": "only inside the works"
     },
-    "vibeIfNone": "kept only if you have not said one"
+    "vibeIfNone": "kept only if you have not said one",
+    "proposedStyles": "Styles for the dictionary"
   },
   "links": {
     "sources": "Made from",
@@ -1592,7 +1593,10 @@
     "fillExplanations_other": "Explain {{count}} phrases",
     "explainThis": "Write what it means",
     "motion": "Motion",
-    "heroesOfCanon": "Heroes of the canon"
+    "heroesOfCanon": "Heroes of the canon",
+    "keptFromChat": "Styles kept in the dictionary.",
+    "keepItem": "Keep “{{name}}”",
+    "rewrite": "rewrite"
   },
   "editor": {
     "parts": "Parts of the profile",
@@ -2226,7 +2230,8 @@
     },
     "work.brought": "“{{title}}” brought in from a file.",
     "proposal.notes": "{{client}} proposed notes on “{{title}}”.",
-    "proposal.freeNotes": "{{client}} proposed notes."
+    "proposal.freeNotes": "{{client}} proposed notes.",
+    "proposal.styles": "{{client}} proposed styles for the dictionary."
   },
   "card": {
     "tab": {
@@ -2472,7 +2477,10 @@
       "slotEmpty": "Nothing fills {{slot}}: its phrase drops out of the prompt.",
       "detailNeedsTranslation": "The detail «{{name}}» has no English for a generator, so the prompt leaves it out. Write its template in the channel’s card.",
       "typographyWithoutTitle": "A lettering is chosen and the cover has no title: there is nothing to letter, and the prompt leaves it out.",
-      "titleOnMark": "The title and the channel’s mark are both in the lower left corner. Move one of them."
+      "titleOnMark": "The title and the channel’s mark are both in the lower left corner. Move one of them.",
+      "tooManyMovements": "“{{name}}” is left out of the loop: a loop takes five movements at most.",
+      "contractUnmet": "“{{name}}” ({{place}}) is left out of the prompt: it needs {{need}}.",
+      "contractConflict": "“{{name}}” ({{place}}) is left out of the prompt: it cannot stand {{tag}}."
     },
     "idea": {
       "title": "Idea",
@@ -2712,6 +2720,16 @@
       "object": "A thing",
       "none": "Nobody",
       "hint": "decides the words of the frame: a head, a chest and eyes are said only of a person"
+    },
+    "fix": {
+      "crop": "Show: {{crop}}",
+      "subject": "Picture of: {{subject}}",
+      "ground": {
+        "palette": "Background as a palette",
+        "flat": "Background as the whole ground"
+      },
+      "movingCamera": "Let the camera move",
+      "remove": "Take the brick out"
     }
   },
   "frame": {
@@ -3266,7 +3284,8 @@
       "negativeSeconds": "Scene {{index}}: seconds are counted from 0.",
       "nothingTaken": "Nothing was chosen to take.",
       "unknownNoteKind": "“{{kind}}” is no kind of note here: a phrase or a note, as the workspace names them.",
-      "noteGone": "The note “{{title}}” this would change is no longer there."
+      "noteGone": "The note “{{title}}” this would change is no longer there.",
+      "sceneBadBricks": "Scene {{index}} names its bricks in a shape kilna cannot read: {{why}}."
     },
     "file": {
       "isDirectory": "{{path}} is a folder, not a file.",
@@ -3545,7 +3564,9 @@
       "heroNotACard": "«{{title}}» is a note, not a card of the canon.",
       "accentNotHex": "An accent is a colour written #RRGGBB, not “{{value}}”.",
       "unknownMark": "There is no variant “{{id}}” of the channel's mark.",
-      "markNotAVariant": "That fact is not a variant of the channel's mark."
+      "markNotAVariant": "That fact is not a variant of the channel's mark.",
+      "tooManyMovements": "A loop is built of at most {{most}} movements.",
+      "notAMovement": "“{{name}}” is not a movement: a loop takes styles of the Motion branch."
     },
     "idea": {
       "noCover": "“{{title}}” has no cover to have ideas for.",
@@ -3717,6 +3738,13 @@
       "notAManifest": "The pack {{pack}} could not be read: {{cause}}",
       "nothingChosen": "Nothing of the pack {{pack}} was chosen.",
       "emptySource": "A source needs a folder or an address."
+    },
+    "styles": {
+      "noStyles": "Nothing to propose: give `styles` as a list of styles.",
+      "unread": "Style {{index}} could not be read: {{why}}.",
+      "unknownStyle": "Style {{index}}: no style “{{id}}” in the dictionary.",
+      "newNeedsTypeAndName": "Style {{index}}: a new style needs a type and a name.",
+      "unknownType": "Style {{index}}: “{{type}}” is no type the dictionary makes."
     }
   },
   "proposalBody": {

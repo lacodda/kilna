@@ -19,4 +19,11 @@ dressing: string | null,
 /**
  * The ground: a brick of a colour type.
  */
-background: string | null, };
+background: string | null, 
+/**
+ * The layers of a picture above its style (v0.134, FR-07 7.2), each a
+ * brick of the type of its own name: how the frame is composed, where
+ * it is, what the hero wears, how they stand, the angle, what is over
+ * what, the light, the lens, the grade.
+ */
+composition?: string, look?: string, environment?: string, angle?: string, pose?: string, layering?: string, lighting?: string, optics?: string, grading?: string, };

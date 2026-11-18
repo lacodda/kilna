@@ -94,6 +94,10 @@ export type { OpenedPack } from './generated/OpenedPack'
 export type { PackStanding } from './generated/PackStanding'
 export type { BrickStanding } from './generated/BrickStanding'
 export type { Installed } from './generated/Installed'
+export type { ContractFix } from './generated/ContractFix'
+export type { BrickContract } from './generated/BrickContract'
+export type { StylesPackage } from './generated/StylesPackage'
+export type { ProposedStyle } from './generated/ProposedStyle'
 export type { VibeAxes } from './generated/VibeAxes'
 export type { VibeMood } from './generated/VibeMood'
 export type { VibeCharacter } from './generated/VibeCharacter'
@@ -472,6 +476,7 @@ export type TrialsProposal = Extract<Proposal, { kind: 'trials' }>
 export type CardsProposal = Extract<Proposal, { kind: 'cards' }>
 export type WordsProposal = Extract<Proposal, { kind: 'words' }>
 export type BricksProposal = Extract<Proposal, { kind: 'bricks' }>
+export type StylesProposal = Extract<Proposal, { kind: 'styles' }>
 
 // Data in and out.
 export type { ExportReport } from './generated/ExportReport'

@@ -708,6 +708,8 @@ mod tests {
                 layer: None,
                 description: Some("the quay, empty".into()),
                 blocks: None,
+                bricks: None,
+                motion_bricks: None,
             },
         )
         .unwrap();

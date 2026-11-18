@@ -53,6 +53,10 @@ pub struct SetBrick {
     /// never part of a prompt. Every phrase of a sound carries one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub explanation: Option<Label>,
+    /// When it can go into a picture and what it brings (v0.134): `needs`,
+    /// `provides` and `conflicts` beside the other fields.
+    #[serde(flatten)]
+    pub contract: crate::style_brick::Contract,
 }
 
 impl SetBrick {
@@ -72,6 +76,9 @@ impl SetBrick {
             colours: &self.colours,
             sample: self.sample.as_deref(),
             explanation: self.explanation.as_ref(),
+            needs: &self.contract.needs,
+            provides: &self.contract.provides,
+            conflicts: &self.contract.conflicts,
         }
     }
 
@@ -191,8 +198,9 @@ pub fn seed_profile(conn: &Connection, profile_key: &str, set: &[SetBrick]) -> R
         }
         let inserted = conn.execute(
             "INSERT INTO style_brick (id, profile_id, type_key, name, description, status, created_at, updated_at,
-                                      label, family, when_to_use, colours, sample, set_key, set_digest, explanation)
-             VALUES (?1, ?2, ?3, ?4, ?5, 'ready', ?6, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                                      label, family, when_to_use, colours, sample, set_key, set_digest, explanation,
+                                      contract)
+             VALUES (?1, ?2, ?3, ?4, ?5, 'ready', ?6, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
              ON CONFLICT DO NOTHING",
             params![
                 id,
@@ -209,6 +217,7 @@ pub fn seed_profile(conn: &Connection, profile_key: &str, set: &[SetBrick]) -> R
                 entry.key,
                 digest,
                 explanation_of(entry)?,
+                contract_of(entry)?,
             ],
         )?;
         if inserted == 1 {
@@ -232,7 +241,7 @@ fn write_entry(
     let result = conn.execute(
         "UPDATE style_brick SET type_key = ?2, name = ?3, description = ?4, label = ?5, family = ?6,
                 when_to_use = ?7, colours = ?8, sample = ?9, set_digest = ?10, updated_at = ?11,
-                explanation = ?12
+                explanation = ?12, contract = ?13
          WHERE id = ?1",
         params![
             id,
@@ -247,6 +256,7 @@ fn write_entry(
             digest,
             at,
             explanation_of(entry)?,
+            contract_of(entry)?,
         ],
     );
     match result {
@@ -313,9 +323,19 @@ pub fn restoring_from(entry: &SetBrick) -> StyleBrickPatch {
         colours: Some(entry.colours.clone()),
         sample: Some(entry.sample.clone()),
         explanation: Some(entry.explanation.clone()),
+        contract: Some(entry.contract.clone()),
         set_digest: Some(Some(entry.content().digest())),
         ..StyleBrickPatch::default()
     }
+}
+
+/// An entry's contract as the column holds it.
+fn contract_of(entry: &SetBrick) -> Result<Option<String>> {
+    Ok(if entry.contract.is_empty() {
+        None
+    } else {
+        Some(serde_json::to_string(&entry.contract)?)
+    })
 }
 
 /// Values of a dressing's slots, by slot name. A slot may hold several lines
@@ -989,6 +1009,36 @@ mod tests {
                     .style_type(&entry.type_key)
                     .unwrap_or_else(|| panic!("{at} is of a type the profile does not name"));
                 assert!(style.retired.is_none(), "{at} is of a retired type");
+                // A contract speaks the resolver's tags (v0.134): a tag of no
+                // namespace it knows would never meet anything, silently.
+                for tag in entry
+                    .contract
+                    .needs
+                    .iter()
+                    .chain(&entry.contract.provides)
+                    .chain(&entry.contract.conflicts)
+                {
+                    let (space, rest) = tag
+                        .split_once(':')
+                        .unwrap_or_else(|| panic!("{at} has a tag with no namespace: {tag}"));
+                    assert!(
+                        [
+                            "subject", "crop", "scenery", "title", "camera", "color", "depth"
+                        ]
+                        .contains(&space),
+                        "{at} speaks a namespace the resolver does not: {tag}"
+                    );
+                    if space == "crop" {
+                        let crop = rest
+                            .strip_prefix("min:")
+                            .or_else(|| rest.strip_prefix("max:"))
+                            .unwrap_or(rest);
+                        assert!(
+                            crate::cover::contract::CROPS.contains(&crop),
+                            "{at} names a crop there is not: {tag}"
+                        );
+                    }
+                }
                 // Every shipped brick is filed (FR-05 AC-05.1): "No set" is
                 // the owner's own bricks only.
                 let family = entry

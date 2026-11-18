@@ -329,7 +329,97 @@ fn pictures() -> BTreeMap<&'static str, (Cover, Target, &'static str, Ingredient
         ),
     );
 
+    // 11. The layers above the style the contracts let in (v0.134): the
+    //     ones that name their own heading as written, the rest under the
+    //     place they fill - a pose left out by its contract is simply not
+    //     among them.
+    all.insert(
+        "11-cover-layers",
+        (
+            Cover {
+                scene: "she waits at the end of a pier".into(),
+                framing: Some(Layout::Masthead.defaults()),
+                accent: pink(),
+                ..Cover::default()
+            },
+            Target::Cover,
+            "16:9",
+            Ingredients {
+                subject: Subject::Person,
+                layers: vec![
+                    ("environment".into(), "a wooden pier over black water".into()),
+                    (
+                        "lighting".into(),
+                        "LIGHTING: soft window light from one side, a gentle falloff into shadow on the other."
+                            .into(),
+                    ),
+                    (
+                        "optics".into(),
+                        "OPTICS: an 85 mm portrait lens, a shallow depth of field.".into(),
+                    ),
+                    (
+                        "grading".into(),
+                        "GRADING: faded film: lifted blacks, soft contrast.".into(),
+                    ),
+                ],
+                ..channel()
+            },
+        ),
+    );
+
+    // 12. A monochrome style with an accent: selective colour - the accent
+    //     is the one colour in the picture.
+    all.insert(
+        "12-cover-mono-accent",
+        (
+            Cover {
+                scene: "a moth on a lamp".into(),
+                framing: Some(Layout::CloseUp.defaults()),
+                accent: pink(),
+                ..Cover::default()
+            },
+            Target::Cover,
+            "1:1",
+            Ingredients {
+                style: Some("STYLE: 1940s film-noir still: high-contrast black and white.".into()),
+                mono: true,
+                ..channel()
+            },
+        ),
+    );
+
     all
+}
+
+/// A loop built of the movements the contracts let in, then the person's own
+/// words for what moves (v0.134).
+#[test]
+fn a_loop_of_movements_reads_as_it_was_agreed_to() {
+    let frame = kilna_lib::work::frame::Frame {
+        motion: "a curtain stirs".into(),
+        seconds: 8,
+        ..Default::default()
+    };
+    let prompts = frame.prompts_with(&[
+        "MOTION: steady rain falling straight down in thin streaks; the subject and the background stay completely still.".into(),
+        "MOTION: the subject blinks once every four to five seconds; the head, the body and the background do not move at all.".into(),
+    ]);
+    // Beside the pictures, not among them: blessing the pictures rewrites
+    // their folder whole.
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/loops");
+    let path = dir.join("movements.txt");
+    if std::env::var_os("KILNA_BLESS").is_some() {
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(&path, &prompts.loop_).unwrap();
+        return;
+    }
+    let kept = std::fs::read_to_string(&path)
+        .unwrap_or_default()
+        .replace("\r\n", "\n");
+    assert_eq!(
+        kept, prompts.loop_,
+        "bless with KILNA_BLESS=1 after reading the diff"
+    );
 }
 
 /// A prompt's blocks as one page: what is pasted into each box, under its
@@ -352,7 +442,7 @@ fn every_prompt_reads_as_it_was_agreed_to() {
     let dir = golden_dir();
     let bless = std::env::var_os("KILNA_BLESS").is_some();
     let pictures = pictures();
-    assert_eq!(pictures.len(), 10);
+    assert_eq!(pictures.len(), 12);
 
     if bless {
         let _ = std::fs::remove_dir_all(&dir);

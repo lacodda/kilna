@@ -209,6 +209,12 @@ pub struct PackedScene {
     pub description: String,
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub blocks: Map<String, Value>,
+    /// Its own bricks and movements (v0.134), by id: the bricks travel in
+    /// the parcel's dictionary, so the ids still name them on arrival.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bricks: Option<crate::cover::Bricks>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub motion_bricks: Vec<String>,
     pub created_at: String,
 }
 
@@ -411,6 +417,8 @@ pub fn of_work(conn: &Connection, work_id: &str) -> Result<Parcel> {
             layer: one.layer,
             description: one.description,
             blocks: one.blocks,
+            bricks: one.bricks,
+            motion_bricks: one.motion_bricks,
             created_at: one.created_at,
         })
         .collect();
@@ -803,6 +811,8 @@ pub fn land(
                 layer: one.layer.clone(),
                 description: Some(one.description.clone()),
                 blocks: Some(one.blocks.clone()),
+                bricks: one.bricks.clone(),
+                motion_bricks: Some(one.motion_bricks.clone()),
             },
             Minted::of(one.id.clone(), one.created_at.clone()),
         )?;

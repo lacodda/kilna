@@ -254,6 +254,11 @@ pub enum Proposal {
     /// Bricks for the dictionary (v0.94): phrases a text says that the
     /// dictionary did not know, each with its type and what it means - from
     /// "Explain". Kept whole or brick by brick.
+    /// Styles of any type for the dictionary, new and rewritten, with their
+    /// contracts (v0.134): an agent's `propose_style`.
+    Styles {
+        package: crate::style_proposal::StylesPackage,
+    },
     Bricks {
         package: crate::phrase::proposal::BricksPackage,
     },
@@ -385,6 +390,14 @@ pub struct PackagedScene {
     /// Prompt blocks by the kind's `scene_blocks` key.
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub blocks: Map<String, Value>,
+    /// The scene's own bricks over the clip's cover, by id (v0.134).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub cover_bricks: Option<crate::cover::Bricks>,
+    /// The movements of the shot, by brick id (v0.134).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub motion_bricks: Option<Vec<String>>,
 }
 
 /// A version inside a package: the text travels with it.
@@ -1297,6 +1310,35 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
             }
         }
 
+        // The scene's own bricks and movements, by id (v0.134): checked
+        // against the dictionary when the scene is kept.
+        let cover_bricks = match item.get("cover_bricks") {
+            None | Some(Value::Null) => None,
+            Some(value) => Some(
+                serde_json::from_value::<crate::cover::Bricks>(value.clone()).map_err(|why| {
+                    Error::refused("proposal.sceneBadBricks")
+                        .param("index", index + 1)
+                        .param("why", why.to_string())
+                })?,
+            ),
+        };
+        let motion_bricks = match item.get("motion_bricks") {
+            None | Some(Value::Null) => None,
+            Some(Value::Array(list)) => Some(
+                list.iter()
+                    .filter_map(Value::as_str)
+                    .map(str::trim)
+                    .filter(|id| !id.is_empty())
+                    .map(str::to_owned)
+                    .collect(),
+            ),
+            Some(_) => {
+                return Err(Error::refused("proposal.sceneBadBricks")
+                    .param("index", index + 1)
+                    .param("why", "motion_bricks is a list of ids"));
+            }
+        };
+
         scenes.push(PackagedScene {
             position,
             section: text("section"),
@@ -1306,6 +1348,8 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
             layer,
             description: text("description").unwrap_or_default(),
             blocks,
+            cover_bricks,
+            motion_bricks,
         });
     }
     Ok(scenes)

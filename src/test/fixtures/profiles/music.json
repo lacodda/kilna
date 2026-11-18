@@ -2628,6 +2628,97 @@
       {
         "families": [
           {
+            "key": "natural",
+            "label": {
+              "en": "Natural",
+              "ru": "Естественный"
+            }
+          },
+          {
+            "key": "artificial",
+            "label": {
+              "en": "Artificial",
+              "ru": "Искусственный"
+            }
+          },
+          {
+            "key": "dramatic",
+            "label": {
+              "en": "Dramatic",
+              "ru": "Драматичный"
+            }
+          }
+        ],
+        "hint": {
+          "en": "Describe the light: where it comes from, how hard it is, its colour, what falls into shadow.",
+          "ru": "Опиши свет: откуда он, насколько жёсткий, какого цвета, что уходит в тень."
+        },
+        "icon": "sun",
+        "key": "lighting",
+        "label": {
+          "en": "Lighting",
+          "ru": "Свет"
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "focal",
+            "label": {
+              "en": "Focal length",
+              "ru": "Фокусное"
+            }
+          },
+          {
+            "key": "effect",
+            "label": {
+              "en": "Lens effects",
+              "ru": "Эффекты объектива"
+            }
+          }
+        ],
+        "hint": {
+          "en": "Describe the lens: its focal length, its depth of field, how it bends or blurs the picture.",
+          "ru": "Опиши объектив: фокусное расстояние, глубину резкости, как он искажает или размывает картинку."
+        },
+        "icon": "camera",
+        "key": "optics",
+        "label": {
+          "en": "Optics",
+          "ru": "Оптика"
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "film",
+            "label": {
+              "en": "Film",
+              "ru": "Плёнка"
+            }
+          },
+          {
+            "key": "colour",
+            "label": {
+              "en": "Colour",
+              "ru": "Цвет"
+            }
+          }
+        ],
+        "hint": {
+          "en": "Describe the grade: saturation, contrast, the colours of the shadows and the highlights.",
+          "ru": "Опиши цветокоррекцию: насыщенность, контраст, цвет теней и светов."
+        },
+        "icon": "droplet",
+        "key": "grading",
+        "label": {
+          "en": "Grading",
+          "ru": "Цветокоррекция"
+        }
+      },
+      {
+        "families": [
+          {
             "key": "precipitation",
             "label": {
               "en": "Rain and snow",

@@ -51,7 +51,7 @@ export function coverHoldsAnything(cover: Cover): boolean {
   const chosen =
     cover.hero !== null ||
     cover.framing !== null ||
-    Object.values(cover.bricks).some((id) => id !== null) ||
+    Object.values(cover.bricks).some((id) => id != null) ||
     cover.accent !== null ||
     cover.mark.variant !== null ||
     Object.keys(cover.details).length > 0 ||

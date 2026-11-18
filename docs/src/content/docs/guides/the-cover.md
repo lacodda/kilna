@@ -189,6 +189,33 @@ into the prompt as its template says it, in the generator's English; one
 whose words are in the channel's own language is marked, left out, and named
 among the tab's notes until its template is written in the channel's card.
 
+## Layers and contracts
+
+Since v0.134 a cover holds, beside its style, lettering, dressing and ground,
+nine **layers** - each a brick of the type of its own name: composition,
+environment, look, pose, angle, layering, lighting, optics and grading.
+Studio ships the light, the lens and the grade (*Window light*, *Golden
+hour*, *85 mm portrait lens*, *Macro lens*, *Bleach bypass*, *Black and
+white*, and more); the pickers for all nine come with the next version of
+the constructor.
+
+A brick can carry a **contract**: what the picture must be for it to apply
+(`needs` - `subject:person`, `crop:min:bust`, `scenery:yes`,
+`title:present`), what it brings (`provides` - `color:mono`,
+`camera:moving`) and what it cannot stand beside (`conflicts`). Crops run
+detail < head < bust < waist < full, so a pose that needs the hero to the
+waist does not go into a head-and-shoulders picture. One rule reads every
+chosen brick in its order - the style, the ground, the layers, the
+lettering - against the picture's tags and what the bricks before it
+brought. A brick the picture cannot take is **left out of the prompt and
+kept in the cover**: the constructor says which and why, with one button
+that makes the change letting it in - show more of the hero, make the
+picture of a person, take the ground as a palette, or take the brick that
+stands in its way out. A monochrome style (`color:mono`) with an accent is
+selective colour: the accent is the one colour in the picture.
+
+New rules are data: tags in a set or a pack, never code.
+
 ## The frame and the prompt agree
 
 The scheme on the stage is the frame the prompt asks for, drawn: the
@@ -272,6 +299,16 @@ a picture with nothing written on it. The still's text is your own words
 about what it shows, and is said with the scene. **Own scene** keeps the still as you write it, whole - the way every
 frame written before v0.88 stays.
 
+## Movements in the loop
+
+A frame's loop is built from **movements** of the dictionary's Motion branch
+- up to five - read by their contracts like any brick: a camera push-in stays
+out of a frame whose camera holds still, a blink out of a picture of a
+thing. The loop says the kept ones in their order, then the person's own
+words for what moves: `LOOP (6 s): rain falls...; the subject blinks...; a
+curtain stirs.` A frame can also hold its own subject, hero, bricks, accent
+and ground over the cover's; whatever it leaves empty is the cover's.
+
 ## A scene of a clip
 
 A scene of a clip can take a built frame too, in its drawer on the
@@ -279,3 +316,7 @@ A scene of a clip can take a built frame too, in its drawer on the
 around the scene's picture block in the clip's style, with the characters the
 scene is about as its heroes. Until a layout is picked the scene's blocks are
 copied as written.
+
+Since v0.134 a scene has its own bricks over the clip's style - its light,
+its pose - and its own movements, written as the shot's loop, as long as
+the shot.

@@ -360,6 +360,18 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0057_style_favorite.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 58,
+        name: "style_contract",
+        sql: include_str!("../../migrations/0058_style_contract.sql"),
+        rebuilds: false,
+    },
+    Migration {
+        version: 59,
+        name: "scene_layers",
+        sql: include_str!("../../migrations/0059_scene_layers.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what

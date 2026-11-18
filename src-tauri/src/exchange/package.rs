@@ -494,6 +494,8 @@ mod tests {
             framing: None,
             created_at: String::new(),
             updated_at: String::new(),
+            bricks: None,
+            motion_bricks: Vec::new(),
         };
         let frame = SceneFrame {
             id: "f".into(),
@@ -531,6 +533,8 @@ mod tests {
             framing: None,
             created_at: String::new(),
             updated_at: String::new(),
+            bricks: None,
+            motion_bricks: Vec::new(),
         };
         let frame = SceneFrame {
             id: "f".into(),

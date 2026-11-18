@@ -1,3 +1,4 @@
+import { fixCover } from '@/lib/coverFix'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -103,7 +104,10 @@ export function CoverTab({ work }: Props) {
                 {(data) => (
                   <>
                     <CoverStage view={data} mark={work.cover.mark} onFormat={setFormat} />
-                    <CoverProblems problems={data.problems} />
+                    <CoverProblems
+                      problems={data.problems}
+                      onFix={(fix) => edit.change((cover) => fixCover(cover, fix))}
+                    />
                     <CoverPrompts cover={work.cover} view={data} change={edit.change} />
                     <CoverReferences references={data.references} />
                     <CoverResult work={work} view={data} />

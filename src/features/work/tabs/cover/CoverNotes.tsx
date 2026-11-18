@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { AlertTriangle, FolderOpen } from 'lucide-react'
-import type { CoverProblem, CoverReference } from '@/lib/api/types'
+import type { TFunction } from 'i18next'
+import type { ContractFix, CoverProblem, CoverReference } from '@/lib/api/types'
 import { fileSrc } from '@/lib/api/assets'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
@@ -10,9 +11,18 @@ import { Panel, SectionLabel } from '@/components/ui/panel'
 /**
  * What the constructor has to say about a cover: a part that is chosen and
  * cannot be used as it is - a hero with no description, a slot with nothing
- * in it, a mark with no file to lay over.
+ * in it, a mark with no file to lay over, a brick the picture cannot take
+ * by its contract (v0.134). A brick left out by its contract is still
+ * chosen; `onFix` makes the one change that lets it in, beside the words
+ * saying why.
  */
-export function CoverProblems({ problems }: { problems: CoverProblem[] }) {
+export function CoverProblems({
+  problems,
+  onFix,
+}: {
+  problems: CoverProblem[]
+  onFix?: (fix: ContractFix) => void
+}) {
   const { t } = useTranslation()
   if (problems.length === 0) return null
   return (
@@ -20,11 +30,34 @@ export function CoverProblems({ problems }: { problems: CoverProblem[] }) {
       {problems.map((problem, index) => (
         <li key={index} className="flex items-start gap-1.5 text-xs text-warn">
           <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-          {t(`cover.problem.${problem.kind}`, problem)}
+          <span className="min-w-0 flex-1">
+            {t(`cover.problem.${problem.kind}`, { ...problem, by: problem.by ?? '' })}
+          </span>
+          {onFix !== undefined && 'fix' in problem && (
+            <Button size="xs" variant="soft" onClick={() => onFix(problem.fix)}>
+              {fixLabel(t, problem.fix)}
+            </Button>
+          )}
         </li>
       ))}
     </ul>
   )
+}
+
+/** What a fix's button says. */
+function fixLabel(t: TFunction, fix: ContractFix): string {
+  switch (fix.kind) {
+    case 'crop':
+      return t('cover.fix.crop', { crop: t(`cover.crop.${fix.crop}`) })
+    case 'subject':
+      return t('cover.fix.subject', { subject: t(`cover.subject.${fix.subject}`) })
+    case 'ground':
+      return t(`cover.fix.ground.${fix.ground}`)
+    case 'movingCamera':
+      return t('cover.fix.movingCamera')
+    case 'remove':
+      return t('cover.fix.remove')
+  }
 }
 
 /**

@@ -142,6 +142,11 @@ const proposalOf = (message: Message): Proposal | null => {
       return Array.isArray((proposal as Partial<{ package: { words?: unknown } }>).package?.words)
         ? (proposal as Proposal)
         : null
+    // Styles for the dictionary, new and rewritten (v0.134).
+    case 'styles':
+      return Array.isArray((proposal as Partial<{ package: { styles?: unknown } }>).package?.styles)
+        ? (proposal as Proposal)
+        : null
     default:
       return null
   }

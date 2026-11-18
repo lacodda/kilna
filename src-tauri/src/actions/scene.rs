@@ -15,6 +15,12 @@ use crate::scene_note::{self, SceneNote};
 /// Add a scene to a work's storyboard — after the last, unless numbered.
 pub fn create(conn: &Connection, new: NewScene) -> Result<Scene> {
     gesture(conn, "scene.create", |act| {
+        crate::cover::check_layers(
+            act,
+            act.profile_id(),
+            new.bricks.as_ref(),
+            new.motion_bricks.as_deref().unwrap_or_default(),
+        )?;
         act.json("scene", &new)?;
         let minted = act.mint();
         let created = scene::create_minted(act, act.profile_id(), new, minted)?;
@@ -31,6 +37,12 @@ pub fn create(conn: &Connection, new: NewScene) -> Result<Scene> {
 /// Edit a scene: one field, or the prompt blocks as a set.
 pub fn update(conn: &Connection, id: &str, patch: ScenePatch) -> Result<Scene> {
     gesture(conn, "scene.update", |act| {
+        crate::cover::check_layers(
+            act,
+            act.profile_id(),
+            patch.bricks.as_ref().and_then(Option::as_ref),
+            patch.motion_bricks.as_deref().unwrap_or_default(),
+        )?;
         let before = scene::get(act, id)?;
         act.param("id", id);
         act.json("patch", &patch)?;

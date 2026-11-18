@@ -463,6 +463,13 @@ pub fn check(
                 overrides.items.as_deref(),
             )?);
         }
+        Proposal::Styles { package } => {
+            problems.extend(crate::style_proposal::check(
+                conn,
+                package,
+                overrides.items.as_deref(),
+            )?);
+        }
         Proposal::Canon { package } => {
             for problem in
                 super::canon::check_package(conn, config, package, overrides.items.as_deref())?
@@ -883,6 +890,11 @@ fn keep(
                 crate::phrase::proposal::keep(conn, package, overrides.items.as_deref())?;
         }
 
+        Proposal::Styles { package } => {
+            outcome.style_bricks =
+                crate::style_proposal::keep(conn, package, overrides.items.as_deref())?;
+        }
+
         Proposal::CardPrompt { note_id, basis } => {
             super::canon::describe(conn, &note_id, Some(body.to_owned()), basis)?;
             outcome.cards.push(note_id);
@@ -1206,6 +1218,8 @@ fn add_scene(
             layer: packaged.layer,
             description: Some(packaged.description),
             blocks: Some(packaged.blocks),
+            bricks: packaged.cover_bricks,
+            motion_bricks: packaged.motion_bricks,
         },
     )?;
     Ok(created.id)
@@ -1233,8 +1247,11 @@ fn rewrite_scene(
             description: Some(packaged.description),
             blocks: Some(packaged.blocks),
             // A storyboard proposed whole says nothing about a scene's built
-            // frame: the one the person set stays.
+            // frame: the one the person set stays - nor of its bricks and
+            // movements, unless it names them.
             framing: None,
+            bricks: packaged.cover_bricks.map(Some),
+            motion_bricks: packaged.motion_bricks,
         },
     )?;
     Ok(id.to_owned())
@@ -1275,6 +1292,8 @@ fn revise_scene(conn: &Connection, id: &str, packaged: PackagedScene) -> Result<
             description: (!packaged.description.trim().is_empty()).then_some(packaged.description),
             blocks,
             framing: None,
+            bricks: packaged.cover_bricks.map(Some),
+            motion_bricks: packaged.motion_bricks,
         },
     )?;
     Ok(id.to_owned())
@@ -1441,6 +1460,8 @@ mod tests {
             layer: Some("story".into()),
             description: description.into(),
             blocks,
+            cover_bricks: None,
+            motion_bricks: None,
         }
     }
 
@@ -2749,6 +2770,8 @@ mod tests {
             layer: Some("performance".into()),
             description: String::new(),
             blocks,
+            cover_bricks: None,
+            motion_bricks: None,
         };
         let mut added = packaged("a fourth");
         added.position = Some(4);

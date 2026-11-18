@@ -15,4 +15,9 @@ still: string | null, negative: string | null, format: string, scheme: Scheme | 
 /**
  * The block of the scene the still is built around.
  */
-block: string | null, problems: Array<CoverProblem>, };
+block: string | null, 
+/**
+ * The shot's loop, written from the movements its picture can take
+ * (v0.134). Absent while the scene names none.
+ */
+loop: string | null, problems: Array<CoverProblem>, };

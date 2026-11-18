@@ -25,6 +25,7 @@
 
 #[cfg(test)]
 mod agreement;
+pub mod contract;
 pub mod framing;
 pub mod idea;
 pub mod prompt;
@@ -121,9 +122,84 @@ pub struct Bricks {
     pub dressing: Option<String>,
     /// The ground: a brick of a colour type.
     pub background: Option<String>,
+    /// The layers of a picture above its style (v0.134, FR-07 7.2), each a
+    /// brick of the type of its own name: how the frame is composed, where
+    /// it is, what the hero wears, how they stand, the angle, what is over
+    /// what, the light, the lens, the grade.
+    #[ts(optional)]
+    pub composition: Option<String>,
+    #[ts(optional)]
+    pub look: Option<String>,
+    #[ts(optional)]
+    pub environment: Option<String>,
+    #[ts(optional)]
+    pub angle: Option<String>,
+    #[ts(optional)]
+    pub pose: Option<String>,
+    #[ts(optional)]
+    pub layering: Option<String>,
+    #[ts(optional)]
+    pub lighting: Option<String>,
+    #[ts(optional)]
+    pub optics: Option<String>,
+    #[ts(optional)]
+    pub grading: Option<String>,
 }
 
+/// The layers, in the order a prompt says them - and the contracts are read
+/// in, after the style and the ground: the frame and the place before the
+/// hero, the hero before the light, the light before the lens and the grade.
+pub const LAYERS: [&str; 9] = [
+    "composition",
+    "environment",
+    "look",
+    "pose",
+    "angle",
+    "layering",
+    "lighting",
+    "optics",
+    "grading",
+];
+
 impl Bricks {
+    /// These bricks over `base`: each place this set leaves empty is the
+    /// base's.
+    pub fn over(self, base: &Bricks) -> Bricks {
+        Bricks {
+            style: self.style.or_else(|| base.style.clone()),
+            typography: self.typography.or_else(|| base.typography.clone()),
+            dressing: self.dressing.or_else(|| base.dressing.clone()),
+            background: self.background.or_else(|| base.background.clone()),
+            composition: self.composition.or_else(|| base.composition.clone()),
+            look: self.look.or_else(|| base.look.clone()),
+            environment: self.environment.or_else(|| base.environment.clone()),
+            angle: self.angle.or_else(|| base.angle.clone()),
+            pose: self.pose.or_else(|| base.pose.clone()),
+            layering: self.layering.or_else(|| base.layering.clone()),
+            lighting: self.lighting.or_else(|| base.lighting.clone()),
+            optics: self.optics.or_else(|| base.optics.clone()),
+            grading: self.grading.or_else(|| base.grading.clone()),
+        }
+    }
+
+    /// The chosen layers, each with its place, in [`LAYERS`]' order.
+    pub fn layers(&self) -> impl Iterator<Item = (&'static str, &str)> {
+        [
+            self.composition.as_deref(),
+            self.environment.as_deref(),
+            self.look.as_deref(),
+            self.pose.as_deref(),
+            self.angle.as_deref(),
+            self.layering.as_deref(),
+            self.lighting.as_deref(),
+            self.optics.as_deref(),
+            self.grading.as_deref(),
+        ]
+        .into_iter()
+        .zip(LAYERS)
+        .filter_map(|(id, place)| id.map(|id| (place, id)))
+    }
+
     /// Each brick with the form its place asks for.
     pub fn chosen(&self) -> impl Iterator<Item = (&str, StyleForm)> {
         [
@@ -137,7 +213,7 @@ impl Bricks {
     }
 
     fn any(&self) -> bool {
-        self.chosen().next().is_some()
+        self.chosen().next().is_some() || self.layers().next().is_some()
     }
 }
 
@@ -367,6 +443,44 @@ impl Cover {
     }
 }
 
+/// Refuse layers or movements that name what is not there or a brick of the
+/// wrong kind (v0.134): each layer a brick of the type of its own name, each
+/// movement a brick of the form `motion`. For a frame's and a scene's own
+/// bricks as for a cover's.
+pub fn check_layers(
+    conn: &Connection,
+    profile_id: &str,
+    bricks: Option<&Bricks>,
+    movements: &[String],
+) -> Result<()> {
+    let config = crate::profile::config_for(conn, profile_id)?;
+    let named = |id: &str| -> Result<crate::style_brick::StyleBrick> {
+        crate::style_brick::get(conn, id)?
+            .filter(|brick| brick.profile_id == profile_id)
+            .ok_or_else(|| Error::refused("cover.unknownBrick").param("id", id))
+    };
+    if let Some(bricks) = bricks {
+        for (place, id) in bricks.layers() {
+            let brick = named(id)?;
+            if brick.type_key != place {
+                return Err(Error::refused("cover.brickOfOtherForm").param("name", brick.name));
+            }
+        }
+    }
+    if movements.len() > crate::work::frame::MOST_MOVEMENTS {
+        return Err(Error::refused("cover.tooManyMovements")
+            .param("most", crate::work::frame::MOST_MOVEMENTS as i64));
+    }
+    for id in movements {
+        let brick = named(id)?;
+        let form = config.style_type(&brick.type_key).map(|kind| kind.form);
+        if form != Some(StyleForm::Motion) {
+            return Err(Error::refused("cover.notAMovement").param("name", brick.name));
+        }
+    }
+    Ok(())
+}
+
 /// Refuse a cover that names what is not there, or a brick in a place its
 /// form does not fill. A cover that names a brick deleted since is read
 /// all the same - the prompt leaves it out and the window says so - but a
@@ -386,6 +500,8 @@ pub fn check(conn: &Connection, profile_id: &str, cover: &Cover) -> Result<()> {
             return Err(Error::refused("cover.brickOfOtherForm").param("name", brick.name));
         }
     }
+    // A layer takes a brick of the type of its own name: a pose is a pose.
+    check_layers(conn, profile_id, Some(&cover.bricks), &[])?;
     if let Some(card) = cover.hero_card() {
         let note = crate::note::get(conn, card)?
             .filter(|note| note.profile_id == profile_id)

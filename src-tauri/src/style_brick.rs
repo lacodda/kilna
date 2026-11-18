@@ -69,6 +69,10 @@ pub struct StyleBrick {
     #[serde(default)]
     #[ts(optional, as = "Option<bool>")]
     pub favorite: bool,
+    /// When it can go into a picture and what it brings (v0.134).
+    #[serde(default)]
+    #[ts(optional, as = "Option<Contract>")]
+    pub contract: Contract,
     /// Where it came from and whether it was changed since - see [`Origin`].
     pub origin: Origin,
     /// The fingerprint of the set entry last written into it. Bookkeeping of
@@ -113,6 +117,13 @@ pub struct Content<'a> {
     /// fingerprinted before explanations existed still reads untouched.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub explanation: Option<&'a Label>,
+    /// The contract (v0.134), left out while empty for the same reason.
+    #[serde(skip_serializing_if = "<[String]>::is_empty")]
+    pub needs: &'a [String],
+    #[serde(skip_serializing_if = "<[String]>::is_empty")]
+    pub provides: &'a [String],
+    #[serde(skip_serializing_if = "<[String]>::is_empty")]
+    pub conflicts: &'a [String],
 }
 
 impl Content<'_> {
@@ -140,7 +151,51 @@ impl StyleBrick {
             colours: &self.colours,
             sample: self.sample.as_deref(),
             explanation: self.explanation.as_ref(),
+            needs: &self.contract.needs,
+            provides: &self.contract.provides,
+            conflicts: &self.contract.conflicts,
         }
+    }
+}
+
+/// When a brick can go into a picture, and what it brings to it (v0.134,
+/// FR-07 7.2) - three lists of tags instead of a flag per rule, so a new rule
+/// is data in a set or a pack and not code.
+///
+/// `needs` are what the picture must be for the brick to apply:
+/// `subject:person`, `crop:min:bust` (the order `detail < head < bust <
+/// waist < full`), `scenery:yes`, `title:present`. `provides` are what it
+/// brings: `color:mono`, `camera:moving`. `conflicts` are what it cannot
+/// stand beside, in the picture or in another brick: `camera:static`,
+/// `color:vivid`, `scenery:flat`. One resolver reads them all
+/// (`cover::contract`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(default)]
+#[ts(rename = "BrickContract")]
+pub struct Contract {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[ts(optional, as = "Option<Vec<String>>")]
+    pub needs: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[ts(optional, as = "Option<Vec<String>>")]
+    pub provides: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[ts(optional, as = "Option<Vec<String>>")]
+    pub conflicts: Vec<String>,
+}
+
+impl Contract {
+    pub fn is_empty(&self) -> bool {
+        self.needs.is_empty() && self.provides.is_empty() && self.conflicts.is_empty()
+    }
+
+    /// As the column holds it: nothing for a brick that goes anywhere.
+    fn stored(&self) -> Result<Option<String>> {
+        Ok(if self.is_empty() {
+            None
+        } else {
+            Some(serde_json::to_string(self)?)
+        })
     }
 }
 
@@ -171,7 +226,7 @@ const SELECT: &str = "SELECT b.id, b.profile_id, b.type_key, b.name, b.descripti
      b.status, b.created_at, b.updated_at, \
      (SELECT count(*) FROM asset a WHERE a.style_brick_id = b.id), \
      b.label, b.family, b.when_to_use, b.colours, b.sample, b.set_key, b.set_digest, \
-     b.explanation, b.trial_id, b.source, b.favorite \
+     b.explanation, b.trial_id, b.source, b.favorite, b.contract \
      FROM style_brick b";
 
 /// What to make a brick out of.
@@ -213,6 +268,10 @@ pub struct NewStyleBrick {
     #[serde(default)]
     #[ts(optional = nullable)]
     pub source: Option<String>,
+    /// When it can go into a picture and what it brings (v0.134).
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub contract: Option<Contract>,
 }
 
 /// What may be changed about one.
@@ -270,6 +329,8 @@ pub struct StyleBrickPatch {
     pub explanation: Option<Option<Label>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub favorite: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract: Option<Contract>,
     /// The fingerprint of the set entry the brick now matches - written by
     /// "restore as in the set", so a restored brick reads untouched again.
     /// Travels in the log like any field; the window never sends it.
@@ -377,8 +438,8 @@ pub fn create_minted(
     conn.execute(
         "INSERT INTO style_brick (id, profile_id, type_key, name, description, hint, status, created_at, updated_at,
                                   family, when_to_use, colours, sample, explanation, trial_id,
-                                  label, set_key, set_digest, source)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
+                                  label, set_key, set_digest, source, contract)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
         params![
             minted.id(),
             profile_id,
@@ -397,7 +458,8 @@ pub fn create_minted(
             new.label.as_ref().map(serde_json::to_string).transpose()?,
             new.set_key,
             new.set_digest,
-            new.source
+            new.source,
+            new.contract.as_ref().map(Contract::stored).transpose()?.flatten()
         ],
     )
     .map_err(|error| taken(error, &new.type_key, name))?;
@@ -555,6 +617,14 @@ pub fn update_at(
     }
     if let Some(next) = patch.favorite {
         set(&mut assignments, &mut values, "favorite", Box::new(next));
+    }
+    if let Some(next) = patch.contract {
+        set(
+            &mut assignments,
+            &mut values,
+            "contract",
+            Box::new(next.stored()?),
+        );
     }
     if let Some(next) = patch.name {
         let trimmed = next.trim().to_owned();
@@ -738,6 +808,10 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
         trial_id: row.get(18)?,
         source: row.get(19)?,
         favorite: row.get(20)?,
+        contract: row
+            .get::<_, Option<String>>(21)?
+            .and_then(|text| serde_json::from_str(&text).ok())
+            .unwrap_or_default(),
     };
     brick.origin = match (&brick.set_key, &brick.set_digest) {
         (Some(_), Some(digest)) if *digest == brick.content().digest() => Origin::Set,

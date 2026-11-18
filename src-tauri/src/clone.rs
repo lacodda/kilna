@@ -112,6 +112,8 @@ pub fn clone_work_minted(
                 layer: original.layer.clone(),
                 description: Some(original.description.clone()),
                 blocks: Some(original.blocks.clone()),
+                bricks: original.bricks.clone(),
+                motion_bricks: Some(original.motion_bricks.clone()),
             },
         )?;
 

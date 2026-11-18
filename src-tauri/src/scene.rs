@@ -46,6 +46,14 @@ pub struct Scene {
     /// With one, the still is written around the kind's picture block in
     /// the clip's style; without, the blocks are copied as written.
     pub framing: Option<crate::cover::Framing>,
+    /// The scene's own bricks over the clip's cover (v0.134): the style, the
+    /// light, the pose of this shot. Absent, the clip's style alone.
+    #[ts(optional)]
+    pub bricks: Option<crate::cover::Bricks>,
+    /// The movements of the shot, by brick id, from the Motion branch: up to
+    /// five, read by their contracts against the scene's picture.
+    #[ts(optional, as = "Option<Vec<String>>")]
+    pub motion_bricks: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -71,6 +79,10 @@ pub struct NewScene {
     pub description: Option<String>,
     #[serde(default)]
     pub blocks: Option<Blocks>,
+    #[serde(default)]
+    pub bricks: Option<crate::cover::Bricks>,
+    #[serde(default)]
+    pub motion_bricks: Option<Vec<String>>,
 }
 
 /// What an edit may change. `blocks` replaces the whole set: the screen
@@ -122,10 +134,20 @@ pub struct ScenePatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub framing: Option<Option<crate::cover::Framing>>,
+    /// `Some(None)` gives the scene back to the clip's style alone.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub bricks: Option<Option<crate::cover::Bricks>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub motion_bricks: Option<Vec<String>>,
 }
 
 const SELECT_SCENE: &str = "SELECT id, profile_id, work_id, position, section, starts_at, ends_at, \
-     shot_type, description, blocks, created_at, updated_at, framing, layer FROM scene";
+     shot_type, description, blocks, created_at, updated_at, framing, layer, bricks, motion_bricks \
+     FROM scene";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewScene) -> Result<Scene> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -168,8 +190,8 @@ pub fn create_minted(
     let id = minted.id().to_owned();
     conn.execute(
         "INSERT INTO scene (id, profile_id, work_id, position, section, starts_at, ends_at, \
-         shot_type, description, blocks, created_at, updated_at, layer)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12)",
+         shot_type, description, blocks, created_at, updated_at, layer, bricks, motion_bricks)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14)",
         params![
             id,
             profile_id,
@@ -183,6 +205,8 @@ pub fn create_minted(
             serde_json::to_string(&blocks)?,
             minted.at(),
             layer,
+            new.bricks.as_ref().map(serde_json::to_string).transpose()?,
+            movements_column(new.motion_bricks.as_deref().unwrap_or_default())?,
         ],
     )?;
 
@@ -317,6 +341,18 @@ pub fn update_at(conn: &Connection, id: &str, patch: ScenePatch, at: &str) -> Re
             .map(|framing| serde_json::to_string(&framing))
             .transpose()?;
         set(&mut assignments, &mut values, "framing", Box::new(framing));
+    }
+    if let Some(bricks) = patch.bricks {
+        let bricks = bricks.as_ref().map(serde_json::to_string).transpose()?;
+        set(&mut assignments, &mut values, "bricks", Box::new(bricks));
+    }
+    if let Some(movements) = patch.motion_bricks {
+        set(
+            &mut assignments,
+            &mut values,
+            "motion_bricks",
+            Box::new(movements_column(&movements)?),
+        );
     }
 
     if assignments.is_empty() {
@@ -473,6 +509,17 @@ struct RawScene {
     updated_at: String,
     framing: Option<String>,
     layer: Option<String>,
+    bricks: Option<String>,
+    motion_bricks: Option<String>,
+}
+
+/// A scene's movements as the column holds them: nothing for none.
+fn movements_column(movements: &[String]) -> Result<Option<String>> {
+    Ok(if movements.is_empty() {
+        None
+    } else {
+        Some(serde_json::to_string(movements)?)
+    })
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScene> {
@@ -491,6 +538,8 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScene> {
         updated_at: row.get(11)?,
         framing: row.get(12)?,
         layer: row.get(13)?,
+        bricks: row.get(14)?,
+        motion_bricks: row.get(15)?,
     })
 }
 
@@ -503,6 +552,17 @@ impl RawScene {
                 .as_deref()
                 .map(serde_json::from_str)
                 .transpose()?,
+            bricks: self
+                .bricks
+                .as_deref()
+                .map(serde_json::from_str)
+                .transpose()?,
+            motion_bricks: self
+                .motion_bricks
+                .as_deref()
+                .map(serde_json::from_str)
+                .transpose()?
+                .unwrap_or_default(),
             id: self.id,
             profile_id: self.profile_id,
             work_id: self.work_id,

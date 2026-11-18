@@ -68,6 +68,13 @@ pub struct Ingredients {
     pub bans: Vec<String>,
     /// The captions the channel's card gives a cover.
     pub channel_slots: SlotValues,
+    /// The layers above the style that the contracts let in, each with its
+    /// place and its description (v0.134).
+    pub layers: Vec<(String, String)>,
+    /// A kept brick makes the picture monochrome (`color:mono`): an accent is
+    /// then the one colour in it - selective colour - rather than a colour
+    /// among others.
+    pub mono: bool,
     /// The title as lettered; empty for none.
     pub title: String,
 }
@@ -151,6 +158,19 @@ pub fn build(cover: &Cover, target: Target, shape: Shape, parts: &Ingredients) -
         None => picture.extend(accent.as_deref().map(accent_sentence)),
     }
     picture.extend(parts.style.as_deref().map(fill));
+    picture.extend(
+        parts
+            .layers
+            .iter()
+            .map(|(place, text)| labelled(place, &fill(text))),
+    );
+    if parts.mono
+        && let Some(accent) = accent.as_deref()
+    {
+        picture.push(format!(
+            "COLOUR: a monochrome picture; {accent} is its only colour, in its accents alone."
+        ));
+    }
     if let Some(hero) = &parts.hero
         && let Some(description) = hero.description.as_deref()
     {
@@ -224,6 +244,24 @@ pub fn build(cover: &Cover, target: Target, shape: Shape, parts: &Ingredients) -
         ),
         negative: plain_quotes(&negative(cover, target, parts)),
         typography: typography.map(|edit| plain_quotes(&edit)),
+    }
+}
+
+/// A layer's words under its heading: a description that names its own
+/// ("LIGHTING: hard window light") as written, any other under the place it
+/// fills ("POSE: ...").
+fn labelled(place: &str, text: &str) -> String {
+    let text = text.trim();
+    let named = text.split_once(':').is_some_and(|(head, _)| {
+        !head.is_empty()
+            && head
+                .chars()
+                .all(|c| c.is_ascii_uppercase() || c == ' ' || c == '-')
+    });
+    if named {
+        text.to_owned()
+    } else {
+        format!("{}: {}", place.to_uppercase(), sentence(text))
     }
 }
 

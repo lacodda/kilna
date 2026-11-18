@@ -2611,6 +2611,97 @@
         }
       },
       {
+        "key": "lighting",
+        "label": {
+          "en": "Lighting",
+          "ru": "Свет"
+        },
+        "hint": {
+          "en": "Describe the light: where it comes from, how hard it is, its colour, what falls into shadow.",
+          "ru": "Опиши свет: откуда он, насколько жёсткий, какого цвета, что уходит в тень."
+        },
+        "icon": "sun",
+        "families": [
+          {
+            "key": "natural",
+            "label": {
+              "en": "Natural",
+              "ru": "Естественный"
+            }
+          },
+          {
+            "key": "artificial",
+            "label": {
+              "en": "Artificial",
+              "ru": "Искусственный"
+            }
+          },
+          {
+            "key": "dramatic",
+            "label": {
+              "en": "Dramatic",
+              "ru": "Драматичный"
+            }
+          }
+        ]
+      },
+      {
+        "key": "optics",
+        "label": {
+          "en": "Optics",
+          "ru": "Оптика"
+        },
+        "hint": {
+          "en": "Describe the lens: its focal length, its depth of field, how it bends or blurs the picture.",
+          "ru": "Опиши объектив: фокусное расстояние, глубину резкости, как он искажает или размывает картинку."
+        },
+        "icon": "camera",
+        "families": [
+          {
+            "key": "focal",
+            "label": {
+              "en": "Focal length",
+              "ru": "Фокусное"
+            }
+          },
+          {
+            "key": "effect",
+            "label": {
+              "en": "Lens effects",
+              "ru": "Эффекты объектива"
+            }
+          }
+        ]
+      },
+      {
+        "key": "grading",
+        "label": {
+          "en": "Grading",
+          "ru": "Цветокоррекция"
+        },
+        "hint": {
+          "en": "Describe the grade: saturation, contrast, the colours of the shadows and the highlights.",
+          "ru": "Опиши цветокоррекцию: насыщенность, контраст, цвет теней и светов."
+        },
+        "icon": "droplet",
+        "families": [
+          {
+            "key": "film",
+            "label": {
+              "en": "Film",
+              "ru": "Плёнка"
+            }
+          },
+          {
+            "key": "colour",
+            "label": {
+              "en": "Colour",
+              "ru": "Цвет"
+            }
+          }
+        ]
+      },
+      {
         "key": "motion-atmosphere",
         "label": {
           "en": "Atmosphere",
@@ -5236,6 +5327,9 @@
       "colours": [
         "#121114",
         "#EFEBE3"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -5252,6 +5346,9 @@
         "#121114",
         "#E8DCC4",
         "#7A1F2B"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -5369,6 +5466,9 @@
         "#121114",
         "#E8DCC4",
         "#B8563A"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -5452,6 +5552,9 @@
         "#121114",
         "#EFEBE3",
         "#D9D6CE"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -5533,6 +5636,9 @@
       "colours": [
         "#121114",
         "#D3F03B"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -5630,6 +5736,9 @@
       "colours": [
         "#121114",
         "#EFEBE3"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -5646,6 +5755,9 @@
         "#121114",
         "#F4F1EA",
         "#B3202E"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -6998,6 +7110,9 @@
         "#0E0D10",
         "#5A5860",
         "#E8E6E1"
+      ],
+      "provides": [
+        "color:mono"
       ]
     },
     {
@@ -9810,6 +9925,282 @@
       ]
     },
     {
+      "key": "window-light",
+      "type": "lighting",
+      "family": "natural",
+      "label": {
+        "en": "Window light",
+        "ru": "Свет из окна"
+      },
+      "description": "LIGHTING: soft window light from one side, a gentle falloff into shadow on the other.",
+      "when": "A quiet, close picture indoors.",
+      "colours": [
+        "#E8DCC4",
+        "#8C7A64",
+        "#2A2420"
+      ]
+    },
+    {
+      "key": "golden-hour",
+      "type": "lighting",
+      "family": "natural",
+      "label": {
+        "en": "Golden hour",
+        "ru": "Золотой час"
+      },
+      "description": "LIGHTING: low golden-hour sun, long warm shadows, a rim of light along every edge.",
+      "when": "Outdoors, warmth, the end of a day.",
+      "colours": [
+        "#F4A261",
+        "#E76F51",
+        "#3D2C29"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    },
+    {
+      "key": "neon-spill",
+      "type": "lighting",
+      "family": "artificial",
+      "label": {
+        "en": "Neon spill",
+        "ru": "Неоновые блики"
+      },
+      "description": "LIGHTING: mixed neon light, magenta and teal spilling across faces and wet surfaces.",
+      "when": "Night, a city, a synth-heavy track.",
+      "colours": [
+        "#FF2E8A",
+        "#1ECBE1",
+        "#141026"
+      ],
+      "provides": [
+        "color:vivid"
+      ],
+      "conflicts": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "hard-flash",
+      "type": "lighting",
+      "family": "artificial",
+      "label": {
+        "en": "Hard flash",
+        "ru": "Жёсткая вспышка"
+      },
+      "description": "LIGHTING: hard on-camera flash, flat frontal light, deep black shadows behind the subject.",
+      "when": "A raw, documentary or party picture.",
+      "colours": [
+        "#F5F5F0",
+        "#B0B0A8",
+        "#0E0D10"
+      ]
+    },
+    {
+      "key": "chiaroscuro",
+      "type": "lighting",
+      "family": "dramatic",
+      "label": {
+        "en": "Chiaroscuro",
+        "ru": "Кьяроскуро"
+      },
+      "description": "LIGHTING: chiaroscuro: one hard key light from above, most of the frame falls into black.",
+      "when": "Drama, a confession, a dark verse.",
+      "colours": [
+        "#D9C3A0",
+        "#5C4A3A",
+        "#0B0908"
+      ]
+    },
+    {
+      "key": "lens-35",
+      "type": "optics",
+      "family": "focal",
+      "label": {
+        "en": "35 mm lens",
+        "ru": "Объектив 35 мм"
+      },
+      "description": "OPTICS: a 35 mm lens, natural perspective, the subject and the place both readable.",
+      "when": "When the place matters as much as the subject.",
+      "colours": [
+        "#7A8B99",
+        "#C9D1D8",
+        "#2B3440"
+      ]
+    },
+    {
+      "key": "lens-85",
+      "type": "optics",
+      "family": "focal",
+      "label": {
+        "en": "85 mm portrait lens",
+        "ru": "Портретник 85 мм"
+      },
+      "description": "OPTICS: an 85 mm portrait lens, a compressed background melted into soft bokeh, a shallow depth of field.",
+      "when": "A portrait that should feel close and separate from the world.",
+      "colours": [
+        "#C8A2C8",
+        "#F2C4C0",
+        "#3B2F3A"
+      ]
+    },
+    {
+      "key": "macro-lens",
+      "type": "optics",
+      "family": "effect",
+      "label": {
+        "en": "Macro lens",
+        "ru": "Макрообъектив"
+      },
+      "description": "OPTICS: a macro lens, extreme close focus on the detail, the rest melting away.",
+      "when": "An eye, a drop, a texture - the detail is the picture.",
+      "colours": [
+        "#BFE3D0",
+        "#3EB489",
+        "#0F2A22"
+      ],
+      "needs": [
+        "crop:max:head"
+      ]
+    },
+    {
+      "key": "fisheye",
+      "type": "optics",
+      "family": "effect",
+      "label": {
+        "en": "Fisheye",
+        "ru": "Рыбий глаз"
+      },
+      "description": "OPTICS: a fisheye lens, strong barrel distortion, a curved horizon and a bulging centre.",
+      "when": "Skate, punk, a dizzy or comic picture.",
+      "colours": [
+        "#D3F03B",
+        "#2446C4",
+        "#16203A"
+      ]
+    },
+    {
+      "key": "tilt-shift",
+      "type": "optics",
+      "family": "effect",
+      "label": {
+        "en": "Tilt-shift",
+        "ru": "Тилт-шифт"
+      },
+      "description": "OPTICS: a tilt-shift lens, a thin band of focus across the scene that makes it look like a miniature.",
+      "when": "A town, a crowd, a landscape seen from above.",
+      "colours": [
+        "#A7B59B",
+        "#F5E3A3",
+        "#5E6337"
+      ],
+      "needs": [
+        "scenery:yes"
+      ]
+    },
+    {
+      "key": "bleach-bypass",
+      "type": "grading",
+      "family": "film",
+      "label": {
+        "en": "Bleach bypass",
+        "ru": "Отбеливание"
+      },
+      "description": "GRADING: bleach bypass: low saturation, high contrast, silvery highlights and heavy blacks.",
+      "when": "War, steel, a cold hard song.",
+      "colours": [
+        "#9D9A94",
+        "#D9D6CE",
+        "#2A292E"
+      ],
+      "conflicts": [
+        "color:vivid"
+      ]
+    },
+    {
+      "key": "faded-film",
+      "type": "grading",
+      "family": "film",
+      "label": {
+        "en": "Faded film",
+        "ru": "Выцветшая плёнка"
+      },
+      "description": "GRADING: faded film: lifted blacks, soft contrast, a gentle warm cast over everything.",
+      "when": "Nostalgia, a memory, an old photograph.",
+      "colours": [
+        "#E8DCC4",
+        "#C88B2C",
+        "#6B5A4A"
+      ]
+    },
+    {
+      "key": "mono-grade",
+      "type": "grading",
+      "family": "film",
+      "label": {
+        "en": "Black and white",
+        "ru": "Чёрно-белая"
+      },
+      "description": "GRADING: black and white, rich greys and deep blacks, no colour at all.",
+      "when": "A timeless or stark picture; an accent then becomes the only colour.",
+      "colours": [
+        "#F0EEE9",
+        "#808080",
+        "#0E0D10"
+      ],
+      "provides": [
+        "color:mono"
+      ],
+      "conflicts": [
+        "color:vivid"
+      ]
+    },
+    {
+      "key": "teal-orange",
+      "type": "grading",
+      "family": "colour",
+      "label": {
+        "en": "Teal and orange",
+        "ru": "Бирюза и оранж"
+      },
+      "description": "GRADING: teal shadows and orange skin tones, a cinematic split of cold and warm.",
+      "when": "A blockbuster look, an action or a road song.",
+      "colours": [
+        "#1F6F6B",
+        "#F28500",
+        "#16203A"
+      ],
+      "provides": [
+        "color:vivid"
+      ],
+      "conflicts": [
+        "color:mono"
+      ]
+    },
+    {
+      "key": "neon-pop",
+      "type": "grading",
+      "family": "colour",
+      "label": {
+        "en": "Neon pop",
+        "ru": "Неоновый поп"
+      },
+      "description": "GRADING: saturated neon pop, every colour pushed to its brightest.",
+      "when": "Hyperpop, club, a loud bright cover.",
+      "colours": [
+        "#FF2E63",
+        "#D3F03B",
+        "#7A5CFF"
+      ],
+      "provides": [
+        "color:vivid"
+      ],
+      "conflicts": [
+        "color:mono"
+      ]
+    },
+    {
       "key": "rain-steady",
       "type": "motion-atmosphere",
       "family": "precipitation",
@@ -9873,7 +10264,10 @@
         "ru": "Моргание"
       },
       "description": "MOTION: the subject blinks once every four to five seconds, a natural quick blink; the head, the body and the background do not move at all.",
-      "when": "A portrait that should feel alive without anything happening."
+      "when": "A portrait that should feel alive without anything happening.",
+      "needs": [
+        "subject:person"
+      ]
     },
     {
       "key": "gaze-shift",
@@ -9884,7 +10278,10 @@
         "ru": "Отведённый взгляд"
       },
       "description": "MOTION: the subject’s eyes move slowly from the camera to one side and back, once per loop; the head and face stay still.",
-      "when": "A thought, a doubt, someone looking past the viewer."
+      "when": "A thought, a doubt, someone looking past the viewer.",
+      "needs": [
+        "subject:person"
+      ]
     },
     {
       "key": "breathing",
@@ -9895,7 +10292,10 @@
         "ru": "Дыхание"
       },
       "description": "MOTION: slow breathing: the chest and shoulders rise and fall gently about once every four seconds; the face and the background stay still.",
-      "when": "A still figure that must not read as a photograph."
+      "when": "A still figure that must not read as a photograph.",
+      "needs": [
+        "subject:person"
+      ]
     },
     {
       "key": "hair-sway",
@@ -9906,7 +10306,10 @@
         "ru": "Волосы на ветру"
       },
       "description": "MOTION: hair moves softly in a light breeze, small and continuous; the face and the body hold still.",
-      "when": "A portrait outdoors, a calm moment."
+      "when": "A portrait outdoors, a calm moment.",
+      "needs": [
+        "subject:person"
+      ]
     },
     {
       "key": "cloth-ripple",
@@ -9983,7 +10386,13 @@
         "ru": "Штатив"
       },
       "description": "MOTION: the camera is locked on a tripod, no camera movement at all; only what moves inside the frame moves.",
-      "when": "Whenever the movement inside the frame should be the only movement."
+      "when": "Whenever the movement inside the frame should be the only movement.",
+      "provides": [
+        "camera:static"
+      ],
+      "conflicts": [
+        "camera:moving"
+      ]
     },
     {
       "key": "handheld-breath",
@@ -9994,7 +10403,13 @@
         "ru": "Дыхание камеры"
       },
       "description": "MOTION: a handheld camera breathing: a tiny slow drift and sway of a few pixels, never a shake; the framing holds and the subject stays still in it.",
-      "when": "A close, human picture that should not feel staged."
+      "when": "A close, human picture that should not feel staged.",
+      "provides": [
+        "camera:moving"
+      ],
+      "conflicts": [
+        "camera:static"
+      ]
     },
     {
       "key": "slow-push-in",
@@ -10005,7 +10420,13 @@
         "ru": "Медленный наезд"
       },
       "description": "MOTION: a slow push-in toward the subject at a constant speed, about ten percent closer over the whole loop; no tilt and no pan, and the subject stays still.",
-      "when": "The moment that matters, a verse turning into a chorus."
+      "when": "The moment that matters, a verse turning into a chorus.",
+      "provides": [
+        "camera:moving"
+      ],
+      "conflicts": [
+        "camera:static"
+      ]
     },
     {
       "key": "parallax-slide",
@@ -10016,7 +10437,13 @@
         "ru": "Проезд с параллаксом"
       },
       "description": "MOTION: a slow sideways camera slide that reveals parallax: the foreground passes faster than the background while the subject stays sharp and still.",
-      "when": "A layered scene - a street, a forest, a crowd - that needs depth."
+      "when": "A layered scene - a street, a forest, a crowd - that needs depth.",
+      "provides": [
+        "camera:moving"
+      ],
+      "conflicts": [
+        "camera:static"
+      ]
     },
     {
       "key": "rack-focus",

@@ -1,3 +1,6 @@
+import { fixFrame } from '@/lib/coverFix'
+import { CoverProblems } from '@/features/work/tabs/cover/CoverNotes'
+import type { ContractFix } from '@/lib/api/types'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { FramePrompts, Frame as WorkFrame, FrameView, Work } from '@/lib/api/types'
@@ -210,7 +213,12 @@ export function FrameTab({ work }: Props) {
                 the pane grew with three long prompts and was cut off at the
                 card's edge with no bar (v0.90.1). */}
             <Loaded query={view} skeleton={<SkeletonList rows={3} secondary={false} />} plain fill>
-              {(data) => <FramePanel view={data} />}
+              {(data) => (
+                <FramePanel
+                  view={data}
+                  onFix={(fix) => change(fixFrame(work.frame, work.cover, fix))}
+                />
+              )}
             </Loaded>
           </div>
         </div>
@@ -219,8 +227,9 @@ export function FrameTab({ work }: Props) {
   )
 }
 
-/** The scheme of a built still, then the three prompts to copy. */
-function FramePanel({ view }: { view: FrameView }) {
+/** The scheme of a built still, what is left out and why, then the three
+ *  prompts to copy. */
+function FramePanel({ view, onFix }: { view: FrameView; onFix: (fix: ContractFix) => void }) {
   const { t } = useTranslation()
   return (
     <Pane
@@ -233,6 +242,7 @@ function FramePanel({ view }: { view: FrameView }) {
       }
       bodyClassName="flex flex-col gap-3 p-3"
     >
+      <CoverProblems problems={view.problems} onFix={onFix} />
       {view.from_cover && (
         <div className="flex h-[clamp(9rem,28vh,17rem)] items-center justify-center rounded-md bg-soft p-2.5">
           {view.scheme === null ? (

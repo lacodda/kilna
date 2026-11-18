@@ -323,7 +323,9 @@ fn initialize() -> Value {
     them, a phrase with its shelves, how many works say it and how it is sung (the stress as a \
     capital vowel), and `propose_note` proposes one. `propose_words` proposes words for the \
     record - a phrase to keep, ways of singing, terms for the register and the works a meaning \
-    is in. Name works by id when you have one; an exact title works too. \
+    is in. `styles` reads the dictionary a prompt is built from, and `propose_style` proposes \
+    styles for it - new ones and rewrites, with when each can go into a picture. Name \
+    works by id when you have one; an exact title works too. \
     The methods of the craft, what a work is judged by and the rules of its world live in \
     kilna, never in your own files: `workspace` lists the skills of this profile under \
     `guides`, `guide` hands you a skill's method with the live context of the space, and \
@@ -371,6 +373,8 @@ fn scenes_arg(description: &str) -> Value {
             "layer": text_arg("A key of the kind's `layers`"),
             "description": text_arg("What happens in the scene"),
             "blocks": { "type": "object", "description": "Prompt blocks by the kind's `scene_blocks` key, each the text a generator is given", "additionalProperties": { "type": "string" } },
+            "cover_bricks": { "type": "object", "description": "The scene's own bricks over the clip's cover, by id from `styles`: style, background, composition, look, environment, angle, pose, layering, lighting, optics, grading - each a brick of the type of its own name" },
+            "motion_bricks": { "type": "array", "items": { "type": "string" }, "description": "The movements of the shot, up to five brick ids of the Motion branch (`styles` with `branch`: motion); the ones the scene's picture cannot take by their contracts are left out of its loop" },
         } },
     })
 }
@@ -714,6 +718,30 @@ fn tools() -> Vec<Value> {
                 "note": text_arg("One sentence on what was proposed and why, optional"),
             }),
             &["words"],
+        ),
+        tool(
+            "propose_style",
+            "Propose styles for the dictionary, kept in one click or one by one: new bricks of \
+             any type (`type` and `name` needed) and rewrites of bricks it has (`id` from \
+             `styles` - a rewrite changes only the fields it names). `description` is the words \
+             a generator reads, in English; `family` a key of the type's families; `when` when \
+             to reach for it; `explanation` what it gives, per language ({en, ru}); `colours` \
+             #RRGGBB hex; `contract` when it can go into a picture: `needs` (`subject:person`, \
+             `crop:min:bust` - crops run detail < head < bust < waist < full - `scenery:yes`, \
+             `title:present`), `provides` (`color:mono`, `camera:moving`) and `conflicts` \
+             (`camera:static`, `color:vivid`). A brick whose contract a picture does not meet is \
+             left out of that picture's prompt and said, never erased. It waits in the chat on \
+             `work` when one is named, or in the chat named after you.",
+            json!({
+                "styles": {
+                    "type": "array",
+                    "description": "The styles: {id?, type?, name?, description?, family?, when?, explanation?, colours?, contract?}",
+                    "items": {}
+                },
+                "work": text_arg("The work they are for, by id or exact title; optional"),
+                "note": text_arg("One sentence on what was proposed and why, optional"),
+            }),
+            &["styles"],
         ),
         tool(
             "scenes",
@@ -2124,6 +2152,45 @@ pub fn run_tool(
 
         "styles" => read_styles(conn, &profile.id, &config, args),
 
+        "propose_style" => {
+            let found = match arg(args, "work") {
+                Some(named) => Some(find_work(conn, &profile.id, named)?),
+                None => None,
+            };
+            let raw = args
+                .get("styles")
+                .cloned()
+                .ok_or_else(|| Error::refused("mcp.missingArg").param("key", "styles"))?;
+            let package = crate::style_proposal::read(conn, &profile.id, &config, &raw)?;
+            if package.is_empty() {
+                return Err(Error::refused("styles.noStyles"));
+            }
+            let body = crate::style_proposal::render(&package);
+            let count = package.styles.len();
+            let dropped = package.dropped.len();
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                found.as_ref(),
+                Proposal::Styles { package },
+                &body,
+                arg(args, "note"),
+            )?;
+            let mut answer = format!(
+                "Proposed {count} style{} for the dictionary. It waits in the chat {}; the person keeps it whole or style by style.",
+                if count == 1 { "" } else { "s" },
+                if found.is_some() {
+                    "on the work"
+                } else {
+                    "named after you"
+                }
+            );
+            if dropped > 0 {
+                answer.push_str(&format!(" {dropped} left out - the chat says why."));
+            }
+            Ok(answer)
+        }
         "propose_words" => {
             let found = match arg(args, "work") {
                 Some(named) => Some(find_work(conn, &profile.id, named)?),
@@ -3594,6 +3661,7 @@ fn deliver(
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
         (Proposal::Words { .. }, _) => Record::new("proposal.words"),
+        (Proposal::Styles { .. }, _) => Record::new("proposal.styles"),
         (Proposal::Canon { .. }, Some(_)) => Record::new("proposal.canon"),
         (Proposal::Canon { .. }, None) => Record::new("proposal.freeCanon"),
         // Refused at the top of this function.
@@ -5289,6 +5357,48 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(unknown.refusal().map(|r| r.code), Some("mcp.unknownBrick"));
+    }
+
+    #[test]
+    fn styles_are_proposed_with_their_contracts_and_kept_by_the_person() {
+        let (conn, _) = workspace();
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_style",
+            &args(json!({ "styles": [
+                { "type": "pose", "name": "Arms crossed", "description": "arms crossed",
+                  "contract": { "needs": ["subject:person", "crop:min:waist"] } },
+                { "type": "nothing-of-the-kind", "name": "X" }
+            ]})),
+        )
+        .unwrap();
+        assert!(
+            answer.contains("Proposed 1 style") && answer.contains("1 left out"),
+            "{answer}"
+        );
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chat = assistant::summaries(&conn, &profile_id, None)
+            .unwrap()
+            .into_iter()
+            .find(|c| c.work_id.is_none())
+            .unwrap();
+        let proposed = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        assert!(
+            proposed.body.contains("**Arms crossed** (pose)"),
+            "{}",
+            proposed.body
+        );
+        let outcome =
+            crate::actions::proposal::apply(&conn, &proposed.id, Default::default()).unwrap();
+        let made = crate::style_brick::get(&conn, &outcome.style_bricks[0])
+            .unwrap()
+            .unwrap();
+        assert_eq!(made.contract.needs, ["subject:person", "crop:min:waist"]);
     }
 
     #[test]
