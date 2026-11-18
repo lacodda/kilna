@@ -503,9 +503,9 @@ describe('a month short of the rhythm (v0.104)', () => {
     // October 2026: five Thursdays and Saturdays, four Tuesdays - 14 days.
     const grid = { every_days: 1, weekdays: ['tue', 'thu', 'sat'] as Weekday[] }
     const october = (rules: Partial<Parameters<typeof rhythmGaps>[2] & object>) =>
-      rhythmGaps([], 0, { ...grid, ...rules }, '2026-09-30').find((gap) =>
-        gap.complaint.startsWith('rhythm-gap:2026-10:'),
-      )?.params.count
+      rhythmGaps([], 0, { ...grid, ...rules }, '2026-09-30').find(
+        (gap) => gap.complaint?.startsWith('rhythm-gap:2026-10:') === true,
+      )?.params?.count
     expect(october({})).toBe(14)
     expect(october({ monthly_target: 13, overflow: 'skip_weakest' })).toBe(13)
     expect(october({ monthly_target: 13 })).toBe(14)
