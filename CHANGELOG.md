@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.130.0] - 2026-11-18
+
+A demo and a second copy. A portable copy, or one started on another folder
+with `--workspace`, is now an instance of its own and runs beside the
+installed kilna; starting kilna again on the same folder still brings its
+window forward. `kilna --demo-all` makes a demo stand - a space of every
+craft, each with its demo - and makes it again on the next call, never in a
+folder of real spaces; `kilna --seed-demo` fills one empty space. The demo
+speaks Russian when the window does, and Settings -> Spaces can fill the
+open space with it.
+
+### Features
+- One instance per folder of data, a demo stand, and the demo in Russian
+
+### Testing
+- The Russian demo's first title is read with its tie broken
+
 ## [0.129.0] - 2026-11-18
 
 Onboarding. The first start of a new machine welcomes you in: whether
