@@ -32,6 +32,9 @@ const CANDIDATE = 'candidate'
 interface Props {
   work: Work
   view: CoverView
+  /** A strip in the constructor's dock (v0.135): one row of pictures that
+   *  scrolls sideways, rather than a grid. */
+  strip?: boolean
 }
 
 /**
@@ -48,7 +51,7 @@ interface Props {
  * the constructor shows, when the mark goes on that way - the one picture
  * that leaves for the platform.
  */
-export function CoverResult({ work, view }: Props) {
+export function CoverResult({ work, view, strip = false }: Props) {
   const { t } = useTranslation()
   const region = useRef<HTMLDivElement>(null)
   const [over, setOver] = useState(false)
@@ -162,7 +165,11 @@ export function CoverResult({ work, view }: Props) {
       : (view.marks.find((option) => option.id === work.cover.mark.variant) ?? null)
 
   return (
-    <Panel role="region" aria-label={t('cover.result.title')} className="flex flex-col gap-2 p-3">
+    <Panel
+      role="region"
+      aria-label={t('cover.result.title')}
+      className={cn('flex flex-col gap-2', strip ? 'p-2' : 'p-3')}
+    >
       <header className="flex flex-wrap items-center gap-2">
         <SectionLabel>{t('cover.result.title')}</SectionLabel>
         <span className="text-2xs text-faint">{t('cover.result.hint')}</span>
@@ -174,7 +181,9 @@ export function CoverResult({ work, view }: Props) {
       <div
         ref={region}
         className={cn(
-          'grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2 rounded-md p-1',
+          strip
+            ? 'grid auto-cols-[6rem] grid-flow-col gap-2 overflow-x-auto rounded-md p-1'
+            : 'grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2 rounded-md p-1',
           over && 'bg-accent-soft outline-2 outline-dashed outline-accent',
         )}
       >
@@ -196,7 +205,12 @@ export function CoverResult({ work, view }: Props) {
             busy={remove.isPending || choose.isPending}
           />
         ))}
-        <p className="col-span-full rounded-md border border-dashed border-line-2 px-3 py-4 text-center text-xs text-faint">
+        <p
+          className={cn(
+            'rounded-md border border-dashed border-line-2 text-center text-xs text-faint',
+            strip ? 'flex w-40 items-center px-2 py-2' : 'col-span-full px-3 py-4',
+          )}
+        >
           {t('cover.result.drop')}
         </p>
       </div>

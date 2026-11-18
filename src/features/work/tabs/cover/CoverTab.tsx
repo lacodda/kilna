@@ -12,7 +12,7 @@ import { Loaded } from '@/components/Loaded'
 import { ReleaseMetaStatus } from '@/features/work/ReleaseMetaStatus'
 import { ConceptColumn } from '@/features/work/tabs/cover/ConceptColumn'
 import { CoverProblems, CoverReferences } from '@/features/work/tabs/cover/CoverNotes'
-import { CoverPrompts } from '@/features/work/tabs/cover/CoverPrompts'
+import { CoverPrompts, PromptDock } from '@/features/work/tabs/cover/CoverPrompts'
 import { CoverResult } from '@/features/work/tabs/cover/CoverResult'
 import { CoverStage } from '@/features/work/tabs/cover/CoverStage'
 import { IdeaBoard } from '@/features/work/tabs/cover/IdeaBoard'
@@ -94,27 +94,47 @@ export function CoverTab({ work }: Props) {
             {/* Bound: the prompt runs to thousands of characters, and its
                 panel scrolls inside rather than taking the preview above it
                 off the screen (`CoverPrompts`). */}
-            <Scroll
-              label={t('cover.made')}
-              bound
-              className="min-w-0 flex-1"
-              contentClassName="flex flex-col gap-2.5"
-            >
-              <Loaded query={cover} skeleton={<SkeletonList rows={4} secondary={false} />} plain>
-                {(data) => (
-                  <>
-                    <CoverStage view={data} mark={work.cover.mark} onFormat={setFormat} />
-                    <CoverProblems
-                      problems={data.problems}
-                      onFix={(fix) => edit.change((cover) => fixCover(cover, fix))}
-                    />
-                    <CoverPrompts cover={work.cover} view={data} change={edit.change} />
-                    <CoverReferences references={data.references} />
-                    <CoverResult work={work} view={data} />
-                  </>
-                )}
-              </Loaded>
-            </Scroll>
+            {/* The made column over a dock that stands (v0.135, FR-07 7.3):
+                the prompt to copy and what came back stay at hand however
+                far the column above is scrolled. */}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+              <Scroll
+                label={t('cover.made')}
+                bound
+                className="min-h-0 min-w-0 flex-1"
+                contentClassName="flex flex-col gap-2.5"
+              >
+                <Loaded query={cover} skeleton={<SkeletonList rows={4} secondary={false} />} plain>
+                  {(data) => (
+                    <>
+                      <CoverStage view={data} mark={work.cover.mark} onFormat={setFormat} />
+                      <CoverProblems
+                        problems={data.problems}
+                        onFix={(fix) => edit.change((cover) => fixCover(cover, fix))}
+                      />
+                      <CoverPrompts cover={work.cover} view={data} change={edit.change} />
+                      <CoverReferences references={data.references} />
+                    </>
+                  )}
+                </Loaded>
+              </Scroll>
+              {cover.data !== undefined && (
+                <div
+                  role="group"
+                  aria-label={t('cover.dock')}
+                  className="flex shrink-0 flex-col gap-2 border-t border-line pt-2"
+                >
+                  <PromptDock
+                    cover={work.cover}
+                    view={cover.data}
+                    change={edit.change}
+                    workId={work.id}
+                    kind={work.kind}
+                  />
+                  <CoverResult work={work} view={cover.data} strip />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

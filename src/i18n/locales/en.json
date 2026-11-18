@@ -2690,7 +2690,8 @@
       "copyAll": "Copy all",
       "sent": "Kept on the cover · {{time}}",
       "changedSince": "the prompt has changed since it was copied",
-      "reserve": "Keep the title’s place clean in the picture"
+      "reserve": "Keep the title’s place clean in the picture",
+      "fresh": "copied as it is"
     },
     "references": {
       "title": "To hand the generator",
@@ -2743,7 +2744,8 @@
     "layers": {
       "title": "Scene, look and optics",
       "hint": "each kept only where the picture can take it"
-    }
+    },
+    "dock": "The prompt and what came back"
   },
   "frame": {
     "still": "Still",

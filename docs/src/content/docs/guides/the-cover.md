@@ -189,6 +189,32 @@ into the prompt as its template says it, in the generator's English; one
 whose words are in the channel's own language is marked, left out, and named
 among the tab's notes until its template is written in the channel's card.
 
+## The constructor's column and dock
+
+Since v0.135 the starred ideas stand at the top of the constructor's column
+as a list - where each came from, its headline and a line of it - held there
+while the column scrolls, one press to build the cover from one; a long
+shortlist is searched. Every section folds by its title, and a folded
+section says in one line what is chosen in it; which sections are folded is
+remembered for the whole application, not per work.
+
+The frame's layouts are searched, a starred layout comes first on every
+work, and **No frame** clears the frame in one press. How big the subject is
+and how much of it shows are two scales of named stops; the second starts at
+**No subject**, a picture of the scene alone. **Scene, look and optics**
+holds a picker per layer the craft makes - look, environment, angle, pose,
+lighting, optics, grading - each list filed under its sets, starred styles
+first, opening on the one chosen, with what the contract says beside it.
+The **Lettering** section says everything about the words in one place: the
+title, where it goes, whether a second prompt letters it and whether its
+room is kept, and the typeface.
+
+A dock under the column stands however far it is scrolled: **Copy all**,
+the second prompt, when the prompt was copied and whether it changed since,
+**Check the cover prompt** - Studio's action that reads the built prompt for
+contradictions and answers in the chat - and what came back, as a strip of
+pictures to drop, paste or pick into.
+
 ## Layers and contracts
 
 Since v0.134 a cover holds, beside its style, lettering, dressing and ground,

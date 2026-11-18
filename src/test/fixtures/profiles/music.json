@@ -1934,6 +1934,30 @@
         }
       },
       {
+        "category": "cover",
+        "description": {
+          "en": "Reads the built cover prompt for contradictions - two lights, two times of day, a crop against a pose, a style against a grade - and says what to change.",
+          "ru": "Читает собранный промпт обложки на противоречия - два света, два времени суток, крупность против позы, стиль против цветокоррекции - и говорит, что поменять."
+        },
+        "icon": "eye",
+        "key": "cover-check",
+        "kinds": [
+          "video",
+          "audio",
+          "short"
+        ],
+        "label": {
+          "en": "Check the cover prompt",
+          "ru": "Проверить промпт обложки"
+        },
+        "method": "# Check the cover prompt\n\n## Role\n\nYou read one cover prompt, written for an image generator, and find where it contradicts itself - the places a generator would have to choose between two things it was told, and would draw neither well.\n\n## What counts\n\n- Two lights or two times of day: a golden-hour sun and a neon night; a window light and a hard flash.\n- How much of the subject shows against what it does: a head-and-shoulders crop and a pose of the legs; a detail and a full-figure gesture.\n- A style against a grade or a colour: a black-and-white style and a saturated grade; a flat ground and a scene that describes a place.\n- The scene against the frame: a hero placed left and a scene that puts them in the centre; a title band kept clear and a scene that fills it.\n- Words that ask for text where the prompt says no text, or the reverse.\n- Not a contradiction: the same thing said twice, or a detail that adds to another.\n\n## Output\n\nEach contradiction on its own line: the two phrases quoted word for word, why they fight, and the one change that settles it - which phrase to drop or how to reword it. Say the most serious first. If there are none, say \"No contradictions.\" and nothing else.\n",
+        "template": "Check the cover prompt of «{title}» for contradictions.\n\n{cover_prompt}",
+        "when": {
+          "en": "Before a cover prompt goes to the generator: when the scene, the own words and the bricks were written apart and may say opposite things.",
+          "ru": "Перед тем как промпт обложки уйдёт в генератор: когда сцена, свои слова и кирпичики писались порознь и могут говорить противоположное."
+        }
+      },
+      {
         "category": "workflow",
         "description": {
           "en": "Trials for the board: a sweep of the field, variations around a core, or the fix for what went wrong - each held to the anchors.",

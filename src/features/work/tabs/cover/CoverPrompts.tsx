@@ -1,5 +1,11 @@
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ScanSearch } from 'lucide-react'
+import { startTask } from '@/lib/api/assistant'
+import { isButton } from '@/lib/actions'
+import { keys } from '@/lib/query/keys'
+import { useAppMutation } from '@/lib/query/useAppMutation'
+import { useAssistant } from '@/lib/useAssistant'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import type { Cover, CoverPrompts as Prompts, CoverView } from '@/lib/api/types'
 import { formatStamp } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -41,65 +47,17 @@ export function CoverPrompts({ cover, view, disabled, change }: Props) {
   // Own words for the lettering are always offered on a built cover: they
   // join the lettering wherever it goes.
   const own: Part[] = view.built ? ['picture', 'negative', 'typography'] : parts
-
-  const record = (sent: Prompts) =>
-    change((c) => ({
-      ...c,
-      sent: {
-        picture: sent.picture,
-        negative: sent.negative,
-        typography: sent.typography,
-        at: new Date().toISOString(),
-      },
-    }))
-  const copied = (ok: boolean) => {
-    if (!ok) say.failed(t('work.copyFailed'))
-    else record(prompts)
-  }
-  const whole = [
-    prompts.picture,
-    prompts.negative === '' ? '' : `NEGATIVE: ${prompts.negative}`,
-    prompts.typography ?? '',
-  ]
-    .filter((part) => part.trim() !== '')
-    .join('\n\n---\n\n')
+  const { copied } = useCopied(view, change)
 
   return (
     // As tall as the column at most (`BOUND`): the blocks scroll between a
-    // head and a foot that stand, so "Copy all" is at hand whatever the length
-    // of the prompt - it ran to a thousand pixels on a cover with five
-    // lettering variants, and the preview above went off the screen with it.
-    <Panel className={cn('grid min-w-0 grid-rows-[auto_minmax(0,1fr)_auto]', BOUND)}>
+    // head that stands - the copy of all of them is in the dock below the
+    // column (v0.135) - whatever the length of the prompt.
+    <Panel className={cn('grid min-w-0 grid-rows-[auto_minmax(0,1fr)]', BOUND)}>
       <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <b className="text-sm font-semibold">{t('cover.prompt.title')}</b>
         <span className="text-2xs text-faint">{t('cover.prompt.hint')}</span>
-        {view.built && (
-          <Switch
-            className="ml-auto"
-            checked={cover.lettering.apart}
-            disabled={disabled}
-            onCheckedChange={(apart) =>
-              change((c) => ({ ...c, lettering: { ...c.lettering, apart } }))
-            }
-          >
-            {t('cover.prompt.apart')}
-          </Switch>
-        )}
-        {/* With the title apart the picture says nothing of it - unless its
-            place is to be kept clean for the second prompt (v0.115). */}
-        {view.built && cover.lettering.apart && (
-          <Switch
-            checked={cover.lettering.reserve}
-            disabled={disabled}
-            onCheckedChange={(reserve) =>
-              change((c) => ({ ...c, lettering: { ...c.lettering, reserve } }))
-            }
-          >
-            {t('cover.prompt.reserve')}
-          </Switch>
-        )}
       </header>
-
       <Scroll label={t('cover.prompt.title')} contentClassName="flex flex-col gap-3 p-3">
         {!view.built && <p className="text-xs text-dim">{t('cover.prompt.byHand')}</p>}
         {parts.map((part) => {
@@ -150,37 +108,125 @@ export function CoverPrompts({ cover, view, disabled, change }: Props) {
           />
         )}
       </Scroll>
-
-      <footer className="flex flex-wrap items-center gap-2 border-t border-line px-3 py-2">
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={whole === ''}
-          onClick={() => {
-            navigator.clipboard.writeText(whole).then(
-              () => {
-                copied(true)
-                say.ok(t('cover.copied'))
-              },
-              () => copied(false),
-            )
-          }}
-        >
-          {t('cover.prompt.copyAll')}
-        </Button>
-        {cover.sent !== null && (
-          <span className="text-2xs text-faint">
-            {t('cover.prompt.sent', { time: formatStamp(cover.sent.at) })}
-          </span>
-        )}
-        {view.sent_differs && (
-          <span className="flex items-center gap-1 text-2xs text-warn">
-            <AlertTriangle aria-hidden className="size-3" />
-            {t('cover.prompt.changedSince')}
-          </span>
-        )}
-      </footer>
     </Panel>
+  )
+}
+
+/** The whole prompt as it is copied, and the record of copying it. */
+function useCopied(view: CoverView, change: (patch: (cover: Cover) => Cover) => void) {
+  const { t } = useTranslation()
+  const { prompts } = view
+  const record = (sent: Prompts) =>
+    change((c) => ({
+      ...c,
+      sent: {
+        picture: sent.picture,
+        negative: sent.negative,
+        typography: sent.typography,
+        at: new Date().toISOString(),
+      },
+    }))
+  const copied = (ok: boolean) => {
+    if (!ok) say.failed(t('work.copyFailed'))
+    else record(prompts)
+  }
+  const whole = [
+    prompts.picture,
+    prompts.negative === '' ? '' : `NEGATIVE: ${prompts.negative}`,
+    prompts.typography ?? '',
+  ]
+    .filter((part) => part.trim() !== '')
+    .join('\n\n---\n\n')
+  return { copied, whole }
+}
+
+/**
+ * The prompt's part of the constructor's dock (v0.135, FR-07 7.3): copy all
+ * of it, letter the title by a second prompt, and how fresh the prompt is -
+ * when it was last copied, and whether it changed since.
+ */
+export function PromptDock({
+  cover,
+  view,
+  disabled,
+  change,
+  workId,
+  kind,
+}: Props & { workId: string; kind: string }) {
+  const { t } = useTranslation()
+  const { copied, whole } = useCopied(view, change)
+  // The profile's action that reads this prompt for contradictions, found by
+  // what it reads rather than by its key: a profile names its own.
+  const check = useProfile()
+    .config.prompts.filter(isButton)
+    .find(
+      (prompt) =>
+        prompt.template.includes('{cover_prompt}') &&
+        (prompt.kinds == null || prompt.kinds.length === 0 || prompt.kinds.includes(kind)),
+    )
+  const assistant = useAssistant()
+  const start = useAppMutation({
+    mutationFn: (action: string) => startTask(workId, action),
+    refresh: [keys.activeTasks, keys.allChats],
+    onSuccess: (started) => {
+      say.info(t('assistant.taskStarted', { title: started.title }))
+      assistant.open(started.chatId)
+    },
+  })
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        variant="primary"
+        size="sm"
+        disabled={whole === ''}
+        onClick={() => {
+          navigator.clipboard.writeText(whole).then(
+            () => {
+              copied(true)
+              say.ok(t('cover.copied'))
+            },
+            () => copied(false),
+          )
+        }}
+      >
+        {t('cover.prompt.copyAll')}
+      </Button>
+      {check !== undefined && view.built && (
+        <Button
+          size="sm"
+          variant="soft"
+          disabled={start.isPending || whole === ''}
+          onClick={() => start.mutate(check.key)}
+        >
+          <ScanSearch aria-hidden />
+          {sayLabel(check.label)}
+        </Button>
+      )}
+      {view.built && (
+        <Switch
+          checked={cover.lettering.apart}
+          disabled={disabled}
+          onCheckedChange={(apart) =>
+            change((c) => ({ ...c, lettering: { ...c.lettering, apart } }))
+          }
+        >
+          {t('cover.prompt.apart')}
+        </Switch>
+      )}
+      {cover.sent !== null && (
+        <span className="text-2xs text-faint">
+          {t('cover.prompt.sent', { time: formatStamp(cover.sent.at) })}
+        </span>
+      )}
+      {view.sent_differs ? (
+        <span className="flex items-center gap-1 text-2xs text-warn">
+          <AlertTriangle aria-hidden className="size-3" />
+          {t('cover.prompt.changedSince')}
+        </span>
+      ) : (
+        cover.sent !== null && <span className="text-2xs text-good">{t('cover.prompt.fresh')}</span>
+      )}
+    </div>
   )
 }
 

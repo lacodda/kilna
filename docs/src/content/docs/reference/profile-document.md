@@ -1636,6 +1636,10 @@ proposes.
   `{canon:public}`: a release goes out in public, and `{canon}` would carry
   the internal layer into its description. That is refused when the profile
   is saved, as `{selection}` in a release field is.
+- `{cover_prompt}` — the work's cover prompt as it is copied out (v0.135):
+  the picture, what to keep out and the second prompt, each under its name.
+  What a check of the prompt reads; Studio's *Check the cover prompt* is
+  offered in the Cover tab's dock.
 - `{selection}` — the lines selected in the text, word for word. Only in an
   action with `"scope": "selection"`, which must read it.
 - `{trials}` — only in an action with `"scope": "lab"` (v0.95): what the board

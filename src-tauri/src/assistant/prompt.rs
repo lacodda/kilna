@@ -393,6 +393,7 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "source"
             | "origin"
             | "released"
+            | "cover_prompt"
             | "stress"
             | "release"
             | "releases"
@@ -588,6 +589,19 @@ pub fn for_work(
             "stress",
             crate::words::sung::sheet(text.unwrap_or_default(), &forms),
         ));
+    }
+    // The cover's prompt as it is copied out (v0.135): what a check of the
+    // prompt reads - the picture, what to keep out, the second prompt.
+    if wants("cover_prompt") {
+        let built = crate::cover::read::view(conn, &work.id, None)?.prompts;
+        let mut sheet = format!("PICTURE:\n{}", built.picture.trim());
+        if !built.negative.trim().is_empty() {
+            sheet.push_str(&format!("\n\nNEGATIVE:\n{}", built.negative.trim()));
+        }
+        if let Some(typography) = built.typography.filter(|text| !text.trim().is_empty()) {
+            sheet.push_str(&format!("\n\nSECOND PROMPT:\n{}", typography.trim()));
+        }
+        values.push(("cover_prompt", sheet));
     }
     // The songs that went out, with their words: what a song is held
     // against for a meaning told in other words (ADR 0054).

@@ -1752,6 +1752,32 @@ mod tests {
         );
     }
 
+    /// A check of the prompt reads the prompt as it is copied out (v0.135).
+    #[test]
+    fn the_cover_prompt_is_read_by_an_action_as_it_is_copied() {
+        let stage = stage();
+        write(&stage, cover_of(&stage));
+        let read = crate::assistant::prompt::for_work(
+            &stage.conn,
+            &stage.clip.id,
+            "Check:\n\n{cover_prompt}",
+            Default::default(),
+        )
+        .unwrap();
+        let seen = view(&stage.conn, &stage.clip.id, None).unwrap();
+        assert!(
+            read.contains("PICTURE:\nFRAME: a wide 16:9 cover."),
+            "{read}"
+        );
+        assert!(read.contains(seen.prompts.picture.trim()), "{read}");
+        assert!(read.contains("NEGATIVE:\n"), "{read}");
+        // Studio ships the action that reads it.
+        let config = crate::profile::config_for(&stage.conn, &stage.profile_id).unwrap();
+        assert!(config.prompts.iter().any(
+            |prompt| prompt.key == "cover-check" && prompt.template.contains("{cover_prompt}")
+        ));
+    }
+
     /// A brick of the owner's, of `type_key`, with `contract`.
     fn contracted(
         stage: &Stage,
