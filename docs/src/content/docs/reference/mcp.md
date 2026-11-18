@@ -30,6 +30,22 @@ looked up at every call, so the server follows the window - or from the one its
 `space` argument names, as `workspace` lists them. A space another machine
 holds open is served for reading only, and a proposal there is refused.
 
+**The methods live in kilna.** `workspace` gives each kind's axes whole -
+their rubrics, options and descriptions - and `guides`, the index of the
+profile's skills without their methods; `guide` opens one. An agent is told
+so in the server's instructions, and is meant to read them each time rather
+than keep a copy: a method you rewrite in **Settings → Skills** is the one
+the next agent reads.
+
+**A trigger for your agent.** **Settings → Agents** writes a short file in
+the agent's own place - Claude Code's `~/.claude/skills/kilna/SKILL.md`,
+Codex CLI's `~/.codex/prompts/kilna.md`, Gemini CLI's
+`~/.gemini/commands/kilna.toml`, or a Cursor rule saved into a project as
+`.cursor/rules/kilna.mdc` - that sends the agent to this server whenever you
+talk about your works. It holds no method, no axis and no rule of your world;
+it is shown whole before it is written, and a file already there is replaced
+only when you say so.
+
 `--workspace <dir>` points the server at another application directory - a
 test's, or a copy kept for a rehearsal. Without it, it opens the one the window
 uses.
@@ -53,6 +69,7 @@ uses.
 | `trials` | The board of an [experiment](/kilna/guides/the-lab/): `anchors` - what every trial keeps; `harvest_role` and `harvest_kinds` - where a kept trial goes; `series` in the order each began; and `trials`, each with its id, series, `parent` (the trial it varies), `angle`, `body`, the `bricks` it was picked from, `reference`, `outcome`, `verdict` (`keep`, `drop` or null), `run_first`, `source` (the song's style it reworks), the anchors it has lost, how many takes it has, and `harvest` - the versions and bricks it went into. Plus `choices`: the phrases of the dictionary a trial is written from, block by block, with their ids, what each means and when to take it. A work that is no experiment is refused. The trials are a page (`total`, `limit` - 50 unless given - `offset`, `has_more`); `summary: true` leaves the texts and the dictionary's `choices` out; `trial` reads one trial whole by its id. |
 | `brief` | The order a writer works from, for a work prepared on a [conception](/kilna/guides/the-conception/): `order`, the whole order in markdown - the same text **Copy the order** copies: the idea, the brief, the texts it keeps to (a song's style prompt), the fields, each board as its rule reads it, the notes and phrases attached with how each is sung, the channel's voice and the canon the work is about, the register - or null while nothing of the conception is written; `boards`, each card with its id, kind, topic, where it came from (`own`, `refined`, `ai`), the verdict (`star`, `rejected` or none), the `entry` of the library it links to and its fields, the directions the last run offered, and `elsewhere` - the other works each entry already worked in. In `order` a quote stands word for word only with the link it was checked at; `brief_role` and `idea_field`. Write from `order` and answer with `propose_version` or `propose_work`. A kind prepared on no conception is refused. |
 | `search` | Works, versions, notes, facts and replies by text; every hit names its work or its card. |
+| `guide` | The skills of the profile (v0.127): without `skill`, the catalogue - key, name, description, `when`, group, kinds, scope, what it answers with, whether it is a button - narrowed by `kind` and `scope`; with `skill`, the whole method, the message its button sends, which `propose_*` tool its answer goes through (`answer_with`), and `workspace_context` - each kind's axes with their rubrics, tiers, roles, statuses and doors, the boards and the style types, read live. |
 
 A work is named by id, or by its exact title. A title two works share is
 refused with the ids to choose from, rather than guessed.
@@ -228,8 +245,16 @@ is a body with revisions like a lyric.
 ## Protocol
 
 JSON-RPC 2.0, one message per line, protocol version `2024-11-05`. The
-server answers `initialize`, `ping`, `tools/list` and `tools/call`; a
+server answers `initialize`, `ping`, `tools/list`, `tools/call`,
+`prompts/list` and `prompts/get`; a
 notification gets no answer, an unknown method gets a `-32601` error, and a
 tool that fails answers *inside* the result with `isError` so the agent
 reads the reason. Nothing but protocol goes to stdout; diagnostics go to
 stderr.
+
+**Prompts** (v0.127): every skill of the profile is a prompt by its key - a
+slash command in the clients that offer them - with one optional argument,
+`work`. Got with a work, it is the skill's method followed by its message
+filled from that work, as a button would send it; without one, or for a
+skill that is a method only, the method and how to apply it - which work to
+read and which `propose_*` tool to answer through.

@@ -236,6 +236,10 @@ pub fn handle(conn: &Connection, session: &mut Session, request: &Value) -> Opti
         "ping" => Ok(json!({})),
         "tools/list" => Ok(json!({ "tools": tools() })),
         "tools/call" => call_tool(conn, session, &params),
+        // The profile's skills as the client's own prompts - slash commands
+        // in the clients that offer them (FR-17).
+        "prompts/list" => list_prompts(conn),
+        "prompts/get" => get_prompt(conn, &params),
         other => Err(Failure {
             code: METHOD_NOT_FOUND,
             message: format!("kilna does not serve `{other}`"),
@@ -263,7 +267,7 @@ struct Failure {
 fn initialize() -> Value {
     json!({
         "protocolVersion": PROTOCOL_VERSION,
-        "capabilities": { "tools": {} },
+        "capabilities": { "tools": {}, "prompts": { "listChanged": false } },
         "serverInfo": { "name": "kilna", "version": env!("CARGO_PKG_VERSION") },
         "instructions": "The workspace of a content maker, kept in spaces - a channel, a blog, a novel, \
     each its own folder and its own works: every tool answers from the space kilna last opened, or \
@@ -295,7 +299,12 @@ fn initialize() -> Value {
     them, a phrase with its shelves, how many works say it and how it is sung (the stress as a \
     capital vowel), and `propose_note` proposes one. `propose_words` proposes words for the \
     record - a phrase to keep, ways of singing, terms for the register and the works a meaning \
-    is in. Name works by id when you have one; an exact title works too.",
+    is in. Name works by id when you have one; an exact title works too. \
+    The methods of the craft, what a work is judged by and the rules of its world live in \
+    kilna, never in your own files: `workspace` lists the skills of this profile under \
+    `guides`, `guide` hands you a skill's method with the live context of the space, and \
+    `canon` and `notes` hold the world and the words. Read them each time rather than \
+    remembering them.",
     })
 }
 
@@ -470,6 +479,21 @@ fn tools() -> Vec<Value> {
              phrases of the dictionary, block by block, each block with how many it takes and \
              its rule, and closes with the work's fields as the templates write them.",
             json!({}),
+            &[],
+        ),
+        tool(
+            "guide",
+            "The skills of this profile - its methods of critique, scoring, writing, video, covers, \
+             styles, canon and release, each with when to use it. Without `skill`: the catalogue, \
+             narrowed by `kind` and `scope`. With `skill`: the whole method, the message its button \
+             sends, which `propose_*` tool its answer goes through, and the live context of the \
+             space - each kind's axes with their rubrics, tiers, roles, statuses and doors, the \
+             boards and the style types. Read the method before doing the work it describes.",
+            json!({
+                "skill": text_arg("A skill's key, as the catalogue lists it"),
+                "kind": text_arg("A work kind key: only the skills for it, and its context alone"),
+                "scope": text_arg("What the skill is about: work, scene, selection, style, comment, canon, release, cover, phrases, lab, board"),
+            }),
             &[],
         ),
         tool(
@@ -1153,6 +1177,207 @@ fn tools() -> Vec<Value> {
     ]
 }
 
+/// The skills of a profile as an agent picks among them: what each is, when
+/// to reach for it, what it is for and about, and what it answers with -
+/// never its method, which `guide` opens one at a time (FR-17).
+fn guides(
+    config: &crate::profile::config::ProfileConfig,
+    kind: Option<&str>,
+    scope: Option<&str>,
+) -> Vec<Value> {
+    config
+        .prompts
+        .iter()
+        .filter(|p| kind.is_none_or(|kind| p.applies_to(kind)))
+        .filter(|p| scope.is_none_or(|scope| scope_word(p) == scope))
+        .map(|p| {
+            json!({
+                "key": p.key, "label": p.label, "description": p.description,
+                "when": p.when, "category": p.category, "kinds": p.kinds,
+                "scope": scope_word(p), "produces": p.produces,
+                "show_in_ui": p.show_in_ui, "has_method": p.method().is_some(),
+            })
+        })
+        .collect()
+}
+
+/// What a skill is about, as one word: `work` when it says nothing.
+fn scope_word(prompt: &crate::assistant::prompt::PromptTemplate) -> &str {
+    prompt
+        .scope
+        .as_deref()
+        .map(str::trim)
+        .filter(|scope| !scope.is_empty())
+        .unwrap_or("work")
+}
+
+/// How an agent hands back what a skill produces: through the tool that
+/// proposes that thing, or as prose for the person to read.
+fn answer_with(prompt: &crate::assistant::prompt::PromptTemplate) -> String {
+    use crate::assistant::prompt::Produces;
+    match prompt.produces() {
+        Produces::Prose => "prose: answer the person in the conversation".into(),
+        Produces::Score => "`propose_score`, along the kind's axes".into(),
+        Produces::Version(role) => format!("`propose_version` in the role `{role}`"),
+        Produces::Scenes(_) => "`propose_scenes`".into(),
+        Produces::Canon => "`propose_canon`".into(),
+        Produces::Words => "`propose_words`".into(),
+        Produces::Release => "`propose_release`".into(),
+        Produces::CoverIdeas => "`propose_cover`".into(),
+        Produces::Trials => "`propose_trials`".into(),
+        Produces::Cards(board) => format!("`propose_cards` onto the board `{board}`"),
+        Produces::Conception => {
+            "`propose_work` with the idea field and the brief as a version".into()
+        }
+        Produces::Comment
+        | Produces::Reply
+        | Produces::Description
+        | Produces::CardPrompt
+        | Produces::Bricks => "prose: kilna applies this answer only from the window".into(),
+    }
+}
+
+/// One skill whole, with what its method leans on in this space: the axes it
+/// judges by and their rubrics, the roles it writes into, the statuses, the
+/// doors, the boards and the style types - read live, never copied into an
+/// agent's own files.
+fn skill_document(
+    config: &crate::profile::config::ProfileConfig,
+    prompt: &crate::assistant::prompt::PromptTemplate,
+    kind: Option<&str>,
+) -> Value {
+    let kinds: Vec<Value> = config
+        .work_kinds
+        .iter()
+        .filter(|k| kind.map_or_else(|| prompt.applies_to(&k.key), |kind| k.key == kind))
+        .map(|k| {
+            json!({
+                "key": k.key, "label": k.label,
+                "axes": k.axes, "tiers": k.tiers,
+                "version_roles": k.version_roles.iter().map(|r| json!({ "key": r.key, "label": r.label })).collect::<Vec<_>>(),
+                "statuses": k.statuses.iter().map(|s| json!({ "key": s.key, "label": s.label })).collect::<Vec<_>>(),
+                "release_kinds": k.release_kinds.iter().map(|r| json!({ "key": r.key, "label": r.label })).collect::<Vec<_>>(),
+                "conception": k.conception,
+            })
+        })
+        .collect();
+    let mut entry = guides(config, None, None)
+        .into_iter()
+        .find(|g| g["key"] == prompt.key.as_str())
+        .unwrap_or_default();
+    if let Some(entry) = entry.as_object_mut() {
+        entry.remove("has_method");
+    }
+    json!({
+        "skill": entry,
+        "method": prompt.method(),
+        "message": prompt.sends().then_some(prompt.template.as_str()),
+        "answer_with": answer_with(prompt),
+        "workspace_context": {
+            "kinds": kinds,
+            "boards": config.boards.iter().map(|b| json!({ "key": b.key, "label": b.label })).collect::<Vec<_>>(),
+            "style_types": config.style_types.iter().filter(|t| t.retired.is_none()).map(|t| json!({ "key": t.key, "label": t.label })).collect::<Vec<_>>(),
+            "reading": "`catalogue`, `work`, `text`, `scores`, `canon`, `notes`, `register`, `brief`, `search`",
+            "proposing": "the `propose_*` tools: you propose, the person applies it in kilna",
+        },
+    })
+}
+
+/// The profile's skills as MCP prompts: each by its key, with the work it is
+/// about as its one argument.
+fn list_prompts(conn: &Connection) -> std::result::Result<Value, Failure> {
+    let profile = active(conn).map_err(|err| Failure {
+        code: INVALID_PARAMS,
+        message: err.to_string(),
+    })?;
+    let prompts: Vec<Value> = profile
+        .config
+        .prompts
+        .iter()
+        .map(|p| {
+            let said = p
+                .when
+                .as_ref()
+                .or(p.description.as_ref())
+                .map(|label| label.as_str().to_owned());
+            json!({
+                "name": p.key,
+                "title": p.label.as_str(),
+                "description": said,
+                "arguments": [{
+                    "name": "work",
+                    "description": "The work it is about, by id or exact title; the method alone when left out",
+                    "required": false,
+                }],
+            })
+        })
+        .collect();
+    Ok(json!({ "prompts": prompts }))
+}
+
+/// One skill as a prompt: its method, then its message filled from the work
+/// when one is named - or the method alone, to be applied as the person asks.
+fn get_prompt(conn: &Connection, params: &Value) -> std::result::Result<Value, Failure> {
+    let failed = |message: String| Failure {
+        code: INVALID_PARAMS,
+        message,
+    };
+    let name = params
+        .get("name")
+        .and_then(Value::as_str)
+        .ok_or_else(|| failed("prompts/get needs a `name`".into()))?;
+    let profile = active(conn).map_err(|err| failed(err.to_string()))?;
+    let prompt = profile
+        .config
+        .prompts
+        .iter()
+        .find(|p| p.key == name)
+        .ok_or_else(|| failed(format!("kilna has no skill keyed `{name}`")))?;
+    let work = params
+        .pointer("/arguments/work")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|w| !w.is_empty());
+
+    let mut text = String::new();
+    if let Some(method) = prompt.method() {
+        text.push_str(method);
+        text.push_str("\n\n---\n\n");
+    }
+    match (work, prompt.sends()) {
+        (Some(named), true) => {
+            let found = find_work(conn, &profile.id, named).map_err(|err| failed(err.to_string()))?;
+            let rendered = crate::assistant::prompt::for_work(
+                conn,
+                &found.id,
+                &prompt.template,
+                crate::assistant::prompt::Context::default(),
+            )
+            .map_err(|err| failed(err.to_string()))?;
+            text.push_str(&rendered);
+        }
+        (Some(named), false) => {
+            let found = find_work(conn, &profile.id, named).map_err(|err| failed(err.to_string()))?;
+            text.push_str(&format!(
+                "Apply this to the work \"{}\" (id `{}`): read it with `work` and `text`, and propose \
+                 through {}.",
+                found.title,
+                found.id,
+                answer_with(prompt)
+            ));
+        }
+        (None, _) => text.push_str(&format!(
+            "Apply this to the work the person names: find it with `catalogue`, read it with `work` \
+             and `text`, and propose through {}.",
+            answer_with(prompt)
+        )),
+    }
+    Ok(json!({
+        "description": prompt.label.as_str(),
+        "messages": [{ "role": "user", "content": { "type": "text", "text": text } }],
+    }))
+}
+
 fn call_tool(
     conn: &Connection,
     session: &Session,
@@ -1388,10 +1613,9 @@ pub fn run_tool(
                         "key": kind.key,
                         "label": kind.label,
                         "version_roles": kind.version_roles,
-                        "axes": kind.axes.iter().map(|a| json!({
-                            "key": a.key, "label": a.label, "weight": a.weight, "scale": a.scale,
-                            "description": a.description,
-                        })).collect::<Vec<_>>(),
+                        // Whole: the rubric's marks are the anchors a judge
+                        // places a work against (FR-17).
+                        "axes": kind.axes,
                         "tiers": kind.tiers,
                         "statuses": kind.statuses.iter().map(|s| json!({ "key": s.key, "label": s.label })).collect::<Vec<_>>(),
                         "release_kinds": kind.release_kinds.iter().map(|k| json!({
@@ -1455,7 +1679,38 @@ pub fn run_tool(
                 "boards": config.boards,
                 // The three lines a work's feel is said along (FR-02).
                 "vibe": config.vibe(),
+                // The skills of the profile, without their methods: what
+                // `guide` opens one by one (FR-17).
+                "guides": guides(&config, None, None),
             }))
+        }
+
+        "guide" => {
+            let kind = arg(args, "kind");
+            let scope = arg(args, "scope");
+            match arg(args, "skill") {
+                None => pretty(&json!({ "guides": guides(&config, kind, scope) })),
+                Some(key) => {
+                    let skill = config
+                        .prompts
+                        .iter()
+                        .find(|p| p.key == key)
+                        .ok_or_else(|| {
+                            Error::refused("mcp.unknownSkill")
+                                .param("skill", key)
+                                .param(
+                                    "known",
+                                    config
+                                        .prompts
+                                        .iter()
+                                        .map(|p| p.key.as_str())
+                                        .collect::<Vec<_>>()
+                                        .join(", "),
+                                )
+                        })?;
+                    pretty(&skill_document(&config, skill, kind))
+                }
+            }
         }
 
         "catalogue" => {
@@ -4381,6 +4636,138 @@ mod tests {
         let _ = profile_id;
     }
 
+    #[test]
+    fn workspace_gives_the_axes_whole_and_the_skills_without_their_methods() {
+        let (conn, _) = workspace();
+        let said: Value =
+            serde_json::from_str(&run_tool(&conn, &claude(), "workspace", &Map::new()).unwrap())
+                .unwrap();
+        let song = said["work_kinds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|k| k["key"] == "song")
+            .unwrap();
+        assert!(
+            song["axes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|a| a["rubric"].as_array().is_some_and(|r| !r.is_empty())),
+            "{}",
+            song["axes"]
+        );
+        let guides = said["guides"].as_array().unwrap();
+        let score = guides.iter().find(|g| g["key"] == "score").unwrap();
+        assert_eq!(score["produces"], "score");
+        assert_eq!(score["has_method"], true);
+        assert!(score.get("method").is_none(), "the index carries no method");
+        assert!(score.get("template").is_none());
+    }
+
+    #[test]
+    fn guide_lists_the_skills_and_opens_one_with_the_live_context() {
+        let (conn, _) = workspace();
+        let catalogue: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "guide",
+                &args(json!({ "scope": "scene" })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let listed = catalogue["guides"].as_array().unwrap();
+        assert!(!listed.is_empty());
+        assert!(listed.iter().all(|g| g["scope"] == "scene"));
+
+        let opened: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "guide",
+                &args(json!({ "skill": "score", "kind": "song" })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert!(opened["method"].as_str().is_some_and(|m| m.len() > 100));
+        assert_eq!(
+            opened["answer_with"],
+            "`propose_score`, along the kind's axes"
+        );
+        let kinds = opened["workspace_context"]["kinds"].as_array().unwrap();
+        assert_eq!(kinds.len(), 1);
+        assert!(kinds[0]["axes"][0]["rubric"].is_array());
+        assert!(
+            kinds[0]["statuses"]
+                .as_array()
+                .is_some_and(|s| !s.is_empty())
+        );
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "guide",
+            &args(json!({ "skill": "nothing" })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("mcp.unknownSkill"));
+    }
+
+    #[test]
+    fn the_skills_are_served_as_prompts_filled_from_a_work_when_one_is_named() {
+        let (conn, work_id) = workspace();
+        let mut session = Session::default();
+        let listed = handle(
+            &conn,
+            &mut session,
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "prompts/list" }),
+        )
+        .unwrap();
+        let prompts = listed["result"]["prompts"].as_array().unwrap();
+        let critique = prompts.iter().find(|p| p["name"] == "critique").unwrap();
+        assert_eq!(critique["arguments"][0]["name"], "work");
+
+        let got = handle(
+            &conn,
+            &mut session,
+            &json!({ "jsonrpc": "2.0", "id": 2, "method": "prompts/get",
+                     "params": { "name": "critique", "arguments": { "work": work_id } } }),
+        )
+        .unwrap();
+        let text = got["result"]["messages"][0]["content"]["text"]
+            .as_str()
+            .unwrap();
+        assert!(
+            text.contains("Harbour lights"),
+            "the message is filled: {text}"
+        );
+        assert!(text.contains("---"), "the method comes first: {text}");
+
+        let bare = handle(
+            &conn,
+            &mut session,
+            &json!({ "jsonrpc": "2.0", "id": 3, "method": "prompts/get",
+                     "params": { "name": "critique" } }),
+        )
+        .unwrap();
+        let text = bare["result"]["messages"][0]["content"]["text"]
+            .as_str()
+            .unwrap();
+        assert!(text.contains("the work the person names"), "{text}");
+
+        let unknown = handle(
+            &conn,
+            &mut session,
+            &json!({ "jsonrpc": "2.0", "id": 4, "method": "prompts/get",
+                     "params": { "name": "nothing" } }),
+        )
+        .unwrap();
+        assert_eq!(unknown["error"]["code"], INVALID_PARAMS);
+    }
+
     fn args(value: Value) -> Map<String, Value> {
         value.as_object().cloned().unwrap()
     }
@@ -4653,6 +5040,15 @@ mod tests {
             env!("CARGO_PKG_VERSION")
         );
         assert!(response["result"]["capabilities"]["tools"].is_object());
+        assert_eq!(
+            response["result"]["capabilities"]["prompts"]["listChanged"],
+            false
+        );
+        let said = response["result"]["instructions"].as_str().unwrap();
+        assert!(
+            said.contains("`guide`") && said.contains("never in your own files"),
+            "{said}"
+        );
         assert_eq!(session.client.as_deref(), Some("Claude Code"));
     }
 
@@ -4671,10 +5067,18 @@ mod tests {
         let response = handle(
             &conn,
             &mut session,
-            &json!({ "jsonrpc": "2.0", "id": 1, "method": "resources/list" }),
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "kilna/nothing" }),
         )
         .unwrap();
         assert_eq!(response["error"]["code"], METHOD_NOT_FOUND);
+        // The prompts are served now; resources are not.
+        let resources = handle(
+            &conn,
+            &mut session,
+            &json!({ "jsonrpc": "2.0", "id": 2, "method": "resources/list" }),
+        )
+        .unwrap();
+        assert_eq!(resources["error"]["code"], METHOD_NOT_FOUND);
     }
 
     #[test]

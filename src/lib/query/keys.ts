@@ -8,6 +8,8 @@
  */
 export const keys = {
   workspace: ['workspace'] as const,
+  /** The trigger files of the agents outside the window, and whether each is installed. */
+  skillTriggers: ['skillTriggers'] as const,
   /** What kilna ships now beside a profile's entries (ADR 0087): under the
    *  workspace, so a profile saved anywhere asks again. */
   shippedOffers: (profileId: string) => ['workspace', 'shipped', profileId] as const,

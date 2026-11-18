@@ -66,6 +66,34 @@ pub fn read_skill_set(path: String) -> Result<Vec<crate::assistant::prompt::Prom
     crate::assistant::prompt::read_set(std::path::Path::new(&path))
 }
 
+/// The thin trigger each agent is given, and where it goes (FR-17).
+#[tauri::command]
+pub fn skill_triggers() -> Vec<crate::trigger::TriggerFile> {
+    let home = crate::trigger::home();
+    crate::trigger::Client::ALL
+        .into_iter()
+        .map(|client| crate::trigger::file(client, home.as_deref()))
+        .collect()
+}
+
+/// Write an agent's trigger: in its own place under the home, or where the
+/// person picked for a client that reads it from a project. A file already
+/// there is replaced only when `replace` says so.
+#[tauri::command]
+pub fn install_skill_trigger(
+    client: crate::trigger::Client,
+    path: Option<String>,
+    replace: bool,
+) -> Result<String> {
+    let target = match path {
+        Some(path) => std::path::PathBuf::from(path),
+        None => crate::trigger::home()
+            .and_then(|home| client.place(&home))
+            .ok_or_else(|| crate::error::Error::refused("trigger.noPlace"))?,
+    };
+    crate::trigger::install(client, &target, replace).map(|path| path.display().to_string())
+}
+
 /// Take the shipped version of one entry over the owner's.
 #[tauri::command]
 pub fn take_shipped(

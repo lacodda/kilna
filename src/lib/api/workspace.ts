@@ -7,6 +7,8 @@ import type {
   PromptTemplate,
   ShippedOffer,
   SkillPreview,
+  Client,
+  TriggerFile,
   Workspace,
 } from '@/lib/api/types'
 
@@ -29,5 +31,9 @@ export const previewSkill = (kind: string, action: PromptTemplate) =>
   invoke<SkillPreview>('preview_skill', { kind, action })
 /** The skills a file holds, to lay over the profile's draft. */
 export const readSkillSet = (path: string) => invoke<PromptTemplate[]>('read_skill_set', { path })
+/** The thin trigger each agent is given, and where it goes (FR-17). */
+export const skillTriggers = () => invoke<TriggerFile[]>('skill_triggers')
+export const installSkillTrigger = (client: Client, path: string | null, replace: boolean) =>
+  invoke<string>('install_skill_trigger', { client, path, replace })
 /** The command that registers this build with Claude Code as an MCP server. */
 export const mcpRegistration = () => invoke<string>('mcp_registration')

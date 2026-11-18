@@ -1964,7 +1964,8 @@
     "collectionSaveFailed": "Could not save the collection.",
     "shippedTakeFailed": "Could not take the standard",
     "shippedKeepFailed": "Could not keep yours",
-    "skillPreviewFailed": "Could not read the skill as the assistant would"
+    "skillPreviewFailed": "Could not read the skill as the assistant would",
+    "triggerFailed": "Could not write the trigger"
   },
   "trash": {
     "hint": "Nothing leaves for good until you say so.",
@@ -2912,6 +2913,31 @@
     "earlier": "Move earlier",
     "later": "Move later"
   },
+  "agents": {
+    "trigger": {
+      "title": "A trigger for your agent",
+      "hint": "A short file in the agent’s own place that sends it to kilna whenever you talk about your works. It holds no method, no axis and no rule of your world: those are read from kilna each time, so the file never goes stale.",
+      "client": "Agent",
+      "clients": {
+        "claude-code": "Claude Code",
+        "codex": "Codex CLI",
+        "gemini": "Gemini CLI",
+        "cursor": "Cursor"
+      },
+      "text": "The trigger file",
+      "place": "Installed at {{path}}.",
+      "placeTaken": "A file is already at {{path}}.",
+      "noPlace": "Cursor reads it from a project: save it as .cursor/rules/{{name}} there.",
+      "install": "Install the file",
+      "saveAs": "Save the file…",
+      "saveTitle": "Save the trigger",
+      "copy": "Copy the trigger",
+      "installed": "Trigger written to {{path}}.",
+      "replaceTitle": "Replace the file?",
+      "replaceDescription": "A file is already at {{path}}. If you wrote it yourself, what it says is lost.",
+      "replace": "Replace"
+    }
+  },
   "overview": {
     "inFull": "{{caption}}, in full",
     "open": "Open",
@@ -3277,7 +3303,8 @@
       "unknownTrial": "No trial “{{trial}}” on this board; “trials” lists them.",
       "notesNotArray": "“notes” must be a non-empty array of notes.",
       "unknownLayer": "No layer “{{layer}}”: public, internal or inWorks.",
-      "badVibe": "A vibe is an object: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, each a key `workspace` lists under `vibe`."
+      "badVibe": "A vibe is an object: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, each a key `workspace` lists under `vibe`.",
+      "unknownSkill": "kilna has no skill keyed “{{skill}}”; the skills are {{known}}."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -3557,6 +3584,10 @@
     "skills": {
       "unreadable": "The file {{path}} could not be read: {{cause}}",
       "notASet": "{{path}} is not a set of skills: kilna writes one as `{\"kilna\": \"skills\", \"skills\": [...]}`, or reads a plain list of actions."
+    },
+    "trigger": {
+      "exists": "A file is already at {{path}}. Replace it only if it is not one you wrote.",
+      "noPlace": "kilna does not know where this agent keeps its files on this machine: save the file where it reads it."
     }
   },
   "proposalBody": {

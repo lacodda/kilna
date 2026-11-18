@@ -1054,6 +1054,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     // Nothing of what kilna ships waits beside the profile (ADR 0087).
     shipped_offers: () => [],
     shipped_standing: () => [],
+    skill_triggers: () => [],
     get_workspace: () => ({
       schema_version: 30,
       profile: studio.profile,

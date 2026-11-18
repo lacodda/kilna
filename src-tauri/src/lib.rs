@@ -64,6 +64,7 @@ pub mod time_off;
 pub mod tombstone;
 pub mod trash;
 pub mod tray;
+pub mod trigger;
 pub mod undo;
 pub mod upkeep;
 pub mod words;
@@ -264,6 +265,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::workspace::shipped_standing,
             commands::workspace::preview_skill,
             commands::workspace::read_skill_set,
+            commands::workspace::skill_triggers,
+            commands::workspace::install_skill_trigger,
             commands::workspace::take_shipped,
             commands::workspace::keep_mine,
             commands::workspace::workspace_path,

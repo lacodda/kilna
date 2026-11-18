@@ -4,8 +4,10 @@ import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
 import { CopyButton } from '@/components/ui/copy-button'
 import { FieldGroup } from '@/components/ui/field'
+import { SkillTrigger } from '@/features/settings/SkillTrigger'
 
-/** Agents outside the window: the MCP door, and how to register it. */
+/** Agents outside the window: the MCP door, how to register it, and the
+ *  thin trigger that sends an agent to it. */
 export function AgentsSection() {
   const { t } = useTranslation()
   return (
@@ -14,6 +16,9 @@ export function AgentsSection() {
     <div className="flex max-w-3xl flex-col gap-4">
       <FieldGroup label={t('data.mcp')} help={`${t('data.mcpHint')} ${t('data.mcpAfter')}`}>
         <McpRegistration />
+      </FieldGroup>
+      <FieldGroup label={t('agents.trigger.title')} help={t('agents.trigger.hint')}>
+        <SkillTrigger />
       </FieldGroup>
     </div>
   )
