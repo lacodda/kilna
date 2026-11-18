@@ -1,6 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import type { Cover, CoverBoard, CoverView } from '@/lib/api/types'
+import { useQuery } from '@tanstack/react-query'
+import type { ContractFix, Cover, CoverBoard, CoverView } from '@/lib/api/types'
+import { fixCover } from '@/lib/coverFix'
+import { LAYERS, type Layer } from '@/lib/layers'
+import { queries } from '@/lib/query/queries'
+import { styleName } from '@/lib/styleBrick'
+import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Pane } from '@/components/ui/frame'
 import { BrickPick } from '@/features/cover/BrickPick'
@@ -15,6 +21,7 @@ import { CaptionSlots } from '@/features/work/tabs/cover/CaptionSlots'
 import { MarkPick } from '@/features/work/tabs/cover/MarkPick'
 import { TitleField } from '@/features/work/tabs/cover/TitleField'
 import { Shortlist } from '@/features/work/tabs/cover/Shortlist'
+import { CoverProblems } from '@/features/work/tabs/cover/CoverNotes'
 
 interface Props {
   cover: Cover
@@ -35,20 +42,41 @@ interface Props {
  */
 export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props) {
   const { t } = useTranslation()
+  const { config } = useProfile()
   const house = view?.house_styles ?? []
+  // Names for the folded sections' one-line summaries.
+  const bricks = useQuery(queries.styleBricksMatching(null, ''))
+  const nameOf = (id: string | null | undefined) => {
+    if (id == null) return undefined
+    const brick = (bricks.data ?? []).find((one) => one.id === id)
+    return brick === undefined ? undefined : styleName(brick)
+  }
+  const said = (...parts: (string | null | undefined)[]) =>
+    parts.filter((part): part is string => part != null && part.trim() !== '').join(' · ')
+  // The layers this craft makes, in the order a prompt says them (v0.135).
+  const layers = LAYERS.flatMap((key) => {
+    const type = styleTypesOf(config).find((one) => one.key === key)
+    return type === undefined || (type.retired !== undefined && type.retired !== null) ? [] : [type]
+  })
+  const problemsOf = (place: string) =>
+    (view?.problems ?? []).filter((problem) => 'place' in problem && problem.place === place)
+  const fix = (one: ContractFix) => change((c) => fixCover(c, one))
 
   return (
     <Pane label={t('cover.concept')} bodyClassName="flex flex-col px-3 pb-1">
+      {/* Held at the top while the column scrolls (v0.135). */}
+      {board !== undefined && <Shortlist board={board} cover={cover} />}
       <Section
+        id="cover.idea"
         title={t('cover.idea.title')}
         hint={t('cover.idea.hint')}
+        summary={said(cover.idea)}
         actions={
           <Button variant="link" className="text-xs" onClick={onAllIdeas}>
             {t('ideas.all')}
           </Button>
         }
       >
-        {board !== undefined && <Shortlist board={board} cover={cover} />}
         <DraftText
           label={t('cover.idea.title')}
           value={cover.idea}
@@ -76,7 +104,15 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
         />
       </Section>
 
-      <Section title={t('cover.hero.title')} hint={t('cover.hero.hint')}>
+      <Section
+        id="cover.hero"
+        title={t('cover.hero.title')}
+        hint={t('cover.hero.hint')}
+        summary={said(
+          view?.hero?.title ??
+            (cover.staging.subject === null ? null : t(`cover.subject.${cover.staging.subject}`)),
+        )}
+      >
         <HeroPick
           hero={cover.hero}
           state={view?.hero ?? null}
@@ -93,8 +129,13 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
       </Section>
 
       <Section
+        id="cover.framing"
         title={t('cover.framing.title')}
         hint={t('cover.framing.hint')}
+        summary={said(
+          cover.framing === null ? null : t(`cover.layout.${cover.framing.layout}`),
+          cover.framing === null ? null : t(`cover.crop.${cover.framing.crop}`),
+        )}
         actions={
           cover.framing !== null && (
             <Button
@@ -115,7 +156,11 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
         />
       </Section>
 
-      <Section title={t('cover.style.title')}>
+      <Section
+        id="cover.style"
+        title={t('cover.style.title')}
+        summary={said(nameOf(cover.bricks.style))}
+      >
         <BrickPick
           label={t('cover.style.title')}
           form="picture"
@@ -123,9 +168,43 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           houseStyles={house}
           onChange={(style) => change((c) => ({ ...c, bricks: { ...c.bricks, style } }))}
         />
+        <CoverProblems problems={problemsOf('style')} onFix={fix} />
       </Section>
 
-      <Section title={t('cover.lettering.title')} hint={t('cover.lettering.hint')}>
+      {/* The layers above the style (v0.135, FR-07 7.3): each a brick of
+          the type of its own name, with what its contract says beside it. */}
+      {layers.length > 0 && (
+        <Section
+          id="cover.layers"
+          title={t('cover.layers.title')}
+          hint={t('cover.layers.hint')}
+          summary={said(...layers.map((type) => nameOf(cover.bricks[type.key as Layer])))}
+        >
+          {layers.map((type) => (
+            <div key={type.key} className="flex flex-col gap-1">
+              <span className="caption">{sayLabel(type.label)}</span>
+              <BrickPick
+                label={sayLabel(type.label)}
+                form="picture"
+                typeKey={type.key}
+                brickId={cover.bricks[type.key as Layer] ?? null}
+                houseStyles={house}
+                onChange={(id) =>
+                  change((c) => ({ ...c, bricks: { ...c.bricks, [type.key]: id } }))
+                }
+              />
+              <CoverProblems problems={problemsOf(type.key)} onFix={fix} />
+            </div>
+          ))}
+        </Section>
+      )}
+
+      <Section
+        id="cover.lettering"
+        title={t('cover.lettering.title')}
+        hint={t('cover.lettering.hint')}
+        summary={said(cover.lettering.title ?? view?.source_title, nameOf(cover.bricks.typography))}
+      >
         <TitleField
           title={cover.lettering.title}
           sourceTitle={view?.source_title ?? ''}
@@ -140,7 +219,12 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
         />
       </Section>
 
-      <Section title={t('cover.dressing.title')} hint={t('cover.dressing.hint')}>
+      <Section
+        id="cover.dressing"
+        title={t('cover.dressing.title')}
+        hint={t('cover.dressing.hint')}
+        summary={said(nameOf(cover.bricks.dressing))}
+      >
         <BrickPick
           label={t('cover.dressing.title')}
           form="dressing"
@@ -161,7 +245,11 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
         />
       </Section>
 
-      <Section title={t('cover.ground.title')}>
+      <Section
+        id="cover.ground"
+        title={t('cover.ground.title')}
+        summary={said(nameOf(cover.bricks.background), cover.accent?.name)}
+      >
         <BackgroundPick
           brickId={cover.bricks.background}
           onChange={(background) => change((c) => ({ ...c, bricks: { ...c.bricks, background } }))}
@@ -186,7 +274,13 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
         )}
       </Section>
 
-      <Section title={t('cover.mark.title')} hint={t('cover.mark.hint')} actions={<CanonLink />}>
+      <Section
+        id="cover.mark"
+        title={t('cover.mark.title')}
+        hint={t('cover.mark.hint')}
+        actions={<CanonLink />}
+        summary={said((view?.marks ?? []).find((option) => option.id === cover.mark.variant)?.name)}
+      >
         <MarkPick
           mark={cover.mark}
           options={view?.marks ?? []}
@@ -195,8 +289,12 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
       </Section>
 
       <Section
+        id="cover.details"
         title={t('cover.details.title')}
         hint={t('cover.details.hint', { count: view?.details.length ?? 0 })}
+        summary={t('cover.details.on', {
+          count: (view?.details ?? []).filter((detail) => detail.on).length,
+        })}
         actions={<CanonLink />}
       >
         <DetailSwitches

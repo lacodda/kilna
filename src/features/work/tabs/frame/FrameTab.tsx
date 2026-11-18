@@ -85,7 +85,7 @@ export function FrameTab({ work }: Props) {
         <div className="flex min-h-0 min-w-0 flex-1 gap-2.5">
           <div className="flex min-h-0 w-98 shrink-0 flex-col">
             <Pane label={t('card.tab.frame')} bodyClassName="flex flex-col px-3 pb-1">
-              <Section title={t('frame.source.title')}>
+              <Section id="frame.source" title={t('frame.source.title')}>
                 <SegmentedControl
                   aria-label={t('frame.source.title')}
                   value={built ? 'cover' : 'own'}
@@ -102,6 +102,7 @@ export function FrameTab({ work }: Props) {
               {built ? (
                 <>
                   <Section
+                    id="frame.framing"
                     title={t('frame.framing.title')}
                     hint={
                       frame.framing === null ? t('frame.framing.asCover') : t('frame.framing.own')
@@ -125,7 +126,12 @@ export function FrameTab({ work }: Props) {
                       onChange={(framing) => change({ framing })}
                     />
                   </Section>
-                  <Section title={t('frame.ownWords')} hint={t('frame.ownWordsHint')}>
+                  <Section
+                    id="frame.ownWords"
+                    title={t('frame.ownWords')}
+                    hint={t('frame.ownWordsHint')}
+                    summary={frame.still}
+                  >
                     <DraftText
                       label={t('frame.ownWords')}
                       value={frame.still}
@@ -134,7 +140,11 @@ export function FrameTab({ work }: Props) {
                       onCommit={(still) => change({ still })}
                     />
                   </Section>
-                  <Section title={t('cover.details.title')} hint={t('frame.detailsHint')}>
+                  <Section
+                    id="frame.details"
+                    title={t('cover.details.title')}
+                    hint={t('frame.detailsHint')}
+                  >
                     <DetailSwitches
                       details={view.data?.details ?? []}
                       onToggle={(id, on) =>
@@ -155,7 +165,12 @@ export function FrameTab({ work }: Props) {
                 </Section>
               )}
 
-              <Section title={t('frame.loop')} hint={t('frame.loopHint')}>
+              <Section
+                id="frame.loop"
+                title={t('frame.loop')}
+                hint={t('frame.loopHint')}
+                summary={frame.motion}
+              >
                 <DraftText
                   label={t('frame.motion')}
                   value={frame.motion}
@@ -193,6 +208,8 @@ export function FrameTab({ work }: Props) {
               </Section>
 
               <Section
+                id="frame.negative"
+                summary={frame.negative}
                 title={built ? t('frame.negativeOwn') : t('frame.negative')}
                 hint={t('frame.negativeHint')}
               >

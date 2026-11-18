@@ -2660,7 +2660,9 @@
       "hint_other": "from the channel's card · {{count}}",
       "none": "The channel's card has no signature details for this picture.",
       "ownChoice": "this picture's own",
-      "needsTranslation": "no English for the generator: left out"
+      "needsTranslation": "no English for the generator: left out",
+      "on_one": "{{count}} on",
+      "on_other": "{{count}} on"
     },
     "prompt": {
       "title": "The cover's prompt",
@@ -2730,6 +2732,12 @@
       },
       "movingCamera": "Let the camera move",
       "remove": "Take the brick out"
+    },
+    "unfold": "Open the section",
+    "fold": "Fold the section",
+    "layers": {
+      "title": "Scene, look and optics",
+      "hint": "each kept only where the picture can take it"
     }
   },
   "frame": {
@@ -4478,7 +4486,8 @@
       "crop": "the crop",
       "place": "the title’s place"
     },
-    "preview": "What will be sent"
+    "preview": "What will be sent",
+    "searchShortlist": "Find a starred idea"
   },
   "words": {
     "sung": "How it is sung",

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Star, X } from 'lucide-react'
@@ -18,6 +18,9 @@ interface Props {
   label: string
   /** What a brick in this place is made of. */
   form: StyleForm
+  /** The one type the place takes - a layer takes the type of its own name
+   *  (v0.135) - rather than every type of the form. */
+  typeKey?: string
   brickId: string | null
   /** The channel's house styles, offered first. */
   houseStyles: readonly string[]
@@ -35,7 +38,15 @@ interface Props {
  * brick of every type of that form - a character is not offered, its cards
  * stand in for it - with the channel's house styles first.
  */
-export function BrickPick({ label, form, brickId, houseStyles, disabled, onChange }: Props) {
+export function BrickPick({
+  label,
+  form,
+  typeKey,
+  brickId,
+  houseStyles,
+  disabled,
+  onChange,
+}: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
   const [open, setOpen] = useState(false)
@@ -46,11 +57,11 @@ export function BrickPick({ label, form, brickId, houseStyles, disabled, onChang
     () =>
       styleTypesOf(config).filter(
         (type) =>
-          (type.form ?? 'picture') === form &&
+          (typeKey === undefined ? (type.form ?? 'picture') === form : type.key === typeKey) &&
           (type.retired === undefined || type.retired === null) &&
           (type.canon_kind === undefined || type.canon_kind === null),
       ),
-    [config, form],
+    [config, form, typeKey],
   )
   const typeOf = (brick: StyleBrick) => types.find((type) => type.key === brick.type_key)
   const chosen = (all.data ?? []).find((brick) => brick.id === brickId)
@@ -66,6 +77,25 @@ export function BrickPick({ label, form, brickId, houseStyles, disabled, onChang
       )
     })
     .sort(byOffer(new Set(houseStyles)))
+
+  // The list opens on the brick that is in the place, wherever it stands.
+  const list = useRef<HTMLUListElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const frame = window.requestAnimationFrame(() =>
+      list.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest' }),
+    )
+    return () => window.cancelAnimationFrame(frame)
+  }, [open])
+  // Filed under their families where the type has them: one heading each.
+  const familyOf = (brick: StyleBrick) =>
+    typeOf(brick)?.families?.find((one) => one.key === brick.family)
+  const grouped = typeKey !== undefined && offered.some((brick) => familyOf(brick) !== undefined)
+  const rows = grouped
+    ? [...offered].sort((a, b) =>
+        (familyOf(a)?.key ?? '\uffff').localeCompare(familyOf(b)?.key ?? '\uffff'),
+      )
+    : offered
 
   return (
     <div className="flex flex-col gap-2">
@@ -112,24 +142,39 @@ export function BrickPick({ label, form, brickId, houseStyles, disabled, onChang
               aria-label={t('cover.brick.search')}
               onChange={(event) => setText(event.target.value)}
             />
-            <ul aria-label={label} className="flex max-h-80 flex-col gap-1 overflow-y-auto">
+            <ul
+              ref={list}
+              aria-label={label}
+              className="flex max-h-80 flex-col gap-1 overflow-y-auto"
+            >
               {offered.length === 0 && (
                 <li className="px-2 py-3 text-sm text-faint">{t('cover.brick.nothing')}</li>
               )}
-              {offered.map((brick) => (
-                <li key={brick.id}>
-                  <Choice
-                    brick={brick}
-                    type={typeOf(brick)}
-                    house={houseStyles.includes(brick.id)}
-                    on={brick.id === brickId}
-                    onPick={() => {
-                      onChange(brick.id)
-                      setOpen(false)
-                    }}
-                  />
-                </li>
-              ))}
+              {rows.map((brick, index) => {
+                const family = familyOf(brick)
+                const before = index === 0 ? undefined : rows[index - 1]
+                const heading =
+                  grouped &&
+                  family !== undefined &&
+                  (before === undefined || familyOf(before)?.key !== family.key)
+                return (
+                  <li key={brick.id}>
+                    {heading && (
+                      <span className="caption mt-1 block px-1.5">{sayLabel(family.label)}</span>
+                    )}
+                    <Choice
+                      brick={brick}
+                      type={typeOf(brick)}
+                      house={houseStyles.includes(brick.id)}
+                      on={brick.id === brickId}
+                      onPick={() => {
+                        onChange(brick.id)
+                        setOpen(false)
+                      }}
+                    />
+                  </li>
+                )
+              })}
             </ul>
           </PopoverPopup>
         </Popover>
