@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.136.0] - 2026-11-18
+
+Frame and motion. A frame's loop is picked from the dictionary's Motion
+branch - up to five movements, the starred first, a camera move marked while
+the camera holds still - and built of the ones its picture can take. The
+frame can have its own style and layers, starting from a copy of the cover's,
+and uses the cover's layout list and scales with "No subject". A dock under
+its prompts copies all three blocks and keeps what came back, a still or an
+mp4 loop.
+
+### Features
+- Movements from the Motion branch, the frame's own bricks, scales and a dock
+
 ## [0.135.0] - 2026-11-18
 
 The cover constructor, reworked. The starred ideas stand at the top of the
