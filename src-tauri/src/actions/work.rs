@@ -282,6 +282,117 @@ pub fn set_status(conn: &Connection, work_ids: &[String], status: &str) -> Resul
     })
 }
 
+/// One work's marks before and after a batch raised or took off a mark.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MarkChange {
+    pub id: String,
+    pub before: Vec<String>,
+    pub after: Vec<String>,
+}
+
+/// Raise one mark on several works at once, or take it off them (v0.139,
+/// FR-12 12.1): the catalogue's bulk bar. One gesture and one journal line
+/// for the batch, as a status batch is; each work's marks before and after go
+/// in the log, so a replay lands the same lists and an undo puts each back.
+/// A work already that way is skipped, said as such.
+pub fn mark(
+    conn: &Connection,
+    work_ids: &[String],
+    mark: &str,
+    raised: bool,
+) -> Result<BulkOutcome> {
+    gesture(conn, "work.markBatch", |act| {
+        // A mark the profile does not define is a mistake about the batch.
+        let config = crate::profile::config_for(act, act.profile_id())?;
+        if !config.marks.iter().any(|known| known.key == mark) {
+            return Err(Error::refused("work.unknownMark").param("mark", mark));
+        }
+
+        let mut changes: Vec<MarkChange> = Vec::new();
+        let mut skipped: Vec<Skipped> = Vec::new();
+        for work_id in work_ids {
+            let Some(before) = work::get(act, work_id)? else {
+                skipped.push(Skipped {
+                    id: work_id.clone(),
+                    title: None,
+                    reason: Reason::of("error.notFound"),
+                });
+                continue;
+            };
+            let has = before.marks.iter().any(|key| key == mark);
+            if has == raised {
+                skipped.push(Skipped {
+                    id: work_id.clone(),
+                    title: Some(before.title),
+                    reason: Reason::of("skip.alreadyThere"),
+                });
+                continue;
+            }
+            let after: Vec<String> = if raised {
+                before
+                    .marks
+                    .iter()
+                    .cloned()
+                    .chain([mark.to_owned()])
+                    .collect()
+            } else {
+                before
+                    .marks
+                    .iter()
+                    .filter(|key| *key != mark)
+                    .cloned()
+                    .collect()
+            };
+            let patch = WorkPatch {
+                marks: Some(after.clone()),
+                ..WorkPatch::default()
+            };
+            match atomically(act, |tx| work::update_at(tx, work_id, patch, act.at())) {
+                Ok(_) => changes.push(MarkChange {
+                    id: work_id.clone(),
+                    before: before.marks,
+                    after,
+                }),
+                Err(cause) => skipped.push(Skipped {
+                    id: work_id.clone(),
+                    title: Some(before.title),
+                    reason: cause.reason(),
+                }),
+            }
+        }
+
+        if changes.is_empty() {
+            act.unchanged();
+        } else {
+            act.json("changes", &changes)?;
+            act.param("mark", mark);
+            act.param("raised", raised);
+            act.stamped();
+            let label = config
+                .marks
+                .iter()
+                .find(|known| known.key == mark)
+                .map(|known| known.label.clone());
+            // Each key written out, so the journal's gate can see it.
+            let record = if raised {
+                Record::new("work.markRaisedBatch")
+            } else {
+                Record::new("work.markClearedBatch")
+            };
+            act.journal(
+                record
+                    .param("mark", serde_json::to_value(label)?)
+                    .param("count", count(changes.len())),
+            );
+        }
+
+        Ok(BulkOutcome {
+            changed: changes.len(),
+            skipped,
+        })
+    })
+}
+
 /// Give the works that have no code in `field` the next codes, in the order
 /// they were made (ADR 0059).
 ///
@@ -712,6 +823,51 @@ mod tests {
             serde_json::json!([drafted.id]),
             "only the work that moved is in the log"
         );
+    }
+
+    /// A mark raised on a batch lands on the works without it, passes over
+    /// the one that has it, and one undo takes it off them all again.
+    #[test]
+    fn a_mark_raised_on_a_batch_comes_off_with_one_undo() {
+        let (conn, profile_id) = fixtures::workspace();
+        let plain = fixtures::song(&conn, &profile_id, "Plain");
+        let marked = fixtures::song(&conn, &profile_id, "Marked");
+        work::update_at(
+            &conn,
+            &marked.id,
+            WorkPatch {
+                marks: Some(vec!["working".into()]),
+                ..WorkPatch::default()
+            },
+            &crate::time::now(),
+        )
+        .unwrap();
+
+        let ids = [plain.id.clone(), marked.id.clone(), "gone".into()];
+        let outcome = mark(&conn, &ids, "working", true).unwrap();
+        assert_eq!(outcome.changed, 1);
+        let reasons: Vec<&str> = outcome
+            .skipped
+            .iter()
+            .map(|skip| skip.reason.key.as_str())
+            .collect();
+        assert_eq!(reasons, ["skip.alreadyThere", "error.notFound"]);
+        let marks_of = |id: &str| work::get(&conn, id).unwrap().unwrap().marks;
+        assert_eq!(marks_of(&plain.id), ["working"]);
+
+        let cleared = mark(&conn, &ids, "working", false).unwrap();
+        assert_eq!(cleared.changed, 2, "taken off both");
+        assert!(marks_of(&marked.id).is_empty());
+
+        let offered = crate::undo::last(&conn)
+            .unwrap()
+            .expect("the batch is undoable");
+        crate::undo::undo(&conn, &offered.operation_id).unwrap();
+        assert_eq!(marks_of(&plain.id), ["working"]);
+        assert_eq!(marks_of(&marked.id), ["working"]);
+
+        let refused = mark(&conn, &ids, "no-such-mark", true).unwrap_err();
+        assert_eq!(refused.reason().key, "refusal.work.unknownMark");
     }
 
     #[test]

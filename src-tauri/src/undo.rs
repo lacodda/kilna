@@ -145,6 +145,7 @@ pub fn reversible(kind: &str) -> bool {
             | "work.bring"
             | "work.update"
             | "work.number"
+            | "work.markBatch"
             | "work.pinTier"
             | "note.create"
             | "note.update"
@@ -320,6 +321,21 @@ pub(crate) fn reverse(
             }
             apply(conn, |tx| {
                 crate::work::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A mark raised or taken off many works goes back on each as it was,
+        // in one change: one gesture moved them (v0.139).
+        "work.markBatch" => {
+            let changes: Vec<crate::actions::work::MarkChange> = from_params(params, "changes")?;
+            apply(conn, |tx| {
+                for change in &changes {
+                    let patch = crate::work::WorkPatch {
+                        marks: Some(change.before.clone()),
+                        ..crate::work::WorkPatch::default()
+                    };
+                    crate::work::update_at(tx, &change.id, patch, &at)?;
+                }
+                Ok(())
             })?;
         }
         // The codes a batch gave come off the works it gave them to, in one

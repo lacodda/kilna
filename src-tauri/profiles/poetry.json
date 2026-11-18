@@ -675,6 +675,107 @@
         "type": "multiline"
       }
     ],
+    "marks": [
+      {
+        "key": "working",
+        "label": {
+          "en": "Working on it",
+          "ru": "В работе"
+        },
+        "colour": "warn",
+        "icon": "wrench"
+      },
+      {
+        "key": "unsure",
+        "label": {
+          "en": "Not sure",
+          "ru": "Под вопросом"
+        },
+        "colour": "accent",
+        "icon": "circle-help"
+      },
+      {
+        "key": "favourite",
+        "label": {
+          "en": "The good one",
+          "ru": "То самое"
+        },
+        "colour": "good",
+        "icon": "thumbs-up"
+      },
+      {
+        "key": "priority",
+        "label": {
+          "en": "In focus",
+          "ru": "В фокусе"
+        },
+        "colour": "bad",
+        "icon": "flame"
+      },
+      {
+        "key": "next-up",
+        "label": {
+          "en": "Next to go out",
+          "ru": "Следующий в выпуск"
+        },
+        "colour": "info",
+        "icon": "rocket"
+      },
+      {
+        "key": "needs-polish",
+        "label": {
+          "en": "Needs polish",
+          "ru": "Нужна доработка"
+        },
+        "colour": "warn",
+        "icon": "sparkles"
+      },
+      {
+        "key": "experiment",
+        "label": {
+          "en": "Experiment",
+          "ru": "Эксперимент"
+        },
+        "colour": "accent",
+        "icon": "zap"
+      },
+      {
+        "key": "redo",
+        "label": {
+          "en": "Redo",
+          "ru": "Переделать"
+        },
+        "colour": "bad",
+        "icon": "refresh-cw"
+      },
+      {
+        "key": "waiting",
+        "label": {
+          "en": "On hold",
+          "ru": "На паузе"
+        },
+        "colour": "plain",
+        "icon": "clock"
+      },
+      {
+        "key": "flagship",
+        "label": {
+          "en": "Calling card",
+          "ru": "Визитка / Хит"
+        },
+        "colour": "good",
+        "icon": "award"
+      },
+      {
+        "key": "for-shorts",
+        "label": {
+          "en": "For shorts",
+          "ru": "Для шортсов"
+        },
+        "colour": "info",
+        "icon": "scissors"
+      }
+    ],
     "rhythm": {
       "every_days": 7
     },

@@ -904,7 +904,18 @@
       "numbered_few": "Коды выданы {{count}} произведениям",
       "numbered_many": "Коды выданы {{count}} произведениям",
       "numbered_other": "Коды выданы {{count}} произведениям",
-      "toCollection": "В коллекцию"
+      "toCollection": "В коллекцию",
+      "marks": "Метки",
+      "marksHint": "Поставить метку на выбранные работы или снять её",
+      "markRaised_one": "Метка «{{mark}}» поставлена на {{count}} работу",
+      "markRaised_few": "Метка «{{mark}}» поставлена на {{count}} работы",
+      "markRaised_many": "Метка «{{mark}}» поставлена на {{count}} работ",
+      "markRaised_other": "Метка «{{mark}}» поставлена на {{count}} работы",
+      "markCleared_one": "Метка «{{mark}}» снята с {{count}} работы",
+      "markCleared_few": "Метка «{{mark}}» снята с {{count}} работ",
+      "markCleared_many": "Метка «{{mark}}» снята с {{count}} работ",
+      "markCleared_other": "Метка «{{mark}}» снята с {{count}} работы",
+      "markSome": "Метка есть не у всех выбранных"
     },
     "toNextTier": "ещё {{gap}} до тира «{{tier}}»",
     "tierPinned": "Тир закреплён вручную",
@@ -2439,7 +2450,15 @@
     "workPlan.moved": "«{{title}}» перенесена на {{day}}.",
     "workPlan.deleted": "«{{title}}» снята с календаря.",
     "workPlan.due": "«{{title}}» запланирована на {{date}}: пора делать то, что выйдет.",
-    "workPlan.overdue": "«{{title}}» была запланирована на {{date}}, а из неё ничего не поставлено."
+    "workPlan.overdue": "«{{title}}» была запланирована на {{date}}, а из неё ничего не поставлено.",
+    "work.markRaisedBatch_one": "Метка «{{mark}}» поставлена на {{count}} работу.",
+    "work.markRaisedBatch_few": "Метка «{{mark}}» поставлена на {{count}} работы.",
+    "work.markRaisedBatch_many": "Метка «{{mark}}» поставлена на {{count}} работ.",
+    "work.markRaisedBatch_other": "Метка «{{mark}}» поставлена на {{count}} работы.",
+    "work.markClearedBatch_one": "Метка «{{mark}}» снята с {{count}} работы.",
+    "work.markClearedBatch_few": "Метка «{{mark}}» снята с {{count}} работ.",
+    "work.markClearedBatch_many": "Метка «{{mark}}» снята с {{count}} работ.",
+    "work.markClearedBatch_other": "Метка «{{mark}}» снята с {{count}} работы."
   },
   "card": {
     "tab": {
@@ -2598,7 +2617,8 @@
     "work.bring": "добавление произведения из файла",
     "workPlan.create": "планирование работы",
     "workPlan.update": "перенос планового слота",
-    "workPlan.delete": "снятие слота с календаря"
+    "workPlan.delete": "снятие слота с календаря",
+    "work.markBatch": "метку на многих работах"
   },
   "stage": {
     "label": "Стадия",
@@ -4021,7 +4041,8 @@
     },
     "workPlan": {
       "badDay": "«{{day}}» — не день: плановый слот берёт день как ГГГГ-ММ-ДД."
-    }
+    },
+    "work.unknownMark": "В профиле нет метки «{{mark}}»."
   },
   "proposalBody": {
     "fields": "Поля",

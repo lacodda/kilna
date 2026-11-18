@@ -30,6 +30,10 @@ export const cloneWork = (workId: string, title: string) =>
   invoke<Cloned>('clone_work', { workId, title })
 export const setWorksStatus = (workIds: string[], status: string) =>
   invoke<BulkOutcome>('set_works_status', { workIds, status })
+
+/** Raise a mark on the works, or take it off them, as one gesture (v0.139). */
+export const markWorks = (workIds: string[], mark: string, raised: boolean) =>
+  invoke<BulkOutcome>('mark_works', { workIds, mark, raised })
 /** Give the works that have no code in a numbered field the next codes, in
  * the order they were made (ADR 0059). */
 export const numberWorks = (field: string, workIds: string[]) =>

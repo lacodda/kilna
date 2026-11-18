@@ -414,6 +414,41 @@ fn codes_rebuild_as_they_were_given() {
     );
 }
 
+/// A mark raised on a batch and taken off one of it rebuilds as the lists
+/// the batches left (v0.139).
+#[test]
+fn marks_set_in_a_batch_rebuild_as_they_were_left() {
+    let source = workspace();
+    let song = |title: &str| {
+        actions::work::create(
+            &source,
+            work::NewWork {
+                kind: "song".into(),
+                title: title.into(),
+                ..work::NewWork::default()
+            },
+        )
+        .unwrap()
+        .id
+    };
+    let songs = [song("Harbour lights"), song("Winter road")];
+    actions::work::mark(&source, &songs, "working", true).unwrap();
+    actions::work::mark(&source, &songs[..1], "working", false).unwrap();
+    assert_eq!(
+        work::get(&source, &songs[1]).unwrap().unwrap().marks,
+        ["working"]
+    );
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "{:?}", report.unknown);
+    assert_eq!(
+        contents(&rebuilt),
+        contents(&source),
+        "the rebuilt marks are not the marks the batches left"
+    );
+}
+
 /// A note promoted to a work rebuilds as the work and the note tied to it -
 /// from one operation, under the id the first run minted (ADR 0064).
 #[test]

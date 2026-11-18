@@ -1,6 +1,11 @@
+import { Menu, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { MarkMenuItems } from '@/components/MarkMenuItems'
+import { updateWork } from '@/lib/api/works'
+import { keys } from '@/lib/query/keys'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useTranslation } from 'react-i18next'
 import { Check, Pin } from 'lucide-react'
-import type { ScheduledRelease } from '@/lib/api/types'
+import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import type { CatalogueRow, ColumnId } from '@/lib/catalogue'
 import { coverImageFor } from '@/lib/cover'
 import { formatDay, formatDelta, formatNumber } from '@/lib/format'
@@ -13,6 +18,7 @@ import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib
 import { cn } from '@/lib/utils'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
 import { MarkAvatars } from '@/components/MarkAvatars'
 import { StagePicker } from '@/components/StagePicker'
 import { VibePicker } from '@/components/VibePicker'
@@ -102,23 +108,12 @@ export function CatalogueCell({
         </TableCell>
       )
 
-    case 'marks': {
-      // A mark the profile no longer defines is not drawn - the same rule the
-      // card follows, so the two screens never disagree about what a work says.
-      // A profile written before marks existed has none at all, and every mark
-      // on every work is then unknown, which is the correct reading.
-      // In the profile's order, the order the card draws them in.
-      const shown = (profile.config.marks ?? []).filter((mark) => row.marks.includes(mark.key))
+    case 'marks':
       return (
         <TableCell className="overflow-hidden whitespace-nowrap">
-          {shown.length === 0 ? (
-            <span className="text-faint">{'—'}</span>
-          ) : (
-            <MarkAvatars marks={shown} className="align-middle" />
-          )}
+          <MarksCell row={row} />
         </TableCell>
       )
-    }
 
     case 'status':
       return (
@@ -330,5 +325,66 @@ function ReadyCell({ release }: { release: ScheduledRelease | null }) {
         {names.join(', ')}
       </Badge>
     </TableCell>
+  )
+}
+
+/**
+ * The marks of a row, raised and lowered where they are shown (v0.139,
+ * FR-12 12.1): the cell opens the card's menu over itself, empty or not.
+ * Its presses stay in the cell - the menu is drawn elsewhere on the page but
+ * is the row's child, and a press bubbling up would open the work.
+ *
+ * A mark the profile no longer defines is not drawn - the same rule the card
+ * follows, so the two screens never disagree about what a work says - and
+ * stays on the work, untouched, when another is raised.
+ */
+function MarksCell({ row }: { row: ScoredWork }) {
+  const { t } = useTranslation()
+  const profile = useProfile()
+  const marks = profile.config.marks ?? []
+  const shown = marks.filter((mark) => row.marks.includes(mark.key))
+  const save = useAppMutation({
+    mutationFn: (next: string[]) => updateWork(row.work_id, { marks: next }),
+    failure: 'toast.workSaveFailed',
+    refresh: [keys.catalogue, keys.work(row.work_id)],
+  })
+  const kept = (event: { stopPropagation: () => void }) => event.stopPropagation()
+  if (marks.length === 0) return <span className="text-faint">{'—'}</span>
+  return (
+    <Menu>
+      <MenuTrigger
+        onClick={kept}
+        onKeyDown={kept}
+        render={
+          <Button
+            variant="icon"
+            size="xs"
+            aria-label={
+              shown.length === 0
+                ? t('work.addMark')
+                : t('work.marksRaised', {
+                    marks: shown.map((mark) => sayLabel(mark.label)).join(', '),
+                  })
+            }
+            className="rounded-full px-1"
+          />
+        }
+      >
+        {shown.length === 0 ? (
+          <span className="text-faint">{'—'}</span>
+        ) : (
+          <MarkAvatars marks={shown} className="align-middle" />
+        )}
+      </MenuTrigger>
+      <MenuPopup align="start" onClick={kept} onKeyDown={kept}>
+        <MarkMenuItems
+          marks={marks}
+          stateOf={(key) => row.marks.includes(key)}
+          onToggle={(key, next) =>
+            save.mutate(next ? [...row.marks, key] : row.marks.filter((one) => one !== key))
+          }
+        />
+      </MenuPopup>
+    </Menu>
   )
 }

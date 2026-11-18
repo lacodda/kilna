@@ -1,10 +1,11 @@
+import type { MarkState } from '@/components/MarkMenuItems'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Collection, Label } from '@/lib/api/types'
 import { unscheduleWorks } from '@/lib/api/releases'
 import { useRepeatMarks } from '@/lib/repeats'
-import { deleteWorks, numberWorks, setWorksStatus } from '@/lib/api/works'
+import { deleteWorks, markWorks, numberWorks, setWorksStatus } from '@/lib/api/works'
 import { updateProfileConfig } from '@/lib/api/workspace'
 import {
   columnsForKind,
@@ -275,6 +276,27 @@ export function Catalogue({ onSelect }: Props) {
     },
   })
 
+  // A mark raised on the ticked works or taken off them, as one gesture.
+  const remark = useAppMutation({
+    mutationFn: ({
+      workIds,
+      mark,
+      raised,
+    }: {
+      workIds: readonly string[]
+      mark: string
+      raised: boolean
+    }) => markWorks([...workIds], mark, raised),
+    failure: 'toast.workSaveFailed',
+    refresh: [keys.works, keys.catalogue],
+    onSuccess: (outcome, { mark, raised }) => {
+      const label = (profile.config.marks ?? []).find((one) => one.key === mark)?.label
+      const words = { count: outcome.changed, mark: label === undefined ? mark : sayLabel(label) }
+      say.ok(t(raised ? 'catalogue.bulk.markRaised' : 'catalogue.bulk.markCleared', words))
+      say.skipped(outcome.skipped)
+    },
+  })
+
   const unschedule = useAppMutation({
     mutationFn: (workIds: readonly string[]) => unscheduleWorks([...workIds]),
     failure: 'toast.workSaveFailed',
@@ -384,7 +406,19 @@ export function Catalogue({ onSelect }: Props) {
     setUnknown([])
   }
 
-  const busy = restatus.isPending || renumber.isPending || unschedule.isPending || remove.isPending
+  const busy =
+    restatus.isPending ||
+    renumber.isPending ||
+    remark.isPending ||
+    unschedule.isPending ||
+    remove.isPending
+  // Whether a mark is on every ticked work, on some or on none: the bulk
+  // bar's menu shows the dash for some.
+  const chosenRows = (shown?.visible ?? []).filter((row) => selected.has(row.work_id))
+  const markOf = (key: string): MarkState => {
+    const carrying = chosenRows.filter((row) => row.marks.includes(key)).length
+    return carrying === 0 ? false : carrying === chosenRows.length ? true : 'some'
+  }
 
   return (
     <Frame
@@ -431,6 +465,8 @@ export function Catalogue({ onSelect }: Props) {
             busy={busy}
             collections={collections.data ?? []}
             onSetStatus={(status) => restatus.mutate({ workIds: chosen, status })}
+            markOf={markOf}
+            onMark={(mark, raised) => remark.mutate({ workIds: chosen, mark, raised })}
             onNumber={(field) => renumber.mutate({ workIds: chosen, field })}
             onUnschedule={() => unschedule.mutate(chosen)}
             onToCollection={(collection) => putIn(collection, chosen)}

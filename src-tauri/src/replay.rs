@@ -235,6 +235,19 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             }
         }
 
+        // Each work's marks as the batch left them (v0.139).
+        "work.markBatch" => {
+            let changes: Vec<crate::actions::work::MarkChange> = from_params(params, "changes")?;
+            let at = required(params, "at")?;
+            for change in changes {
+                let patch = work::WorkPatch {
+                    marks: Some(change.after),
+                    ..work::WorkPatch::default()
+                };
+                work::update_at(conn, &change.id, patch, &at)?;
+            }
+        }
+
         // The codes the batch gave, given again: counting again over a
         // workspace that has moved on would hand out others (ADR 0059).
         "work.number" => {

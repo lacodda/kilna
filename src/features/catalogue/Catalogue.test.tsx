@@ -101,6 +101,55 @@ describe('the catalogue', () => {
     expect(song.queryByText('Working on it')).toBeNull()
   })
 
+  it('raises a mark from its cell without opening the work (v0.139)', async () => {
+    backend.answer('update_work', ({ id }) => ({ id }))
+    const { client, main, rowOf } = await open()
+
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf('Harbour Lights')).getByRole('button', { name: en.work.addMark }),
+      )
+    })
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: 'Working on it' }))
+    })
+    await settled(client)
+
+    expect(backend.argsOf('update_work')).toEqual([
+      { id: IDS.draft, patch: { marks: ['working'] } },
+    ])
+    // Still the catalogue: the press stayed in the cell.
+    expect(within(main).getByRole('table')).toBeInTheDocument()
+  })
+
+  it('raises a mark on the ticked works as one batch, dashed where some carry it', async () => {
+    backend.answer('mark_works', ({ workIds }) => ({
+      changed: (workIds as string[]).length,
+      skipped: [],
+    }))
+    const { client, rowOf } = await open()
+    for (const title of ['Paper Lanterns', 'Harbour Lights']) {
+      await act(async () => {
+        fireEvent.click(within(rowOf(title)).getByRole('checkbox', { name: `Select ${title}` }))
+      })
+    }
+    const bar = screen.getByRole('toolbar', { name: en.catalogue.bulk.label })
+
+    await act(async () => {
+      fireEvent.click(within(bar).getByRole('button', { name: en.catalogue.bulk.marks }))
+    })
+    const working = await screen.findByRole('menuitemcheckbox', { name: /Working on it/ })
+    expect(within(working).getByLabelText(en.catalogue.bulk.markSome)).toBeInTheDocument()
+    await act(async () => {
+      fireEvent.click(working)
+    })
+    await settled(client)
+
+    expect(backend.argsOf('mark_works')).toEqual([
+      { workIds: [IDS.song, IDS.draft], mark: 'working', raised: true },
+    ])
+  })
+
   it('says which value the profile lacks, in place of the count', async () => {
     const { main } = await open()
     const box = within(main).getByRole('textbox', { name: en.works.search })

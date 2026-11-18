@@ -814,7 +814,14 @@
       "numberHint": "Give the chosen works that have none the next codes, in the order they were made",
       "numbered_one": "{{count}} work given a code",
       "numbered_other": "{{count}} works given codes",
-      "toCollection": "To collection"
+      "toCollection": "To collection",
+      "marks": "Marks",
+      "marksHint": "Raise a mark on the chosen works, or take it off",
+      "markRaised_one": "“{{mark}}” raised on {{count}} work",
+      "markRaised_other": "“{{mark}}” raised on {{count}} works",
+      "markCleared_one": "“{{mark}}” taken off {{count}} work",
+      "markCleared_other": "“{{mark}}” taken off {{count}} works",
+      "markSome": "Some of the chosen works carry it"
     },
     "toNextTier": "{{gap}} more to reach {{tier}}",
     "tierPinned": "Tier held by hand",
@@ -2243,7 +2250,11 @@
     "workPlan.moved": "“{{title}}” moved to {{day}}.",
     "workPlan.deleted": "“{{title}}” taken off the calendar.",
     "workPlan.due": "“{{title}}” is planned for {{date}}: time to make what goes out.",
-    "workPlan.overdue": "“{{title}}” was planned for {{date}} and nothing of it is booked."
+    "workPlan.overdue": "“{{title}}” was planned for {{date}} and nothing of it is booked.",
+    "work.markRaisedBatch_one": "“{{mark}}” raised on {{count}} work.",
+    "work.markRaisedBatch_other": "“{{mark}}” raised on {{count}} works.",
+    "work.markClearedBatch_one": "“{{mark}}” taken off {{count}} work.",
+    "work.markClearedBatch_other": "“{{mark}}” taken off {{count}} works."
   },
   "card": {
     "tab": {
@@ -2402,7 +2413,8 @@
     "work.bring": "bringing a work in",
     "workPlan.create": "planning the work",
     "workPlan.update": "moving the planned slot",
-    "workPlan.delete": "taking the slot off the calendar"
+    "workPlan.delete": "taking the slot off the calendar",
+    "work.markBatch": "a mark on many works"
   },
   "stage": {
     "label": "Stage",
@@ -3796,7 +3808,8 @@
     },
     "workPlan": {
       "badDay": "“{{day}}” is no day: a planned slot takes a day as YYYY-MM-DD."
-    }
+    },
+    "work.unknownMark": "The profile has no mark “{{mark}}”."
   },
   "proposalBody": {
     "fields": "Fields",

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import {
@@ -12,13 +12,8 @@ import {
   ComboboxList,
   ComboboxPopup,
 } from '@/components/ui/combobox'
-import {
-  Menu,
-  MenuCheckboxIndicator,
-  MenuCheckboxItem,
-  MenuPopup,
-  MenuTrigger,
-} from '@/components/ui/menu'
+import { Menu, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { MarkMenuItems } from '@/components/MarkMenuItems'
 import { MarkAvatars } from '@/components/MarkAvatars'
 import type { Mark, Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
@@ -26,7 +21,6 @@ import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { markIconOf } from '@/lib/markIcon'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 
 /**
@@ -222,30 +216,17 @@ export function TagBar({ work }: { work: Work }) {
             )}
           </MenuTrigger>
           <MenuPopup align="start">
-            {marks.map((mark) => {
-              const Icon = markIconOf(mark)
-              return (
-                <MenuCheckboxItem
-                  key={mark.key}
-                  checked={work.marks.includes(mark.key)}
-                  // Sent over the work as it stands: a mark the profile no
-                  // longer defines stays on it, untouched.
-                  onCheckedChange={(next) =>
-                    patch.mutate({
-                      marks: next
-                        ? [...work.marks, mark.key]
-                        : work.marks.filter((key) => key !== mark.key),
-                    })
-                  }
-                >
-                  <Icon aria-hidden className={MARK_INK[mark.colour ?? 'plain']} />
-                  <span className="flex-1">{sayLabel(mark.label)}</span>
-                  <MenuCheckboxIndicator>
-                    <Check aria-hidden className="size-3.5" />
-                  </MenuCheckboxIndicator>
-                </MenuCheckboxItem>
-              )
-            })}
+            <MarkMenuItems
+              marks={marks}
+              stateOf={(key) => work.marks.includes(key)}
+              // Sent over the work as it stands: a mark the profile no
+              // longer defines stays on it, untouched.
+              onToggle={(key, next) =>
+                patch.mutate({
+                  marks: next ? [...work.marks, key] : work.marks.filter((one) => one !== key),
+                })
+              }
+            />
           </MenuPopup>
         </Menu>
       )}
@@ -259,15 +240,3 @@ export function TagBar({ work }: { work: Work }) {
  * for something not there yet rather than one more value.
  */
 const ADD = 'h-auto rounded-full border-dashed border-line-2 py-0.5 pr-2.5 pl-2'
-
-/** A mark's icon colour in the menu that raises and lowers it, by the palette
-    role its profile named - the colour its tile wears once raised. Plain and
-    accent take the item's own ink. */
-const MARK_INK: Record<string, string> = {
-  plain: '',
-  accent: '',
-  good: 'text-good',
-  warn: 'text-warn',
-  bad: 'text-bad',
-  info: 'text-info',
-}

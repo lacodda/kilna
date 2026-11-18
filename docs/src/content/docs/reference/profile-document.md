@@ -834,7 +834,7 @@ Flags a work can be given by hand, beside the status the app derives:
 | `key` | string | Stored on the work; renaming the label never touches a work. |
 | `label` | string | What the chip says. |
 | `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` \| `"info"` | A palette role rather than a colour, so it reads in both themes. Defaults to `plain`. |
-| `icon` | string | A glyph beside the word, from this list: `tag`, `wrench`, `clock`, `circle-help`, `flame`, `star`, `bookmark`, `eye`, `check`, `heart`, `lightbulb`, `thumbs-up`, `gauge`, `flag`, `pin`. A name outside it draws `tag`; the word is always there. Studio ships `wrench`, `circle-help` and `thumbs-up` for its three marks, and a mark without a glyph gains the shipped one at the next start. |
+| `icon` | string | A glyph beside the word, from this list: `tag`, `wrench`, `clock`, `circle-help`, `flame`, `star`, `bookmark`, `eye`, `check`, `heart`, `lightbulb`, `thumbs-up`, `gauge`, `flag`, `pin`, and since v0.139 `sparkles`, `scissors`, `zap`, `shield-alert`, `refresh-cw`, `rocket`, `award`, `gem`, `music`, `mic`, `video`, `message-circle`, `archive`, `layers`. A name outside it draws `tag`; the word is always there. Every shipped profile but the blank one ships the same eleven marks since v0.139 - working, unsure, favourite, priority, next-up, needs-polish, experiment, redo, waiting, flagship, for-shorts - and a space made before gains the ones it lacks at the next start; a mark its owner deleted stays deleted, and one they reworded keeps their words. |
 
 A mark is not a status: the status says where a work stands in the process and
 is worked out from what happened, while a mark says something the data cannot

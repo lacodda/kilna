@@ -7,6 +7,7 @@ import { CollectionMenuItems } from '@/features/collections/CollectionMenuItems'
 import { ActionBar, ActionBarButton } from '@/components/ui/action-bar'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import { MarkMenuItems, type MarkState } from '@/components/MarkMenuItems'
 
 interface Props {
   /** The works ticked and on show: what every button here acts on. */
@@ -16,6 +17,9 @@ interface Props {
   /** The collections the works can be put in. */
   collections: readonly Collection[]
   onSetStatus: (status: string) => void
+  /** Whether each mark is on all of the chosen works, on some, or on none. */
+  markOf: (key: string) => MarkState
+  onMark: (mark: string, raised: boolean) => void
   /** Give the works without a code in this numbered field their codes. */
   onNumber: (field: string) => void
   onUnschedule: () => void
@@ -49,6 +53,8 @@ export function BulkBar({
   busy,
   collections,
   onSetStatus,
+  markOf,
+  onMark,
   onNumber,
   onUnschedule,
   onToCollection,
@@ -59,6 +65,7 @@ export function BulkBar({
   const { t } = useTranslation()
   const profile = useProfile()
   const statuses = allOf(profile.config, 'statuses')
+  const marks = profile.config.marks ?? []
   // A profile that numbers its works offers to fill the codes in: the works
   // made before it started numbering have none (ADR 0059).
   const numbered = profile.config.work_meta_fields.filter((field) => field.numbered_from != null)
@@ -88,6 +95,22 @@ export function BulkBar({
           ))}
         </MenuPopup>
       </Menu>
+
+      {marks.length > 0 && (
+        <Menu>
+          <ActionBarButton
+            disabled={busy}
+            title={t('catalogue.bulk.marksHint')}
+            render={<MenuTrigger render={<Button size="sm" variant="ghost" />} />}
+          >
+            {t('catalogue.bulk.marks')}
+            <ChevronDown aria-hidden />
+          </ActionBarButton>
+          <MenuPopup align="start" side="top">
+            <MarkMenuItems marks={marks} stateOf={markOf} onToggle={onMark} />
+          </MenuPopup>
+        </Menu>
+      )}
 
       {numbered.map((field) => (
         <ActionBarButton

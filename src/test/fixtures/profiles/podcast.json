@@ -318,7 +318,107 @@
       }
     ],
     "format": 3,
-    "marks": [],
+    "marks": [
+      {
+        "colour": "warn",
+        "icon": "wrench",
+        "key": "working",
+        "label": {
+          "en": "Working on it",
+          "ru": "В работе"
+        }
+      },
+      {
+        "colour": "accent",
+        "icon": "circle-help",
+        "key": "unsure",
+        "label": {
+          "en": "Not sure",
+          "ru": "Под вопросом"
+        }
+      },
+      {
+        "colour": "good",
+        "icon": "thumbs-up",
+        "key": "favourite",
+        "label": {
+          "en": "The good one",
+          "ru": "То самое"
+        }
+      },
+      {
+        "colour": "bad",
+        "icon": "flame",
+        "key": "priority",
+        "label": {
+          "en": "In focus",
+          "ru": "В фокусе"
+        }
+      },
+      {
+        "colour": "info",
+        "icon": "rocket",
+        "key": "next-up",
+        "label": {
+          "en": "Next to go out",
+          "ru": "Следующий в выпуск"
+        }
+      },
+      {
+        "colour": "warn",
+        "icon": "sparkles",
+        "key": "needs-polish",
+        "label": {
+          "en": "Needs polish",
+          "ru": "Нужна доработка"
+        }
+      },
+      {
+        "colour": "accent",
+        "icon": "zap",
+        "key": "experiment",
+        "label": {
+          "en": "Experiment",
+          "ru": "Эксперимент"
+        }
+      },
+      {
+        "colour": "bad",
+        "icon": "refresh-cw",
+        "key": "redo",
+        "label": {
+          "en": "Redo",
+          "ru": "Переделать"
+        }
+      },
+      {
+        "colour": "plain",
+        "icon": "clock",
+        "key": "waiting",
+        "label": {
+          "en": "On hold",
+          "ru": "На паузе"
+        }
+      },
+      {
+        "colour": "good",
+        "icon": "award",
+        "key": "flagship",
+        "label": {
+          "en": "Calling card",
+          "ru": "Визитка / Хит"
+        }
+      },
+      {
+        "colour": "info",
+        "icon": "scissors",
+        "key": "for-shorts",
+        "label": {
+          "en": "For shorts",
+          "ru": "Для шортсов"
+        }
+      }
+    ],
     "note_kinds": [
       {
         "icon": "user",

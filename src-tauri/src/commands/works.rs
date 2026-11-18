@@ -130,6 +130,17 @@ pub fn set_works_status(
     actions::work::set_status(&state.conn(), &work_ids, &status)
 }
 
+/// Raise a mark on the chosen works, or take it off them (v0.139).
+#[tauri::command]
+pub fn mark_works(
+    state: State<'_, AppState>,
+    work_ids: Vec<String>,
+    mark: String,
+    raised: bool,
+) -> Result<BulkOutcome> {
+    actions::work::mark(&state.conn(), &work_ids, &mark, raised)
+}
+
 /// Give the chosen works that have no code in `field` the next codes, in the
 /// order they were made (ADR 0059).
 #[tauri::command]
