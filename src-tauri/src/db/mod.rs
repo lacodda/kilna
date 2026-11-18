@@ -189,7 +189,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 42,
+            tables, 43,
             "nine core tables, three for the assistant, the trash, two for the focus board, \
              three for the day two workspaces meet (device, tombstone, field_clock), the operations log, \
              the link between works, the scene, what a scene is about, the frames drawn for it, \
@@ -202,6 +202,7 @@ mod tests {
              the cards on the boards of a work's conception, \
              what was heard in a video's finished file, \
              what a space was given of a shipped profile (0055), \
+             the planned slots of works (0060), \
              and what each plugin has been set to - the assistant's settings are the \
              application's since spaces (0050)"
         );
