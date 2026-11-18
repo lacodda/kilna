@@ -92,8 +92,12 @@ pub fn serve(app_dir: &Path) -> Result<()> {
                 continue;
             }
         };
-        let calls_a_tool = request.get("method").and_then(Value::as_str) == Some("tools/call");
-        let response = if calls_a_tool {
+        // A tool and a prompt read a space: the one named, or the one kilna
+        // last opened. The rest of the protocol reads none.
+        let method = request.get("method").and_then(Value::as_str);
+        let calls_a_tool = method == Some("tools/call");
+        let reads_a_space = reads_a_space(method);
+        let response = if reads_a_space {
             let named = request
                 .pointer("/params/arguments/space")
                 .and_then(Value::as_str)
@@ -105,7 +109,8 @@ pub fn serve(app_dir: &Path) -> Result<()> {
                     session.space = Some(space);
                     handle(conn, &mut session, &request)
                 }
-                Err(err) => failed_call(&request, &err),
+                Err(err) if calls_a_tool => failed_call(&request, &err),
+                Err(err) => failed_request(&request, &err),
             }
         } else {
             handle(&book.blank, &mut session, &request)
@@ -180,6 +185,25 @@ impl Book {
 
 /// A tool called in a space that cannot be served answers the agent with the
 /// reason, as a tool that fails does.
+/// Whether a request is answered from a space - opened by the server loop -
+/// rather than from nothing. Found live in v0.127: the prompts were answered
+/// from nothing and every one failed, while every test, handed a space,
+/// passed.
+fn reads_a_space(method: Option<&str>) -> bool {
+    matches!(method, Some("tools/call" | "prompts/list" | "prompts/get"))
+}
+
+/// A prompt asked of a space that cannot be served: a protocol error, since
+/// a prompt has no result to carry the reason in.
+fn failed_request(request: &Value, err: &Error) -> Option<Value> {
+    let id = request.get("id")?.clone();
+    Some(json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "error": { "code": INVALID_PARAMS, "message": err.to_string() },
+    }))
+}
+
 fn failed_call(request: &Value, err: &Error) -> Option<Value> {
     let id = request.get("id")?.clone();
     Some(json!({
@@ -5050,6 +5074,22 @@ mod tests {
             "{said}"
         );
         assert_eq!(session.client.as_deref(), Some("Claude Code"));
+    }
+
+    #[test]
+    fn a_tool_and_a_prompt_are_answered_from_a_space_and_the_rest_from_none() {
+        for method in ["tools/call", "prompts/list", "prompts/get"] {
+            assert!(reads_a_space(Some(method)), "{method}");
+        }
+        for method in [
+            "initialize",
+            "ping",
+            "tools/list",
+            "notifications/initialized",
+        ] {
+            assert!(!reads_a_space(Some(method)), "{method}");
+        }
+        assert!(!reads_a_space(None));
     }
 
     #[test]
