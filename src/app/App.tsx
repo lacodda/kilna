@@ -12,6 +12,7 @@ import { WaitingBanner } from '@/features/assistant/WaitingBanner'
 import { HeldBanner } from '@/features/spaces/HeldBanner'
 import { NameSpaceDialog } from '@/features/spaces/NameSpaceDialog'
 import { WelcomeDialog } from '@/features/spaces/WelcomeDialog'
+import { CoachMark } from '@/components/CoachMark'
 import { useOpenRequests } from '@/features/spaces/useOpenRequests'
 import { KeyboardSheet } from '@/shell/KeyboardSheet'
 import { useShellKeys } from '@/shell/useShellKeys'
@@ -146,6 +147,7 @@ export default function App() {
                       path={spec.path}
                       element={
                         <Screen scroll="held" pad="none" className="px-4 pt-3 pb-3.5">
+                          <CoachMark screen={spec.key} />
                           {spec.render(openWork)}
                         </Screen>
                       }

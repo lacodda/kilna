@@ -1,3 +1,6 @@
+import { say } from '@/lib/toast'
+import { Button } from '@/components/ui/button'
+import { resetCoachMarks } from '@/components/CoachMark'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, useLanguage } from '@/lib/language'
 import { THEMES, useTheme } from '@/lib/theme'
@@ -50,6 +53,20 @@ export function GeneralSection() {
           }))}
         />
       </FieldGroup>
+      <div className="flex flex-col gap-1">
+        <h3 className="caption">{t('coach.title')}</h3>
+        <div>
+          <Button
+            size="sm"
+            onClick={() => {
+              resetCoachMarks()
+              say.ok(t('coach.back'))
+            }}
+          >
+            {t('coach.again')}
+          </Button>
+        </div>
+      </div>
     </section>
   )
 }

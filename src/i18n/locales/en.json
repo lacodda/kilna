@@ -5052,6 +5052,29 @@
       "skip": "Look around first"
     }
   },
+  "coach": {
+    "label": "What this screen is for",
+    "gotIt": "Got it",
+    "off": "No more hints",
+    "title": "Hints",
+    "again": "Show the first-visit hints again",
+    "back": "The hints are back: each screen says what it is for on the next visit.",
+    "screens": {
+      "dashboard": "The week at a glance: what is going out, what is running, what waits for you. Every widget opens the screen it comes from.",
+      "catalogue": "Every work in one table: filter by column, search with words like stage:, mood: or tag:, and save what you narrowed as a view.",
+      "works": "A work’s card: its versions, its score, what it was made from and what goes out of it. The assistant’s buttons sit on the card.",
+      "calendar": "What goes out and when. Drag a release to another day; a slot is held for what is not written yet.",
+      "collections": "Albums, books, seasons: works kept together in an order of their own.",
+      "notes": "The material for works to come: phrases on your shelves, and notes from a seed to a page.",
+      "canon": "The world your works share: people, places and the channel, with facts in layers of who may know them.",
+      "register": "The words and images already spent, so the next work does not repeat the last ones without meaning to.",
+      "comments": "What the audience said, read off screenshots, with replies drafted in the channel’s voice.",
+      "styles": "The style dictionary: the phrases a prompt for a picture or a sound is built from.",
+      "journal": "Everything done in this space, by you and by agents, newest first - and what can be undone.",
+      "trash": "What was deleted, kept until you empty it.",
+      "settings": "The application’s settings above, the open space’s below: its profile, its skills, its plugins and its data."
+    }
+  },
   "intake": {
     "title": "Bring works in",
     "hint": "A page kilna wrote and a .kilna.zip come back as the works they were. A .md or .txt, or a text pasted here, becomes a new work with the text as its first version. What is already here is passed over.",

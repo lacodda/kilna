@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { afterEach } from 'vitest'
+import { afterEach, beforeEach } from 'vitest'
 import { cleanup, configure } from '@testing-library/react'
 import { clearMocks } from '@tauri-apps/api/mocks'
 import i18n from '@/i18n'
@@ -50,6 +50,12 @@ Element.prototype.scrollTo ??= function scrollTo() {}
 Element.prototype.hasPointerCapture ??= () => false
 Element.prototype.releasePointerCapture ??= () => {}
 Element.prototype.getAnimations ??= () => []
+
+// The screens are looked at in tests, not their first visit: the hints of a
+// first visit are kept quiet unless a test asks for them (v0.129).
+beforeEach(() => {
+  localStorage.setItem('kilna.coach.quiet', '1')
+})
 
 afterEach(async () => {
   cleanup()
