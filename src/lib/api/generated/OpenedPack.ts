@@ -2,9 +2,9 @@
 import type { BrickStanding } from "./BrickStanding";
 import type { PackBrick } from "./PackBrick";
 import type { PackEntry } from "./PackEntry";
-import type { Source } from "./Source";
+import type { PackSource } from "./PackSource";
 
 /**
  * A pack opened: its bricks and where each stands.
  */
-export type OpenedPack = { source: Source, entry: PackEntry, bricks: Array<[PackBrick, BrickStanding]>, };
+export type OpenedPack = { source: PackSource, entry: PackEntry, bricks: Array<[PackBrick, BrickStanding]>, };

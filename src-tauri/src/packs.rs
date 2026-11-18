@@ -129,6 +129,7 @@ impl PackBrick {
 /// Where a registry is read from.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(tag = "kind", content = "location", rename_all = "snake_case")]
+#[ts(rename = "PackSource")]
 pub enum Source {
     /// The snapshot shipped beside the application.
     Builtin,

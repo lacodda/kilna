@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { open } from '@tauri-apps/plugin-dialog'
-import type { Source } from '@/lib/api/types'
+import type { PackSource } from '@/lib/api/types'
 import { addStyleSource, removeStyleSource, setPacksOffline } from '@/lib/api/packs'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 
 /** How a source is said: the snapshot by name, a folder or a site by itself. */
-function sourceWord(source: Source, builtin: string): string {
+function sourceWord(source: PackSource, builtin: string): string {
   return source.kind === 'builtin' ? builtin : source.location
 }
 
@@ -44,7 +44,7 @@ export function PackSources() {
     failure: 'packs.sourceFailed',
   })
 
-  const sources = catalogue.data?.sources ?? [{ kind: 'builtin' } as Source]
+  const sources = catalogue.data?.sources ?? [{ kind: 'builtin' } as PackSource]
   return (
     <div className="flex flex-col gap-2">
       <h3 className="caption">{t('packs.sources')}</h3>

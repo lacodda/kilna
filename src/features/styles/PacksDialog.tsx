@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import type { BrickStanding, ListedPack, PackStanding, Source } from '@/lib/api/types'
+import type { BrickStanding, ListedPack, PackStanding, PackSource } from '@/lib/api/types'
 import { installStylePack, stylePack } from '@/lib/api/packs'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -44,7 +44,7 @@ export function PacksDialog({
   const [half, setHalf] = useState<string>('all')
   const [category, setCategory] = useState('')
   const [text, setText] = useState('')
-  const [opened, setOpened] = useState<{ source: Source; pack: string } | null>(null)
+  const [opened, setOpened] = useState<{ source: PackSource; pack: string } | null>(null)
 
   const packs = catalogue.data?.packs ?? []
   const categories = [...new Set(packs.map((pack) => pack.entry.category))]
@@ -160,7 +160,15 @@ const BRICK_BADGE: Record<BrickStanding, 'soft' | 'good' | 'accent' | 'outline' 
   unfit: 'soft',
 }
 
-function Opened({ source, pack, onBack }: { source: Source; pack: string; onBack: () => void }) {
+function Opened({
+  source,
+  pack,
+  onBack,
+}: {
+  source: PackSource
+  pack: string
+  onBack: () => void
+}) {
   const { t } = useTranslation()
   const opened = useQuery({
     queryKey: [...keys.stylePacks, 'opened', source.kind, pack],
