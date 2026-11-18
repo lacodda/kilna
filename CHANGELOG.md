@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.132.0] - 2026-11-18
+
+Sets, stars and the switch. Every style kilna ships is now filed under a set
+- lettering, dressings, colours and every phrase of sound included - and the
+sets stand in a panel beside the dictionary with their counts and a switch
+that takes a whole set out of every picker without touching its styles. A
+card has a star that lifts a favorite to the top of the pickers and a switch
+that takes one style out of them; "Retired" is "Off" now. In the sound, the
+buttons sit together on the right, From your texts ticks every phrase at
+once, and phrases that say nothing of what they mean can be explained in one
+go - an answer about a style already in the dictionary fills it in rather
+than making a second one. A pack's preview picture becomes the first picture
+of the style it installs.
+
+### Bug Fixes
+- The sets are compact rows, not tiles
+- The card's switch says its hint around it
+
+### Features
+- Every shipped style in a set, sets switched whole, stars and a switch on the card
+
 ## [0.131.0] - 2026-11-18
 
 Style packs from a registry. The dictionary grows from themed packs - film
