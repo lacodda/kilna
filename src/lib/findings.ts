@@ -488,7 +488,6 @@ export function plansDue(
     })
 }
 
-
 /**
  * The board's lines whose day has come (v0.105): due today or before, said
  * on the board of findings until they are rubbed out or given another day.

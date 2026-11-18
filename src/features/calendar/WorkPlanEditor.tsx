@@ -17,7 +17,13 @@ export interface PlanShown {
   kind: string
 }
 
-const REFRESHED = [keys.workPlans, keys.calendar, keys.releaseQueue, keys.catalogue, keys.works] as const
+const REFRESHED = [
+  keys.workPlans,
+  keys.calendar,
+  keys.releaseQueue,
+  keys.catalogue,
+  keys.works,
+] as const
 
 /**
  * A planned slot opened from the calendar (v0.138, FR-11 11.3): its work, its
