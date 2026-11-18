@@ -377,6 +377,12 @@ pub fn compose(
         },
     )?;
 
+    // The author's key goes with every action on the work (v0.146, FR-10
+    // 10.1): a critique, a polish, a rewrite all keep the anchors as they are.
+    if let Some(block) = super::prompt::protected_block(&profile.config, &work) {
+        prompt.push_str(&block);
+    }
+
     // An action that asks for something the application can act on says the
     // shape it needs. Ordinary actions say nothing and get prose.
     let vocabulary = profile.config.vocabulary(&work.kind);
@@ -3159,6 +3165,57 @@ mod version_tests {
                 .contains("exactly as the profile defines them"),
             "{}",
             scored.prompt
+        );
+    }
+
+    /// A song's anchors go with every action on it, with the rule that keeps
+    /// them, and its arc reads section by section (v0.146, FR-10 10.1).
+    #[test]
+    fn every_action_keeps_the_anchors_and_reads_the_arc() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        fixtures::version(
+            &conn,
+            &song.id,
+            "lyrics",
+            "The bell in bar one\nhush, then shout",
+        );
+        let mut meta = serde_json::Map::new();
+        meta.insert(
+            "anchors".into(),
+            serde_json::json!(["the bell in bar one", "hush, then shout"]),
+        );
+        meta.insert(
+            "emotional_arc".into(),
+            serde_json::json!([
+                { "section": "Verse", "emotion": "longing", "intensity": 3 },
+                { "section": "Chorus", "emotion": "anger", "intensity": 8 }
+            ]),
+        );
+        crate::work::update_at(
+            &conn,
+            &song.id,
+            crate::work::WorkPatch {
+                meta: Some(meta),
+                ..crate::work::WorkPatch::default()
+            },
+            &crate::time::now(),
+        )
+        .unwrap();
+
+        let composed = compose(&conn, &song.id, "critique", About::default()).unwrap();
+        assert!(
+            composed.prompt.contains("The author's anchors"),
+            "{}",
+            composed.prompt
+        );
+        assert!(composed.prompt.contains("- the bell in bar one"));
+        let work = crate::work::get(&conn, &song.id).unwrap().unwrap();
+        let config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        let sheet = super::super::prompt::fields_sheet(&config, &work);
+        assert!(
+            sheet.contains("Verse: longing 3; Chorus: anger 8"),
+            "{sheet}"
         );
     }
 

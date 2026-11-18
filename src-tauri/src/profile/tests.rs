@@ -3433,3 +3433,55 @@ fn what_ships_is_the_craft_not_an_author() {
         }
     }
 }
+
+/// A copy stored before v0.146 gains the research's reference track and a
+/// song's protected anchors, through the one rule of shipped entries.
+#[test]
+fn a_copy_gains_the_reference_track_and_the_songs_anchors() {
+    let conn = db::open_in_memory().unwrap();
+    seed(&conn, DEFAULT_KIND).unwrap();
+    let id: String = conn
+        .query_row("SELECT id FROM profile WHERE key = 'music'", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let mut config = config_for(&conn, &id).unwrap();
+    for board in &mut config.boards {
+        board.cards.retain(|card| card.key != "music_reference");
+    }
+    config
+        .work_meta_fields
+        .retain(|field| field.key != "emotional_arc");
+    conn.execute(
+        "UPDATE profile SET config = ?2 WHERE id = ?1",
+        rusqlite::params![id, serde_json::to_string(&config).unwrap()],
+    )
+    .unwrap();
+    // As stored before v0.125: given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
+
+    seed(&conn, DEFAULT_KIND).unwrap();
+
+    let after = config_for(&conn, &id).unwrap();
+    let research = after.board("research").unwrap();
+    assert!(
+        research
+            .cards
+            .iter()
+            .any(|card| card.key == "music_reference")
+    );
+    let anchors = after
+        .work_meta_fields
+        .iter()
+        .find(|f| f.key == "anchors")
+        .unwrap();
+    // The anchors a song keeps, as Studio ships them; a copy that holds the
+    // field untouched takes the newer one by the same rule.
+    assert!(anchors.protected && anchors.applies_to("song"));
+    assert!(
+        after
+            .work_meta_fields
+            .iter()
+            .any(|f| f.key == "emotional_arc")
+    );
+}

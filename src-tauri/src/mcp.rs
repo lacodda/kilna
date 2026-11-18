@@ -2949,6 +2949,15 @@ pub fn run_tool(
                     })
                 })
                 .collect();
+            // The author's key, entry by entry, with the rule it is kept by
+            // (v0.146, FR-10 10.1).
+            let anchors: Vec<String> = config
+                .fields_of(&found.kind)
+                .into_iter()
+                .filter(|field| field.protected)
+                .filter_map(|field| found.meta.get(&field.key))
+                .flat_map(profile::config::MetaFieldType::entries)
+                .collect();
             pretty(&json!({
                 "work": found.id,
                 "title": found.title,
@@ -2956,6 +2965,8 @@ pub fn run_tool(
                 "brief_role": conception.brief,
                 "idea_field": conception.idea,
                 "order": order,
+                "anchors": anchors,
+                "anchors_rule": "Keep every anchor as it is: do not change, move or drop one unless the author asks.",
                 "boards": boards,
             }))
         }

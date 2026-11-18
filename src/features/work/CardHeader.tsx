@@ -458,7 +458,7 @@ function MetaStrip({ work }: { work: Work }) {
     // reference line you glance at — a premise printed in full took half the
     // screen above the tabs and pushed the work out of sight, which is the
     // opposite of what a header carrying the title is for.
-    .filter((field) => field.type !== 'multiline' && field.type !== 'list')
+    .filter((field) => field.type !== 'multiline' && field.type !== 'list' && field.type !== 'arc')
     .flatMap((field) => {
       const text = fieldText(field, work.meta[field.key])
       return text === null ? [] : [{ field, text }]

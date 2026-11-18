@@ -74,7 +74,15 @@
     "pack": "Pack to carry…",
     "packed": "Packed with {{files}} files: {{path}}",
     "packedMissing": "Files no longer on disk, left out: {{count}}.",
-    "packFailed": "Could not pack the work."
+    "packFailed": "Could not pack the work.",
+    "arcSection": "Section",
+    "arcEmotion": "What it feels",
+    "arcAdd": "Add a section",
+    "arcSectionOf": "Section {{n}}",
+    "arcEmotionOf": "What section {{n}} feels",
+    "arcIntensityOf": "How strongly, 1 to 10, section {{n}}",
+    "arcRemove": "Take section {{n}} out",
+    "arcCurve": "The arc: {{list}}"
   },
   "versions": {
     "title": "Versions",
@@ -1763,7 +1771,8 @@
       "date": "A date",
       "boolean": "Yes or no",
       "choice": "One of several",
-      "list": "A list"
+      "list": "A list",
+      "arc": "An emotional arc"
     },
     "metaTypeOf": "What {{key}} holds",
     "fieldKinds": "The kinds of work that have {{key}}",
@@ -1945,7 +1954,8 @@
         "drive": "Chevron"
       }
     },
-    "producesCardNote": "The card’s summary"
+    "producesCardNote": "The card’s summary",
+    "fieldProtected": "Kept by every action"
   },
   "fields": {
     "choiceNone": "Not set",

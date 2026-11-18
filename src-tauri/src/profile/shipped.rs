@@ -76,6 +76,13 @@ const COLLECTIONS: &[Collection] = &[
         nested: &[],
         whole: false,
     },
+    // The kinds of card of a board (v0.146): a kind shipped since - the
+    // research's reference track - arrives on a board the space has.
+    Collection {
+        path: &[Step::Field("boards"), Step::Each, Step::Field("cards")],
+        nested: &[],
+        whole: false,
+    },
     Collection {
         path: &[Step::Field("work_meta_fields")],
         nested: &[],

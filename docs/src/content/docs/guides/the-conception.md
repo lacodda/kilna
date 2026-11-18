@@ -80,7 +80,7 @@ one step for **Undo**.
 
 The **Research** board gathers what the work could draw on, before or after
 the brief is written - a question like *who were the Pharisees?* can come
-first. It holds three kinds of card:
+first. It holds four kinds of card:
 
 - **Work** - a novel, a film, a painting, a piece of music, a myth: what is
   there and why it fits, the quote that carries it with where in the work it
@@ -90,6 +90,10 @@ first. It holds three kinds of card:
   stands.
 - **Concept** - a word explained: what it is, what it means said of a
   person, and where that figure is unfair to the real thing.
+- **Reference track** (v0.146) - a song the work is made with in the ear: its
+  artist and track are the library entry's, and the card says what to take -
+  the groove, the way the voice sits, the drop at 1:20 - where in it, and
+  why it fits.
 
 **Research** in the board's composer runs the assistant with a web search:
 it checks each quote against a page that holds those very words and gives
@@ -128,7 +132,9 @@ its cards off the boards first.
 
 The order is everything prepared, in one markdown text: the title and what
 is to be written; the idea; the brief; what the text keeps to - a song's
-style prompt; the work's fields; each board as its rule reads it; the notes
+style prompt; the work's fields, an emotional arc section by section; the
+author's anchors, with the rule that keeps them; each board as its rule
+reads it; the notes
 and phrases attached, each phrase with how it is sung; the channel's voice
 and bans, and the cards of the canon the work is about; the register of what
 is worn out.
@@ -153,6 +159,20 @@ The order goes three ways, and is the same text each time:
 - An agent over MCP reads it with [`brief`](/kilna/reference/mcp/), and
   proposes the text with `propose_version`, or cards onto a board with
   `propose_cards`.
+
+## The emotional arc and the anchors
+
+A song's **emotional arc** (v0.146), on its Overview with the other fields,
+says how its feeling moves: a row a section - *Verse*, *longing*, *3*;
+*Chorus*, *anger*, *8* - and the curve the intensities draw above them. The
+assistant reads it in order, in the brief and in every task on the song.
+
+A song's **anchors** are its author's key: the hooks and devices it keeps -
+*the bell in bar one*, *hush, then shout*. A field marked **Kept by every
+action** in the profile editor (Studio's `anchors`, for songs and
+experiments) goes with every action on the work - a critique, a polish, a
+rewrite - with the rule that none of it is changed, moved or dropped unless
+you ask; the order and an agent's `brief` carry them too.
 
 ## Attached
 

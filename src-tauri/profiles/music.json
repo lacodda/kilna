@@ -3784,6 +3784,17 @@
         ]
       },
       {
+        "key": "emotional_arc",
+        "label": {
+          "en": "Emotional arc",
+          "ru": "Эмоциональная карта"
+        },
+        "type": "arc",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
         "key": "variant",
         "label": {
           "en": "Variant",
@@ -3840,8 +3851,10 @@
         },
         "type": "list",
         "kinds": [
-          "experiment"
-        ]
+          "experiment",
+          "song"
+        ],
+        "protected": true
       },
       {
         "key": "listen_to",
@@ -5343,6 +5356,47 @@
                   "ru": "позолоченные свинцовые плащи; Арзамас; горячий источник"
                 },
                 "shape": "chips"
+              }
+            ]
+          },
+          {
+            "key": "music_reference",
+            "label": {
+              "en": "Reference track",
+              "ru": "Референс"
+            },
+            "library": true,
+            "fields": [
+              {
+                "key": "take",
+                "label": {
+                  "en": "What we take",
+                  "ru": "Что берём"
+                },
+                "hint": {
+                  "en": "The groove; the way the voice sits; the drop at 1:20",
+                  "ru": "Грув; как сидит голос; дроп на 1:20"
+                },
+                "multiline": true
+              },
+              {
+                "key": "address",
+                "label": {
+                  "en": "Where in it",
+                  "ru": "Где"
+                },
+                "hint": {
+                  "en": "0:45, the second chorus",
+                  "ru": "0:45, второй припев"
+                }
+              },
+              {
+                "key": "why",
+                "label": {
+                  "en": "Why it fits",
+                  "ru": "Почему подходит"
+                },
+                "multiline": true
               }
             ]
           }

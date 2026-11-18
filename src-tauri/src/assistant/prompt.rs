@@ -1103,16 +1103,7 @@ pub fn fields_sheet(config: &ProfileConfig, work: &work::Work) -> String {
         let Some(value) = work.meta.get(&field.key) else {
             continue;
         };
-        let text = match value {
-            serde_json::Value::String(text) => field
-                .options
-                .iter()
-                .find(|option| option.key == *text)
-                .map_or_else(|| text.trim().to_owned(), |option| option.label.to_string()),
-            serde_json::Value::Bool(yes) => (if *yes { "yes" } else { "no" }).to_owned(),
-            serde_json::Value::Null => String::new(),
-            other => other.to_string(),
-        };
+        let text = value_text(field, value);
         if text.is_empty() {
             continue;
         }
@@ -1122,6 +1113,82 @@ pub fn fields_sheet(config: &ProfileConfig, work: &work::Work) -> String {
         return "(no fields filled in)".to_owned();
     }
     out.trim_end().to_owned()
+}
+
+/// A field's value as a line of text: a choice by its word, a list by its
+/// entries, an arc section by section - `Verse: longing 3; Chorus: anger 8`.
+fn value_text(field: &crate::profile::config::MetaField, value: &serde_json::Value) -> String {
+    use serde_json::Value;
+    match value {
+        Value::String(text) => field
+            .options
+            .iter()
+            .find(|option| option.key == *text)
+            .map_or_else(|| text.trim().to_owned(), |option| option.label.to_string()),
+        Value::Bool(yes) => (if *yes { "yes" } else { "no" }).to_owned(),
+        Value::Null => String::new(),
+        Value::Array(_) if field.field_type == crate::profile::config::MetaFieldType::Arc => {
+            arc_points(value)
+                .into_iter()
+                .map(|(section, emotion, intensity)| match intensity {
+                    Some(level) => format!("{section}: {emotion} {level}"),
+                    None => format!("{section}: {emotion}"),
+                })
+                .collect::<Vec<_>>()
+                .join("; ")
+        }
+        Value::Array(_) => crate::profile::config::MetaFieldType::entries(value).join("; "),
+        other => other.to_string(),
+    }
+}
+
+/// The points of an arc as `(section, emotion, intensity)`, the ones that say
+/// a section or an emotion at all.
+pub fn arc_points(value: &serde_json::Value) -> Vec<(String, String, Option<i64>)> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|point| {
+            let text = |key: &str| {
+                point
+                    .get(key)
+                    .and_then(serde_json::Value::as_str)
+                    .map(|said| said.trim().to_owned())
+                    .unwrap_or_default()
+            };
+            let (section, emotion) = (text("section"), text("emotion"));
+            let intensity = point.get("intensity").and_then(serde_json::Value::as_i64);
+            (!section.is_empty() || !emotion.is_empty()).then_some((section, emotion, intensity))
+        })
+        .collect()
+}
+
+/// The author's key of a work (v0.146, FR-10 10.1): every field marked
+/// `protected` that holds something - a song's anchors - with the rule that
+/// keeps it. None when there is nothing to keep.
+pub fn protected_block(config: &ProfileConfig, work: &work::Work) -> Option<String> {
+    let mut lines = String::new();
+    for field in config
+        .fields_of(&work.kind)
+        .into_iter()
+        .filter(|f| f.protected)
+    {
+        let Some(value) = work.meta.get(&field.key) else {
+            continue;
+        };
+        for entry in crate::profile::config::MetaFieldType::entries(value) {
+            lines.push_str(&format!("- {entry}\n"));
+        }
+    }
+    if lines.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "\n\nThe author's anchors - the hooks and devices this work keeps. Keep each as it is: \
+         do not change, move or drop any of them unless the author asks you to.\n{}",
+        lines.trim_end()
+    ))
 }
 
 /// What a work was made from, for `{source}`: the donor's title and kind, its

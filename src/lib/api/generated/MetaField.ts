@@ -44,4 +44,10 @@ own?: boolean,
  * given again (ADR 0059). Only a text field is numbered, and only by an
  * example that ends in digits. Added in v0.93.1.
  */
-numbered_from?: string | null, };
+numbered_from?: string | null, 
+/**
+ * The author's key (v0.146, FR-10 10.1): what the field holds - a
+ * song's anchors, its hooks and devices - goes with every action on the
+ * work, and the model is told to keep it as it is unless the author asks.
+ */
+protected?: boolean, };

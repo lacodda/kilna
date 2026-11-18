@@ -523,11 +523,12 @@ any given work:
 | --- | --- | --- |
 | `key` | string | Key inside `work.meta`. |
 | `label` | string | Display name for the field's input. |
-| `type` | `"text"` \| `"multiline"` \| `"number"` \| `"date"` \| `"boolean"` \| `"choice"` \| `"list"` | Validated in application code — SQLite doesn't type-check inside the JSON. |
+| `type` | `"text"` \| `"multiline"` \| `"number"` \| `"date"` \| `"boolean"` \| `"choice"` \| `"list"` \| `"arc"` | Validated in application code — SQLite doesn't type-check inside the JSON. `arc` (v0.146) is a list of `{section, emotion, intensity}`, intensity 1 to 10: an emotional arc, drawn as rows and a curve. |
 | `kinds` | string[], optional | The work kinds that have the field. Absent or empty is every kind. |
 | `options` | kind entries, for `choice` | The answers a choice offers, `{ "key", "label" }`, stored by key. Required for a choice and refused on any other type. |
 | `default` | value, optional | What a new work of a kind that has the field starts with: an option's key for a choice. |
 | `own` | boolean, optional | A fact of the work's own media, never taken from the work it is made from: Studio's `duration` - a short is not as long as the clip it is cut from. Absent is `false`. |
+| `protected` | boolean, optional | The author's key (v0.146): what the field holds goes with every action on the work, which keeps it as it is unless the author asks. Studio's `anchors` is protected, for songs and experiments. |
 | `numbered_from` | string, optional | The first code of a field works are numbered by, as an example of them all - see [Numbered fields](#numbered-fields). Only on `text`, and not beside a `default`. |
 
 On a work's **Overview** each type is edited in its own way: a `text` or a

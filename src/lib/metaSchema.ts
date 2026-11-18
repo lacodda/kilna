@@ -66,6 +66,22 @@ export function metaSchema(
       case 'list':
         properties[field.key] = { type: 'array', items: { type: 'string' }, title }
         break
+      // How the feeling moves, section by section (v0.146): drawn by
+      // kilna's own editor, a table and a curve.
+      case 'arc':
+        properties[field.key] = {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              section: { type: 'string' },
+              emotion: { type: 'string' },
+              intensity: { type: 'integer', minimum: 1, maximum: 10 },
+            },
+          },
+          title,
+        }
+        break
     }
   }
   return { type: 'object', properties }

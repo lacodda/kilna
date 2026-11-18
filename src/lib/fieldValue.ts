@@ -1,3 +1,4 @@
+import { arcPointsOf } from '@/features/work/tabs/overview/ArcEditor'
 import i18n from '@/i18n'
 import type { Meta, MetaField } from '@/lib/api/types'
 import { listEntries } from '@/lib/metaSchema'
@@ -27,6 +28,13 @@ export function fieldText(field: MetaField, value: Meta[string] | undefined): st
   if (field.type === 'list') {
     const entries = listEntries(value)
     return entries.length === 0 ? null : entries.join(', ')
+  }
+  // An arc, section by section: "Verse: longing 3 · Chorus: anger 8" (v0.146).
+  if (field.type === 'arc') {
+    const points = arcPointsOf(value)
+    return points.length === 0
+      ? null
+      : points.map((one) => `${one.section}: ${one.emotion} ${String(one.intensity)}`).join(' · ')
   }
   return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }

@@ -244,6 +244,10 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
     if !fields.is_empty() {
         parts.push(format!("## Fields\n\n{fields}"));
     }
+    // The author's key, with the rule that keeps it (v0.146).
+    if let Some(block) = crate::assistant::prompt::protected_block(&config, work) {
+        parts.push(format!("## Anchors\n{block}"));
+    }
     for board in config.boards_of(&work.kind) {
         let cards = board::for_board(conn, &work.id, &board.key)?;
         let (rule, given) = answer::for_writer(board, &cards);

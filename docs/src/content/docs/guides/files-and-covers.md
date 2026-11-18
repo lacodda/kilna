@@ -292,6 +292,16 @@ and a report (`import-ideas/<time>/import_plan.md`) and changes nothing
 unless `--apply` is said; applied, it keeps a copy of the space beside the
 report first, and everything lands as one change an undo takes back.
 
+`kilna --import-songs <dir>` (v0.146) brings the folders of songs a previous
+system kept - `<id>/info.md` beside `reviews/`, `shorts/`, `audio-release/`
+and `clip/` - into their works: each folder is matched by `source_id` in a
+work's fields, else by the title its `info.md` opens with; each section of
+`info.md` becomes a note on the work named after its heading, the section
+named by `--images-heading <name>` becomes fresh phrases that arose at the
+work instead, and every page of the four folders a note named after its
+folder and file. What the work or the space holds already is passed over. A
+plan and a report first, `--apply` to write, a copy of the space kept first.
+
 `kilna --rehome-media` moves the files and switches the templates together,
 to the layout the shipped profile names:
 

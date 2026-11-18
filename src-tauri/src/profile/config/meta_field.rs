@@ -45,6 +45,11 @@ pub struct MetaField {
     /// example that ends in digits. Added in v0.93.1.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub numbered_from: Option<String>,
+    /// The author's key (v0.146, FR-10 10.1): what the field holds - a
+    /// song's anchors, its hooks and devices - goes with every action on the
+    /// work, and the model is told to keep it as it is unless the author asks.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub protected: bool,
 }
 
 impl MetaField {
@@ -58,6 +63,7 @@ impl MetaField {
             default: None,
             own: false,
             numbered_from: None,
+            protected: false,
         }
     }
 
@@ -86,6 +92,10 @@ pub enum MetaFieldType {
     /// (v0.112). Stored as a list of strings; a text stored before the field
     /// became a list reads as its lines.
     List,
+    /// How the feeling of a work moves, section by section (v0.146, FR-10
+    /// 10.1): a list of `{section, emotion, intensity}`, intensity from 1 to
+    /// 10 - drawn as a table and a curve, read by the assistant in order.
+    Arc,
 }
 
 impl MetaFieldType {

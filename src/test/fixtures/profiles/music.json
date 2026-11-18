@@ -230,6 +230,47 @@
               "en": "Concept",
               "ru": "Понятие"
             }
+          },
+          {
+            "fields": [
+              {
+                "hint": {
+                  "en": "The groove; the way the voice sits; the drop at 1:20",
+                  "ru": "Грув; как сидит голос; дроп на 1:20"
+                },
+                "key": "take",
+                "label": {
+                  "en": "What we take",
+                  "ru": "Что берём"
+                },
+                "multiline": true
+              },
+              {
+                "hint": {
+                  "en": "0:45, the second chorus",
+                  "ru": "0:45, второй припев"
+                },
+                "key": "address",
+                "label": {
+                  "en": "Where in it",
+                  "ru": "Где"
+                }
+              },
+              {
+                "key": "why",
+                "label": {
+                  "en": "Why it fits",
+                  "ru": "Почему подходит"
+                },
+                "multiline": true
+              }
+            ],
+            "key": "music_reference",
+            "label": {
+              "en": "Reference track",
+              "ru": "Референс"
+            },
+            "library": true
           }
         ],
         "description": {
@@ -5342,6 +5383,17 @@
         "type": "multiline"
       },
       {
+        "key": "emotional_arc",
+        "kinds": [
+          "song"
+        ],
+        "label": {
+          "en": "Emotional arc",
+          "ru": "Эмоциональная карта"
+        },
+        "type": "arc"
+      },
+      {
         "default": "original",
         "key": "variant",
         "kinds": [
@@ -5393,12 +5445,14 @@
       {
         "key": "anchors",
         "kinds": [
-          "experiment"
+          "experiment",
+          "song"
         ],
         "label": {
           "en": "Anchors",
           "ru": "Якоря"
         },
+        "protected": true,
         "type": "list"
       },
       {

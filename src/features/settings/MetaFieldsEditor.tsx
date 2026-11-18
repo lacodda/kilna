@@ -9,7 +9,16 @@ import { LabelInput } from '@/features/settings/LabelInput'
 
 type FieldType = MetaField['type']
 
-const TYPES: FieldType[] = ['text', 'multiline', 'number', 'date', 'boolean', 'choice', 'list']
+const TYPES: FieldType[] = [
+  'text',
+  'multiline',
+  'number',
+  'date',
+  'boolean',
+  'choice',
+  'list',
+  'arc',
+]
 
 /**
  * The fields a work carries beside its text (v0.112): each a key, a word and
@@ -68,6 +77,15 @@ export function MetaFieldsEditor({
             <Switch checked={field.own ?? false} onCheckedChange={(own) => set({ own })}>
               {t('editor.fieldOwn')}
             </Switch>
+            {/* The author's key (v0.146): every action keeps it as it is. */}
+            {(field.type === 'list' || field.type === 'text' || field.type === 'multiline') && (
+              <Switch
+                checked={field.protected ?? false}
+                onCheckedChange={(on) => set({ protected: on || undefined })}
+              >
+                {t('editor.fieldProtected')}
+              </Switch>
+            )}
           </div>
           {field.type === 'choice' && (
             <KeyedList<Kind>
