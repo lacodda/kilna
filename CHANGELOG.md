@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.131.0] - 2026-11-18
+
+Style packs from a registry. The dictionary grows from themed packs - film
+photography, light and angle, lo-fi textures, the sound of an era, camera
+moves - read from a registry: a snapshot ships with kilna and works offline,
+and folders and sites (GitHub Pages among them) are added in Settings. Get
+styles on the Styles screen lists the packs with where each stands in the
+space and installs a pack whole or one style of it. A pack's style is never
+installed twice, takes a newer pack's words when nobody touched it, keeps
+yours when you reworded it, and stays deleted when you deleted it - and
+every install is in the history and undone like anything else.
+
+### Bug Fixes
+- A pack's source is a PackSource in the window, and the canon's Source is its own again
+- A brick's source is optional in the window's types
+
+### Features
+- Packs of styles from a registry, installed whole or one at a time
+
 ## [0.130.0] - 2026-11-18
 
 A demo and a second copy. A portable copy, or one started on another folder
