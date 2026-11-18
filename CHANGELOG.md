@@ -5,8 +5,8 @@ All notable changes to this project are documented in this file.
 ## [0.147.0] - 2026-11-18
 
 Places, the channel's dressing, and the vault's notes put in their place.
-A place of the canon has a passport, words for a picture generator, angles
-- wide, medium, detail - with their references, and picture bans; a variant
+A place of the canon has a passport, words for a picture generator,
+angles - wide, medium, detail - with their references, and picture bans; a variant
 of a place, its epoch or its state, is read over its base. The channel card
 keeps its dressing: avatar, banner and watermark kits with their prompts,
 the picture in use, and the look before a rebranding in the archive. A

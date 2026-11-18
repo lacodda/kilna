@@ -72,7 +72,9 @@ Overview, `"release"` under a release's row in the
 does.
 
 `timeout` is how many seconds the command may run - see
-[How long a plugin may take](#how-long-a-plugin-may-take). Every field added
+[How long a plugin may take](#how-long-a-plugin-may-take). `"batch": true`
+(v0.148) says a command is meant for many works at once - a render by a
+preset, with no editor - and Settings says so beside it. Every field added
 since the first protocol is optional on both sides, which is why the version
 is still `1`.
 

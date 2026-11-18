@@ -220,6 +220,12 @@ pub struct Command {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub timeout: Option<u64>,
+    /// The command is meant for many works at once (v0.148, FR-21 21.3): a
+    /// render by a preset, with no editor opened. Said in Settings; the run
+    /// over a selection of works comes with the Catalogue's batch menu.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub batch: bool,
 }
 
 /// What a command may take when its manifest names no allowance: two minutes,
@@ -477,6 +483,29 @@ mod tests {
         }"#;
 
         assert!(serde_json::from_str::<Manifest>(raw).is_err());
+    }
+
+    /// A command for many works at once says so, and one that does not is
+    /// one for a single work (v0.148).
+    #[test]
+    fn a_command_can_say_it_is_for_many_works_at_once() {
+        let raw = r#"{
+            "protocol_version": 1, "name": "simple-video", "version": "0.1.0",
+            "commands": [
+                {"key": "render", "label": "Render", "target": "work"},
+                {"key": "render_headless", "label": "Render by the preset", "target": "work", "batch": true}
+            ]
+        }"#;
+
+        let manifest: Manifest = serde_json::from_str(raw).unwrap();
+
+        assert!(!manifest.commands[0].batch);
+        assert!(manifest.commands[1].batch);
+        let said = serde_json::to_value(&manifest.commands[0]).unwrap();
+        assert!(
+            said.get("batch").is_none(),
+            "a single work's command says nothing of it"
+        );
     }
 
     /// A judge names the Score tab, and acts on a work like any other command.

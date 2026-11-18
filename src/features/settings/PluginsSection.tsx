@@ -175,7 +175,10 @@ function PluginBlock({ plugin }: { plugin: Plugin }) {
               <dt className="truncate text-text">
                 {inLanguage(i18n.language, command.label, command.labels)}
               </dt>
-              <dd className="text-dim">{t(`plugins.where.${command.target}`)}</dd>
+              <dd className="text-dim">
+                {t(`plugins.where.${command.target}`)}
+                {command.batch === true && ` · ${t('plugins.batch')}`}
+              </dd>
             </div>
           ))}
         </dl>

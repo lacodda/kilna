@@ -23,4 +23,10 @@ target: Target,
  * [`DEFAULT_TIMEOUT_SECONDS`] - enough for a lookup or a rename; a
  * command that renders a video says what it needs.
  */
-timeout?: number, };
+timeout?: number, 
+/**
+ * The command is meant for many works at once (v0.148, FR-21 21.3): a
+ * render by a preset, with no editor opened. Said in Settings; the run
+ * over a selection of works comes with the Catalogue's batch menu.
+ */
+batch?: boolean, };
