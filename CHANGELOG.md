@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.135.0] - 2026-11-18
+
+The cover constructor, reworked. The starred ideas stand at the top of the
+column as a list held there while it scrolls; every section folds to one line
+of what is chosen in it, and the app remembers which are folded. Layouts are
+searched and starred, and "No frame" is one press; how big the subject is and
+how much of it shows are scales of named stops, the second starting at "No
+subject". A section of pickers fills the layers - look, environment, angle,
+pose, light, lens, grade - each with what its contract says beside it. The
+lettering is one section, and a dock under the made column stands whatever
+the scroll: Copy all, the second prompt, how fresh the prompt is, a check of
+the prompt for contradictions by the assistant, and the results as a strip.
+
+### Bug Fixes
+- A compact result strip in the dock, stops of a scale on one line, one way to clear the frame
+
+### Features
+- A sticky shortlist, folding sections remembered across the app, and the layer pickers
+- Size and shot on scales of named stops, the shot starting at no subject
+- Layouts are searched, starred first and cleared in one press
+- One lettering section - the title, where it goes, the second prompt and the typeface
+- A standing dock with the prompt check, the result strip and freshness
+
 ## [0.134.0] - 2026-11-18
 
 Brick contracts. A style can say when it can go into a picture and what it
