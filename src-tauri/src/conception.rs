@@ -246,7 +246,7 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
     }
     // The author's key, with the rule that keeps it (v0.146).
     if let Some(block) = crate::assistant::prompt::protected_block(&config, work) {
-        parts.push(format!("## Anchors\n{block}"));
+        parts.push(format!("## Anchors\n\n{}", block.trim_start()));
     }
     for board in config.boards_of(&work.kind) {
         let cards = board::for_board(conn, &work.id, &board.key)?;
@@ -291,11 +291,18 @@ pub fn order(conn: &Connection, work: &Work) -> Result<String> {
 }
 
 /// The work's filled fields, the idea's own left out: it has a part of its
-/// own above them.
+/// own above them, as the protected fields have theirs, the anchors, below.
 fn fields(config: &ProfileConfig, work: &Work, conception: &Conception) -> String {
     let mut without = work.clone();
     if let Some(key) = &conception.idea {
         without.meta.remove(key);
+    }
+    for field in config
+        .work_meta_fields
+        .iter()
+        .filter(|field| field.protected)
+    {
+        without.meta.remove(&field.key);
     }
     let sheet = crate::assistant::prompt::fields_sheet(config, &without);
     if sheet.starts_with('(') {
@@ -537,6 +544,80 @@ mod tests {
         assert!(
             starred.contains("The Lighthouse") && !starred.contains("The Pier"),
             "{starred}"
+        );
+    }
+
+    /// A song's anchors stand once in the order, under their own heading with
+    /// the rule that keeps them, not again among the fields; its arc reads
+    /// section by section, and a reference track says what to take
+    /// (v0.146).
+    #[test]
+    fn the_order_keeps_the_anchors_apart_and_reads_the_arc_and_the_reference() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        fixtures::version(&conn, &song.id, "brief", "## What it is about\nthe harbour");
+        crate::actions::work::update(
+            &conn,
+            &song.id,
+            crate::work::WorkPatch {
+                meta: Some(
+                    [
+                        (
+                            "anchors".to_owned(),
+                            serde_json::json!(["the bell in bar one"]),
+                        ),
+                        (
+                            "emotional_arc".to_owned(),
+                            serde_json::json!([
+                                { "section": "Verse", "emotion": "longing", "intensity": 3 },
+                                { "section": "Chorus", "emotion": "anger", "intensity": 8 }
+                            ]),
+                        ),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+                ..crate::work::WorkPatch::default()
+            },
+        )
+        .unwrap();
+        crate::actions::board::put(
+            &conn,
+            &song.id,
+            "research",
+            crate::board::answer::Packaged {
+                kind: "music_reference".into(),
+                topic: String::new(),
+                source: Source::Ai,
+                fields: [("take".to_owned(), "the drop at 1:20".to_owned())]
+                    .into_iter()
+                    .collect(),
+                entry: Some(crate::library::Asked {
+                    title: "Night Ferry".into(),
+                    author: Some("A Band".into()),
+                    medium: Some("music".into()),
+                    ..Default::default()
+                }),
+                starred: false,
+            },
+        )
+        .unwrap();
+
+        let work = crate::work::get(&conn, &song.id).unwrap().unwrap();
+        let order = order(&conn, &work).unwrap();
+        assert!(
+            order.contains("## Anchors\n\nThe author's anchors"),
+            "{order}"
+        );
+        assert_eq!(order.matches("the bell in bar one").count(), 1, "{order}");
+        assert!(
+            order.contains("Verse: longing 3; Chorus: anger 8"),
+            "{order}"
+        );
+        assert!(order.contains("the drop at 1:20"), "{order}");
+        assert!(
+            order.find("## Fields") < order.find("## Anchors"),
+            "the anchors follow the fields:\n{order}"
         );
     }
 
