@@ -830,7 +830,9 @@ fn the_shipped_profiles_say_what_a_release_goes_out_as() {
         );
     }
     for later in &audio.fields[1..3] {
-        assert_eq!(later.suffix.as_deref(), Some(" (audio)"));
+        // The box names no tail of its own (v0.128): a title's suffix is the
+        // owner's convention, written in the profile when they want one.
+        assert_eq!(later.suffix, None);
         assert!(
             later.premiere.is_none(),
             "a title for later never premieres"

@@ -240,3 +240,38 @@ pub fn fact(conn: &Connection, note_id: &str, section: &str, body: &str) -> crat
     )
     .expect("the fact is written")
 }
+
+/// The tails Studio shipped until v0.128 on the audio's YouTube titles - " (audio)"
+/// on the title and the titles for later, and the premiere's " (Song premiere
+/// {year})" on the title - written into a space's profile: the box names no
+/// tail of its own since, and the tests of how a tail is kept give one here.
+pub fn with_audio_tails(conn: &Connection, profile_id: &str) {
+    let mut config = crate::profile::config_for(conn, profile_id).unwrap();
+    let audio = config
+        .work_kinds
+        .iter_mut()
+        .find(|kind| kind.key == "audio")
+        .expect("Studio has an audio kind");
+    for door in audio
+        .release_kinds
+        .iter_mut()
+        .filter(|door| door.key == "youtube")
+    {
+        for field in &mut door.fields {
+            if field.key == "title" || field.key.starts_with("alt_title") {
+                field.suffix = Some(" (audio)".into());
+            }
+            if field.key == "title" {
+                field.premiere = Some(crate::profile::config::Label::PerLocale(
+                    [
+                        ("en".to_owned(), " (Song premiere {year})".to_owned()),
+                        ("ru".to_owned(), " (Премьера песни {year})".to_owned()),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ));
+            }
+        }
+    }
+    crate::profile::update_config(conn, profile_id, &config).unwrap();
+}

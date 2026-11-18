@@ -767,6 +767,7 @@ mod tests {
     #[test]
     fn publications_are_renamed_once_and_titles_already_out_are_listed() {
         let (mut conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         before_v090(&conn, &profile_id);
         let song = fixtures::song(&conn, &profile_id, "Tide");
         let clip = fixtures::video(&conn, &profile_id, "Tide — клип");

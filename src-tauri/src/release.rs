@@ -2244,6 +2244,7 @@ mod tests {
     #[test]
     fn a_field_keeps_the_tail_its_door_keeps() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let audio = fixtures::audio_after_its_clip(&conn, &profile_id, "Tide (audio)");
         let release = create(
             &conn,

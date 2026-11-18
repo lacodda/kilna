@@ -550,8 +550,10 @@ and the audience never sees it: Studio's title fields read **`{origin}`**,
 the title of the song the publication is made from, even for a short cut
 from the clip.
 
-A field may keep a **tail**: the title of an audio's YouTube release always
-ends with *" (audio)"*, a clip's has none. The release keeps it whoever writes
+A field may keep a **tail**: write one, and the title of an audio's YouTube
+release always ends with, say, *" (audio)"*, a clip's with none. Studio ships
+no tail since v0.128 - a tail is a channel's own convention - and a space
+that had one keeps it. The release keeps it whoever writes
 the rest — you typing, the template, the assistant, an agent — and takes it
 off again when the release moves to a place that keeps no tail. An empty
 title stays empty. The tail is the field's `suffix` in
@@ -559,8 +561,8 @@ title stays empty. The tail is the field's `suffix` in
 
 A tail may also say that the release **opens its song**. The audio a song
 premieres with - the first of what was made from the song to go out, or the
-one booked for the earliest day - goes out as *Harbour lights (Song premiere
-2026)*; an audio that follows its clip keeps *" (audio)"*. The year is the
+one booked for the earliest day - can go out as *Harbour lights (Song premiere
+2026)*, while an audio that follows its clip keeps the plain tail. The year is the
 year it goes out, and the words are those of the title's language: a title in
 Cyrillic letters takes *(Премьера песни 2026)*. kilna settles it again every
 time the release or one of its siblings is booked, moved, made, marked out or
@@ -574,7 +576,7 @@ document.
 A premiere is old news by spring, so Studio's audio keeps **two titles for
 later** beside the one it premieres under: the song's name and a hook after a
 dash - a line of it, an image, a mood, the genre - each built unlike the
-other, with the plain *" (audio)"* tail and never the premiere's. The
+other, with the plain tail and never the premiere's. The
 assistant writes them with the rest; months on, copy one to the platform, and
 type it into the title if kilna should say what the track is listed under
 now. A title is counted to 100 characters, YouTube's own limit.

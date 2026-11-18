@@ -182,6 +182,17 @@ key the profile has replaces it, one it does not have joins at the end.
 Everything is part of the profile's draft and saved by the same bar as the
 profile.
 
+Since v0.128 every shipped skill says **when** to reach for it, in both
+languages, and has a method; and each craft ships a **playbook** of its
+whole cycle - a skill that is a method only, naming the other skills in
+order: Studio's `song-workflow` (idea, lyrics, judgement, sound, singing,
+going out) and `ai-video-pipeline` (plot, board, prompts, cover, release),
+and `novel-workflow`, `podcast-workflow` and `blog-workflow`. An agent asked
+to take a work all the way opens the playbook with `guide` and follows it.
+None of the shipped methods names an author, a project or a path: what is a
+channel's own - who sings, the world, the words already spent - is read from
+the canon and the register of the space.
+
 A newer version kilna ships of a skill you changed waits at the head of the
 section, field by field, to keep or take, and the count of what waits is
 beside the section's name - see

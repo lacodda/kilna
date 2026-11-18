@@ -1245,6 +1245,7 @@ mod tests {
     #[test]
     fn a_mark_can_name_the_door_it_went_out_through_and_one_undo_takes_both_back() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let audio = fixtures::audio_after_its_clip(&conn, &profile_id, "Tide (audio)");
         let planned = fixtures::release(&conn, &audio.id, "youtube", Some("2026-10-01"));
         let titled = set_fields(
@@ -1298,6 +1299,7 @@ mod tests {
     #[test]
     fn an_undo_of_a_move_puts_the_premieres_year_back() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let audio = fixtures::work(&conn, &profile_id, "audio", "Tide (audio)");
         let planned = fixtures::release(&conn, &audio.id, "youtube", Some("2026-12-30"));
         set_fields(

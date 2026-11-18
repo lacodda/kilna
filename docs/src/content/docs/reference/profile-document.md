@@ -338,8 +338,8 @@ goes out under, the text beneath it, the words it is found by:
 | `hint` | A line under the box saying what goes in it. |
 | `limit` | How many characters the destination accepts. Counted beside the box, never enforced — kilna is not the authority on what a platform takes this month. |
 | `required` | `true`: a release cannot go out with this field empty - one of the door's [checklist](#what-a-place-needs-before-it-goes-out) items. `false` is kept as written, so a field you made optional stays optional when a shipped requirement is carried forward. Absent is optional. |
-| `suffix` | A tail the value always ends with, whoever writes the rest: Studio's audio YouTube title keeps `" (audio)"`. The release keeps it at every write - typed, generated, proposed, replayed - and takes it off when the release moves to a place that keeps none. An empty value stays empty; within `limit`, the tail is what stays. |
-| `premiere` | The tail instead of `suffix`, one string or a map per language, when the release opens its song - the first of what was made from it to go out, or booked for the earliest day. `{year}` reads the year it goes out. Studio's audio YouTube title: `" (Song premiere {year})"`, in Russian `" (Премьера песни {year})"`; the word is taken in the language of the title it ends - a title in Cyrillic letters takes the Russian one. Kept as `suffix` is, and settled again whenever the release or one of its siblings is booked, moved, made, marked out or taken back; a release that went out keeps the tail it went out under. Added in v0.100.1. |
+| `suffix` | A tail the value always ends with, whoever writes the rest - `" (audio)"` on an audio's YouTube title, say. Studio ships none since v0.128: a tail is a channel's own convention. The release keeps it at every write - typed, generated, proposed, replayed - and takes it off when the release moves to a place that keeps none. An empty value stays empty; within `limit`, the tail is what stays. |
+| `premiere` | The tail instead of `suffix`, one string or a map per language, when the release opens its song - the first of what was made from it to go out, or booked for the earliest day. `{year}` reads the year it goes out - `" (Song premiere {year})"`, in Russian `" (Премьера песни {year})"`, for instance; the word is taken in the language of the title it ends - a title in Cyrillic letters takes the Russian one. Kept as `suffix` is, and settled again whenever the release or one of its siblings is booked, moved, made, marked out or taken back; a release that went out keeps the tail it went out under. Added in v0.100.1. |
 
 A kind with no `fields` says nothing about itself, and its releases show no
 boxes. That is the state of every profile written before the field existed; a
@@ -1522,8 +1522,8 @@ When the channel's card holds pools of moves, assemblies and forms of a pinned
 comment (sections with [`draw`](#cards-of-the-canon)), the method builds from
 the handful drawn for this text and says which it took. The audio's YouTube
 door also asks for two titles for later - `alt_title_1` and `alt_title_2`, the
-name and a hook after a dash, with the plain `" (audio)"` tail and never a
-premiere's - to rename the track to once the premiere is old news. A YouTube
+name and a hook after a dash, with the plain tail, when there is one, and
+never a premiere's - to rename the track to once the premiere is old news. A YouTube
 title is counted to 100 characters, the platform's own limit.
 
 An action with `"scope": "cover"` and `"produces": "cover-ideas"` proposes

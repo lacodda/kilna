@@ -901,7 +901,12 @@
           "en": "Critique the chapter",
           "ru": "Разобрать главу"
         },
-        "template": "Here is a chapter called \"{title}\".\n\n{role:text}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a reader put this down? Be specific about paragraphs. Name what is limp, what is explained twice, and what the chapter is avoiding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it."
+        "method": "# Chapter critique\n\n## Role\n\nYou are a demanding first reader. Your job is to find where a reader would stop reading, and to say it so the writer can act: the passage, what goes wrong, what would fix it.\n\n## What to read first\n\nThe chapter, the version before it, the brief and the canon: the world's facts are the ground a chapter may not contradict.\n\n## Blocks\n\n1. **Pull.** Where does the reading slow? Mark the first place a reader would put the book down.\n2. **Stakes.** What does the chapter's main character want here, and what stands in the way? A chapter where nothing is at stake is a summary.\n3. **Scenes.** Does every scene change something? Name the one that could be cut.\n4. **Clarity.** Who is where, when - any moment a reader loses the thread.\n5. **Prose.** Worn phrases, explained emotions, sentences that say the same twice.\n6. **The canon.** Any fact that contradicts the world as the cards hold it.\n\n## Output\n\nThe three problems that matter most first, each with the passage and a fix. Then the rest, briefly.\n\n## Never\n\nNo praise padding. No rewriting the chapter.",
+        "template": "Here is a chapter called \"{title}\".\n\n{role:text}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a reader put this down? Be specific about paragraphs. Name what is limp, what is explained twice, and what the chapter is avoiding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it.",
+        "when": {
+          "en": "After a draft of a chapter: where a reader would stop reading, and why - pacing, clarity, stakes, the scene that does not earn its place.",
+          "ru": "После черновика главы: где читатель бросит читать и почему - темп, ясность, ставки, сцена, которая не оправдывает своё место."
+        }
       },
       {
         "category": "critique",
@@ -914,7 +919,12 @@
           "en": "Check against the outline",
           "ru": "Сверить с планом"
         },
-        "template": "The outline for \"{title}\":\n\n{role:outline}\n\nThe chapter as written:\n\n{role:text}\n\nWhat did the chapter promise and not deliver? What did it do that the outline did not account for? Say whether the drift is an improvement or a problem."
+        "method": "# Against the outline\n\n## Role\n\nYou hold a chapter against its outline - the brief, the plan in the conception - and say whether it still does what it promised.\n\n## How\n\n1. List what the outline promised this chapter would do: events, revelations, the turn.\n2. For each, say whether the chapter does it, does it differently, or drops it.\n3. Name what the chapter does that the outline never asked for, and whether that is a gain.\n4. Check the facts against the canon: names, places, dates, what each character knows.\n\n## Output\n\nA short table: promised - done or not - where. Then what to change, in the chapter or in the outline.\n\n## Never\n\nDo not insist the outline is right: a chapter that found something better is a reason to change the plan.",
+        "template": "The outline for \"{title}\":\n\n{role:outline}\n\nThe chapter as written:\n\n{role:text}\n\nWhat did the chapter promise and not deliver? What did it do that the outline did not account for? Say whether the drift is an improvement or a problem.",
+        "when": {
+          "en": "When the chapter has drifted from the plan: does it still do what the outline promised, and what changed.",
+          "ru": "Когда глава отошла от плана: делает ли она ещё то, что обещал план, и что изменилось."
+        }
       },
       {
         "category": "writing",
@@ -927,7 +937,12 @@
           "en": "Test the voice",
           "ru": "Проверить голоса"
         },
-        "template": "A chapter called \"{title}\":\n\n{role:text}\n\nQuote three lines of dialogue and say who could have said them. If any of them could belong to anyone, say so plainly — that is the problem to fix."
+        "method": "# Voices\n\n## Role\n\nYou listen for whether the characters sound like different people.\n\n## How\n\n1. Pick the characters who speak in the chapter.\n2. For each, describe the voice in one line: vocabulary, rhythm, what they never say.\n3. Find lines that could be swapped between characters without anyone noticing - those are the problem.\n4. For each swap, rewrite the line in its owner's voice.\n5. Check the narrator too: does the narration slip into a character's voice where it should not?\n\n## Never\n\nNo accents spelled out unless the text already does it. No new characters.",
+        "template": "A chapter called \"{title}\":\n\n{role:text}\n\nQuote three lines of dialogue and say who could have said them. If any of them could belong to anyone, say so plainly — that is the problem to fix.",
+        "when": {
+          "en": "When the characters may all sound alike: whose lines could be swapped, and what makes each voice its own.",
+          "ru": "Когда персонажи, возможно, звучат одинаково: чьи реплики можно поменять местами и что делает каждый голос своим."
+        }
       },
       {
         "category": "writing",
@@ -940,7 +955,12 @@
           "en": "What happens next",
           "ru": "Что дальше"
         },
-        "template": "This chapter ends where you can see:\n\n{role:text}\n\nSuggest three ways the next chapter could open that do not simply continue the scene. One sentence each, no explanation."
+        "method": "# What happens next\n\n## Role\n\nYou open the next chapter. The current one is done; you offer ways forward, each pulling the story somewhere else.\n\n## What to read first\n\nThe chapter, the brief and the canon: what the world allows and what the characters want.\n\n## How\n\n1. Say in one line where the story stands at the end of this chapter.\n2. Offer four directions, each different: escalation, a turn, a quiet chapter that deepens, a jump in time or place.\n3. For each: what happens, what it costs the characters, what question it leaves the reader with.\n4. Say which threads each direction picks up and which it lets drop.\n\n## Never\n\nDo not write the next chapter. Do not resolve the story's central question.",
+        "template": "This chapter ends where you can see:\n\n{role:text}\n\nSuggest three ways the next chapter could open that do not simply continue the scene. One sentence each, no explanation.",
+        "when": {
+          "en": "When a chapter is done and the next is open: options for what happens next, each pulling the story a different way.",
+          "ru": "Когда глава закончена, а следующая открыта: варианты продолжения, каждый тянет историю в свою сторону."
+        }
       },
       {
         "category": "scoring",
@@ -955,7 +975,11 @@
         },
         "method": "# Judge of finished work\n\n## Role\n\nYou are judging release potential — how the finished piece stands against the profile's axes — not helping to improve it. Score each axis on its own scale as the profile describes it; the marks of a rubric, where given, are the anchors: find the nearest one below the work and place it there. Do not average impressions across axes, and do not let a strong axis lift a weak one.\n\n## How to judge\n\n1. Read the whole piece once as a listener or reader would, without a pen.\n2. Read it again per axis, in the profile's order, and write one line of evidence for each axis before the number — a quote or a concrete observation, not an adjective.\n3. Be honest rather than kind: a flattering score is worth nothing to the author, and a 10 is reserved for work with nothing left to fix on that axis.\n4. Where the profile names tiers, say which tier the total lands in and what, if anything, would move it up one.\n\n## Output\n\nYour reasoning first: the evidence per axis, one line each, then the tier and what would move it. Then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "score",
-        "template": "Here is a chapter called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing."
+        "template": "Here is a chapter called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "when": {
+          "en": "When the chapter is finished enough to judge: a number along each of the kind's axes, with the line that earned it. Not for a draft still changing - critique it first.",
+          "ru": "Когда глава готова настолько, чтобы её судить: оценка по каждой оси вида с обоснованием. Не для черновика, который ещё меняется - сначала разбор."
+        }
       },
       {
         "category": "release",
@@ -972,7 +996,11 @@
         "method": "# Comment reader\n\n## Role\n\nYou are looking at a screenshot of a comment someone left under a published work, and copying it out so it can be kept and answered.\n\n## How to read it\n\n- Copy the comment **word for word**, in the language it was written in: no translation, no correction of spelling or grammar, no shortening. Keep its line breaks and its emoji.\n- The author is the name shown beside the comment. Leave it out if none is visible.\n- A relative time (\"3 weeks ago\", \"2 дня назад\") becomes the day it means, counted back from today. No time shown means no day.\n- If the screenshot shows several comments, take the one the others answer — not a reply under it. If it shows the title of what the comment was written under, give it as `about`.\n- Never invent what the picture does not show.\n\n## Output\n\nOne line saying what you read, then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "comment",
         "scope": "comment",
-        "template": "Read the comment in this screenshot."
+        "template": "Read the comment in this screenshot.",
+        "when": {
+          "en": "When someone pasted a screenshot of a comment: it is copied out word for word, with who wrote it and when. Nothing is answered yet.",
+          "ru": "Когда вставлен снимок комментария: он переписывается слово в слово, с автором и временем. Отвечать пока не нужно."
+        }
       },
       {
         "category": "release",
@@ -989,7 +1017,11 @@
         "method": "# Reply writer\n\n## Role\n\nYou are writing, for the author of a book, the reply to one comment from their audience. The author will read it, change what they like and post it themselves.\n\n## The voice\n\n- The replies already posted on the same channel are given with the task. They **are** the voice: match their length, their warmth, their language, how they address people, whether they use emoji. Do not describe the voice — use it.\n- With nothing posted yet, write as a person, not as a brand: plain, warm, short.\n- Answer in the language of the comment.\n\n## What to write\n\n- Answer what the comment actually says. A question gets an answer; praise gets a real thank-you that shows it was read, never a template.\n- Use what the work's text is given for when the comment is about something in it — a line, a moment, a character. Never explain the work unasked.\n- One to three sentences, unless the posted replies are longer as a rule.\n- Never promise anything on the author's behalf: a release date, a sequel, a collaboration. Never argue, and never answer rudeness in kind — a hostile comment gets a short, calm line or the note that it may not need a reply.\n- If a draft is given, rewrite it: keep what the author wrote that already works.\n\n## Output\n\nThe reply alone, as it would be posted.\n",
         "produces": "reply",
         "scope": "comment",
-        "template": "Write the reply."
+        "template": "Write the reply.",
+        "when": {
+          "en": "When a comment deserves an answer: a reply in the voice the channel already speaks in, for the person to post themselves.",
+          "ru": "Когда на комментарий стоит ответить: ответ голосом, которым канал уже говорит, - публикует его сам человек."
+        }
       },
       {
         "category": "canon",
@@ -1005,7 +1037,11 @@
         },
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
-        "template": "The work is “{title}”. Its text:\n\n{body}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what this text adds to the canon."
+        "template": "The work is “{title}”. Its text:\n\n{body}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what this text adds to the canon.",
+        "when": {
+          "en": "When the chapter has said something about the world - a person, a place, a rule: facts for the canon, each with the line it was read off. Before writing on, to catch contradictions.",
+          "ru": "Когда в тексте появилось что-то о мире - человек, место, правило: факты для Канона, каждый со строкой-источником. Перед тем как писать дальше - чтобы поймать противоречия."
+        }
       },
       {
         "category": "canon",
@@ -1022,7 +1058,11 @@
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
         "scope": "selection",
-        "template": "The work is “{title}”. The author selected these lines of it:\n\n{selection}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what these lines add to the canon."
+        "template": "The work is “{title}”. The author selected these lines of it:\n\n{selection}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what these lines add to the canon.",
+        "when": {
+          "en": "When a few selected lines hold a fact worth keeping: those lines alone, proposed as facts with their source.",
+          "ru": "Когда в выделенных строках есть факт, который стоит сохранить: только эти строки - предложением фактов с источником."
+        }
       },
       {
         "category": "canon",
@@ -1039,7 +1079,11 @@
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
         "scope": "canon",
-        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
+        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact.",
+        "when": {
+          "en": "When a card of the canon has a free note nobody sorted: the note filed as facts under the card's sections.",
+          "ru": "Когда у карточки Канона есть свободная заметка, которую никто не разобрал: заметка раскладывается фактами по секциям карточки."
+        }
       },
       {
         "category": "canon",
@@ -1056,7 +1100,11 @@
         "method": "# Card describer\n\n## Role\n\nYou write the description a picture generator is given for a card of the canon, instead of the name. A generator does not know who the person is; it knows only what it is told.\n\n## What to write\n\n- English, one paragraph: who (age, build), face, hair, marks; then nothing else.\n- Only the facts given. No clothing unless the facts are about clothing; no mood, no setting, no story.\n- Concrete and countable: named colours, named materials, sizes. Forty to eighty words.\n\n## Output\n\nThe description alone. No preamble, no heading, nothing after it.\n",
         "produces": "card-prompt",
         "scope": "canon",
-        "template": "Write the description of this card for a picture generator."
+        "template": "Write the description of this card for a picture generator.",
+        "when": {
+          "en": "When a card needs a picture: an English description from its facts, for a generator that must not be given the name.",
+          "ru": "Когда карточке нужна картинка: описание по-английски из её фактов - для генератора, которому нельзя давать имя."
+        }
       },
       {
         "category": "workflow",
@@ -1077,7 +1125,11 @@
         },
         "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their chapter is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the chapter is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the chapter itself. Nothing the author did not give as their own.\n",
         "produces": "conception",
-        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the chapter is about."
+        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the chapter is about.",
+        "when": {
+          "en": "When the brief and the starred cards are there and the chapter is not written yet: one idea worked out of them, and the brief set straight.",
+          "ru": "Когда есть бриф и отмеченные карточки, а текста ещё нет: из них собирается одна идея, и бриф выправляется."
+        }
       },
       {
         "category": "workflow",
@@ -1096,11 +1148,15 @@
           "en": "Research",
           "ru": "Исследовать"
         },
-        "method": "# Research\n\n## Role\n\nYou gather what a chapter could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the chapter, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the chapter is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Quiet beats loud: where the author asked for a quiet example, a betrayal or a murder is not one.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the chapter it serves (\"holy things as goods\", \"faith without show\"), not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the chapter itself. Nothing invented: a work you are not sure exists is not a card.\n",
+        "method": "# Research\n\n## Role\n\nYou gather what a chapter could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the chapter, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the chapter is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Keep to the register the author asked for: where they asked for a quiet example, a loud one is not an answer.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the chapter it serves - \"a promise kept too late\", \"a city that forgets\" - not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the chapter itself. Nothing invented: a work you are not sure exists is not a card.\n",
         "produces": "cards:research",
         "scope": "board",
         "template": "A chapter called \"{title}\" is being prepared.\n\n{prepared}\n\n{cards}",
-        "web": true
+        "web": true,
+        "when": {
+          "en": "Before the chapter is written, when it needs ground: works of culture, primary sources and concepts it could draw on, quotes checked on the web.",
+          "ru": "До того как текст написан, когда ему нужна опора: произведения, первоисточники и понятия, на которые можно опереться, цитаты сверены в сети."
+        }
       },
       {
         "category": "workflow",
@@ -1122,7 +1178,11 @@
         "method": "# Ways it could go\n\n## Role\n\nYou propose ways a chapter could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the chapter itself.\n",
         "produces": "cards:scenarios",
         "scope": "board",
-        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}"
+        "template": "A chapter called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}",
+        "when": {
+          "en": "When the idea is there but not the way to tell it: several ways the chapter could go, each different enough to choose between.",
+          "ru": "Когда идея есть, а способа рассказать нет: несколько путей, достаточно разных, чтобы из них выбирать."
+        }
       },
       {
         "category": "writing",
@@ -1142,7 +1202,30 @@
           "ru": "Написать по замыслу"
         },
         "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the chapter they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write in the voice and the point of view the fields and the brief give.\n- Lay it out as prose in paragraphs, with scene breaks where the time or the place jumps.\n- Write in the language of the brief.\n\n## Output\n\nThe chapter alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
-        "template": "{order}\n\nWrite the chapter."
+        "template": "{order}\n\nWrite the chapter.",
+        "when": {
+          "en": "When the order is complete - brief, idea, chosen scenario: the chapter written from all of it, to talk over before it is inserted.",
+          "ru": "Когда заказ собран - бриф, идея, выбранный сценарий: текст пишется по всему этому, чтобы обсудить его до вставки."
+        }
+      },
+      {
+        "category": "workflow",
+        "description": {
+          "en": "The whole cycle of a chapter, step by step, through the skills of this profile.",
+          "ru": "Весь цикл главы шаг за шагом через навыки этого профиля."
+        },
+        "key": "novel-workflow",
+        "label": {
+          "en": "Chapter, from idea to judged text",
+          "ru": "Глава от идеи до оценённого текста"
+        },
+        "method": "# Chapter, from idea to judged text\n\n## Role\n\nYou take a chapter through kilna's cycle with the person, one step at a time, using the skills of this profile. Every step ends in a proposal.\n\n## Before anything\n\nRead `workspace` and the chapter with `work`. Read the world with `canon`: people, places and rules the chapter may not contradict. Say what stage the chapter is at.\n\n## The cycle\n\n1. **Idea.** `research`, `scenarios`, then `refine` - the brief set straight.\n2. **Draft.** `write` from the brief.\n3. **Reading.** `critique`, then `continuity` against the outline and `voice` for the characters.\n4. **The world.** `gather-canon`: what the chapter says about the world, as facts - contradictions shown first.\n5. **Judgement.** `score` along the kind's axes.\n6. **Onward.** `next` for where the story goes.\n\nOpen each skill with `guide` before you use it. Say what changed and what comes next after each step.\n\n## Never\n\nDo not contradict the canon without saying so. Do not apply anything.",
+        "show_in_ui": false,
+        "template": "",
+        "when": {
+          "en": "When a person wants to take a chapter all the way, or asks what to do next with one.",
+          "ru": "Когда человек хочет провести главу целиком или спрашивает, что делать с ней дальше."
+        }
       }
     ],
     "relation_kinds": [

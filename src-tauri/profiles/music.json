@@ -574,11 +574,6 @@
                   "ru": "Под каким названием трек стоит в списке."
                 },
                 "limit": 100,
-                "suffix": " (audio)",
-                "premiere": {
-                  "en": " (Song premiere {year})",
-                  "ru": " (Премьера песни {year})"
-                },
                 "required": true
               },
               {
@@ -592,8 +587,7 @@
                   "en": "For later: what to rename it to once the premiere is old news.",
                   "ru": "На потом: на что сменить заголовок, когда премьера устареет."
                 },
-                "limit": 100,
-                "suffix": " (audio)"
+                "limit": 100
               },
               {
                 "key": "alt_title_2",
@@ -606,8 +600,7 @@
                   "en": "For later, built unlike the first.",
                   "ru": "На потом, устроен не так, как первый."
                 },
-                "limit": 100,
-                "suffix": " (audio)"
+                "limit": 100
               },
               {
                 "key": "description",
@@ -3515,13 +3508,17 @@
           "ru": "Критика текста"
         },
         "category": "critique",
+        "when": {
+          "en": "After a draft and before polishing: every weak line, worn image and unsingable turn, with fixes - judged against the channel in the canon, not songs in general. Not a score: that is `score`.",
+          "ru": "После черновика и до правки: каждая слабая строка, затёртый образ и непоющийся оборот, с вариантами - по каналу из Канона, а не «песням вообще». Не оценка: для неё есть `score`."
+        },
         "description": {
           "en": "Weak lines, tired images, anything that does not sing — kept as a critique beside the text.",
           "ru": "Слабые строки, затёртые образы, всё, что не поётся, — останется критикой рядом с текстом."
         },
         "icon": "spell-check",
-        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\n{register}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? A word the register bans, or leans on past its limit, is a finding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong.",
-        "method": "# Lyrics critic\n\n## Role\n\nYou are a strict, fair editor of song lyrics. Your job is to find everything that can be made better and say it in a way the writer can act on: the line, what is wrong with it, and how to fix it — two or three alternatives where a fix is a rewrite. Not praise, not general impressions.\n\n## The craft's DNA\n\nEdit this section for your own project: who sings, from whose point of view, what mood the songs keep even when they are light, which genres you work in, what an image has to do to belong here. A critique judges against this, not against \"songs in general\".\n\n- Images must be seen or felt: a listener should be able to picture them.\n- Emotion arrives through detail, never through a declaration of the emotion.\n- Keep one perspective through the song unless the shift is the point.\n\n## Blocks\n\nGo through every block, in this order.\n\n### A. Rhymes\nCheck every rhyming pair. Flag lines that do not rhyme where the pattern says they should (unless plainly a device); verb-verb rhymes; the worn pairs everyone reaches for; rhymes that only hold if you squint; the same rhyme reused in another section. For each: the line, the problem, two or three alternatives.\n\n### B. Images and metaphors\nFlag worn metaphors and empty abstractions with nothing concrete under them. Ask of every image whether it works for the song's idea and whether it can be seen or felt. Look for images that contradict each other across sections.\n\nFour quick tests:\n- **Body test.** Is there at least one detail per verse that could only be remembered with the body — smell, temperature, light, sound, texture? A text built from concepts alone was written from the head.\n- **Added value.** For every borrowing, quotation or homage: say in one sentence what was added to what was taken. If it cannot be said, it is a copy — cut or transform it.\n- **Strip test** (songs about loss and time). Remove every word that names a feeling. Do the things left on the page still tell the story? If it collapses, it stood on declarations.\n- **Our-world test** (narrative and exotic settings). Is there one detail in the foreign world that marks it as ours? A setting without one is a backdrop.\n\n### C. Structure and logic\nIs there an arc from the first line to the last? Does the chorus land as the verse's culmination? Does the bridge bring a new angle or repeat? Any gaps in meaning between sections? Does the ending follow?\n\n### D. Rhythm and singability\nDo lines within a section keep to a similar length? Any line plainly overloaded with syllables, or too short beside its neighbours? Consonant clusters that are hard to sing?\n\n### E. Fit with the craft's DNA\nGenre and mood as declared; perspective held; no unmotivated jumps of register; the DNA above, point by point.\n\n## Output\n\n```\n## CRITIQUE: [title]\n\n### MUST FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### SHOULD FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### KEEP\n[what works and why — briefly]\n\n### VERDICT\nScore: [1–10]\nMain problem: [one phrase]\nRecommendation: [REWORK / ACCEPT / REWRITE]\n```\n\n## Never write\n\"Overall not bad\", \"Good text, but…\", \"Could be slightly improved\", \"In my opinion\", \"A decent attempt\". Only specifics: line → problem → fix.\n\n## Approval\nWrite `## APPROVED` only when blocks A and B have no must-fix items, the structure holds (C), the rhythm sings (D), the DNA is met (E) and the score is 8 or above. At 7, write \"Almost there — remaining:\" followed by the concrete edits.\n",
+        "template": "Here are the lyrics of a song called \"{title}\".\n\n{canon}\n\n{role:lyrics}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\n{register}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? A word the register bans, or leans on past its limit, is a finding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong.",
+        "method": "# Lyrics critic\n\n## Role\n\nYou are a strict, fair editor of song lyrics. Your job is to find everything that can be made better and say it in a way the writer can act on: the line, what is wrong with it, and how to fix it — two or three alternatives where a fix is a rewrite. Not praise, not general impressions.\n\n## The channel\n\nJudge against the channel, not against \"songs in general\". Its card in the canon, given with the lyric, says who sings, from whose point of view, what mood the songs keep even when they are light, the genres and what an image has to do to belong there. Where the canon says nothing, these hold:\n\n- Images must be seen or felt: a listener should be able to picture them.\n- Emotion arrives through detail, never through a declaration of the emotion.\n- Keep one perspective through the song unless the shift is the point.\n\n## Blocks\n\nGo through every block, in this order.\n\n### A. Rhymes\nCheck every rhyming pair. Flag lines that do not rhyme where the pattern says they should (unless plainly a device); verb-verb rhymes; the worn pairs everyone reaches for; rhymes that only hold if you squint; the same rhyme reused in another section. For each: the line, the problem, two or three alternatives.\n\n### B. Images and metaphors\nFlag worn metaphors and empty abstractions with nothing concrete under them. Ask of every image whether it works for the song's idea and whether it can be seen or felt. Look for images that contradict each other across sections.\n\nFour quick tests:\n- **Body test.** Is there at least one detail per verse that could only be remembered with the body — smell, temperature, light, sound, texture? A text built from concepts alone was written from the head.\n- **Added value.** For every borrowing, quotation or homage: say in one sentence what was added to what was taken. If it cannot be said, it is a copy — cut or transform it.\n- **Strip test** (songs about loss and time). Remove every word that names a feeling. Do the things left on the page still tell the story? If it collapses, it stood on declarations.\n- **Our-world test** (narrative and exotic settings). Is there one detail in the foreign world that marks it as ours? A setting without one is a backdrop.\n\n### C. Structure and logic\nIs there an arc from the first line to the last? Does the chorus land as the verse's culmination? Does the bridge bring a new angle or repeat? Any gaps in meaning between sections? Does the ending follow?\n\n### D. Rhythm and singability\nDo lines within a section keep to a similar length? Any line plainly overloaded with syllables, or too short beside its neighbours? Consonant clusters that are hard to sing?\n\n### E. Fit with the craft's DNA\nGenre and mood as declared; perspective held; no unmotivated jumps of register; the DNA above, point by point.\n\n## Output\n\n```\n## CRITIQUE: [title]\n\n### MUST FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### SHOULD FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### KEEP\n[what works and why — briefly]\n\n### VERDICT\nScore: [1–10]\nMain problem: [one phrase]\nRecommendation: [REWORK / ACCEPT / REWRITE]\n```\n\n## Never write\n\"Overall not bad\", \"Good text, but…\", \"Could be slightly improved\", \"In my opinion\", \"A decent attempt\". Only specifics: line → problem → fix.\n\n## Approval\nWrite `## APPROVED` only when blocks A and B have no must-fix items, the structure holds (C), the rhythm sings (D), the DNA is met (E) and the score is 8 or above. At 7, write \"Almost there — remaining:\" followed by the concrete edits.\n",
         "produces": "version:critique",
         "kinds": [
           "song"
@@ -3534,6 +3531,10 @@
           "ru": "Смысловые соседи"
         },
         "category": "critique",
+        "when": {
+          "en": "When a song may be telling a spent image in new words: where it repeats meanings of the register, and which works say the same.",
+          "ru": "Когда песня, возможно, пересказывает исхоженный образ другими словами: где она повторяет смыслы Реестра и какие работы говорят то же."
+        },
         "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{register}\n\n{neighbours}\n\nFind where this song says, in other words, what is already spent.",
         "description": {
           "en": "Where the song says a spent image in other words, and which works it says the same thing as",
@@ -3553,6 +3554,10 @@
           "ru": "Смыслы"
         },
         "category": "canon",
+        "when": {
+          "en": "Before release, to keep the register honest: the images and scenes this song shares with the songs already out, proposed as links in the register.",
+          "ru": "Перед выпуском, чтобы Реестр был честным: образы и сцены, общие с уже вышедшими песнями, - предложением связей в Реестре."
+        },
         "description": {
           "en": "Images and scenes this song shares with the songs already out, proposed as links in the register",
           "ru": "Образы и сцены, которые песня делит с уже вышедшими, — предложением связей в реестре"
@@ -3572,6 +3577,10 @@
           "ru": "Ударения для исполнителя"
         },
         "category": "writing",
+        "when": {
+          "en": "When a singer - a person or a voice model - will guess at homographs and unfamiliar words: the stress marked as this song means them, the way the register marks how words are sung.",
+          "ru": "Когда исполнитель - человек или голосовая модель - будет угадывать омографы и незнакомые слова: ударения по смыслу этой песни, так, как Реестр отмечает, как слова поются."
+        },
         "description": {
           "en": "The homographs and unknown words of the lyric, stressed as this song means them - proposed as a new version",
           "ru": "Омографы и незнакомые слова текста с ударениями по смыслу этой песни — предложением новой версии"
@@ -3579,7 +3588,7 @@
         "icon": "spell-check",
         "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{stress}\n\nMark the stress of each of these words in the lyric.",
         "produces": "version:lyrics",
-        "method": "# Stresses for the singer\n\n## Role\n\nYou mark a lyric for a singer that reads letters, not intentions. A homograph is sung whichever way it guesses, a name it has never seen is guessed at. You decide, from the song's own sense, how each word that could go wrong is meant, and write the stress into the text the way the author does.\n\n## The author's way of marking\n\n- The stressed vowel is written as a capital: \"сЕти\", \"пульсАр\", \"замОк\".\n- When the stressed vowel is the first letter of the word, put an acute accent (U+0301) after it and keep the letter's case: \"о́блако\", and \"О́блако\" at the start of a line.\n- One mark per word. A word the author already marked keeps the author's mark.\n- Never mark a word of one vowel.\n\n## What to mark\n\nOnly the words you are given below - the homographs, the words the dictionary does not know, and the stresses marked against the dictionary. For a homograph choose the reading this line means. For an unknown word - a name, a borrowing, an invented word - mark where a native speaker would stress it. For a stress against the dictionary keep the author's choice unless it is plainly a slip.\n\n## Output\n\nThe whole lyric, every line, exactly as it is but for the marks you add. No commentary, no headings, nothing before or after the text.",
+        "method": "# Stresses for the singer\n\n## Role\n\nYou mark a lyric for a singer that reads letters, not intentions. A homograph is sung whichever way it guesses, a name it has never seen is guessed at. You decide, from the song's own sense, how each word that could go wrong is meant, and write the stress into the text the way the space marks it.\n\n## How a stress is marked\n\nThe space marks stresses its own way, and the register shows it: each entry of how a word is sung writes the word as the singer should say it. Mark the stresses the same way - the same sign in the same place - so the lyric and the register agree. Where the register holds no such entry yet, write an acute accent (U+0301) after the stressed vowel: \"обла́ко\".\n\n- One mark per word. A word the lyric already marks keeps its mark.\n- Never mark a word of one vowel.\n\n## What to mark\n\nOnly the words you are given below - the homographs, the words the dictionary does not know, and the stresses marked against the dictionary. For a homograph choose the reading this line means. For an unknown word - a name, a borrowing, an invented word - mark where a native speaker would stress it. For a stress against the dictionary keep the author's choice unless it is plainly a slip.\n\n## Output\n\nThe whole lyric, every line, exactly as it is but for the marks you add. No commentary, no headings, nothing before or after the text.",
         "kinds": [
           "song"
         ]
@@ -3591,6 +3600,10 @@
           "ru": "Правка текста"
         },
         "category": "writing",
+        "when": {
+          "en": "When a line or a section is close but not there: a revision to react to, not to accept. After a critique, not before it.",
+          "ru": "Когда строка или часть почти получилась: вариант правки, на который реагируют, а не принимают. После разбора, а не до него."
+        },
         "description": {
           "en": "A rewrite to react to, not to accept.",
           "ru": "Переписанный вариант, чтобы оттолкнуться, а не чтобы принять."
@@ -3599,7 +3612,8 @@
         "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\n{register}\n\nSuggest one revision that keeps the voice but fixes what is weakest, reaching for nothing the register bans. Show the changed lines only, with a sentence on why each changed.",
         "kinds": [
           "song"
-        ]
+        ],
+        "method": "# Revision\n\n## Role\n\nYou are a co-writer offering a revision for the writer to react to, not a replacement to accept. The writer keeps the pen: your version is a way of seeing the text from another side.\n\n## What to read first\n\nThe lyric, the critique beside it if there is one, and the register: the spent words and images are not to come back in your revision. The channel's card in the canon says who sings and in what voice; keep it.\n\n## How\n\n1. Say in one line what the revision tries to fix - the weakest place, not everything.\n2. Rewrite only the sections that need it; leave the rest as it stands and say so.\n3. Keep the rhythm of the lines you touch: the same count of stressed beats, the rhyme pattern of the section.\n4. Prefer the concrete: an object, a gesture, a sound over a named feeling.\n5. After the revision, two or three lines on what changed and what was lost.\n\n## Never\n\nDo not rewrite the whole song unasked. Do not bring back a word or an image the register marks as spent. Do not praise the original before revising it."
       },
       {
         "key": "style",
@@ -3608,6 +3622,10 @@
           "ru": "Промпт стиля"
         },
         "category": "styles",
+        "when": {
+          "en": "When the lyrics are settled and the sound is not: a production description drawn from the text - genre, tempo, voice, arrangement.",
+          "ru": "Когда текст готов, а звук нет: описание продакшна из текста - жанр, темп, голос, аранжировка."
+        },
         "description": {
           "en": "A production description from the text.",
           "ru": "Описание продакшна, выведенное из текста."
@@ -3616,7 +3634,8 @@
         "template": "These are the lyrics of \"{title}\":\n\n{role:lyrics}\n\nWrite a short production description — genre, instruments, tempo feel, vocal treatment — that would suit them. One paragraph, concrete, no adjectives that mean nothing.",
         "kinds": [
           "song"
-        ]
+        ],
+        "method": "# Production description\n\n## Role\n\nYou are a producer reading a finished lyric and saying how it should sound - the description a music generator or a band is given.\n\n## What to read first\n\nThe lyric, the kind's style role if one exists, and the style dictionary's types: the words a style prompt is built of in this space. The channel's card in the canon names the sound the channel keeps; stay inside it unless the song asks to leave.\n\n## How\n\n1. Genre and subgenre, as narrow as the lyric allows.\n2. Tempo and feel: the pulse the lines want, slow or driving, straight or swung.\n3. Voice: who sings, how - close, distant, spoken, belted - and where it changes.\n4. Arrangement: the instruments that carry it, what enters when, what drops out.\n5. One line on the mood the production must keep even where the words get light.\n\n## Output\n\nA style prompt of at most a few sentences, in English, then a short list of what to avoid.\n\n## Never\n\nNo artist names. No lyrics in the description."
       },
       {
         "key": "compose-sound",
@@ -3625,6 +3644,10 @@
           "ru": "Написать стиль прозой"
         },
         "category": "styles",
+        "when": {
+          "en": "When phrases for the sound are picked from the dictionary: written up as one style prompt in sentences, not a list glued together.",
+          "ru": "Когда фразы звука выбраны из словаря: сводятся в один промпт стиля предложениями, а не склеенным списком."
+        },
         "description": {
           "en": "The phrases picked for the sound, written up as one style prompt in sentences.",
           "ru": "Выбранные фразы звука, сведённые в один промпт стиля предложениями."
@@ -3644,6 +3667,10 @@
           "ru": "Другие названия"
         },
         "category": "writing",
+        "when": {
+          "en": "When the title feels borrowed or flat: other ways to name the song, each from a different side of it.",
+          "ru": "Когда название кажется заёмным или плоским: другие варианты, каждый с другой стороны песни."
+        },
         "description": {
           "en": "Other ways to name it.",
           "ru": "Как это можно назвать иначе."
@@ -3652,7 +3679,8 @@
         "template": "A song currently called \"{title}\" with these lyrics:\n\n{role:lyrics}\n\nSuggest six alternative titles. Take them from the text itself where you can. No explanations.",
         "kinds": [
           "song"
-        ]
+        ],
+        "method": "# Titles\n\n## Role\n\nYou find names for a song. A title is the first line anyone reads: it promises something the song keeps.\n\n## How\n\n1. Read the whole lyric and say in one line what the song is about underneath.\n2. Offer eight titles, each from a different side: the hook, an image, the situation, a word that turns, the question the song asks, the place, the person, a phrase the song never says but means.\n3. For each, one line on what it promises.\n4. Mark the two you would keep, and why.\n\n## Never\n\nNo titles already used by songs in this space - the catalogue says which. No title longer than five words unless the song asks for it."
       },
       {
         "key": "album-place",
@@ -3661,6 +3689,10 @@
           "ru": "Место в альбоме"
         },
         "category": "critique",
+        "when": {
+          "en": "When the song belongs to an album: where it stands among the tracks and what it does there - opens, turns, rests, closes.",
+          "ru": "Когда песня входит в альбом: где она стоит среди треков и что там делает - открывает, поворачивает, даёт передышку, закрывает."
+        },
         "description": {
           "en": "Where the song stands among the album's tracks, and what it does there.",
           "ru": "Где песня стоит среди треков альбома и что она там делает."
@@ -3669,7 +3701,8 @@
         "template": "A song called \"{title}\", with these lyrics:\n\n{role:lyrics}\n\nThe collection it stands in:\n\n{collection}\n\nSay where this song belongs in the order and why: what it follows well, what it should not sit beside, whether it opens, closes or turns the record. If it stands in no collection, say which kind of record it asks for instead. Name tracks by their titles; do not rewrite the song.",
         "kinds": [
           "song"
-        ]
+        ],
+        "method": "# Place in the album\n\n## Role\n\nYou read one song against the album it belongs to and say what it does there - opens, turns, rests, closes, or repeats what another track already did.\n\n## What to read first\n\nThe song, and the collection: every track of the album with its stage and its words.\n\n## How\n\n1. Say in one line what this song brings that no other track brings.\n2. Name the tracks it is closest to, and whether that closeness helps or crowds.\n3. Propose where it stands in the order, and what should stand before and after it.\n4. If it repeats another track, say which, and what would set it apart.\n\n## Never\n\nDo not rank the songs. Do not judge the album as a whole unless asked."
       },
       {
         "key": "score",
@@ -3678,6 +3711,10 @@
           "ru": "Оценка песни"
         },
         "category": "scoring",
+        "when": {
+          "en": "When the song is finished enough to judge: a number along each of the kind's axes, with the line that earned it. Not for a draft still changing - critique it first.",
+          "ru": "Когда песня готова настолько, чтобы её судить: оценка по каждой оси вида с обоснованием. Не для черновика, который ещё меняется - сначала разбор."
+        },
         "description": {
           "en": "Rate it along the profile axes, with a reason.",
           "ru": "Оценить по осям профиля, с обоснованием."
@@ -3694,6 +3731,10 @@
           "ru": "Сюжет по источнику"
         },
         "category": "video",
+        "when": {
+          "en": "When a clip or a short is made from a song and has no story yet: the video's plot, beat by beat against its source.",
+          "ru": "Когда из песни делается клип или шортс и у него ещё нет истории: сюжет видео, бит за битом по источнику."
+        },
         "description": {
           "en": "The video’s story, beat by beat against the source — kept as the plot.",
           "ru": "История видео, доля за долей против источника, — останется сюжетом."
@@ -3714,6 +3755,10 @@
           "ru": "Раскадровка по сюжету"
         },
         "category": "video",
+        "when": {
+          "en": "When the plot is settled: the plot broken into scenes for the board - shot, length, what is seen.",
+          "ru": "Когда сюжет готов: он раскладывается на сцены доски - план, длительность, что в кадре."
+        },
         "description": {
           "en": "The plot broken into scenes for the board — a proposal to replace it.",
           "ru": "Сюжет, разбитый на сцены для доски, — предложение заменить её."
@@ -3734,6 +3779,10 @@
           "ru": "Промпты сцены"
         },
         "category": "video",
+        "when": {
+          "en": "On one scene of the board, when it needs its generator prompts: the still, the animation and what to keep out.",
+          "ru": "На одной сцене доски, когда ей нужны промпты для генератора: кадр, анимация и что исключить."
+        },
         "description": {
           "en": "The still, the animation and the negative for this scene — a revision of it.",
           "ru": "Стоп-кадр, анимация и негатив этой сцены — её новая редакция."
@@ -3755,6 +3804,10 @@
           "ru": "Собрать промпт из стилей"
         },
         "category": "styles",
+        "when": {
+          "en": "When bricks of the style dictionary are picked for a picture: written up as one prompt, not glued together.",
+          "ru": "Когда для картинки выбраны кирпичики словаря стилей: сводятся в один промпт, а не склеиваются."
+        },
         "description": {
           "en": "The picked bricks written up as one prompt, not glued together.",
           "ru": "Выбранные кирпичики, сведённые в один промпт, а не склейка."
@@ -3774,6 +3827,10 @@
           "ru": "Описать стиль по референсам"
         },
         "category": "styles",
+        "when": {
+          "en": "On a style brick with reference pictures and no words: a description the brick can carry into any prompt.",
+          "ru": "На кирпичике стиля с референсами и без слов: описание, которое кирпичик понесёт в любой промпт."
+        },
         "description": {
           "en": "Reference pictures read into a description the brick can carry.",
           "ru": "Картинки-референсы, прочитанные в описание для кирпичика."
@@ -3791,6 +3848,10 @@
           "ru": "Пояснить"
         },
         "category": "styles",
+        "when": {
+          "en": "When a text says phrases the dictionary does not know: each proposed as a brick with what it means, in every language.",
+          "ru": "Когда в тексте есть фразы, которых нет в словаре: каждая предлагается кирпичиком со значением на всех языках."
+        },
         "description": {
           "en": "Phrases the dictionary does not know, proposed as bricks with what they mean in every language.",
           "ru": "Фразы, которых нет в словаре, - предложением кирпичиков с пояснением на всех языках."
@@ -3808,6 +3869,10 @@
           "ru": "Прочитать комментарий"
         },
         "category": "release",
+        "when": {
+          "en": "When someone pasted a screenshot of a comment: it is copied out word for word, with who wrote it and when. Nothing is answered yet.",
+          "ru": "Когда вставлен снимок комментария: он переписывается слово в слово, с автором и временем. Отвечать пока не нужно."
+        },
         "description": {
           "en": "A pasted screenshot of a comment, copied out word for word.",
           "ru": "Вставленный скриншот комментария, переписанный слово в слово."
@@ -3825,6 +3890,10 @@
           "ru": "Черновик ответа"
         },
         "category": "release",
+        "when": {
+          "en": "When a comment deserves an answer: a reply in the voice the channel already speaks in, for the person to post themselves.",
+          "ru": "Когда на комментарий стоит ответить: ответ голосом, которым канал уже говорит, - публикует его сам человек."
+        },
         "description": {
           "en": "A reply in the voice the channel already speaks in, for you to post.",
           "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами."
@@ -3842,6 +3911,10 @@
           "ru": "Собрать факты в канон"
         },
         "category": "canon",
+        "when": {
+          "en": "When the song has said something about the world - a person, a place, a rule: facts for the canon, each with the line it was read off. Before writing on, to catch contradictions.",
+          "ru": "Когда в тексте появилось что-то о мире - человек, место, правило: факты для Канона, каждый со строкой-источником. Перед тем как писать дальше - чтобы поймать противоречия."
+        },
         "description": {
           "en": "What the text says about the world, proposed as facts with the line each was read off; contradictions shown before anything is applied.",
           "ru": "Что текст говорит о мире — факты со строкой-источником; противоречия с каноном видны до применения."
@@ -3858,6 +3931,10 @@
           "ru": "В канон"
         },
         "category": "canon",
+        "when": {
+          "en": "When a few selected lines hold a fact worth keeping: those lines alone, proposed as facts with their source.",
+          "ru": "Когда в выделенных строках есть факт, который стоит сохранить: только эти строки - предложением фактов с источником."
+        },
         "description": {
           "en": "The selected lines, proposed as facts of the canon with their source.",
           "ru": "Выделенные строки — предложением фактов канона с источником."
@@ -3875,6 +3952,10 @@
           "ru": "Собрать факты из заметки"
         },
         "category": "canon",
+        "when": {
+          "en": "When a card of the canon has a free note nobody sorted: the note filed as facts under the card's sections.",
+          "ru": "Когда у карточки Канона есть свободная заметка, которую никто не разобрал: заметка раскладывается фактами по секциям карточки."
+        },
         "description": {
           "en": "The card's free note, proposed as facts filed under its sections.",
           "ru": "Свободная заметка карточки — предложением фактов по разделам."
@@ -3892,6 +3973,10 @@
           "ru": "Описать для генератора"
         },
         "category": "canon",
+        "when": {
+          "en": "When a card needs a picture: an English description from its facts, for a generator that must not be given the name.",
+          "ru": "Когда карточке нужна картинка: описание по-английски из её фактов - для генератора, которому нельзя давать имя."
+        },
         "description": {
           "en": "An English description of the card written from its facts, given to a picture generator instead of the name.",
           "ru": "Английское описание из фактов карточки — генератор получает его вместо имени."
@@ -3909,6 +3994,10 @@
           "ru": "Мета выпуска"
         },
         "category": "release",
+        "when": {
+          "en": "When a release is planned and needs its words: title, description, tags and pinned comment in the channel's voice, unlike the last ones.",
+          "ru": "Когда выпуск запланирован и ему нужны слова: название, описание, теги и закреп голосом канала, не похожие на прошлые."
+        },
         "description": {
           "en": "The title, description, tags and pinned comment of this release, in the channel’s voice and unlike the last ones.",
           "ru": "Название, описание, теги и закреп выпуска голосом канала — не так, как в прошлых."
@@ -3931,6 +4020,10 @@
           "ru": "Идеи обложки"
         },
         "category": "cover",
+        "when": {
+          "en": "On the cover board of a clip, an audio release or a short: ideas from different angles - the song's hero, its meaning, the channel's house styles.",
+          "ru": "На доске обложки клипа, аудиовыпуска или шортса: идеи с разных сторон - герой песни, её смысл, фирменные стили канала."
+        },
         "description": {
           "en": "Ideas for this publication's cover from different angles - the hero of the song, the mark's status for its meaning, the channel's house styles.",
           "ru": "Идеи обложки этой публикации с разных ракурсов - герой песни, статус знака под её смысл, домашние стили канала."
@@ -3953,6 +4046,10 @@
           "ru": "Предложить пробы"
         },
         "category": "workflow",
+        "when": {
+          "en": "On an experiment's board: trials that sweep the field, vary around a core, or fix what went wrong - each held to the anchors.",
+          "ru": "На доске эксперимента: пробы - обзор поля, вариации вокруг ядра или исправление неудачи, каждая по якорям."
+        },
         "description": {
           "en": "Trials for the board: a sweep of the field, variations around a core, or the fix for what went wrong - each held to the anchors.",
           "ru": "Пробы на доску: разведка поля, вариации вокруг ядра или починка того, что пошло не так, - каждая держится якорей."
@@ -3973,6 +4070,10 @@
           "ru": "Уточнить идею"
         },
         "category": "workflow",
+        "when": {
+          "en": "When the brief and the starred cards are there and the song is not written yet: one idea worked out of them, and the brief set straight.",
+          "ru": "Когда есть бриф и отмеченные карточки, а текста ещё нет: из них собирается одна идея, и бриф выправляется."
+        },
         "description": {
           "en": "The brief and what is starred, worked into one idea - and the brief set straight.",
           "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел."
@@ -3980,7 +4081,7 @@
         "icon": "wand",
         "template": "A song called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the song is about.",
         "produces": "conception",
-        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their song is about before a line of it is written. The author's words come first and are often rough: a feeling, an experience, a picture of how it should sound. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the song is about, from which side it is told, what it must leave the listener with. Sharper than the author put it, never wider. Find the move that sets it apart - not \"a song about faith\" but \"telling faith from its imitation\".\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact, place and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented. What they starred belongs where it fits.\n\n## Never\n\nNo lyrics and no lines of the song. No experience the author did not give as their own. No new themes the brief does not hold.\n",
+        "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their song is about before a line of it is written. The author's words come first and are often rough: a feeling, an experience, a picture of how it should sound. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the song is about, from which side it is told, what it must leave the listener with. Sharper than the author put it, never wider. Find the move that sets it apart - not \"a song about love\" but \"love that outlives its reason\".\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact, place and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented. What they starred belongs where it fits.\n\n## Never\n\nNo lyrics and no lines of the song. No experience the author did not give as their own. No new themes the brief does not hold.\n",
         "kinds": [
           "song"
         ]
@@ -3992,6 +4093,10 @@
           "ru": "Исследовать"
         },
         "category": "workflow",
+        "when": {
+          "en": "Before the song is written, when it needs ground: works of culture, primary sources and concepts it could draw on, quotes checked on the web.",
+          "ru": "До того как текст написан, когда ему нужна опора: произведения, первоисточники и понятия, на которые можно опереться, цитаты сверены в сети."
+        },
         "description": {
           "en": "Works of culture, primary sources and concepts the song could draw on, quotes checked on the web - put on the research board.",
           "ru": "Произведения, первоисточники и понятия, на которые может опереться песня, - цитаты сверены в сети - на доску исследования."
@@ -4001,7 +4106,7 @@
         "produces": "cards:research",
         "scope": "board",
         "web": true,
-        "method": "# Research\n\n## Role\n\nYou gather what a song could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the song, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the song is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Quiet beats loud: where the author asked for a quiet example, a betrayal or a murder is not one.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the song it serves (\"holy things as goods\", \"faith without show\"), not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo lyrics and no lines of the song. Nothing invented: a work you are not sure exists is not a card.\n",
+        "method": "# Research\n\n## Role\n\nYou gather what a song could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the song, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the song is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Keep to the register the author asked for: where they asked for a quiet example, a loud one is not an answer.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the song it serves - \"a promise kept too late\", \"a city that forgets\" - not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo lyrics and no lines of the song. Nothing invented: a work you are not sure exists is not a card.\n",
         "kinds": [
           "song"
         ]
@@ -4013,6 +4118,10 @@
           "ru": "Предложить сценарии"
         },
         "category": "workflow",
+        "when": {
+          "en": "When the idea is there but not the way to tell it: several ways the song could go, each different enough to choose between.",
+          "ru": "Когда идея есть, а способа рассказать нет: несколько путей, достаточно разных, чтобы из них выбирать."
+        },
         "description": {
           "en": "Ways the song could go, put on the board of scenarios.",
           "ru": "Как может пойти песня - на доску сценариев."
@@ -4033,6 +4142,10 @@
           "ru": "Написать по замыслу"
         },
         "category": "writing",
+        "when": {
+          "en": "When the order is complete - brief, idea, chosen scenario: the song written from all of it, to talk over before it is inserted.",
+          "ru": "Когда заказ собран - бриф, идея, выбранный сценарий: текст пишется по всему этому, чтобы обсудить его до вставки."
+        },
         "description": {
           "en": "The lyrics, written from the whole order - to talk over in the chat and insert once they are right.",
           "ru": "Текст по всему заказу - обсудить в чате и вставить, когда он хорош."
@@ -4042,6 +4155,51 @@
         "method": "# Writing from an order\n\n## Role\n\nYou are the songwriter. The order is everything the author prepared: the idea, the brief in their words, the style the song is sung over, the scenarios and which of them to write by, what they attached, the channel's voice and canon, and the register of what is worn out. Write the song they asked for, not another one.\n\n## How\n\n- Write by the scenarios as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- The style prompt sets the sound: its tempo and mood decide how long the lines are and how they move.\n- Use the attached phrases where they fit; never force one in.\n- Keep to the register: a banned word is not used, a limited one sparingly, a rare one once.\n- Write in the language of the brief, unless the fields say otherwise.\n- Lay the text out in section markers: [Verse 1], [Pre-Chorus], [Chorus], [Bridge], [Outro].\n\n## Output\n\nThe lyrics alone. Then, after a blank line, one short paragraph: which scenario it is written by and what was left out on purpose.\n",
         "kinds": [
           "song"
+        ]
+      },
+      {
+        "key": "song-workflow",
+        "label": {
+          "en": "Song, from idea to release",
+          "ru": "Песня от идеи до выпуска"
+        },
+        "category": "workflow",
+        "when": {
+          "en": "When a person wants to take a song all the way - or asks what to do next with one - rather than a single step.",
+          "ru": "Когда человек хочет провести песню целиком - или спрашивает, что делать с ней дальше, - а не один шаг."
+        },
+        "template": "",
+        "show_in_ui": false,
+        "description": {
+          "en": "The whole cycle of a song, step by step, through the skills of this profile.",
+          "ru": "Весь цикл песни шаг за шагом через навыки этого профиля."
+        },
+        "method": "# Song, from idea to release\n\n## Role\n\nYou take a song through kilna's whole cycle with the person, one step at a time, using the skills of this profile. You never write to kilna yourself: every step ends in a proposal the person applies or turns down.\n\n## Before anything\n\nRead `workspace` - the kinds, the axes with their rubrics, the statuses, and the skills under `guides` - and the song with `work`. Read the canon's channel card with `canon` and the spent words and meanings with `notes`: who sings, the world, what not to repeat. Say what stage the song is at.\n\n## The cycle\n\n1. **Idea.** A song with a brief and no lyrics: open `guide` for `research`, then `scenarios`, then `refine`.\n2. **Lyrics.** `write` from the brief. Then `critique`, and `neighbours` or `meanings` against the register; revise with `polish`.\n3. **Judgement.** `score` along the kind's axes; say which axis holds the song back and go back to step 2 if the person wants.\n4. **Sound.** `style`, or `compose-sound` from phrases picked in the dictionary.\n5. **Singing.** `stresses` where a singer would guess at a word.\n6. **Going out.** For each work made from the song - a clip, an audio release, a short - `release-meta` and `cover-ideas`; a clip goes on through `ai-video-pipeline`.\n\nOpen each skill with `guide` before you use it: its method is the one to follow. After each step, say what changed and what comes next; stop when the person stops.\n\n## Never\n\nDo not skip the register and the canon. Do not invent the craft's rules - read them. Do not apply anything.",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
+        "key": "ai-video-pipeline",
+        "label": {
+          "en": "Video, from the song to the board",
+          "ru": "Видео от песни до доски"
+        },
+        "category": "workflow",
+        "when": {
+          "en": "When a clip or a short is made from a song and should be taken from nothing to a full board and a planned release.",
+          "ru": "Когда по песне делается клип или шортс и его нужно провести от нуля до полной доски и запланированного выпуска."
+        },
+        "template": "",
+        "show_in_ui": false,
+        "description": {
+          "en": "A clip or a short made from a song: plot, storyboard, prompts for every scene, cover and release words.",
+          "ru": "Клип или шортс по песне: сюжет, раскадровка, промпты для каждой сцены, обложка и слова выпуска."
+        },
+        "method": "# Video, from the song to the board\n\n## Role\n\nYou take a clip or a short made from a song through the visual cycle with the person, using the skills of this profile. Every step ends in a proposal.\n\n## Before anything\n\nRead `workspace` for the video kind's shots, layers and scene blocks, and the style types; read the video with `work` and its source song with `text`. Read the canon with `canon`: the hero's card holds what the hero looks like - never name a real person to a generator.\n\n## The cycle\n\n1. **Plot.** `plot` from the source: the story beat by beat against the song.\n2. **Board.** `storyboard` from the plot: scenes with their shot, length and what is seen.\n3. **Prompts.** `prompts` scene by scene: the still, the animation and what to keep out. Use `compose-style` with the bricks the person picks; a reference without words goes through `describe-style` first.\n4. **Cover.** `cover-ideas` on the publication's board.\n5. **Release.** `release-meta` for each release the video goes out as.\n\nOpen each skill with `guide` before you use it. Read `scenes` to see the board as it stands before revising it. Say what is done and what is next after each step.\n\n## Never\n\nNo real person's name or likeness in a prompt. Do not replace a board the person built without saying so. Do not apply anything.",
+        "kinds": [
+          "video",
+          "short"
         ]
       }
     ],

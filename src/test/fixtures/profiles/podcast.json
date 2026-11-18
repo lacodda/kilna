@@ -537,7 +537,12 @@
           "en": "Critique the script",
           "ru": "Разобрать сценарий"
         },
-        "template": "Here is the script for an episode called \"{title}\".\n\n{role:script}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a listener stop listening? Be specific about timestamps or sections. Name what rambles, what over-explains, and what the episode is avoiding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong."
+        "method": "# Script critique\n\n## Role\n\nYou are a listener with a thumb over the skip button. Your job is to find where you would tap away, and to say how to keep the listener.\n\n## Blocks\n\n1. **The open.** Does the episode say in its first minute why to keep listening?\n2. **Flow.** Mark every stretch longer than two minutes where nothing new arrives.\n3. **Clarity.** Any turn a listener could not follow without seeing the page - lists, numbers, names.\n4. **Segments.** Does each segment pay off what it set up?\n5. **The close.** Does the end leave the listener with something to keep?\n\n## Output\n\nThe three moments that would lose a listener, each with the line and a fix; then the rest.\n\n## Never\n\nDo not rewrite the script. Do not judge the subject - judge how it is told.",
+        "template": "Here is the script for an episode called \"{title}\".\n\n{role:script}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a listener stop listening? Be specific about timestamps or sections. Name what rambles, what over-explains, and what the episode is avoiding. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong.",
+        "when": {
+          "en": "After a script draft: where a listener would tap away - the slow stretch, the unclear turn, the segment that does not pay off.",
+          "ru": "После черновика сценария: где слушатель переключится - провисание, неясный поворот, сегмент, который не окупается."
+        }
       },
       {
         "category": "writing",
@@ -550,7 +555,12 @@
           "en": "Test the cold open",
           "ru": "Проверить начало"
         },
-        "template": "The opening of an episode called \"{title}\":\n\n{role:script}\n\nJudge only the first thirty seconds as written. Would a new listener keep going? Give three concrete ways to make the open sharper, and say what to cut, not what to add."
+        "method": "# Cold open\n\n## Role\n\nYou judge only the first thirty seconds of an episode: the cold open a listener hears before deciding to stay.\n\n## How\n\n1. Read the open aloud in your head; time it.\n2. Say what it promises: a question, a story, a surprise.\n3. Say whether it delivers a reason to stay before the intro music.\n4. Offer two rewrites: one that starts later in the story, one that starts with the strongest line of the episode.\n\n## Never\n\nNo judgement of the rest of the episode.",
+        "template": "The opening of an episode called \"{title}\":\n\n{role:script}\n\nJudge only the first thirty seconds as written. Would a new listener keep going? Give three concrete ways to make the open sharper, and say what to cut, not what to add.",
+        "when": {
+          "en": "Before recording: is the first thirty seconds worth the listener's time, and what would make it so.",
+          "ru": "Перед записью: стоят ли первые тридцать секунд времени слушателя и что сделало бы их такими."
+        }
       },
       {
         "category": "critique",
@@ -563,7 +573,12 @@
           "en": "Check show notes against the script",
           "ru": "Сверить шоу-ноты со сценарием"
         },
-        "template": "The script for \"{title}\":\n\n{role:script}\n\nThe show notes for it:\n\n{role:notes}\n\nWhat does the episode cover that the notes miss? What do the notes promise that the script never delivers? List the gaps, do not rewrite the notes."
+        "method": "# Show notes against the script\n\n## Role\n\nYou check the show notes - the description, chapters, links - against what the episode actually says.\n\n## How\n\n1. List what the notes claim the episode contains.\n2. For each claim, find where the script says it, or mark it missing.\n3. List what the episode says that the notes leave out and a listener would look for.\n4. Check names, titles and links for spelling and for whether they appear in the script at all.\n\n## Output\n\nWrong or invented first, missing second; then a corrected version of the notes.\n\n## Never\n\nDo not add claims the script does not make.",
+        "template": "The script for \"{title}\":\n\n{role:script}\n\nThe show notes for it:\n\n{role:notes}\n\nWhat does the episode cover that the notes miss? What do the notes promise that the script never delivers? List the gaps, do not rewrite the notes.",
+        "when": {
+          "en": "When the show notes are written: do they describe what was actually said, with nothing missing or invented.",
+          "ru": "Когда описание выпуска написано: описывает ли оно то, что на самом деле прозвучало, без пропусков и выдумок."
+        }
       },
       {
         "category": "video",
@@ -576,7 +591,12 @@
           "en": "Pick clip candidates",
           "ru": "Подобрать моменты для клипов"
         },
-        "template": "The script for an episode called \"{title}\":\n\n{role:script}\n\nPick three moments that would work as a standalone clip under ninety seconds. For each, give the rough boundary and one sentence on why it stands alone. No explanations beyond that."
+        "method": "# Clip picks\n\n## Role\n\nYou pick the moments of an episode worth cutting for social video - each one able to stand alone, without the episode around it.\n\n## How\n\n1. Read the script for moments with their own beginning and end: a story, a reversal, a strong claim, a laugh.\n2. For each: the first and last line, the rough length, and in one line why it works alone.\n3. Prefer moments under sixty seconds; say when one needs a caption to land.\n4. Propose a hook line for each, from the clip's own words.\n\n## Output\n\nAt most six picks, strongest first.\n\n## Never\n\nNo moment that needs the episode's context to make sense.",
+        "template": "The script for an episode called \"{title}\":\n\n{role:script}\n\nPick three moments that would work as a standalone clip under ninety seconds. For each, give the rough boundary and one sentence on why it stands alone. No explanations beyond that.",
+        "when": {
+          "en": "After the episode is recorded: the moments worth cutting for social, each with where it starts and why it stands alone.",
+          "ru": "После записи эпизода: моменты, которые стоит нарезать для соцсетей, - с началом и тем, почему каждый держится сам."
+        }
       },
       {
         "category": "scoring",
@@ -591,7 +611,11 @@
         },
         "method": "# Judge of finished work\n\n## Role\n\nYou are judging release potential — how the finished piece stands against the profile's axes — not helping to improve it. Score each axis on its own scale as the profile describes it; the marks of a rubric, where given, are the anchors: find the nearest one below the work and place it there. Do not average impressions across axes, and do not let a strong axis lift a weak one.\n\n## How to judge\n\n1. Read the whole piece once as a listener or reader would, without a pen.\n2. Read it again per axis, in the profile's order, and write one line of evidence for each axis before the number — a quote or a concrete observation, not an adjective.\n3. Be honest rather than kind: a flattering score is worth nothing to the author, and a 10 is reserved for work with nothing left to fix on that axis.\n4. Where the profile names tiers, say which tier the total lands in and what, if anything, would move it up one.\n\n## Output\n\nYour reasoning first: the evidence per axis, one line each, then the tier and what would move it. Then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "score",
-        "template": "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing."
+        "template": "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "when": {
+          "en": "When the episode is finished enough to judge: a number along each of the kind's axes, with the line that earned it. Not for a draft still changing - critique it first.",
+          "ru": "Когда эпизод готов настолько, чтобы его судить: оценка по каждой оси вида с обоснованием. Не для черновика, который ещё меняется - сначала разбор."
+        }
       },
       {
         "category": "release",
@@ -608,7 +632,11 @@
         "method": "# Comment reader\n\n## Role\n\nYou are looking at a screenshot of a comment someone left under a published work, and copying it out so it can be kept and answered.\n\n## How to read it\n\n- Copy the comment **word for word**, in the language it was written in: no translation, no correction of spelling or grammar, no shortening. Keep its line breaks and its emoji.\n- The author is the name shown beside the comment. Leave it out if none is visible.\n- A relative time (\"3 weeks ago\", \"2 дня назад\") becomes the day it means, counted back from today. No time shown means no day.\n- If the screenshot shows several comments, take the one the others answer — not a reply under it. If it shows the title of what the comment was written under, give it as `about`.\n- Never invent what the picture does not show.\n\n## Output\n\nOne line saying what you read, then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "comment",
         "scope": "comment",
-        "template": "Read the comment in this screenshot."
+        "template": "Read the comment in this screenshot.",
+        "when": {
+          "en": "When someone pasted a screenshot of a comment: it is copied out word for word, with who wrote it and when. Nothing is answered yet.",
+          "ru": "Когда вставлен снимок комментария: он переписывается слово в слово, с автором и временем. Отвечать пока не нужно."
+        }
       },
       {
         "category": "release",
@@ -625,7 +653,11 @@
         "method": "# Reply writer\n\n## Role\n\nYou are writing, for the author of an episode, the reply to one comment from their audience. The author will read it, change what they like and post it themselves.\n\n## The voice\n\n- The replies already posted on the same channel are given with the task. They **are** the voice: match their length, their warmth, their language, how they address people, whether they use emoji. Do not describe the voice — use it.\n- With nothing posted yet, write as a person, not as a brand: plain, warm, short.\n- Answer in the language of the comment.\n\n## What to write\n\n- Answer what the comment actually says. A question gets an answer; praise gets a real thank-you that shows it was read, never a template.\n- Use what the work's text is given for when the comment is about something in it — a line, a moment, a character. Never explain the work unasked.\n- One to three sentences, unless the posted replies are longer as a rule.\n- Never promise anything on the author's behalf: a release date, a sequel, a collaboration. Never argue, and never answer rudeness in kind — a hostile comment gets a short, calm line or the note that it may not need a reply.\n- If a draft is given, rewrite it: keep what the author wrote that already works.\n\n## Output\n\nThe reply alone, as it would be posted.\n",
         "produces": "reply",
         "scope": "comment",
-        "template": "Write the reply."
+        "template": "Write the reply.",
+        "when": {
+          "en": "When a comment deserves an answer: a reply in the voice the channel already speaks in, for the person to post themselves.",
+          "ru": "Когда на комментарий стоит ответить: ответ голосом, которым канал уже говорит, - публикует его сам человек."
+        }
       },
       {
         "category": "canon",
@@ -642,7 +674,11 @@
         "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
         "produces": "canon",
         "scope": "canon",
-        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
+        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact.",
+        "when": {
+          "en": "When a card of the canon has a free note nobody sorted: the note filed as facts under the card's sections.",
+          "ru": "Когда у карточки Канона есть свободная заметка, которую никто не разобрал: заметка раскладывается фактами по секциям карточки."
+        }
       },
       {
         "category": "workflow",
@@ -663,7 +699,11 @@
         },
         "method": "# Refining an idea\n\n## Role\n\nYou are an editor who helps an author say what their episode is about before a line of it is written. The author's words come first and are often rough. Your job is to find the idea inside them, not to replace it with yours.\n\n## What to write\n\n- **The idea.** Two to four sentences: what the episode is about, from which side it is told, what it must leave with whoever takes it in. Sharper than the author put it, never wider.\n- **The brief, set straight.** The author's brief under the same headings, in their language: every fact and image they gave kept, said plainly, in order; what contradicts itself resolved; what is missing left empty rather than invented.\n\n## Never\n\nNo text of the episode itself. Nothing the author did not give as their own.\n",
         "produces": "conception",
-        "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the episode is about."
+        "template": "A episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the episode is about.",
+        "when": {
+          "en": "When the brief and the starred cards are there and the episode is not written yet: one idea worked out of them, and the brief set straight.",
+          "ru": "Когда есть бриф и отмеченные карточки, а текста ещё нет: из них собирается одна идея, и бриф выправляется."
+        }
       },
       {
         "category": "workflow",
@@ -682,11 +722,15 @@
           "en": "Research",
           "ru": "Исследовать"
         },
-        "method": "# Research\n\n## Role\n\nYou gather what a episode could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the episode, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the episode is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Quiet beats loud: where the author asked for a quiet example, a betrayal or a murder is not one.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the episode it serves (\"holy things as goods\", \"faith without show\"), not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the episode itself. Nothing invented: a work you are not sure exists is not a card.\n",
+        "method": "# Research\n\n## Role\n\nYou gather what a episode could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the episode, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the episode is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Keep to the register the author asked for: where they asked for a quiet example, a loud one is not an answer.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the episode it serves - \"a promise kept too late\", \"a city that forgets\" - not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the episode itself. Nothing invented: a work you are not sure exists is not a card.\n",
         "produces": "cards:research",
         "scope": "board",
         "template": "An episode called \"{title}\" is being prepared.\n\n{prepared}\n\n{cards}",
-        "web": true
+        "web": true,
+        "when": {
+          "en": "Before the episode is written, when it needs ground: works of culture, primary sources and concepts it could draw on, quotes checked on the web.",
+          "ru": "До того как текст написан, когда ему нужна опора: произведения, первоисточники и понятия, на которые можно опереться, цитаты сверены в сети."
+        }
       },
       {
         "category": "workflow",
@@ -708,7 +752,11 @@
         "method": "# Ways it could go\n\n## Role\n\nYou propose ways a episode could go, before it is written. Each is one expressive move the whole text can hang on - an act, a place, an object - simple enough to say in one breath; not an outline and not a theme.\n\n## How\n\n- Every card from another side.\n- Vivid and simple beats clever and complicated.\n- Stay inside the brief, take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what is already on the board.\n\n## Never\n\nNo text of the episode itself.\n",
         "produces": "cards:scenarios",
         "scope": "board",
-        "template": "An episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}"
+        "template": "An episode called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}",
+        "when": {
+          "en": "When the idea is there but not the way to tell it: several ways the episode could go, each different enough to choose between.",
+          "ru": "Когда идея есть, а способа рассказать нет: несколько путей, достаточно разных, чтобы из них выбирать."
+        }
       },
       {
         "category": "writing",
@@ -728,7 +776,30 @@
           "ru": "Написать по замыслу"
         },
         "method": "# Writing from an order\n\n## Role\n\nYou are the writer. The order is everything the author prepared: the idea, the brief in their words, what the text must keep to, the cards and which of them to write by, what they attached. Write the episode they asked for, not another one.\n\n## How\n\n- Write by the cards as the order says: by the one starred, from the starred ones, or by the one you find strongest.\n- Use what is attached where it fits; never force it in.\n- Write it to be said aloud: short sentences, one thought each, no phrase a speaker would trip on.\n- Lay it out in the script's section markers: [Cold open], [Intro], [Segment 1], [Segment 2], [Outro].\n- Write in the language of the brief.\n\n## Output\n\nThe script alone. Then, after a blank line, one short paragraph: which card it is written by and what was left out on purpose.\n",
-        "template": "{order}\n\nWrite the script."
+        "template": "{order}\n\nWrite the script.",
+        "when": {
+          "en": "When the order is complete - brief, idea, chosen scenario: the episode written from all of it, to talk over before it is inserted.",
+          "ru": "Когда заказ собран - бриф, идея, выбранный сценарий: текст пишется по всему этому, чтобы обсудить его до вставки."
+        }
+      },
+      {
+        "category": "workflow",
+        "description": {
+          "en": "The whole cycle of an episode, step by step, through the skills of this profile.",
+          "ru": "Весь цикл эпизода шаг за шагом через навыки этого профиля."
+        },
+        "key": "podcast-workflow",
+        "label": {
+          "en": "Episode, from idea to clips",
+          "ru": "Эпизод от идеи до нарезок"
+        },
+        "method": "# Episode, from idea to clips\n\n## Role\n\nYou take an episode through kilna's cycle with the person, one step at a time, using the skills of this profile. Every step ends in a proposal.\n\n## Before anything\n\nRead `workspace` and the episode with `work`; read the show's card with `canon`. Say what stage the episode is at.\n\n## The cycle\n\n1. **Idea.** `research`, `scenarios` - ways in - then `refine`.\n2. **Script.** `write` from the brief.\n3. **Reading.** `critique`, then `cold_open` for the first thirty seconds.\n4. **Judgement.** `score` along the kind's axes.\n5. **After recording.** `notes_check` for the show notes, `clip_picks` for social.\n\nOpen each skill with `guide` before you use it. Say what changed and what comes next after each step.\n\n## Never\n\nDo not invent what a guest said. Do not apply anything.",
+        "show_in_ui": false,
+        "template": "",
+        "when": {
+          "en": "When a person wants to take an episode all the way, or asks what to do next with one.",
+          "ru": "Когда человек хочет провести эпизод целиком или спрашивает, что делать с ним дальше."
+        }
       }
     ],
     "rhythm": {

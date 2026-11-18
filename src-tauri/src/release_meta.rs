@@ -889,6 +889,7 @@ mod tests {
     #[test]
     fn a_song_premieres_with_the_first_publication_to_go_out() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let tide = fixtures::song(&conn, &profile_id, "Tide");
         let audio = audio_of(&conn, &tide.id);
         release::schedule(&conn, &audio, "2026-11-04").unwrap();
@@ -942,6 +943,7 @@ mod tests {
     #[test]
     fn a_proposal_is_shown_and_compared_with_the_tail_the_place_adds() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let tide = fixtures::song(&conn, &profile_id, "Tide");
         let audio = audio_of(&conn, &tide.id);
         release::schedule(&conn, &audio, "2026-11-04").unwrap();
@@ -1005,6 +1007,7 @@ mod tests {
     #[test]
     fn an_audio_after_its_clip_keeps_the_plain_tail() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let tide = fixtures::song(&conn, &profile_id, "Tide");
         let clip = made_of(&conn, &tide.id, "video");
         release::schedule(&conn, &clip, "2026-11-01").unwrap();
@@ -1024,6 +1027,7 @@ mod tests {
     #[test]
     fn the_tail_follows_the_day_and_the_siblings() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let tide = fixtures::song(&conn, &profile_id, "Tide");
         let audio = audio_of(&conn, &tide.id);
         release::schedule(&conn, &audio, "2026-12-30").unwrap();
@@ -1060,6 +1064,7 @@ mod tests {
     #[test]
     fn a_teaser_does_not_take_the_premiere() {
         let (conn, profile_id) = fixtures::workspace();
+        fixtures::with_audio_tails(&conn, &profile_id);
         let tide = fixtures::song(&conn, &profile_id, "Tide");
         let teaser = made_of(&conn, &tide.id, "short");
         release::schedule(&conn, &teaser, "2026-11-01").unwrap();

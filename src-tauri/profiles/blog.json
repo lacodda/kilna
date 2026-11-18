@@ -150,34 +150,43 @@
         "key": "critique",
         "label": { "en": "Critique the draft", "ru": "Разобрать черновик" },
         "category": "critique",
+        "when": { "en": "After a draft of a post: where a reader would bounce - the slow opening, the claim with nothing under it, the paragraph that repeats.", "ru": "После черновика поста: где читатель уйдёт - медленное начало, утверждение без опоры, повторяющийся абзац." },
         "description": { "en": "Where a reader would bounce.", "ru": "Где читатель закроет страницу." },
-        "template": "Here is a post called \"{title}\".\n\n{role:draft}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a stranger stop reading? Be specific about paragraphs. Name what is padded, what is obvious, and what the post is avoiding saying. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong."
+        "template": "Here is a post called \"{title}\".\n\n{role:draft}\n\nThe version before this one:\n\n{previous_version}\n\nWhat the last score said of it:\n\n{score}\n\nWhere would a stranger stop reading? Be specific about paragraphs. Name what is padded, what is obvious, and what the post is avoiding saying. Where a version came before, say what the change lost and what it gained; where a score was given, say whether what it marked down still stands. Do not rewrite it — say what is wrong.",
+        "method": "# Draft critique\n\n## Role\n\nYou are a reader with many open tabs. Your job is to find where you would close this one, and to say how to keep the reader.\n\n## Blocks\n\n1. **The opening.** Does the first paragraph say what the post is for?\n2. **Claims.** Mark every claim with nothing under it - no example, no number, no source.\n3. **Structure.** Does each section move the argument, or repeat it?\n4. **Length.** Name the paragraph that could go without loss.\n5. **The end.** Does the post land, or stop?\n\n## Output\n\nThe three problems that matter most, each with the passage and a fix; then the rest.\n\n## Never\n\nDo not rewrite the post. Do not argue with the author's opinion - judge how it is made."
       },
       {
         "key": "opening_test",
         "label": { "en": "Test the opening", "ru": "Проверить начало" },
         "category": "critique",
+        "when": { "en": "Before anything else is polished: does the first paragraph earn the second.", "ru": "Раньше любой другой правки: заслуживает ли первый абзац второго." },
         "description": { "en": "Does the first paragraph earn the second?", "ru": "Заслуживает ли первый абзац второго?" },
-        "template": "The opening of a post called \"{title}\":\n\n{role:draft}\n\nJudge only the first paragraph. Would it make a stranger keep reading, or is it throat-clearing? Give three concrete ways to sharpen it, and say what to cut, not what to add."
+        "template": "The opening of a post called \"{title}\":\n\n{role:draft}\n\nJudge only the first paragraph. Would it make a stranger keep reading, or is it throat-clearing? Give three concrete ways to sharpen it, and say what to cut, not what to add.",
+        "method": "# Opening test\n\n## Role\n\nYou judge only the opening paragraph: does it earn the second.\n\n## How\n\n1. Say what the paragraph promises the reader.\n2. Say whether a stranger, not yet invested, would read on - and why.\n3. Point to the strongest sentence in the post that is not in the opening; it may belong there.\n4. Offer two rewritten openings: one that starts with that sentence, one that starts with the reader's problem.\n\n## Never\n\nNo judgement of the rest of the post."
       },
       {
         "key": "angle_check",
         "label": { "en": "Check the draft against the angle", "ru": "Сверить черновик с ракурсом" },
         "category": "critique",
+        "when": { "en": "When the draft has grown: does the post still make the point it set out to make, or has it become another post.", "ru": "Когда черновик разросся: делает ли пост ещё ту мысль, ради которой начинался, или стал другим постом." },
         "description": { "en": "Does the post still make the point it set out to make?", "ru": "Говорит ли пост то, ради чего задумывался?" },
-        "template": "The intended angle for \"{title}\":\n\n{role:angle}\n\nThe draft as written:\n\n{role:draft}\n\nWhat did the draft promise and not deliver? Where did it drift from the angle, and is the drift an improvement or a problem? Be specific."
+        "template": "The intended angle for \"{title}\":\n\n{role:angle}\n\nThe draft as written:\n\n{role:draft}\n\nWhat did the draft promise and not deliver? Where did it drift from the angle, and is the drift an improvement or a problem? Be specific.",
+        "method": "# Against the angle\n\n## Role\n\nYou hold a draft against the point it set out to make - the angle in the brief - and say whether it still makes it.\n\n## How\n\n1. State the angle in one sentence, from the brief.\n2. Say whether the draft makes that point, a weaker one, or another point.\n3. Mark the sections that serve the angle and those that serve something else.\n4. If the draft found a better angle, say so, and what would change to commit to it.\n\n## Never\n\nDo not insist on the brief if the draft is better."
       },
       {
         "key": "headlines",
         "label": { "en": "Alternative headlines", "ru": "Другие заголовки" },
         "category": "writing",
+        "when": { "en": "When the headline is the first thing that came to mind: other ways to title the post, each promising something true.", "ru": "Когда заголовок - первое, что пришло в голову: другие варианты, каждый обещает что-то правдивое." },
         "description": { "en": "Other ways to title it.", "ru": "Другие варианты заголовка." },
-        "template": "A post currently called \"{title}\" with this draft:\n\n{role:draft}\n\nSuggest six alternative headlines. Take them from claims actually made in the text, not generic phrasing. No explanations."
+        "template": "A post currently called \"{title}\" with this draft:\n\n{role:draft}\n\nSuggest six alternative headlines. Take them from claims actually made in the text, not generic phrasing. No explanations.",
+        "method": "# Headlines\n\n## Role\n\nYou title a post. A headline promises something the post keeps.\n\n## How\n\n1. Say in one line what the post gives the reader.\n2. Offer eight headlines, each a different kind: the benefit, the question, the number, the claim, the story, the contrast, the plain statement, the curious detail.\n3. For each, what it promises and whether the post keeps that promise.\n4. Mark the two you would keep.\n\n## Never\n\nNo clickbait that the post does not pay off. No headline over twelve words."
       },
       {
         "key": "score",
         "label": { "en": "Score the post", "ru": "Оценить пост" },
         "category": "scoring",
+        "when": { "en": "When the post is finished enough to judge: a number along each of the kind's axes, with the line that earned it. Not for a draft still changing - critique it first.", "ru": "Когда пост готов настолько, чтобы его судить: оценка по каждой оси вида с обоснованием. Не для черновика, который ещё меняется - сначала разбор." },
         "description": { "en": "Rate it along the profile axes, with a reason.", "ru": "Оценить по осям профиля, с обоснованием." },
         "template": "Here is a post called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing.",
         "produces": "score",
@@ -187,6 +196,7 @@
         "key": "read-comment",
         "label": { "en": "Read a comment", "ru": "Прочитать комментарий" },
         "category": "release",
+        "when": { "en": "When someone pasted a screenshot of a comment: it is copied out word for word, with who wrote it and when. Nothing is answered yet.", "ru": "Когда вставлен снимок комментария: он переписывается слово в слово, с автором и временем. Отвечать пока не нужно." },
         "description": { "en": "A pasted screenshot of a comment, copied out word for word.", "ru": "Вставленный скриншот комментария, переписанный слово в слово." },
         "icon": "eye",
         "template": "Read the comment in this screenshot.",
@@ -198,6 +208,7 @@
         "key": "reply-to-comment",
         "label": { "en": "Draft a reply", "ru": "Черновик ответа" },
         "category": "release",
+        "when": { "en": "When a comment deserves an answer: a reply in the voice the channel already speaks in, for the person to post themselves.", "ru": "Когда на комментарий стоит ответить: ответ голосом, которым канал уже говорит, - публикует его сам человек." },
         "description": { "en": "A reply in the voice the channel already speaks in, for you to post.", "ru": "Ответ голосом, которым канал уже говорит, — отправляете вы сами." },
         "icon": "reply",
         "template": "Write the reply.",
@@ -209,6 +220,7 @@
         "key": "refine",
         "label": { "en": "Refine the idea", "ru": "Уточнить идею" },
         "category": "workflow",
+        "when": { "en": "When the brief and the starred cards are there and the post is not written yet: one idea worked out of them, and the brief set straight.", "ru": "Когда есть бриф и отмеченные карточки, а текста ещё нет: из них собирается одна идея, и бриф выправляется." },
         "description": { "en": "The brief and what is starred, worked into one idea - and the brief set straight.", "ru": "Замысел и отмеченное звёздочкой, сведённые в одну идею, и выправленный замысел." },
         "icon": "wand",
         "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred while preparing it:\n\n{starred}\n\nWork out what the post is about.",
@@ -224,13 +236,14 @@
         "key": "research",
         "label": { "en": "Research", "ru": "Исследовать" },
         "category": "workflow",
+        "when": { "en": "Before the post is written, when it needs ground: works of culture, primary sources and concepts it could draw on, quotes checked on the web.", "ru": "До того как текст написан, когда ему нужна опора: произведения, первоисточники и понятия, на которые можно опереться, цитаты сверены в сети." },
         "description": { "en": "Works of culture, primary sources and concepts the post could draw on, quotes checked on the web - put on the research board.", "ru": "Произведения культуры, первоисточники и понятия, на которые мог бы опереться пост, с цитатами, сверенными в сети, — на доске исследования." },
         "icon": "globe",
         "template": "A post called \"{title}\" is being prepared.\n\n{prepared}\n\n{cards}",
         "produces": "cards:research",
         "scope": "board",
         "web": true,
-        "method": "# Research\n\n## Role\n\nYou gather what a post could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the post, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the post is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Quiet beats loud: where the author asked for a quiet example, a betrayal or a murder is not one.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the post it serves (\"holy things as goods\", \"faith without show\"), not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the post itself. Nothing invented: a work you are not sure exists is not a card.\n",
+        "method": "# Research\n\n## Role\n\nYou gather what a post could draw on before a line of it is written: works of culture - literature, film, painting, music - primary sources such as scripture, and the concepts the author needs explained. You read the web to check every quote you give.\n\n## A card\n\n- **A work** names its work of culture under `entry`: its title as it is known in the language of the post, the author, the year, the medium, and the original title when it differs. Then what is there and why it fits - the story or the picture in a few sentences, the reason in one; the quote that carries it, with where in the work it stands; what to take - an image for a line, a move, a structure, a way to close; and a caveat when only part of it fits.\n- **A primary source** is a text with its address - a verse, an article, a chronicle - quoted as it stands, with why it is here.\n- **A concept** explains a word the author asked about: what it is, what it means when it is said of a person, and a caveat where that figure is unfair to the real thing.\n- **Images and names**: the few things worth keeping from the card - an image, a name, a place, a term - parted by semicolons.\n\n## Quotes\n\n- Check every quote on the web before you give it: find a page that holds those very words - the text itself, a known edition, a translation that names its translator - and give that page as the proof.\n- A quote you could not find word for word goes without a proof: it is from memory, and the writer will be told to take its sense, not its words.\n- Quote in the language the work was written in, with a translation beside it when the post is in another.\n- Never quote the words of a song, or of any lyrics: name the song and who sings it, and say why it fits.\n\n## How\n\n- Keep to the register the author asked for: where they asked for a quiet example, a loud one is not an answer.\n- Every card from another side - another medium, another country, another century - unless the author said where to dig.\n- Put each card under a topic: the angle of the post it serves - \"a promise kept too late\", \"a city that forgets\" - not its medium.\n- Take the starred cards as the direction, keep away from the turned-down ones, and do not repeat what stands on the board.\n\n## Never\n\nNo text of the post itself. Nothing invented: a work you are not sure exists is not a card.\n",
         "kinds": [
           "post",
           "newsletter",
@@ -241,6 +254,7 @@
         "key": "scenarios",
         "label": { "en": "Propose takes", "ru": "Предложить трактовки" },
         "category": "workflow",
+        "when": { "en": "When the idea is there but not the way to tell it: several ways the post could go, each different enough to choose between.", "ru": "Когда идея есть, а способа рассказать нет: несколько путей, достаточно разных, чтобы из них выбирать." },
         "description": { "en": "Ways the post could go, put on the board.", "ru": "Варианты, как мог бы пойти пост, — на доске." },
         "icon": "lightbulb",
         "template": "A post called \"{title}\" is being prepared. This is what its author wrote about it:\n\n{conception}\n\nWhat they starred in the research, to grow these out of:\n\n{starred:research}\n\n{cards}",
@@ -257,6 +271,7 @@
         "key": "write",
         "label": { "en": "Write from the brief", "ru": "Написать по замыслу" },
         "category": "writing",
+        "when": { "en": "When the order is complete - brief, idea, chosen scenario: the post written from all of it, to talk over before it is inserted.", "ru": "Когда заказ собран - бриф, идея, выбранный сценарий: текст пишется по всему этому, чтобы обсудить его до вставки." },
         "description": { "en": "The post, written from the whole order - to talk over in the chat and insert once it is right.", "ru": "Пост, написанный по всему заказу, — обсудить в чате и вставить, когда он будет верным." },
         "icon": "pen",
         "template": "{order}\n\nWrite the post.",
@@ -266,6 +281,25 @@
           "newsletter",
           "guide"
         ]
+      },
+      {
+        "key": "blog-workflow",
+        "label": {
+          "en": "Post, from idea to headline",
+          "ru": "Пост от идеи до заголовка"
+        },
+        "category": "workflow",
+        "when": {
+          "en": "When a person wants to take a post all the way, or asks what to do next with one.",
+          "ru": "Когда человек хочет провести пост целиком или спрашивает, что делать с ним дальше."
+        },
+        "template": "",
+        "show_in_ui": false,
+        "description": {
+          "en": "The whole cycle of a post, step by step, through the skills of this profile.",
+          "ru": "Весь цикл поста шаг за шагом через навыки этого профиля."
+        },
+        "method": "# Post, from idea to headline\n\n## Role\n\nYou take a post through kilna's cycle with the person, one step at a time, using the skills of this profile. Every step ends in a proposal.\n\n## Before anything\n\nRead `workspace` and the post with `work`. Say what stage the post is at.\n\n## The cycle\n\n1. **Idea.** `research`, `scenarios` - takes - then `refine`: the angle in one sentence.\n2. **Draft.** `write` from the brief.\n3. **Reading.** `opening_test`, `critique`, then `angle_check` against the brief.\n4. **Judgement.** `score` along the kind's axes.\n5. **Title.** `headlines`.\n\nOpen each skill with `guide` before you use it. Say what changed and what comes next after each step.\n\n## Never\n\nDo not change the author's opinion. Do not apply anything."
       }
     ],
     "boards": [

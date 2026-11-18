@@ -406,12 +406,33 @@ fn the_upgrade_brings_an_old_copy_up_to_what_ships() {
 /// made. A title the owner reworded stays theirs.
 #[test]
 fn a_title_comes_to_read_the_origin_and_keep_its_tail() {
-    let shipped = builtin()
+    let mut shipped = builtin()
         .unwrap()
         .into_iter()
         .find(|profile| profile.key == "music")
         .unwrap()
         .config;
+    // The tails Studio shipped until v0.128, when the box stopped naming
+    // any: the step that carries a tail is held to what a shipped one is.
+    for door in &mut shipped
+        .work_kinds
+        .iter_mut()
+        .find(|kind| kind.key == "audio")
+        .unwrap()
+        .release_kinds
+    {
+        if door.key != "youtube" {
+            continue;
+        }
+        for field in &mut door.fields {
+            if field.key.starts_with("title") || field.key.starts_with("alt_title") {
+                field.suffix = Some(" (audio)".into());
+            }
+            if field.key == "title" {
+                field.premiere = Some(config::Label::One(" (Song premiere {year})".into()));
+            }
+        }
+    }
     let mut old = shipped.clone();
     for kind in &mut old.work_kinds {
         for door in &mut kind.release_kinds {
@@ -2291,7 +2312,15 @@ fn an_untouched_method_follows_and_a_rewritten_one_stays() {
         .iter()
         .find(|field| field.key == "title")
         .unwrap();
-    assert!(title.premiere.is_some(), "the premiere's tail arrived");
+    let shipped_title = shipped.vocabulary("audio").release_kinds[0]
+        .fields
+        .iter()
+        .find(|field| field.key == "title")
+        .unwrap();
+    assert_eq!(
+        title.premiere, shipped_title.premiere,
+        "the premiere's tail is what ships"
+    );
 
     let mut rewritten = config.clone();
     for prompt in &mut rewritten.prompts {
@@ -2398,7 +2427,8 @@ fn a_workspace_of_v0_100_1_takes_its_titles_for_later_and_its_pools() {
         ["title", "alt_title_1", "alt_title_2"],
         "the titles for later arrived after the title"
     );
-    assert_eq!(audio.fields[1].suffix.as_deref(), Some(" (audio)"));
+    // The box names no tail since v0.128; what ships is what arrives.
+    assert_eq!(audio.fields[1].suffix, None);
     assert!(
         audio.fields[1].premiere.is_none(),
         "a later title never premieres"
@@ -3278,4 +3308,112 @@ fn a_document_seeds_an_empty_space_and_is_carried_forward_as_its_kind() {
     let refused = seed_from(&empty, DEFAULT_KIND, "Broken", None, &broken).unwrap_err();
     assert_eq!(refused.refusal().unwrap().code, "profile.invalid");
     assert!(list(&empty).unwrap().is_empty());
+}
+
+/// Every word of a document in both languages: a `Label` that is one word
+/// typed in one language is a word half the people reading it cannot read.
+fn one_language_words(value: &serde_json::Value, path: &str, found: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, inner) in map {
+                let here = format!("{path}/{key}");
+                let is_label = matches!(key.as_str(), "label" | "hint" | "when")
+                    || (key == "description" && path.contains("/prompts"));
+                if is_label && inner.is_string() {
+                    found.push(here.clone());
+                }
+                one_language_words(inner, &here, found);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                one_language_words(item, path, found);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// What ships is the craft, not one author's (v0.128, FR-16, FR-17): every
+/// action of every shipped profile has its method and a trigger in both
+/// languages, no word is in one language only, no path of a machine and no
+/// "edit this for your project" is left in, and each craft carries the
+/// playbook of its whole cycle, naming skills it has.
+#[test]
+fn what_ships_is_the_craft_not_an_author() {
+    const PLAYBOOKS: [(&str, &[&str]); 4] = [
+        ("music", &["song-workflow", "ai-video-pipeline"]),
+        ("novel", &["novel-workflow"]),
+        ("podcast", &["podcast-workflow"]),
+        ("blog", &["blog-workflow"]),
+    ];
+    for profile in builtin().unwrap() {
+        let config = &profile.config;
+        for prompt in &config.prompts {
+            assert!(
+                prompt.method().is_some(),
+                "{}: `{}` has no method",
+                profile.key,
+                prompt.key
+            );
+            let when = prompt
+                .when
+                .as_ref()
+                .unwrap_or_else(|| panic!("{}: `{}` says not when", profile.key, prompt.key));
+            assert!(
+                matches!(when, Label::PerLocale(_))
+                    && !when.in_locale("en").is_empty()
+                    && when.in_locale("ru") != when.in_locale("en"),
+                "{}: `{}` says when in one language",
+                profile.key,
+                prompt.key
+            );
+        }
+
+        let document = serde_json::to_value(config).unwrap();
+        let mut one = Vec::new();
+        one_language_words(&document, "", &mut one);
+        assert!(
+            one.is_empty(),
+            "{}: words in one language: {one:?}",
+            profile.key
+        );
+
+        let text = document.to_string();
+        for leak in [
+            ":\\\\",
+            "/Users/",
+            "/home/",
+            "Edit this section",
+            "author's way of marking",
+        ] {
+            assert!(!text.contains(leak), "{}: `{leak}` is left in", profile.key);
+        }
+
+        let keys: Vec<&str> = config.prompts.iter().map(|p| p.key.as_str()).collect();
+        let books = PLAYBOOKS
+            .iter()
+            .find(|(key, _)| *key == profile.key)
+            .map_or(&[][..], |(_, books)| *books);
+        for book in books {
+            let playbook = config
+                .prompts
+                .iter()
+                .find(|p| p.key == *book)
+                .unwrap_or_else(|| panic!("{}: no `{book}`", profile.key));
+            assert!(!playbook.show_in_ui, "{book} is a method, not a button");
+            let method = playbook.method().unwrap();
+            let named: Vec<&str> = method
+                .split('`')
+                .skip(1)
+                .step_by(2)
+                .filter(|word| keys.contains(word))
+                .collect();
+            assert!(
+                named.len() >= 4,
+                "{}: `{book}` names too few skills of its own: {named:?}",
+                profile.key
+            );
+        }
+    }
 }
