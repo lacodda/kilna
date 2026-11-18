@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.142.0] - 2026-11-18
+
+The long card. A card's summary - its free note - now comes first, under
+the name, and Summarize from the facts has the assistant propose one: a new
+kind of action answer, kept with one press as the summary, shipped in every
+profile with a canon, beside Gather facts from the summary. Sections fold by
+the arrow beside their names, which also counts what they hold, with Fold
+all and Unfold all; the folds are remembered for each kind of card, and the
+list's groups fold too. A section of more than eight facts shows five and
+Show all, a card of ten facts or more has a search and the state chips of
+its own, and the fact editor takes a pasted list - one fact a line, bullets
+and numbers taken off - added as one change an undo takes back.
+
+### Features
+- The long card - its summary on top, sections that fold, a search inside, facts by the list
+
 ## [0.141.0] - 2026-11-18
 
 A canon for every craft. Novels, blogs and podcasts have a canon now, and
