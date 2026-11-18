@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.125.0] - 2026-11-18
+
+One rule for what kilna ships. The actions, statuses, stages, marks, fields,
+kinds of note and their sections, and the vibe's words a profile was given
+now follow a single rule at every start: an entry you never changed takes the
+newer version, one you changed keeps your words with the newer version
+offered beside it, one you deleted stays deleted, and one shipped since
+arrives in its place. Settings -> Profile -> What kilna ships now shows what
+waits, field by field, to keep or take; taking is an edit an undo brings
+back. The first start meets every entry once and writes over nothing of
+yours. The style dictionary's starter set follows the same rule, and the
+profile module is split by what each part is for.
+
+### Features
+- One rule for what ships - given once, offered after
+
+### Refactoring
+- Split the profile module by what each part is for
+
 ## [0.124.0] - 2026-11-17
 
 A work's vibe. What a work feels like is said along three lines - its mood,
