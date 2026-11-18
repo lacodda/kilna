@@ -23,6 +23,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::origin::{self, Given, Verdict};
 use crate::profile::config::{Label, Lens, SectionShape};
 use crate::style_brick::{self, Content, StyleBrick, StyleBrickPatch};
 use crate::time::now;
@@ -138,11 +139,29 @@ pub fn seed_profile(conn: &Connection, profile_key: &str, set: &[SetBrick]) -> R
     for entry in set {
         let id = entry.id(profile_key);
         let digest = entry.content().digest();
+        // One rule for everything kilna ships (ADR 0087): the row is what
+        // the space was given - its `set_digest` the version last written -
+        // and a tombstone is a brick given and deleted.
         if let Some(brick) = style_brick::get(conn, &id)? {
-            let untouched = brick.set_digest.as_deref() == Some(brick.content().digest().as_str());
-            if untouched && brick.set_digest.as_deref() != Some(digest.as_str()) {
-                write_entry(conn, &id, entry, &digest, &at)?;
-                seeded.rewritten += 1;
+            let given = brick
+                .set_digest
+                .clone()
+                .map(|digest| Given { digest, kept: None });
+            let current = brick.content().digest();
+            match origin::decide(Some(&current), given.as_ref(), &digest) {
+                Verdict::Renewed => {
+                    write_entry(conn, &id, entry, &digest, &at)?;
+                    seeded.rewritten += 1;
+                }
+                // Changed to exactly what the set says now: untouched from
+                // here on, so the next wording reaches it.
+                Verdict::Adopted if brick.set_digest.as_deref() != Some(digest.as_str()) => {
+                    conn.execute(
+                        "UPDATE style_brick SET set_digest = ?2 WHERE id = ?1",
+                        params![id, digest],
+                    )?;
+                }
+                _ => {}
             }
             continue;
         }

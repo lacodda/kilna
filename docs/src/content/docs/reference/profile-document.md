@@ -54,6 +54,35 @@ axes are your own words; a stranger's would not appear silently beside them.
 Works of the new kind are scored empty until you write its axes in the
 profile editor. A fresh workspace gets the whole kind.
 
+**What kilna ships later reaches your copy entry by entry** (since
+v0.125). The lists kilna goes on shipping - the actions (`prompts`), a kind's
+`statuses`, the `stages`, the `marks`, the `work_meta_fields`, the
+`note_kinds` and their `sections`, and the words of the `vibe` - are carried
+by one rule at every start:
+
+- an entry you never changed takes the newer version by itself;
+- an entry you changed keeps your words, and a newer version waits beside it
+  under **Settings → Profile → What kilna ships now**, with what differs, to
+  be kept or taken - **Take the standard** is an edit like any other, and an
+  undo brings yours back;
+- an entry you deleted stays deleted;
+- an entry shipped since arrives after the one it follows in the shipped list.
+
+A kind's statuses, a kind of note's sections and the vibe's words are lists
+you write as a whole: one met for the first time without some of what ships
+keeps them out. The actions, marks, fields and kinds of note gain what ships
+since, as they always did.
+
+What your copy was given of each entry - the fingerprint of the version last
+written into it - is kept beside the document, not in it, so the document you
+read, edit and pass on holds only your words. The first start of v0.125 meets
+every entry once: one reading exactly as it ships is taken as untouched, and
+one reading otherwise - your edit, or a wording older than this build knows -
+is yours, with the current version offered beside it. Nothing of yours is
+written over. The starter set of the style dictionary follows the same rule
+([`style_set`](#style_set)). See
+[ADR 0087](https://github.com/lacodda/kilna/blob/main/docs/adr/0087-what-ships-is-given-once-and-offered-after.md).
+
 The sections below describe each list; every one of them sits under a kind.
 
 ## Top level

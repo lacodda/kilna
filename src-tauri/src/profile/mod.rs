@@ -1,4 +1,5 @@
 pub mod config;
+pub mod shipped;
 mod upgrade;
 
 #[cfg(test)]
@@ -127,6 +128,11 @@ pub fn seed_from(
                 timestamp,
             ],
         )?;
+        // The type's words are its maker's: given as they stand, so the
+        // standard is not offered against each of them (ADR 0087).
+        if let Some(id) = id_for_key(conn, kind)? {
+            shipped::settle(conn, &id)?;
+        }
     }
     seed(conn, kind)
 }
@@ -176,6 +182,11 @@ pub fn seed(conn: &Connection, kind: &str) -> Result<()> {
                 timestamp,
             ],
         )?;
+        // Given everything at once: an entry edited before the next start
+        // is then the owner's change to a given entry, not one first met.
+        if let Some(id) = id_for_key(conn, &profile.key)? {
+            shipped::settle(conn, &id)?;
+        }
     } else {
         for profile in shipped
             .iter()

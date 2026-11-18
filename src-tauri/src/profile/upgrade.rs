@@ -62,6 +62,29 @@ pub(super) fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Resu
 
     let mut config: ProfileConfig = serde_json::from_str(&raw)?;
     let mut changed = false;
+    // The entries kilna goes on shipping, one by one (ADR 0087), before the
+    // steps: some of them read what arrives here - a board laid out in a
+    // conception only where the action it runs is there. An older wording a
+    // step then brings up to what ships is met as untouched at the next start.
+    let mut ledger = super::shipped::Ledger::load(conn, &id)?;
+    let seen = super::shipped::carry(&mut config, &shipped.config, &mut ledger)?;
+    let count =
+        |verdict: crate::origin::Verdict| seen.iter().filter(|one| one.verdict == verdict).count();
+    let (renewed, added) = (
+        count(crate::origin::Verdict::Renewed),
+        count(crate::origin::Verdict::Added),
+    );
+    if renewed + added > 0 {
+        crate::log::info(
+            "profile",
+            &format!(
+                "`{}`: {renewed} entries renewed, {added} added",
+                shipped.key
+            ),
+        );
+        changed = true;
+    }
+    ledger.save(conn, &id, &super::shipped::origin_of(&shipped.key))?;
     for step in UPGRADE {
         if (step.carry)(&mut config, &shipped.config) {
             // Said, because an upgrade that changed a person's profile at
@@ -139,10 +162,6 @@ pub(super) struct Step {
 /// here carries it: add the step, and the tests hold it to the rules.
 pub(super) const UPGRADE: &[Step] = &[
     Step {
-        name: "prompts the stored copy lacks",
-        carry: missing_prompts,
-    },
-    Step {
         name: "a prompt's method, product, kinds and scope, and a score template untouched since v0.61",
         carry: prompt_details,
     },
@@ -173,10 +192,6 @@ pub(super) const UPGRADE: &[Step] = &[
     Step {
         name: "the release rhythm",
         carry: rhythm,
-    },
-    Step {
-        name: "overview fields, marks, note kinds",
-        carry: keyed_vocabulary,
     },
     Step {
         name: "note kinds the line no longer ships",
@@ -281,26 +296,6 @@ pub(super) const UPGRADE: &[Step] = &[
         carry: second_language,
     },
 ];
-
-/// Prompt templates whose key is missing. A user who reworded an action keeps
-/// their wording; one they deliberately deleted comes back - accepted, because
-/// an action nobody ever sees is worse.
-pub(super) fn missing_prompts(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let missing: Vec<_> = shipped
-        .prompts
-        .iter()
-        .filter(|shipped| {
-            !config
-                .prompts
-                .iter()
-                .any(|existing| existing.key == shipped.key)
-        })
-        .cloned()
-        .collect();
-    let changed = !missing.is_empty();
-    config.prompts.extend(missing);
-    changed
-}
 
 /// An action's method (ADR 0021) arrives on the terms a role's body did: where
 /// the stored action names none and the shipped one does. What the action
@@ -1109,23 +1104,6 @@ pub(super) fn renamed_tabs(config: &mut ProfileConfig, _shipped: &ProfileConfig)
             changed = true;
         }
     }
-    changed
-}
-
-/// Everything else the owner keys by name - overview fields, marks, the kinds
-/// a note can take (0.65): an entry they renamed or retyped stays theirs, and
-/// anything newly shipped takes its place after the entry it follows in the
-/// shipped list, so an order they arranged is not rewritten.
-pub(super) fn keyed_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let mut changed = insert_new_keys(
-        &mut config.work_meta_fields,
-        &shipped.work_meta_fields,
-        |field| &field.key,
-    );
-    changed |= insert_new_keys(&mut config.marks, &shipped.marks, |mark| &mark.key);
-    changed |= insert_new_keys(&mut config.note_kinds, &shipped.note_kinds, |kind| {
-        &kind.key
-    });
     changed
 }
 

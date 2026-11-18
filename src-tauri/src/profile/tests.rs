@@ -3,6 +3,24 @@ use super::*;
 use crate::db;
 use crate::profile::config::{Derive, Label};
 
+/// The whole upgrade of a copy met for the first time, as `carry_forward`
+/// runs it: the entries kilna goes on shipping one by one, then the steps.
+/// Names what was carried.
+fn upgrade(config: &mut ProfileConfig, ships: &ProfileConfig) -> Vec<&'static str> {
+    let mut ledger = super::shipped::Ledger::default();
+    let seen = super::shipped::carry(config, ships, &mut ledger).unwrap();
+    let mut carried: Vec<&'static str> = Vec::new();
+    if seen.iter().any(|one| one.verdict.writes()) {
+        carried.push("the entries kilna goes on shipping");
+    }
+    for step in UPGRADE {
+        if (step.carry)(config, ships) {
+            carried.push(step.name);
+        }
+    }
+    carried
+}
+
 /// What a stored document says its format is: the top-level `format`
 /// when it is a whole non-negative number, and 1 - the format that never
 /// wrote one - for anything else, including a document that is not JSON.
@@ -128,9 +146,7 @@ fn an_older_copy_is_prepared_on_a_conception() {
         }
     }
 
-    for step in UPGRADE {
-        (step.carry)(&mut config, &shipped.config);
-    }
+    upgrade(&mut config, &shipped.config);
 
     assert!(config.validate().is_empty(), "{:?}", config.validate());
     let song = config.vocabulary("song");
@@ -191,9 +207,7 @@ fn a_copy_of_v099_is_given_the_research_and_the_library() {
         }
     }
 
-    for step in UPGRADE {
-        (step.carry)(&mut config, &shipped.config);
-    }
+    upgrade(&mut config, &shipped.config);
 
     assert!(config.validate().is_empty(), "{:?}", config.validate());
     assert_eq!(
@@ -232,9 +246,7 @@ fn a_copy_of_v099_is_given_the_research_and_the_library() {
         }
     }
     config.boards.retain(|board| board.key != "research");
-    for step in UPGRADE {
-        (step.carry)(&mut config, &blog.config);
-    }
+    upgrade(&mut config, &blog.config);
     assert!(config.validate().is_empty(), "{:?}", config.validate());
     let source = config.library().expect("Blog's sources are the library");
     assert_eq!(source.label.as_str(), "Source", "the owner's word stays");
@@ -264,9 +276,7 @@ fn a_brief_the_owner_counts_keeps_its_kind_off_the_conception() {
             }
         }
     }
-    for step in UPGRADE {
-        (step.carry)(&mut config, &shipped.config);
-    }
+    upgrade(&mut config, &shipped.config);
     assert!(config.conception("song").is_none());
     assert!(config.conception("experiment").is_none());
     assert!(
@@ -378,12 +388,7 @@ fn the_upgrade_brings_an_old_copy_up_to_what_ships() {
         .find(|profile| profile.config.work_kinds.len() > 1)
         .expect("a shipped profile with more than one kind");
     let mut config = stripped(&profile.config);
-    let mut carried = Vec::new();
-    for step in UPGRADE {
-        if (step.carry)(&mut config, &profile.config) {
-            carried.push(step.name);
-        }
-    }
+    let carried = upgrade(&mut config, &profile.config);
 
     let mut expected = profile.config.clone();
     for kind in expected.work_kinds.iter_mut().skip(1) {
@@ -607,6 +612,8 @@ fn an_older_workspace_gains_the_meanings_its_statuses_were_missing() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -663,6 +670,8 @@ fn an_older_workspace_gains_the_roles_its_release_kinds_require() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -714,6 +723,8 @@ fn an_older_workspace_gains_the_icons_its_release_kinds_are_drawn_with() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -773,6 +784,8 @@ fn an_older_workspace_gains_what_a_publication_is_made_of() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -836,6 +849,8 @@ fn an_older_workspace_gains_the_way_its_roles_read() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -892,6 +907,8 @@ fn a_kind_of_the_owners_own_gains_no_icon() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -939,6 +956,8 @@ fn carrying_meanings_forward_leaves_renamed_statuses_renamed() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1140,6 +1159,8 @@ fn an_older_workspace_gains_the_rhythm_its_profile_was_missing() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1159,6 +1180,8 @@ fn an_older_workspace_gains_the_rhythm_its_profile_was_missing() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1193,6 +1216,8 @@ fn seed_carries_newly_shipped_version_roles_into_an_existing_profile() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1248,6 +1273,8 @@ fn seed_carries_a_skeleton_where_the_role_has_none() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1285,6 +1312,8 @@ fn seed_carries_newly_shipped_meta_fields_into_an_existing_profile() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1344,6 +1373,8 @@ fn seed_takes_a_retired_note_kind_out_of_an_existing_profile() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1398,6 +1429,8 @@ fn seed_carries_newly_shipped_stages_into_an_existing_profile() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1436,6 +1469,8 @@ fn a_tier_still_worded_as_it_shipped_takes_the_new_wording() {
         params![&id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1473,6 +1508,8 @@ fn a_tier_the_owner_reworded_keeps_their_word() {
         params![&id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1521,6 +1558,8 @@ fn carrying_stages_forward_puts_an_older_scale_on_the_five_stops() {
         params![&id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1556,6 +1595,8 @@ fn carrying_stages_forward_keeps_the_word_the_owner_gave_a_stop() {
         params![&id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1589,6 +1630,8 @@ fn carrying_stages_forward_leaves_the_users_own_stops_alone() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1627,6 +1670,8 @@ fn carrying_meta_fields_forward_leaves_the_users_own_wording_alone() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1666,6 +1711,8 @@ fn seed_carries_newly_shipped_prompts_into_an_existing_profile() {
         params![serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1688,6 +1735,8 @@ fn seed_does_not_overwrite_a_reworded_prompt() {
         params![serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1906,6 +1955,8 @@ fn an_older_music_workspace_gains_the_video_kinds_without_their_judgement() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -1963,6 +2014,8 @@ fn a_workspace_from_before_glyphs_gains_mark_icons_and_status_colours() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2038,6 +2091,8 @@ fn a_workspace_from_before_the_canon_gains_its_cards_and_keeps_its_own_sections(
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2095,6 +2150,8 @@ fn a_workspace_from_before_note_kinds_gains_them_and_keeps_its_own() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2145,6 +2202,8 @@ fn a_workspace_with_video_kinds_from_before_scenes_gains_the_storyboard_words() 
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2201,6 +2260,8 @@ fn an_untouched_method_follows_and_a_rewritten_one_stays() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2243,6 +2304,8 @@ fn an_untouched_method_follows_and_a_rewritten_one_stays() {
         params![id, serde_json::to_string(&rewritten).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
     seed(&conn, DEFAULT_KIND).unwrap();
     assert_eq!(
         method(&config_for(&conn, &id).unwrap()).as_deref(),
@@ -2303,6 +2366,8 @@ fn a_workspace_of_v0_100_1_takes_its_titles_for_later_and_its_pools() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2411,6 +2476,8 @@ fn methods_arrive_and_an_unchanged_score_template_follows() {
         params![id, serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2501,6 +2568,8 @@ fn seed_carries_kinds_and_scope_onto_actions_stored_without_them() {
         params![serde_json::to_string(&config).unwrap()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2546,6 +2615,8 @@ fn a_stored_channel_card_gains_the_house_sound_after_its_styles() {
         params![id, stored.to_string()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2620,6 +2691,8 @@ fn a_workspace_from_before_the_constructor_gains_covers_and_picture_bans() {
         params![id, stored.to_string()],
     )
     .unwrap();
+    // A copy stored before v0.125 was given nothing yet.
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
 
     seed(&conn, DEFAULT_KIND).unwrap();
 
@@ -2989,7 +3062,8 @@ fn the_album_action_reads_the_collection_and_arrives_in_a_stored_copy() {
 
     let mut stored = shipped.clone();
     stored.prompts.retain(|prompt| prompt.key != "album-place");
-    assert!(missing_prompts(&mut stored, &shipped));
+    let mut ledger = shipped::Ledger::default();
+    shipped::carry(&mut stored, &shipped, &mut ledger).unwrap();
     assert!(
         stored
             .prompts

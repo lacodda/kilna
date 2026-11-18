@@ -8,6 +8,9 @@
  */
 export const keys = {
   workspace: ['workspace'] as const,
+  /** What kilna ships now beside a profile's entries (ADR 0087): under the
+   *  workspace, so a profile saved anywhere asks again. */
+  shippedOffers: (profileId: string) => ['workspace', 'shipped', profileId] as const,
   /** The spaces this machine knows, and the one open (ADR 0077). */
   spaces: ['spaces'] as const,
   currentSpace: ['spaces', 'current'] as const,

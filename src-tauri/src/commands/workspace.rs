@@ -22,6 +22,36 @@ pub fn update_profile_config(
     actions::profile::update_config(&state.conn(), &id, &config)
 }
 
+/// The versions kilna ships waiting beside the owner's entries of a profile
+/// (ADR 0087): what Settings offers to be kept or taken.
+#[tauri::command]
+pub fn shipped_offers(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<profile::shipped::ShippedOffer>> {
+    profile::shipped::offers(&state.conn(), &id)
+}
+
+/// Take the shipped version of one entry over the owner's.
+#[tauri::command]
+pub fn take_shipped(
+    state: State<'_, AppState>,
+    id: String,
+    offer: profile::shipped::OfferRef,
+) -> Result<Profile> {
+    profile::shipped::take(&state.conn(), &id, &offer)
+}
+
+/// Keep the owner's entries over the shipped versions waiting beside them.
+#[tauri::command]
+pub fn keep_mine(
+    state: State<'_, AppState>,
+    id: String,
+    offers: Vec<profile::shipped::OfferRef>,
+) -> Result<()> {
+    profile::shipped::keep(&state.conn(), &id, &offers)
+}
+
 /// Where the workspace file lives, so the person can find or replace it.
 #[tauri::command]
 pub fn workspace_path(state: State<'_, AppState>) -> String {

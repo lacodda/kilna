@@ -99,7 +99,7 @@ import {
   workTags,
   workTimeline,
 } from '@/lib/api/works'
-import { getWorkspace, mcpRegistration } from '@/lib/api/workspace'
+import { getWorkspace, mcpRegistration, shippedOffers } from '@/lib/api/workspace'
 import { currentSpace, listSpaceTypes, listSpaces } from '@/lib/api/spaces'
 import { activity } from '@/lib/api/shell'
 import { keys } from '@/lib/query/keys'
@@ -116,6 +116,11 @@ import { keys } from '@/lib/query/keys'
  */
 export const queries = {
   workspace: () => queryOptions({ queryKey: keys.workspace, queryFn: getWorkspace }),
+  shippedOffers: (profileId: string) =>
+    queryOptions({
+      queryKey: keys.shippedOffers(profileId),
+      queryFn: () => shippedOffers(profileId),
+    }),
   spaces: () => queryOptions({ queryKey: keys.spaces, queryFn: listSpaces }),
   currentSpace: () => queryOptions({ queryKey: keys.currentSpace, queryFn: currentSpace }),
   spaceTypes: () => queryOptions({ queryKey: keys.spaceTypes, queryFn: listSpaceTypes }),

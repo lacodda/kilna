@@ -69,6 +69,8 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::work::Vibe,
         kilna_lib::work::ShownVibe,
         kilna_lib::profile::config::VibeAxes,
+        kilna_lib::profile::shipped::ShippedOffer,
+        kilna_lib::profile::shipped::OfferRef,
         kilna_lib::profile::config::VibeMood,
         kilna_lib::profile::config::VibeCharacter,
         kilna_lib::profile::config::VibeGlyph,

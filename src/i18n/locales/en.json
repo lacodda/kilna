@@ -1966,7 +1966,9 @@
     "sweepFailed": "Could not check this week's releases.",
     "cardSaveFailed": "Could not save the card.",
     "factSaveFailed": "Could not save the fact.",
-    "collectionSaveFailed": "Could not save the collection."
+    "collectionSaveFailed": "Could not save the collection.",
+    "shippedTakeFailed": "Could not take the standard",
+    "shippedKeepFailed": "Could not keep yours"
   },
   "trash": {
     "hint": "Nothing leaves for good until you say so.",
@@ -2803,6 +2805,31 @@
         "caughtUp": "{{queued}} in line, {{skipped}} left alone.",
         "catchUpFailed": "Could not line the texts up."
       }
+    },
+    "shipped": {
+      "title": "What kilna ships now",
+      "hint": "These entries of your profile read otherwise than the version kilna ships now. Yours stay as they are until you choose: keep yours, or take the standard. An entry you never changed takes a newer version by itself.",
+      "keepAll": "Keep all mine ({{count}})",
+      "keep": "Keep mine",
+      "take": "Take the standard",
+      "mine": "Yours",
+      "standard": "Standard",
+      "inKind": "{{list}} of {{kind}}",
+      "taken": "Standard taken. Undo brings yours back.",
+      "kept_one": "Kept yours.",
+      "kept_other": "Kept yours: {{count}} entries.",
+      "list": {
+        "prompts": "Action",
+        "statuses": "Status",
+        "stages": "Stage",
+        "marks": "Mark",
+        "work_meta_fields": "Field",
+        "note_kinds": "Kind of note",
+        "sections": "Section",
+        "vibe_moods": "Mood",
+        "vibe_characters": "Character",
+        "vibe_complexities": "Complexity"
+      }
     }
   },
   "overview": {
@@ -2939,7 +2966,8 @@
     "profile": {
       "noneActive": "No profile is open.",
       "invalid": "The profile cannot be saved as written: {{problems}}",
-      "unreadable": "{{path}} is not a profile kilna can read: {{cause}}"
+      "unreadable": "{{path}} is not a profile kilna can read: {{cause}}",
+      "noOffer": "Nothing of kilna’s waits beside this entry any more - it reads as it ships, or the offer was answered."
     },
     "work": {
       "unknownKind": "The profile has no kind of work “{{kind}}”. Its kinds are: {{known}}.",

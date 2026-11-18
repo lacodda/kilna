@@ -109,14 +109,13 @@ pub struct Content<'a> {
 impl Content<'_> {
     /// A stable fingerprint: FNV-1a over the content's JSON. Not a guard
     /// against anyone - only "is this still what was written".
+    ///
+    /// Taken over the content's JSON as it serialises, field order and all,
+    /// rather than [`crate::origin::digest`]'s ordered one: every set brick
+    /// in every space holds a fingerprint written this way, and another way
+    /// would read all of them as changed.
     pub fn digest(&self) -> String {
-        let text = serde_json::to_string(self).unwrap_or_default();
-        let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-        for byte in text.as_bytes() {
-            hash ^= u64::from(*byte);
-            hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-        }
-        format!("{hash:016x}")
+        crate::origin::fingerprint(&serde_json::to_string(self).unwrap_or_default())
     }
 }
 

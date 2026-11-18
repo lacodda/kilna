@@ -34,6 +34,7 @@ pub mod minted;
 pub mod note;
 pub mod operation;
 pub mod ordinal;
+pub mod origin;
 pub mod parts;
 pub mod phrase;
 pub mod plan_import;
@@ -259,6 +260,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::types::read_profile_document,
             commands::types::check_profile_config,
             commands::workspace::update_profile_config,
+            commands::workspace::shipped_offers,
+            commands::workspace::take_shipped,
+            commands::workspace::keep_mine,
             commands::workspace::workspace_path,
             commands::workspace::log_path,
             commands::workspace::log_window_error,
