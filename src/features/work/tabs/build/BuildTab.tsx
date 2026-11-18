@@ -155,12 +155,25 @@ export function BuildTab({ work }: { work: Work }) {
   const picture = sources.data?.picture ?? null
   const track = sources.data?.track ?? null
   const clipping = decoded.state === 'ready' && clips(decoded.peak, plan.gainDb)
+  // What applies when a box is empty: the plan's value, the settings' fades.
+  const effective: Record<keyof Timeline, number> = {
+    trim_start: plan.trimStart,
+    trim_end: plan.trimStart + plan.sound,
+    gain_db: plan.gainDb,
+    audio_fade_in: plan.audioFadeIn,
+    audio_fade_out: plan.audioFadeOut,
+    video_fade_in: plan.videoFadeIn,
+    video_fade_out: plan.videoFadeOut,
+    lead_in: plan.leadIn,
+    tail: plan.tail,
+  }
   const seconds = (key: keyof Timeline, label: string, max?: number) => (
     <label className="flex flex-col gap-1 text-xs text-dim">
       {label}
       <NumberField
         aria-label={label}
         value={line[key] ?? null}
+        placeholder={formatSeconds(effective[key])}
         min={0}
         max={max}
         step={0.1}
@@ -212,7 +225,7 @@ export function BuildTab({ work }: { work: Work }) {
           <header className="flex items-center gap-2">
             <b className="text-sm font-semibold">{t('build.a1')}</b>
             <span className="min-w-0 truncate text-xs text-dim">
-              {track === null ? t('build.noTrack') : track.split(/[\\/]/).at(-1)}
+              {track === null ? t('build.noTrack') : (sources.data?.track_name ?? track)}
             </span>
             <span className="ml-auto font-mono text-xs text-dim">{formatSeconds(plan.sound)}</span>
           </header>
@@ -575,7 +588,7 @@ function Preview({
         ref={canvas}
         width={640}
         height={360}
-        className="aspect-video w-full max-w-3xl rounded-lg"
+        className="aspect-video w-full max-w-xl rounded-lg"
         role="img"
         aria-label={t('build.preview')}
       />
@@ -599,7 +612,7 @@ function Preview({
             onLoad={() => draw(at)}
           />
         ))}
-      <div className="flex max-w-3xl items-center gap-2">
+      <div className="flex max-w-xl items-center gap-2">
         <Button
           variant="icon"
           size="icon-sm"

@@ -1352,7 +1352,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_plugins: () => [],
     // A work's simple video is built from nothing until a test gives it a
     // picture and a track (v0.149).
-    build_sources: () => ({ picture: null, looped: false, track: null }),
+    build_sources: () => ({ picture: null, looped: false, track: null, track_name: null }),
     plugins_folder: () => 'C:/workspace/plugins',
     assistant_settings: () => ({
       parallel_runs: 3,

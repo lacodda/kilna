@@ -28,8 +28,14 @@ function rendererOf(plugins: readonly Plugin[]): Renderer | undefined {
 
 /** The renderer, read off the plugins kilna lists. */
 export function useRenderer(): Renderer | undefined {
+  return useRendererState().renderer
+}
+
+/** The renderer, and whether the plugins have been read at all: until they
+ *  are, an address naming the Build tab is trusted rather than bounced. */
+export function useRendererState(): { renderer: Renderer | undefined; known: boolean } {
   const plugins = useQuery(queries.plugins())
-  return rendererOf(plugins.data ?? [])
+  return { renderer: rendererOf(plugins.data ?? []), known: plugins.data !== undefined }
 }
 
 /** A track decoded for the Build tab: what plays, and what its waveform is

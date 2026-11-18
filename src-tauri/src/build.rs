@@ -39,6 +39,8 @@ pub struct BuildSources {
     /// newest track attached to it, else the finished track of the first
     /// work it is made from.
     pub track: Option<String>,
+    /// What the track is called: the name it arrived under, else its file's.
+    pub track_name: Option<String>,
 }
 
 /// What `work_id`'s simple video is built from.
@@ -55,14 +57,16 @@ pub fn sources(conn: &Connection, work_id: &str) -> Result<BuildSources> {
     }
     let finished = crate::folder::locate(conn, &config, &work)?.file.path;
     out.track = finished.filter(|path| is_track(path));
-    if out.track.is_none() {
-        out.track = crate::asset::for_work(conn, work_id)?
+    if out.track.is_none()
+        && let Some(asset) = crate::asset::for_work(conn, work_id)?
             .into_iter()
             .rev()
             .find(|asset| {
                 is_track(&asset.path) || asset.original_name.as_deref().is_some_and(is_track)
             })
-            .map(|asset| asset.path);
+    {
+        out.track_name = asset.original_name.clone().or(asset.label.clone());
+        out.track = Some(asset.path);
     }
     if out.track.is_none() {
         for link in crate::link::sources(conn, work_id)? {
@@ -78,6 +82,13 @@ pub fn sources(conn: &Connection, work_id: &str) -> Result<BuildSources> {
                 break;
             }
         }
+    }
+    if out.track_name.is_none() {
+        out.track_name = out.track.as_deref().and_then(|path| {
+            Path::new(path)
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+        });
     }
     Ok(out)
 }
@@ -119,6 +130,11 @@ mod tests {
             "{found:?}"
         );
         assert!(found.picture.is_some(), "{found:?}");
+        assert_eq!(
+            found.track_name.as_deref(),
+            Some("mix.wav"),
+            "the name it arrived under"
+        );
         assert!(!found.looped);
     }
 }

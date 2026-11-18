@@ -17,4 +17,8 @@ looped: boolean,
  * newest track attached to it, else the finished track of the first
  * work it is made from.
  */
-track: string | null, };
+track: string | null, 
+/**
+ * What the track is called: the name it arrived under, else its file's.
+ */
+track_name: string | null, };
