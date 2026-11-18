@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.143.0] - 2026-11-18
+
+The canon as a graph. An open card's side now draws it among the cards it is
+related to - itself in the middle, the others on a ring in their kinds'
+glyphs and colours, each line with the first words of its relation - and a
+press on one opens it; every relation is listed under the drawing, with Add
+a relation. The graph button over the cards maps the whole canon: the wheel
+or the buttons zoom, dragging the ground moves the map, chips hide kinds of
+card, a press opens a card, and the cards land in the same places every time
+the map is opened.
+
+### Features
+- The canon as a graph - around a card, and the whole map
+
 ## [0.142.0] - 2026-11-18
 
 The long card. A card's summary - its free note - now comes first, under
