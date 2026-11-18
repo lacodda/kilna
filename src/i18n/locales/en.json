@@ -2525,7 +2525,10 @@
       "size": "Size",
       "crop": "Of the hero",
       "place": "Title",
-      "noSubject": "No subject"
+      "noSubject": "No subject",
+      "search": "Find a layout",
+      "none": "No frame",
+      "star": "Star “{{name}}”: offered first"
     },
     "layout": {
       "emblemRight": "Emblem right",

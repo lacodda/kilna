@@ -154,6 +154,7 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           lettering
           subject={cover.hero !== null ? 'person' : (cover.staging.subject ?? 'object')}
           onSubject={(subject) => change((c) => fixCover(c, { kind: 'subject', subject }))}
+          onClear={() => change((c) => ({ ...c, framing: null }))}
           onChange={(framing) => change((c) => ({ ...c, framing }))}
         />
       </Section>

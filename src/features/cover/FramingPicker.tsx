@@ -1,4 +1,9 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Ban, Star } from 'lucide-react'
+import { useStarredLayouts } from '@/lib/starredLayouts'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import type {
   CoverColumn,
   CoverCrop,
@@ -43,7 +48,12 @@ interface Props {
   onSubject?: (subject: CoverSubject) => void
   disabled?: boolean
   onChange: (framing: Framing) => void
+  /** "No frame" in one press: the picture is staged by its scene alone. */
+  onClear?: () => void
 }
+
+/** Past this many layouts the list offers a search. */
+const SEARCHED_FROM = 9
 
 /** The shot scale's stops: no subject at all, then how much of it shows. */
 type Shot = 'none' | CoverCrop
@@ -66,20 +76,58 @@ export function FramingPicker({
   onSubject,
   disabled,
   onChange,
+  onClear,
 }: Props) {
   const { t } = useTranslation()
+  const [starred, setStarred] = useStarredLayouts()
+  const [text, setText] = useState('')
+  const needle = text.trim().toLowerCase()
+  // The starred first, then the rest in their order; a search narrows both.
+  const listed = layouts
+    .filter(
+      (option) =>
+        needle === '' || t(`cover.layout.${option.framing.layout}`).toLowerCase().includes(needle),
+    )
+    .sort(
+      (a, b) =>
+        Number(starred.includes(b.framing.layout)) - Number(starred.includes(a.framing.layout)),
+    )
   const set = (patch: Partial<Framing>) => {
     if (framing !== null) onChange({ ...framing, ...patch })
   }
 
   return (
     <div className="flex flex-col gap-2.5">
+      {layouts.length + 1 >= SEARCHED_FROM && (
+        <Input
+          type="search"
+          value={text}
+          placeholder={t('cover.framing.search')}
+          aria-label={t('cover.framing.search')}
+          onChange={(event) => setText(event.target.value)}
+        />
+      )}
       <ul aria-label={t('cover.framing.layouts')} className="grid grid-cols-4 gap-1.5">
-        {layouts.map((option) => {
+        {onClear !== undefined && needle === '' && (
+          <li className="flex">
+            <TileButton
+              selected={framing === null}
+              aria-pressed={framing === null}
+              disabled={disabled}
+              onClick={onClear}
+              className="w-full items-center justify-center gap-1 p-1 text-2xs"
+            >
+              <Ban aria-hidden className="size-5 text-faint" />
+              <span className="truncate">{t('cover.framing.none')}</span>
+            </TileButton>
+          </li>
+        )}
+        {listed.map((option) => {
           const on = framing?.layout === option.framing.layout
           const name = t(`cover.layout.${option.framing.layout}`)
+          const star = starred.includes(option.framing.layout)
           return (
-            <li key={option.framing.layout} className="flex">
+            <li key={option.framing.layout} className="relative flex">
               <TileButton
                 selected={on}
                 aria-pressed={on}
@@ -91,6 +139,18 @@ export function FramingPicker({
                 <SchemeView scheme={option.scheme} label={name} decorative />
                 <span className="truncate">{name}</span>
               </TileButton>
+              {/* Beside the tile rather than in it: a button cannot hold one. */}
+              <Button
+                variant="icon"
+                size="icon-xs"
+                aria-pressed={star}
+                aria-label={t('cover.framing.star', { name })}
+                title={t('cover.framing.star', { name })}
+                onClick={() => setStarred(option.framing.layout, !star)}
+                className="absolute top-0.5 right-0.5"
+              >
+                <Star aria-hidden className={star ? 'fill-current text-warn' : undefined} />
+              </Button>
             </li>
           )
         })}
