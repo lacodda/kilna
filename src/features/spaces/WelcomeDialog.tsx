@@ -50,8 +50,28 @@ export function WelcomeDialog() {
       description={t(`welcome.${step}.description`)}
       size="lg"
       dirty={step !== 'check'}
+      // Each step's answer at the foot, where every dialog keeps it; the
+      // forms are submitted from there by their ids.
+      footer={
+        step === 'check' ? (
+          <Button variant="primary" onClick={() => setStep('space')}>
+            {t('welcome.next')}
+          </Button>
+        ) : step === 'space' ? (
+          <Button variant="primary" type="submit" form="welcome-space">
+            {t('welcome.space.make')}
+          </Button>
+        ) : (
+          <>
+            <Button onClick={() => setDone(true)}>{t('welcome.first.skip')}</Button>
+            <Button variant="primary" type="submit" form="welcome-first">
+              {t('welcome.first.make')}
+            </Button>
+          </>
+        )
+      }
     >
-      {step === 'check' && <Check onNext={() => setStep('space')} />}
+      {step === 'check' && <Check />}
       {step === 'space' && (
         <Shape
           kind={space?.kind ?? 'music'}
@@ -72,7 +92,6 @@ export function WelcomeDialog() {
             setDone(true)
             navigate(`/works/${id}`)
           }}
-          onSkip={() => setDone(true)}
         />
       )}
     </Dialog>
@@ -80,7 +99,7 @@ export function WelcomeDialog() {
 }
 
 /** Whether Claude Code is on this machine: the assistant's runs are it. */
-function Check({ onNext }: { onNext: () => void }) {
+function Check() {
   const { t } = useTranslation()
   const status = useQuery({ queryKey: ['welcome', 'assistant'], queryFn: assistantStatus })
   const found = status.data?.available === true
@@ -103,11 +122,6 @@ function Check({ onNext }: { onNext: () => void }) {
       {!found && status.data !== undefined && (
         <p className="text-xs text-dim">{t('welcome.check.install')}</p>
       )}
-      <div>
-        <Button variant="primary" onClick={onNext}>
-          {t('welcome.next')}
-        </Button>
-      </div>
     </div>
   )
 }
@@ -153,10 +167,11 @@ function Shape({
 
   return (
     <form
+      id="welcome-space"
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (shownName.trim() !== '') shape.mutate()
+        if (shownName.trim() !== '' && !shape.isPending) shape.mutate()
       }}
     >
       <FieldGroup label={t('spaces.kind')} help={type?.description ?? t(`spaces.kindHint.${kind}`)}>
@@ -192,21 +207,12 @@ function Shape({
         {t('welcome.space.demo')}
       </Checkbox>
       <p className="-mt-2 text-xs text-dim">{t('welcome.space.demoHint')}</p>
-      <div>
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={shownName.trim() === '' || shape.isPending}
-        >
-          {t('welcome.space.make')}
-        </Button>
-      </div>
     </form>
   )
 }
 
 /** The first work, by hand: a title, in the space's first kind. */
-function First({ onMade, onSkip }: { onMade: (id: string) => void; onSkip: () => void }) {
+function First({ onMade }: { onMade: (id: string) => void }) {
   const { t } = useTranslation()
   const [title, setTitle] = useState('')
   const make = useAppMutation({
@@ -220,10 +226,11 @@ function First({ onMade, onSkip }: { onMade: (id: string) => void; onSkip: () =>
   })
   return (
     <form
+      id="welcome-first"
       className="flex flex-col gap-3"
       onSubmit={(event) => {
         event.preventDefault()
-        if (title.trim() !== '') make.mutate()
+        if (title.trim() !== '' && !make.isPending) make.mutate()
       }}
     >
       <Field label={t('welcome.first.titleLabel')}>
@@ -234,12 +241,6 @@ function First({ onMade, onSkip }: { onMade: (id: string) => void; onSkip: () =>
           maxLength={200}
         />
       </Field>
-      <div className="flex gap-2">
-        <Button variant="primary" type="submit" disabled={title.trim() === '' || make.isPending}>
-          {t('welcome.first.make')}
-        </Button>
-        <Button onClick={onSkip}>{t('welcome.first.skip')}</Button>
-      </div>
     </form>
   )
 }

@@ -386,8 +386,33 @@ pub fn seed(conn: &Connection) -> Result<DemoReport> {
         report.notes += 1;
     }
 
-    // What the finished piece goes out as, booked for the coming days.
-    if let Some(source) = finished {
+    // What the finished piece goes out as, booked for the coming days: the
+    // piece itself where its kind goes out, as a post or a poem does; what is
+    // made from it where it does not, as a song goes out as its clip.
+    let doors: Vec<String> = config
+        .vocabulary(&kind)
+        .release_kinds
+        .iter()
+        .map(|door| door.key.clone())
+        // A publication goes out once: through its first door.
+        .take(1)
+        .collect();
+    if let Some(source) = finished.as_ref().filter(|_| !doors.is_empty()) {
+        for (offset, door) in doors.iter().enumerate() {
+            actions::release::create(
+                conn,
+                crate::release::NewRelease {
+                    work_id: source.clone(),
+                    kind: door.clone(),
+                    scheduled_at: Some(days_from_today(3 + 4 * offset as i64)),
+                    meta: None,
+                    scheduled_time: None,
+                    time_zone: None,
+                },
+            )?;
+            report.releases += 1;
+        }
+    } else if let Some(source) = finished {
         let made_of: Vec<String> = config
             .work_kinds
             .iter()
