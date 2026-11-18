@@ -133,7 +133,7 @@ export function BuildTab({ work }: { work: Work }) {
       // The measure is kept in the work's fields: its gain to the target is
       // the gain that brings the track there.
       const fresh = await client.fetchQuery({ ...queries.work(work.id), staleTime: 0 })
-      const loudness = fresh.meta.audio_loudness
+      const loudness = fresh?.meta.audio_loudness
       const gain =
         loudness !== null && typeof loudness === 'object' && !Array.isArray(loudness)
           ? loudness.gain_to_target
