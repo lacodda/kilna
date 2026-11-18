@@ -8,6 +8,7 @@ import {
   dismissalKey,
   findings,
   linesDue,
+  plansDue,
   rhythmGaps,
   rhythmGoals,
   visible,
@@ -127,6 +128,7 @@ function Summary({
   // Read once per render against the user's own day: the backend knows only
   // UTC, and after sunset at a negative offset that is already tomorrow.
   const day = today()
+  const plans = useQuery(queries.workPlans())
   const summary = summarise(works, slots, day)
   const standing = visible(
     [
@@ -140,6 +142,13 @@ function Summary({
       // short of altogether.
       ...rhythmGoals(slots, profile.config, day),
       ...linesDue(lines.data ?? [], day),
+      // Planned slots whose time has come (v0.138).
+      ...plansDue(
+        plans.data ?? [],
+        new Map(works.map((work) => [work.work_id, work.title])),
+        profile.config.rhythm?.plan_lead_days ?? 7,
+        day,
+      ),
     ],
     dismissed,
   )

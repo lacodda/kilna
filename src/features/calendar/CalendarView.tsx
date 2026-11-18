@@ -1,3 +1,4 @@
+import { WorkPlanEditor, type PlanShown } from '@/features/calendar/WorkPlanEditor'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -39,7 +40,7 @@ import {
   type CalendarView as View,
 } from '@/lib/calendarPeriod'
 import { ghostsOf, shiftGhostsOf, type Ghost } from '@/lib/layout'
-import { today } from '@/lib/month'
+import { addDays, today } from '@/lib/month'
 import { batchable } from '@/lib/releaseFields'
 import { closedDays } from '@/lib/timeOff'
 import { say } from '@/lib/toast'
@@ -95,6 +96,10 @@ export function CalendarView({ onSelect }: Props) {
   // Which kinds the calendar is showing. The pane is deliberately not
   // filtered with it (`QueuePane`).
   const [kind, setKind] = useState<KindFilter>(null)
+  // The planned slots of works (v0.138): drawn unless the chip says not.
+  const workPlans = useQuery(queries.workPlans())
+  const [showPlans, setShowPlans] = useState(true)
+  const [openPlan, setOpenPlan] = useState<PlanShown | null>(null)
   // How much of the screen the calendar gets. Named for the width rather
   // than the layout because the auto-layout's plan is a layout too, and two
   // different things under one word is how the wrong one gets read. Loaded
@@ -214,8 +219,13 @@ export function CalendarView({ onSelect }: Props) {
     const work = works.data?.find((row) => row.work_id === workId)
     const door =
       work === undefined ? undefined : vocabularyOf(profile.config, work.kind).release_kinds[0]
-    if (work === undefined || door === undefined) {
-      say.warn(t('calendar.noDoor', { title: work?.title ?? '' }))
+    if (work === undefined) {
+      say.warn(t('calendar.noDoor', { title: '' }))
+      return
+    }
+    if (door === undefined) {
+      // A song goes out nowhere itself: it is planned on the day (v0.138).
+      actions.planDay.mutate({ workId, date })
       return
     }
     actions.fillDay.mutate({ work_id: workId, kind: door.key, scheduled_at: date })
@@ -301,7 +311,19 @@ export function CalendarView({ onSelect }: Props) {
   const plan = (
     <Loaded query={slots} fill skeleton={<MonthSkeleton />}>
       {(data) => {
+        const lead = profile.config.rhythm?.plan_lead_days ?? 7
+        const now = today()
+        const byDay = new Map<string, { shown: PlanShown; due: boolean }[]>()
+        for (const plan of showPlans ? (workPlans.data ?? []) : []) {
+          const row = works.data?.find((one) => one.work_id === plan.work_id)
+          if (row === undefined) continue
+          const shown: PlanShown = { plan, title: row.title, kind: row.kind }
+          const due = addDays(plan.scheduled_at, -Math.max(1, lead)) <= now
+          byDay.set(plan.scheduled_at, [...(byDay.get(plan.scheduled_at) ?? []), { shown, due }])
+        }
         const shared = {
+          plans: byDay,
+          onOpenPlan: setOpenPlan,
           slots: filterByKind(data, kind),
           ghosts: ghostsFor(data),
           closed,
@@ -355,6 +377,9 @@ export function CalendarView({ onSelect }: Props) {
             slots={slots.data ?? []}
             kind={kind}
             onKindChange={setKind}
+            plans={workPlans.data?.length ?? 0}
+            showPlans={showPlans}
+            onShowPlans={setShowPlans}
             planned={planned.length}
             onFillFields={() => setDialog({ kind: 'fields' })}
             fillingFields={actions.fillFields.isPending}
@@ -436,6 +461,23 @@ export function CalendarView({ onSelect }: Props) {
         <CarriedLabel pointer={drag.dragging.pointer} label={carriedTitle} />
       )}
 
+      <WorkPlanEditor
+        shown={
+          openPlan === null
+            ? null
+            : {
+                ...openPlan,
+                plan: workPlans.data?.find((one) => one.id === openPlan.plan.id) ?? openPlan.plan,
+              }
+        }
+        onOpenChange={(open) => {
+          if (!open) setOpenPlan(null)
+        }}
+        onOpenWork={(workId) => {
+          setOpenPlan(null)
+          onSelect(workId)
+        }}
+      />
       <CalendarDialogs
         dialog={dialog}
         onDialog={setDialog}

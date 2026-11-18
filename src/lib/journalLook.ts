@@ -236,6 +236,8 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'workPlan.created': ['accent', CalendarPlus],
   'workPlan.moved': ['accent', CalendarPlus],
   'workPlan.deleted': ['accent', CalendarPlus],
+  'workPlan.due': ['warn', CalendarPlus],
+  'workPlan.overdue': ['warn', CalendarPlus],
   'proposal.freeCanon': ['accent', Sparkles],
   'proposal.release': ['accent', Sparkles],
   'proposal.coverIdeas': ['accent', Sparkles],

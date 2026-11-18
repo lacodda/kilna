@@ -312,6 +312,33 @@ mod tests {
         assert!(open(&conn, &profile_id, 7).unwrap().is_empty());
     }
 
+    /// The bell warns once when a slot's lead days begin, and once when its
+    /// day is past - and a closed slot says nothing.
+    #[test]
+    fn the_bell_warns_of_a_slot_once_on_its_way_and_once_late() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Lanterns");
+        planned(&conn, &song.id, "2026-10-10");
+        let warnings = |day: &str| {
+            crate::actions::release::warn_unready(&conn, day).unwrap();
+            crate::journal::list(&conn, &profile_id)
+                .unwrap()
+                .into_iter()
+                .filter(|entry| {
+                    entry.action.starts_with("workPlan.") && entry.action != "workPlan.created"
+                })
+                .map(|entry| entry.action)
+                .collect::<Vec<_>>()
+        };
+        assert!(
+            warnings("2026-09-30").is_empty(),
+            "ten days ahead says nothing"
+        );
+        assert_eq!(warnings("2026-10-05"), ["workPlan.due"]);
+        assert_eq!(warnings("2026-10-06"), ["workPlan.due"], "said once");
+        assert_eq!(warnings("2026-10-12").len(), 2, "late is said once more");
+    }
+
     /// Making a slot real is one gesture: the audio made from the song, its
     /// release on the slot's day, the slot gone - and one undo takes it all.
     #[test]

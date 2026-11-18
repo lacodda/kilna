@@ -2,7 +2,6 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ScheduledRelease, TimeOff } from '@/lib/api/types'
 import { today } from '@/lib/month'
-import { say } from '@/lib/toast'
 import { useProfile, vocabularyOf } from '@/lib/useProfile'
 import { ConfirmAction } from '@/components/ConfirmAction'
 import { MarkReleasedDialog } from '@/components/MarkReleasedDialog'
@@ -90,7 +89,8 @@ export function CalendarDialogs({
           if (dialog?.kind !== 'fill') return
           const door = vocabularyOf(profile.config, work.kind).release_kinds[0]
           if (door === undefined) {
-            say.warn(t('calendar.noDoor', { title: work.title }))
+            // Goes out nowhere itself: planned on the day (v0.138).
+            actions.planDay.mutate({ workId: work.work_id, date: dialog.date })
             return
           }
           actions.fillDay.mutate({

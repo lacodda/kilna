@@ -473,7 +473,19 @@
       "rhythm-goal_kind_few": "{{month}}: до цели месяца не хватает {{count}} выпусков вида «{{of}}»",
       "rhythm-goal_kind_many": "{{month}}: до цели месяца не хватает {{count}} выпусков вида «{{of}}»",
       "rhythm-goal_kind_other": "{{month}}: до цели месяца не хватает {{count}} выпуска вида «{{of}}»",
-      "line-due": "«{{title}}» — срок был {{day}}"
+      "line-due": "«{{title}}» — срок был {{day}}",
+      "work-plan-due_ahead_one": "«{{title}}» запланирована на {{day}}: остался {{count}} день",
+      "work-plan-due_ahead_few": "«{{title}}» запланирована на {{day}}: осталось {{count}} дня",
+      "work-plan-due_ahead_many": "«{{title}}» запланирована на {{day}}: осталось {{count}} дней",
+      "work-plan-due_ahead_other": "«{{title}}» запланирована на {{day}}: осталось {{count}} дня",
+      "work-plan-due_today_one": "«{{title}}» запланирована на сегодня, а из неё ничего не поставлено",
+      "work-plan-due_today_few": "«{{title}}» запланирована на сегодня, а из неё ничего не поставлено",
+      "work-plan-due_today_many": "«{{title}}» запланирована на сегодня, а из неё ничего не поставлено",
+      "work-plan-due_today_other": "«{{title}}» запланирована на сегодня, а из неё ничего не поставлено",
+      "work-plan-due_late_one": "«{{title}}» была запланирована на {{day}}: просрочено на {{count}} день",
+      "work-plan-due_late_few": "«{{title}}» была запланирована на {{day}}: просрочено на {{count}} дня",
+      "work-plan-due_late_many": "«{{title}}» была запланирована на {{day}}: просрочено на {{count}} дней",
+      "work-plan-due_late_other": "«{{title}}» была запланирована на {{day}}: просрочено на {{count}} дня"
     },
     "dismiss": "Услышал",
     "dismissHint": "Убирает эту жалобу. Вернётся, если изменится.",
@@ -487,7 +499,8 @@
       "unmarked": "день прошёл, не отмечено",
       "rhythm-gap": "не хватает до ритма",
       "rhythm-goal": "не хватает до цели месяца",
-      "line-due": "настал срок"
+      "line-due": "настал срок",
+      "work-plan-due": "близок плановый день"
     }
   },
   "focus": {
@@ -2424,7 +2437,9 @@
     "proposal.styles": "{{client}} предложил стили для словаря.",
     "workPlan.created": "«{{title}}» запланирована на {{day}}.",
     "workPlan.moved": "«{{title}}» перенесена на {{day}}.",
-    "workPlan.deleted": "«{{title}}» снята с календаря."
+    "workPlan.deleted": "«{{title}}» снята с календаря.",
+    "workPlan.due": "«{{title}}» запланирована на {{date}}: пора делать то, что выйдет.",
+    "workPlan.overdue": "«{{title}}» была запланирована на {{date}}, а из неё ничего не поставлено."
   },
   "card": {
     "tab": {
@@ -5637,5 +5652,22 @@
     "missingFiles": "Файлов не пришло: {{count}}.",
     "refused": "Не удалось принести: {{count}}. Причины - в списке.",
     "failed": "Не удалось принести произведения."
+  },
+  "workPlan": {
+    "planned": "Запланировано на день: слот, ещё не выпуск.",
+    "description": "День, на который рассчитана работа, пока из неё нечего выпустить.",
+    "day": "День",
+    "note": "Заметка",
+    "notePlaceholder": "Для чего этот слот",
+    "make": "Создать: {{kind}}",
+    "bookOwn": "Поставить её выпуск",
+    "openWork": "Открыть работу",
+    "remove": "Снять с календаря",
+    "removed": "Слот снят с календаря.",
+    "fulfilled": "Поставлено на день слота.",
+    "line": "{{title}} · план",
+    "marker": "Плановый слот",
+    "due": "Пора делать",
+    "filter": "Плановые слоты"
   }
 }

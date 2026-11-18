@@ -79,6 +79,8 @@ export const keys = {
    *  beside what is written. */
   releaseProposalsFor: (releaseId: string) => ['releases', 'proposals', releaseId] as const,
   calendar: ['calendar'] as const,
+  /** The open planned slots of works (v0.138). */
+  workPlans: ['calendar', 'plans'] as const,
   releaseQueue: ['releaseQueue'] as const,
   /** The days the calendar is closed. Under the calendar's prefix: closing
    *  a day changes what the month draws and what the layout would plan. */

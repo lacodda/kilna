@@ -1,3 +1,4 @@
+import { planWork } from '@/lib/api/workPlans'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -161,6 +162,23 @@ export function useCalendarActions({
     },
   })
 
+  // A work whose kind goes out nowhere itself - a song - is planned on the
+  // day (v0.138, FR-11): a slot, not a release; what its song repeats there
+  // is said as a booking's is.
+  const planDay = useAppMutation({
+    mutationFn: async ({ workId, date }: { workId: string; date: string }) => {
+      await planWork({ work_id: workId, scheduled_at: date })
+      return repeatsOn({ work: workId }, date)
+    },
+    failure: 'toast.releaseSaveFailed',
+    refresh: [...REFRESHED, keys.workPlans],
+    onSuccess: (repeats) => {
+      onDayFilled()
+      settle()
+      landed(t('workPlan.planned'), repeats)
+    },
+  })
+
   const release = useAppMutation({
     mutationFn: ({ id, url, at, kind }: Marked) => markReleased(id, url, at, kind),
     failure: 'toast.releaseSaveFailed',
@@ -310,6 +328,7 @@ export function useCalendarActions({
     settle,
     claim,
     fillDay,
+    planDay,
     release,
     move,
     unschedule,

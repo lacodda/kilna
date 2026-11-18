@@ -1,3 +1,4 @@
+import { workPlans } from '@/lib/api/workPlans'
 import { stylePacks } from '@/lib/api/packs'
 import { queryOptions } from '@tanstack/react-query'
 import i18n from '@/i18n'
@@ -125,6 +126,7 @@ export const queries = {
   workspace: () => queryOptions({ queryKey: keys.workspace, queryFn: getWorkspace }),
   skillTriggers: () => queryOptions({ queryKey: keys.skillTriggers, queryFn: skillTriggers }),
   stylePacks: () => queryOptions({ queryKey: keys.stylePacks, queryFn: stylePacks }),
+  workPlans: () => queryOptions({ queryKey: keys.workPlans, queryFn: workPlans }),
   shippedStanding: (profileId: string, collection: string) =>
     queryOptions({
       queryKey: keys.shippedStanding(profileId, collection),

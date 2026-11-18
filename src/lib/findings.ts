@@ -1,3 +1,4 @@
+import type { WorkPlan } from '@/lib/api/types'
 import type {
   Dismissal,
   FocusNote,
@@ -66,6 +67,9 @@ export type FindingKind =
   /** A line of the board whose day has come (v0.105): written by the person,
    *  said on the day. Opens its work when it has one. */
   | 'line-due'
+  /** A work's planned slot is near or past its day and nothing of it is
+   *  booked yet (v0.138, FR-11): said from the profile's lead days before. */
+  | 'work-plan-due'
 
 export interface Finding {
   kind: FindingKind
@@ -451,6 +455,42 @@ export function rhythmGoals(
     }
   }
   return found
+}
+
+/**
+ * The planned slots whose time has come (v0.138, FR-11 11.4): from `lead`
+ * days before their day, until they close - by the one rule the backend
+ * reads, which is why only open slots reach here. The day is in the
+ * complaint: a slot moved to another day is news again there.
+ */
+export function plansDue(
+  plans: readonly WorkPlan[],
+  titles: ReadonlyMap<string, string>,
+  lead: number,
+  today: string,
+): Finding[] {
+  return plans
+    .filter((plan) => addDays(plan.scheduled_at, -Math.max(1, lead)) <= today)
+    .map((plan) => {
+      const left = daysBetween(today, plan.scheduled_at)
+      return {
+        kind: 'work-plan-due' as const,
+        workId: plan.work_id,
+        title: titles.get(plan.work_id) ?? '',
+        complaint: `work-plan-due:${plan.id}:${plan.scheduled_at}`,
+        params: {
+          day: formatDay(plan.scheduled_at),
+          context: left > 0 ? 'ahead' : left === 0 ? 'today' : 'late',
+          count: Math.abs(left),
+        },
+        to: { path: '/calendar', day: plan.scheduled_at },
+      }
+    })
+}
+
+/** Whole days from one day to another, `YYYY-MM-DD`. */
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
 }
 
 /**

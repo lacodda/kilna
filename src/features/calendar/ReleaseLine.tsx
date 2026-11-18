@@ -1,3 +1,5 @@
+import { CalendarClock } from 'lucide-react'
+import type { PlanShown } from '@/features/calendar/WorkPlanEditor'
 import { useTranslation } from 'react-i18next'
 import { Lock } from 'lucide-react'
 import type { ScheduledRelease } from '@/lib/api/types'
@@ -244,6 +246,39 @@ export function ReleaseLine({ slot, date, now, dragging, onGrab, onOpen, carried
         )}
       </PreviewCardPopup>
     </PreviewCard>
+  )
+}
+
+/**
+ * A work's planned slot on its day (v0.138, FR-11): dashed like a plan, since
+ * it is no booking, marked as a plan, and warmer once it is time to make it -
+ * within the profile's lead days, or past its day. Pressing it opens the slot.
+ */
+export function WorkPlanLine({
+  shown,
+  due,
+  onOpen,
+}: {
+  shown: PlanShown
+  due: boolean
+  onOpen: () => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <BigCalendarItem
+      tentative
+      color={accentFor(shown.plan.work_id)}
+      title={t('workPlan.line', { title: shown.title })}
+      onClick={onOpen}
+      end={
+        <CalendarClock
+          aria-label={due ? t('workPlan.due') : t('workPlan.marker')}
+          className={cn('size-3', due ? 'text-warn' : 'text-faint')}
+        />
+      }
+    >
+      {shown.title}
+    </BigCalendarItem>
   )
 }
 

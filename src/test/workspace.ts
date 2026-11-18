@@ -1056,6 +1056,8 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     shipped_offers: () => [],
     shipped_standing: () => [],
     skill_triggers: () => [],
+    // No work is planned on a day before it can go out (v0.138).
+    work_plans: () => [],
     // The snapshot of style packs, read and offering nothing (v0.131).
     style_packs: () => ({ packs: [], failed: [], sources: [{ kind: 'builtin' }], offline: false }),
     get_workspace: () => ({

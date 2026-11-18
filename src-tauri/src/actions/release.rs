@@ -769,8 +769,42 @@ pub fn warn_unready(conn: &Connection, today: &str) -> Result<UnreadyWarnings> {
             news.push((*entry).clone());
         }
     }
+    // The planned slots whose time has come (v0.138, FR-11 11.4): one
+    // warning when the lead days begin and one when the day is past, each
+    // once for its slot and day - a slot moved to another day is warned
+    // about again there. Only open slots: the rule that closes one is the
+    // rule that silences it.
+    let config = crate::profile::config_for(conn, &profile_id)?;
+    let lead = i64::from(config.plan_lead_days());
+    let mut planned = 0;
+    for plan in crate::work_plan::open(conn, &profile_id, config.plan_window())? {
+        let starts = crate::layout::shift_date(&plan.scheduled_at, -lead)?;
+        if starts.as_str() > today {
+            continue;
+        }
+        planned += 1;
+        let title = crate::work::get(conn, &plan.work_id)?
+            .map(|work| work.title)
+            .unwrap_or_default();
+        // Each key written out, so the journal's gate can see it.
+        let record = if plan.scheduled_at.as_str() < today {
+            Record::new("workPlan.overdue")
+                .once(format!("plan-overdue:{}:{}", plan.id, plan.scheduled_at))
+        } else {
+            Record::new("workPlan.due").once(format!("plan-due:{}:{}", plan.id, plan.scheduled_at))
+        };
+        crate::journal::record(
+            conn,
+            &profile_id,
+            record
+                .param("title", title)
+                .param("date", plan.scheduled_at.clone())
+                .about("work", plan.work_id.clone())
+                .warn(),
+        );
+    }
     Ok(UnreadyWarnings {
-        standing: unready.len(),
+        standing: unready.len() + planned,
         tomorrow: news,
     })
 }

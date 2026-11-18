@@ -8,11 +8,12 @@ import {
   findings,
   identify,
   linesDue,
+  plansDue,
   rhythmGaps,
   rhythmGoals,
-  visible,
   type Finding,
   type FindingKind,
+  visible,
 } from '@/lib/findings'
 
 const TODAY = '2026-08-28'
@@ -580,5 +581,41 @@ describe('a line of the board whose day has come (v0.105)', () => {
       ['line-due:a:2026-08-28', 'w1'],
       ['line-due:b:2026-08-20', ''],
     ])
+  })
+})
+
+describe('planned slots whose time has come (v0.138)', () => {
+  const plan = (id: string, day: string) =>
+    ({
+      id,
+      work_id: `w-${id}`,
+      scheduled_at: day,
+      note: null,
+      created_at: '',
+      updated_at: '',
+    }) as const
+  const titles = new Map([
+    ['w-a', 'Lanterns'],
+    ['w-b', 'Harbour'],
+  ])
+
+  it('says a slot from its lead days, counting down, and late after its day', () => {
+    const due = plansDue(
+      [plan('a', '2026-10-10'), plan('b', '2026-10-30')],
+      titles,
+      7,
+      '2026-10-05',
+    )
+    expect(due.map((finding) => finding.title)).toEqual(['Lanterns'])
+    expect(due[0]).toMatchObject({
+      kind: 'work-plan-due',
+      complaint: 'work-plan-due:a:2026-10-10',
+      params: { context: 'ahead', count: 5 },
+      to: { path: '/calendar', day: '2026-10-10' },
+    })
+    expect(plansDue([plan('a', '2026-10-10')], titles, 7, '2026-10-12')[0]?.params).toMatchObject({
+      context: 'late',
+      count: 2,
+    })
   })
 })

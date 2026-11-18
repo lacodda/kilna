@@ -424,7 +424,13 @@
       "rhythm-goal_tier_other": "{{month}}: {{count}} releases of the tier “{{of}}” short of the month's goal",
       "rhythm-goal_kind_one": "{{month}}: {{count}} release of the kind “{{of}}” short of the month's goal",
       "rhythm-goal_kind_other": "{{month}}: {{count}} releases of the kind “{{of}}” short of the month's goal",
-      "line-due": "“{{title}}” — its day was {{day}}"
+      "line-due": "“{{title}}” — its day was {{day}}",
+      "work-plan-due_ahead_one": "“{{title}}” is planned for {{day}}: {{count}} day left to make it",
+      "work-plan-due_ahead_other": "“{{title}}” is planned for {{day}}: {{count}} days left to make it",
+      "work-plan-due_today_one": "“{{title}}” is planned for today and nothing of it is booked",
+      "work-plan-due_today_other": "“{{title}}” is planned for today and nothing of it is booked",
+      "work-plan-due_late_one": "“{{title}}” was planned for {{day}}: {{count}} day late",
+      "work-plan-due_late_other": "“{{title}}” was planned for {{day}}: {{count}} days late"
     },
     "dismiss": "Heard it",
     "dismissHint": "Puts this complaint away. It comes back if it changes.",
@@ -438,7 +444,8 @@
       "unmarked": "day passed, not marked",
       "rhythm-gap": "short of the rhythm",
       "rhythm-goal": "short of the month's goal",
-      "line-due": "its day came"
+      "line-due": "its day came",
+      "work-plan-due": "its planned day is near"
     }
   },
   "focus": {
@@ -2234,7 +2241,9 @@
     "proposal.styles": "{{client}} proposed styles for the dictionary.",
     "workPlan.created": "“{{title}}” planned for {{day}}.",
     "workPlan.moved": "“{{title}}” moved to {{day}}.",
-    "workPlan.deleted": "“{{title}}” taken off the calendar."
+    "workPlan.deleted": "“{{title}}” taken off the calendar.",
+    "workPlan.due": "“{{title}}” is planned for {{date}}: time to make what goes out.",
+    "workPlan.overdue": "“{{title}}” was planned for {{date}} and nothing of it is booked."
   },
   "card": {
     "tab": {
@@ -5304,5 +5313,22 @@
     "missingFiles": "Files that did not arrive: {{count}}.",
     "refused": "Could not be brought in: {{count}}. The list says why.",
     "failed": "Could not bring the works in."
+  },
+  "workPlan": {
+    "planned": "Planned on the day: a slot, not a release yet.",
+    "description": "A day this work is meant for before anything of it can go out.",
+    "day": "Day",
+    "note": "Note",
+    "notePlaceholder": "What the slot is for",
+    "make": "Create {{kind}}",
+    "bookOwn": "Book its release",
+    "openWork": "Open the work",
+    "remove": "Take off the calendar",
+    "removed": "The slot is off the calendar.",
+    "fulfilled": "Booked on the slot’s day.",
+    "line": "{{title}} · plan",
+    "marker": "Planned slot",
+    "due": "Time to make it",
+    "filter": "Planned slots"
   }
 }

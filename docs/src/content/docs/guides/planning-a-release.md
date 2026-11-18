@@ -393,6 +393,33 @@ fill its weeks. A date already kept keeps the moment it was kept, what already
 went out is history and is left alone, and **Undo** takes back exactly the pins
 it set.
 
+## Planned slots
+
+A song goes out nowhere itself - its audio, its video and its shorts do - so
+until v0.138 putting it on a day was refused. Now a work whose kind has no
+door of its own, chosen for a day from the day's **+** or carried onto it,
+is **planned** there: a dashed line marked as a plan, warmer once it is time
+to make what goes out. A work has one slot; planning it again moves it. A
+slot is not a release: it marks nothing out, counts toward no rhythm, is no
+unready release and asks nobody whether it went out - but the guard of
+repeats reads its day, so a song is checked against what is planned around
+it.
+
+Pressing the line opens the slot: its day, a note, and one press that makes
+it real - **Create audio**, **Create video**, **Create short** for a song,
+**Book its release** for a work that goes out itself - which makes the work,
+books its release on the slot's day at the rhythm's hour, and takes the slot
+away, all as one change an undo takes back. **Take off the calendar** leaves
+the work as it was. The **Planned slots** chip hides or shows them.
+
+A slot closes by one rule, the same that silences its reminder: the work's
+own release is on the calendar, or something made from it is booked within
+`plan_match_window_days` of the slot's day (a week either side unless the
+rhythm says otherwise) - a short two months later closes nothing. From
+`plan_lead_days` before its day (a week) the Dashboard says the slot -
+days left, today, or days late - and the bell warns once when its time comes
+and once when its day is past.
+
 ## Time off
 
 Some days nothing should go out on: a holiday, a fortnight away, the week of

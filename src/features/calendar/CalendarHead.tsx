@@ -1,3 +1,5 @@
+import { CalendarClock } from 'lucide-react'
+import { Chip } from '@/components/ui/chip'
 import { useTranslation } from 'react-i18next'
 import {
   ChevronLeft,
@@ -30,6 +32,10 @@ interface Props {
   slots: readonly ScheduledRelease[]
   kind: KindFilter
   onKindChange: (kind: KindFilter) => void
+  /** How many planned slots there are, and whether they are drawn (v0.138). */
+  plans: number
+  showPlans: boolean
+  onShowPlans: (show: boolean) => void
   /** How many planned releases of the period the fields batch would write. */
   planned: number
   onFillFields: () => void
@@ -78,6 +84,9 @@ export function CalendarHead({
   slots,
   kind,
   onKindChange,
+  plans,
+  showPlans,
+  onShowPlans,
   planned,
   onFillFields,
   fillingFields,
@@ -148,6 +157,12 @@ export function CalendarHead({
       </SegmentedControl>
 
       <KindFilterBar slots={slots} value={kind} onChange={onKindChange} />
+      {plans > 0 && (
+        <Chip pressed={showPlans} onPressedChange={onShowPlans} count={plans}>
+          <CalendarClock aria-hidden className="size-3.5 shrink-0" />
+          {t('workPlan.filter')}
+        </Chip>
+      )}
 
       <div className="ml-auto flex items-center gap-2">
         {drop !== undefined ? (

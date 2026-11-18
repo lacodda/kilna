@@ -211,6 +211,10 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::time_off::TimeOff,
         kilna_lib::time_off::NewTimeOff,
         kilna_lib::time_off::TimeOffPatch,
+        kilna_lib::work_plan::WorkPlan,
+        kilna_lib::work_plan::NewWorkPlan,
+        kilna_lib::work_plan::WorkPlanPatch,
+        kilna_lib::actions::work_plan::Fulfilled,
         kilna_lib::actions::release::UnreadyWarnings,
         // collections.rs
         kilna_lib::collection::Collection,

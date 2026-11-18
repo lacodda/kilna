@@ -9,7 +9,8 @@ import { RowContextMenu } from '@/components/RowMenu'
 import { BigCalendar, dayOf } from '@/components/ui/big-calendar'
 import { CarriedChip } from '@/features/calendar/CarriedChip'
 import { LandingLines, landingSays } from '@/features/calendar/LandingLines'
-import { PlannedLine, ReleaseLine } from '@/features/calendar/ReleaseLine'
+import { PlannedLine, ReleaseLine, WorkPlanLine } from '@/features/calendar/ReleaseLine'
+import type { PlanShown } from '@/features/calendar/WorkPlanEditor'
 import { QUEUE, type DaysTarget } from '@/features/calendar/useCalendarDrag'
 import { useLandingVerdict } from '@/features/calendar/useLandingVerdict'
 import { dayActions, mondayFirst } from '@/features/calendar/days'
@@ -22,6 +23,9 @@ interface Props {
   /** The keyboard walked off the grid: a day of the month or week it reached. */
   onAnchorChange: (date: string) => void
   slots: readonly ScheduledRelease[]
+  /** The planned slots of works by day (v0.138), and whether each is due. */
+  plans?: ReadonlyMap<string, { shown: PlanShown; due: boolean }[]>
+  onOpenPlan?: (shown: PlanShown) => void
   /** The closed days among them, with the span that closes each. */
   closed: ReadonlyMap<string, TimeOff>
   /** An auto-layout preview by day: where the queue would land, booked by
@@ -70,6 +74,8 @@ interface Props {
  * foot while something is carried over it.
  */
 export function DayGrid({
+  plans,
+  onOpenPlan,
   view,
   anchor,
   onAnchorChange,
@@ -135,6 +141,14 @@ export function DayGrid({
           dragging={dragging?.id === slot.id}
           onGrab={(event) => onGrab(event, slot.id)}
           onOpen={() => onOpenRelease(slot.id)}
+        />
+      )),
+      ...(plans?.get(date) ?? []).map(({ shown, due }) => (
+        <WorkPlanLine
+          key={`slot-${shown.plan.id}`}
+          shown={shown}
+          due={due}
+          onOpen={() => onOpenPlan?.(shown)}
         />
       )),
       ...(ghosts?.get(date) ?? []).map((ghost) => (
