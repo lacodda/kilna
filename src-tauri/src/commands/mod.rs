@@ -38,6 +38,7 @@ pub mod trials;
 pub mod types;
 pub mod upkeep;
 pub mod versions;
+pub mod work_plans;
 pub mod works;
 pub mod workspace;
 

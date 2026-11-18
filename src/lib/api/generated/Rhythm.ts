@@ -22,4 +22,14 @@ default_time: string | null,
  * the pace on shorts alone. The window says which goal a month falls
  * short of, and by how many. Empty for a profile that sets none.
  */
-monthly: Array<MonthlyGoal>, };
+monthly: Array<MonthlyGoal>, 
+/**
+ * How many days before a planned slot's day it starts to remind
+ * (v0.138, FR-11), at least one.
+ */
+plan_lead_days?: number, 
+/**
+ * How near a planned slot's day something made from its work must be
+ * booked to close it, in days either side (v0.138).
+ */
+plan_match_window_days?: number, };

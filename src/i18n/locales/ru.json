@@ -2421,7 +2421,10 @@
     "work.brought": "«{{title}}» принесено из файла.",
     "proposal.notes": "{{client}} предлагает заметки к «{{title}}».",
     "proposal.freeNotes": "{{client}} предлагает заметки.",
-    "proposal.styles": "{{client}} предложил стили для словаря."
+    "proposal.styles": "{{client}} предложил стили для словаря.",
+    "workPlan.created": "«{{title}}» запланирована на {{day}}.",
+    "workPlan.moved": "«{{title}}» перенесена на {{day}}.",
+    "workPlan.deleted": "«{{title}}» снята с календаря."
   },
   "card": {
     "tab": {
@@ -2577,7 +2580,10 @@
     "card.create": "карточку на доске",
     "card.update": "правка карточки",
     "card.arrange": "перестановку карточек",
-    "work.bring": "добавление произведения из файла"
+    "work.bring": "добавление произведения из файла",
+    "workPlan.create": "планирование работы",
+    "workPlan.update": "перенос планового слота",
+    "workPlan.delete": "снятие слота с календаря"
   },
   "stage": {
     "label": "Стадия",
@@ -3997,6 +4003,9 @@
       "unknownStyle": "Стиль {{index}}: в словаре нет стиля «{{id}}».",
       "newNeedsTypeAndName": "Стиль {{index}}: новому стилю нужны тип и имя.",
       "unknownType": "Стиль {{index}}: «{{type}}» — не тип этого словаря."
+    },
+    "workPlan": {
+      "badDay": "«{{day}}» — не день: плановый слот берёт день как ГГГГ-ММ-ДД."
     }
   },
   "proposalBody": {

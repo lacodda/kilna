@@ -212,6 +212,9 @@ pub fn reversible(kind: &str) -> bool {
             | "timeOff.create"
             | "timeOff.update"
             | "timeOff.delete"
+            | "workPlan.create"
+            | "workPlan.update"
+            | "workPlan.delete"
             | "release.pinRange"
             | "layout.apply"
             | "layout.shift"
@@ -899,6 +902,34 @@ pub(crate) fn reverse(
             let patch: crate::time_off::TimeOffPatch = from_params(params, "before")?;
             apply(conn, |tx| {
                 crate::time_off::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A planned slot comes and goes as a span of closed days does.
+        "workPlan.create" => {
+            let id = crate::minted::Minted::from_params(params)?.id().to_owned();
+            apply(conn, |tx| crate::work_plan::delete(tx, &id))?;
+        }
+        "workPlan.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::work_plan::WorkPlanPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::work_plan::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        "workPlan.delete" => {
+            let before: crate::work_plan::WorkPlan = from_params(params, "before")?;
+            let new = crate::work_plan::NewWorkPlan {
+                work_id: before.work_id,
+                scheduled_at: before.scheduled_at,
+                note: before.note,
+            };
+            apply(conn, |tx| {
+                crate::work_plan::create_minted(
+                    tx,
+                    new,
+                    crate::minted::Minted::of(before.id.clone(), before.created_at.clone()),
+                )
+                .map(|_| ())
             })?;
         }
         "timeOff.delete" => {

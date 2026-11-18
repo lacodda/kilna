@@ -54,6 +54,7 @@ impl Patch for crate::board::CardPatch {
     const MERGED_BY_KEY: &'static [&'static str] = &["fields"];
 }
 impl Patch for crate::time_off::TimeOffPatch {}
+impl Patch for crate::work_plan::WorkPlanPatch {}
 
 /// What the fields a patch names held before it was applied, as the log
 /// records it beside the patch - see [`invert`] and [`invert_merging`].

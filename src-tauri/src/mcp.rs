@@ -1897,6 +1897,11 @@ pub fn run_tool(
                 "vibe": found.vibe,
                 "shown_vibe": crate::work::shown_vibes(conn, &profile.id)?.remove(&found.id),
                 "tier_pinned": found.tier_pinned, "tier_pin_reason": found.tier_pin_reason,
+                // The day it is planned for before anything of it can go out
+                // (v0.138), when it is.
+                "work_plan": crate::work_plan::of_work(conn, &found.id)?
+                    .filter(|plan| !crate::work_plan::closed(conn, plan, config.plan_window()).unwrap_or(true))
+                    .map(|plan| json!({ "id": plan.id, "scheduled_at": plan.scheduled_at, "note": plan.note })),
                 "created_at": found.created_at, "updated_at": found.updated_at,
                 "versions": by_role,
                 "latest_score": latest,
@@ -1999,7 +2004,28 @@ pub fn run_tool(
                         .is_none_or(|day| span.ends_on.as_str() >= day)
                 })
                 .collect();
-            pretty(&json!({ "releases": releases, "closed": closed }))
+            // The planned slots (v0.138): a work meant for a day before
+            // anything of it can go out.
+            let window = config.plan_window();
+            let mut plans = Vec::new();
+            for plan in crate::work_plan::open(conn, &profile.id, window)? {
+                if from
+                    .as_deref()
+                    .is_some_and(|day| plan.scheduled_at.as_str() < day)
+                {
+                    continue;
+                }
+                let Some(work) = work::get(conn, &plan.work_id)? else {
+                    continue;
+                };
+                let made = crate::link::derived(conn, &work.id)?.len();
+                plans.push(json!({
+                    "id": plan.id, "work_id": work.id, "title": work.title, "kind": work.kind,
+                    "stage": work.stage, "scheduled_at": plan.scheduled_at, "note": plan.note,
+                    "derivative_count": made,
+                }));
+            }
+            pretty(&json!({ "releases": releases, "closed": closed, "work_plans": plans }))
         }
 
         "notes" => {

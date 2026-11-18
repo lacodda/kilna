@@ -1813,6 +1813,8 @@ fn a_booked_layout_is_one_step_back() {
         every_days: 2,
         default_time: None,
         monthly: Vec::new(),
+        plan_lead_days: 7,
+        plan_match_window_days: 7,
     });
     profile::update_config(&conn, &profile_id, &config).unwrap();
     for title in ["First", "Second"] {

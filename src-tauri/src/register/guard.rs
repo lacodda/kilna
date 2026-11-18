@@ -247,6 +247,19 @@ fn songs(conn: &Connection, profile_id: &str) -> Result<Vec<Song>> {
             }
         }
     }
+    // A planned slot books its work's day too (v0.138, FR-11): a song is
+    // held against what is planned around it before anything is made of it.
+    let config = crate::profile::config_for(conn, profile_id)?;
+    for plan in crate::work_plan::open(conn, profile_id, config.plan_window())? {
+        let Some(day) = day_of(&plan.scheduled_at) else {
+            continue;
+        };
+        if let Some(song) = by_work.iter_mut().find(|song| song.id == plan.work_id)
+            && song.out.is_none()
+        {
+            song.booked = Some(song.booked.map_or(day, |known| known.min(day)));
+        }
+    }
     Ok(by_work)
 }
 

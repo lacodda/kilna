@@ -915,6 +915,23 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::time_off::delete(conn, &id)?;
         }
 
+        "workPlan.create" => {
+            let new = from_params(params, "workPlan")?;
+            crate::work_plan::create_minted(conn, new, minted(params)?)?;
+        }
+
+        "workPlan.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::work_plan::update_at(conn, &id, patch, &at)?;
+        }
+
+        "workPlan.delete" => {
+            let id = required(params, "id")?;
+            crate::work_plan::delete(conn, &id)?;
+        }
+
         _ => return Ok(false),
     }
 

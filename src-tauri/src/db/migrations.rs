@@ -372,6 +372,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0059_scene_layers.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 60,
+        name: "work_plan",
+        sql: include_str!("../../migrations/0060_work_plan.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what

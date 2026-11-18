@@ -24,7 +24,7 @@ use kilna_lib::{actions, fixtures, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
-const COMPARED: [&str; 17] = [
+const COMPARED: [&str; 18] = [
     "canon_fact",
     "canon_link",
     "work",
@@ -41,6 +41,7 @@ const COMPARED: [&str; 17] = [
     "trial",
     "board_card",
     "time_off",
+    "work_plan",
     "tombstone",
 ];
 
@@ -987,6 +988,54 @@ fn closed_days_pins_and_shifts_rebuild() {
     )
     .unwrap();
     actions::time_off::delete(&source, &gone.id).unwrap();
+
+    // A planned slot (v0.138): planned, moved with a note, and one taken off.
+    let planned_song = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Planned song".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+    let slot = actions::work_plan::plan(
+        &source,
+        kilna_lib::work_plan::NewWorkPlan {
+            work_id: planned_song.id.clone(),
+            scheduled_at: "2026-10-02".into(),
+            note: None,
+        },
+    )
+    .unwrap();
+    actions::work_plan::update(
+        &source,
+        &slot.id,
+        kilna_lib::work_plan::WorkPlanPatch {
+            scheduled_at: Some("2026-10-09".into()),
+            note: Some(Some("after the tour".into())),
+        },
+    )
+    .unwrap();
+    let dropped_song = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Dropped song".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+    let dropped = actions::work_plan::plan(
+        &source,
+        kilna_lib::work_plan::NewWorkPlan {
+            work_id: dropped_song.id.clone(),
+            scheduled_at: "2026-11-01".into(),
+            note: None,
+        },
+    )
+    .unwrap();
+    actions::work_plan::delete(&source, &dropped.id).unwrap();
 
     actions::release::pin_range(&source, "2026-09-07", "2026-09-09", true).unwrap();
     let plan =

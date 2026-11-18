@@ -518,6 +518,8 @@ mod tests {
             every_days,
             default_time: None,
             monthly: Vec::new(),
+            plan_lead_days: 7,
+            plan_match_window_days: 7,
         });
         profile::update_config(conn, profile_id, &config).unwrap();
     }

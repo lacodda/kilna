@@ -2231,7 +2231,10 @@
     "work.brought": "“{{title}}” brought in from a file.",
     "proposal.notes": "{{client}} proposed notes on “{{title}}”.",
     "proposal.freeNotes": "{{client}} proposed notes.",
-    "proposal.styles": "{{client}} proposed styles for the dictionary."
+    "proposal.styles": "{{client}} proposed styles for the dictionary.",
+    "workPlan.created": "“{{title}}” planned for {{day}}.",
+    "workPlan.moved": "“{{title}}” moved to {{day}}.",
+    "workPlan.deleted": "“{{title}}” taken off the calendar."
   },
   "card": {
     "tab": {
@@ -2387,7 +2390,10 @@
     "card.create": "putting a card on the board",
     "card.update": "an edit to a card",
     "card.arrange": "moving cards on the board",
-    "work.bring": "bringing a work in"
+    "work.bring": "bringing a work in",
+    "workPlan.create": "planning the work",
+    "workPlan.update": "moving the planned slot",
+    "workPlan.delete": "taking the slot off the calendar"
   },
   "stage": {
     "label": "Stage",
@@ -3778,6 +3784,9 @@
       "unknownStyle": "Style {{index}}: no style “{{id}}” in the dictionary.",
       "newNeedsTypeAndName": "Style {{index}}: a new style needs a type and a name.",
       "unknownType": "Style {{index}}: “{{type}}” is no type the dictionary makes."
+    },
+    "workPlan": {
+      "badDay": "“{{day}}” is no day: a planned slot takes a day as YYYY-MM-DD."
     }
   },
   "proposalBody": {

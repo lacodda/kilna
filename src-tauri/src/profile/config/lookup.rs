@@ -83,7 +83,7 @@ impl ProfileConfig {
 
     /// What a refusal calls a kind: its label - a word the window says in
     /// its own language - or its key when the profile does not know it.
-    pub(super) fn kind_named(&self, kind: &str) -> serde_json::Value {
+    pub fn kind_named(&self, kind: &str) -> serde_json::Value {
         self.kind(kind)
             .and_then(|known| serde_json::to_value(&known.label).ok())
             .unwrap_or_else(|| serde_json::Value::String(kind.to_owned()))
@@ -155,6 +155,23 @@ impl ProfileConfig {
             .iter()
             .find(|composition| composition.types().any(|key| key == type_key))
             .map_or(PICTURE_BRANCH, |composition| composition.key.as_str())
+    }
+
+    /// How many days before a planned slot it reminds (v0.138): the rhythm's
+    /// word, a week when there is none, and never less than a day.
+    pub fn plan_lead_days(&self) -> u32 {
+        self.rhythm
+            .as_ref()
+            .map_or(7, |rhythm| rhythm.plan_lead_days)
+            .max(1)
+    }
+
+    /// How near a planned slot something made from its work closes it, in
+    /// days either side (v0.138).
+    pub fn plan_window(&self) -> u32 {
+        self.rhythm
+            .as_ref()
+            .map_or(7, |rhythm| rhythm.plan_match_window_days)
     }
 
     pub fn composition(&self, key: &str) -> Option<&Composition> {

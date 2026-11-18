@@ -292,6 +292,8 @@ fn a_monthly_goal_counts_a_tier_or_a_kind_the_profile_has() {
             goal(GoalOf::Tier(tier.clone()), 4),
             goal(GoalOf::Kind(kind.clone()), 8),
         ],
+        plan_lead_days: 7,
+        plan_match_window_days: 7,
     });
     assert_eq!(config.validate(), Vec::<String>::new());
 
@@ -304,6 +306,8 @@ fn a_monthly_goal_counts_a_tier_or_a_kind_the_profile_has() {
             goal(GoalOf::Kind(kind.clone()), 0),
             goal(GoalOf::Kind(kind), 3),
         ],
+        plan_lead_days: 7,
+        plan_match_window_days: 7,
     });
     let problems = config.validate();
     for needle in [
@@ -522,6 +526,8 @@ fn every_problem_names_its_place() {
         every_days: 0,
         default_time: Some("noon".into()),
         monthly: Vec::new(),
+        plan_lead_days: 7,
+        plan_match_window_days: 7,
     });
 
     let problems = config.validate();

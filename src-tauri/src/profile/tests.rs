@@ -1196,6 +1196,8 @@ fn an_older_workspace_gains_the_rhythm_its_profile_was_missing() {
         every_days: 30,
         default_time: None,
         monthly: Vec::new(),
+        plan_lead_days: 7,
+        plan_match_window_days: 7,
     });
     conn.execute(
         "UPDATE profile SET config = ?2 WHERE id = ?1",

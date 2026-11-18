@@ -72,6 +72,7 @@ pub mod undo;
 pub mod upkeep;
 pub mod words;
 pub mod work;
+pub mod work_plan;
 
 pub use error::{Error, Result};
 
@@ -477,6 +478,11 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::releases::apply_shift,
             commands::releases::pin_range,
             commands::time_off::list_time_off,
+            commands::work_plans::work_plans,
+            commands::work_plans::plan_work,
+            commands::work_plans::update_work_plan,
+            commands::work_plans::delete_work_plan,
+            commands::work_plans::fulfill_work_plan,
             commands::time_off::create_time_off,
             commands::time_off::update_time_off,
             commands::time_off::delete_time_off,

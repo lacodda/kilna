@@ -19,6 +19,25 @@ pub struct Rhythm {
     /// short of, and by how many. Empty for a profile that sets none.
     #[serde(default)]
     pub monthly: Vec<MonthlyGoal>,
+    /// How many days before a planned slot's day it starts to remind
+    /// (v0.138, FR-11), at least one.
+    #[serde(default = "seven", skip_serializing_if = "is_seven")]
+    #[ts(optional, as = "Option<u32>")]
+    pub plan_lead_days: u32,
+    /// How near a planned slot's day something made from its work must be
+    /// booked to close it, in days either side (v0.138).
+    #[serde(default = "seven", skip_serializing_if = "is_seven")]
+    #[ts(optional, as = "Option<u32>")]
+    pub plan_match_window_days: u32,
+}
+
+fn seven() -> u32 {
+    7
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_seven(days: &u32) -> bool {
+    *days == 7
 }
 
 /// How many releases of one sort a month should hold.

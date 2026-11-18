@@ -43,6 +43,7 @@ pub mod trash;
 pub mod trial;
 pub mod version;
 pub mod work;
+pub mod work_plan;
 
 use std::cell::{Cell, RefCell};
 
