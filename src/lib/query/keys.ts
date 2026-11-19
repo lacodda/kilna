@@ -271,6 +271,8 @@ export const keys = {
   taskQueue: ['runs', 'queue'] as const,
   /** The armed receiver: which work waits for which file (v0.156). */
   armedReceiver: ['receiver', 'armed'] as const,
+  /** What each plugin's service was spent this month (v0.158). */
+  pluginQuotas: ['plugins', 'quotas'] as const,
   /** How the receiver works on this machine. */
   receiverSettings: ['receiver', 'settings'] as const,
   // How busy the application is, and what the runs have cost (v0.107): under

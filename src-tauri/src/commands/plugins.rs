@@ -234,7 +234,21 @@ pub fn run_plugin(
     let outcome = outcome?;
 
     actions::plugin::keep(&state.conn(), target, &id, &outcome.meta)?;
-    let finished = if target.is_work() {
+    count_quota(&state, &executable, outcome.quota.as_ref());
+    // A picture generator's files are the cover's to choose from (v0.158):
+    // every picture it made, its candidates' too, set beside the cover.
+    let candidates = outcome.candidates;
+    let finished = if target == Target::Cover {
+        let media = state.media_dir()?;
+        let files = outcome
+            .files
+            .iter()
+            .chain(candidates.iter().flat_map(|one| one.files.iter()));
+        for file in files {
+            actions::plugin::keep_picture(&state.conn(), &media, &id, file)?;
+        }
+        None
+    } else if target.is_work() {
         actions::plugin::keep_files(&state.conn(), &id, &outcome.files)?
     } else {
         None
@@ -258,9 +272,31 @@ pub fn run_plugin(
         files: outcome.files,
         finished,
         proposed_score,
-        candidates: outcome.candidates,
+        candidates,
         quota: outcome.quota,
     })
+}
+
+/// The month a run's spending is counted into, as this machine's calendar
+/// says it.
+fn this_month() -> String {
+    crate::time::now().get(..7).unwrap_or_default().to_owned()
+}
+
+/// Count what a run said it spent; a file that cannot be written loses the
+/// count, never the run.
+fn count_quota(state: &AppState, executable: &str, spent: Option<&plugin::PluginQuota>) {
+    if let Some(spent) = spent {
+        let _ = plugin::settings::count_quota(state.app_dir(), executable, &this_month(), spent);
+    }
+}
+
+/// What each plugin's service was spent this month (v0.158), by executable.
+#[tauri::command]
+pub fn plugin_quotas(
+    state: State<'_, AppState>,
+) -> std::collections::BTreeMap<String, plugin::settings::PluginMonthQuota> {
+    plugin::settings::quotas(state.app_dir(), &this_month())
 }
 
 /// One of the results a command offered, picked (v0.155): its fields merged
@@ -407,6 +443,7 @@ pub fn run_plugin_batch(
         for (id, title, outcome) in results {
             done += 1;
             let kept = outcome.and_then(|outcome| {
+                count_quota(&state, &executable, outcome.quota.as_ref());
                 actions::plugin::keep(&state.conn(), Target::Work, &id, &outcome.meta)?;
                 actions::plugin::keep_files(&state.conn(), &id, &outcome.files)?;
                 Ok(outcome)

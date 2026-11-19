@@ -46,6 +46,9 @@ function movedBy(target: PluginTarget, id: string) {
     case 'work':
     case 'cuts':
       return [...refresh.version(id), ...refresh.finishedFile(id)]
+    // A picture generator sets its pictures beside the cover (v0.158).
+    case 'cover':
+      return [...refresh.taken(id), keys.pluginQuotas]
   }
 }
 
@@ -119,7 +122,11 @@ export function PluginBar({ target, id }: Props) {
     onSuccess: (reply: PluginReply) => {
       // Plugins report in their own words; an empty answer means "done".
       if (reply.message !== null && reply.message.trim() !== '') say.info(reply.message)
-      if (reply.finished !== null) {
+      if (target === 'cover') {
+        const pictures =
+          reply.files.length + reply.candidates.reduce((sum, one) => sum + one.files.length, 0)
+        if (pictures > 0) say.ok(t('plugins.picturesKept', { count: pictures }))
+      } else if (reply.finished !== null) {
         say.ok(t('plugins.madeFinished', { name: nameOf(reply.finished) }))
       } else if (reply.files.length > 0) {
         say.ok(t('plugins.madeFiles', { count: reply.files.length }))

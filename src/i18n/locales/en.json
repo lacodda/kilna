@@ -2043,7 +2043,8 @@
       "release": "on a release",
       "work": "in the head of a work",
       "cuts": "on a work’s Cuts tab",
-      "score": "on a work’s Score tab"
+      "score": "on a work’s Score tab",
+      "cover": "On the Cover tab"
     },
     "settings": "Its settings",
     "backToDefault": "Back to the plugin’s own",
@@ -2069,7 +2070,12 @@
     "batchStopped": "Stopped: {{ok}} worked, {{failed}} failed, the rest not run.",
     "batchFailed": "The batch could not run.",
     "batchRun_one": "Run on {{count}} work",
-    "batchRun_other": "Run on {{count}} works"
+    "batchRun_other": "Run on {{count}} works",
+    "monthQuota": "This month: {{used}} {{unit}} spent",
+    "monthQuotaLeft": "This month: {{used}} {{unit}} spent, {{left}} left",
+    "candidateCorridor": "{{delta}} from {{target}}",
+    "picturesKept_one": "{{count}} picture set beside the cover.",
+    "picturesKept_other": "{{count}} pictures set beside the cover."
   },
   "error": {
     "database": "The workspace database refused that. Nothing was changed.",

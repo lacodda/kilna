@@ -106,6 +106,7 @@ import {
   worksMedia,
 } from '@/lib/api/works'
 import { armedReceiver, receiverSettings } from '@/lib/api/receiver'
+import { pluginQuotas } from '@/lib/api/plugins'
 import {
   getWorkspace,
   mcpRegistration,
@@ -429,6 +430,7 @@ export const queries = {
   activeTasks: () => queryOptions({ queryKey: keys.activeTasks, queryFn: activeTasks }),
   taskQueue: () => queryOptions({ queryKey: keys.taskQueue, queryFn: taskQueue }),
   armedReceiver: () => queryOptions({ queryKey: keys.armedReceiver, queryFn: armedReceiver }),
+  pluginQuotas: () => queryOptions({ queryKey: keys.pluginQuotas, queryFn: pluginQuotas }),
   receiverSettings: () =>
     queryOptions({ queryKey: keys.receiverSettings, queryFn: receiverSettings }),
   activity: () => queryOptions({ queryKey: keys.activity, queryFn: activity }),

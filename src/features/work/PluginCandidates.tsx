@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { queries } from '@/lib/query/queries'
 import type { PluginCandidate } from '@/lib/api/types'
 import { keepPluginCandidate } from '@/lib/api/plugins'
 import { formatNumber } from '@/lib/format'
@@ -22,6 +24,10 @@ interface Props {
  */
 export function PluginCandidates({ workId, candidates, onClose }: Props) {
   const { t } = useTranslation()
+  // The length the work is meant to play, when its fields say (`duration`,
+  // `M:SS` or seconds): a take is held against it (v0.158).
+  const work = useQuery(queries.work(workId))
+  const target = secondsOf(work.data?.meta.duration)
   const keep = useAppMutation({
     mutationFn: (candidate: PluginCandidate) => keepPluginCandidate(workId, candidate),
     failure: 'plugins.candidateFailed',
@@ -55,6 +61,12 @@ export function PluginCandidates({ workId, candidates, onClose }: Props) {
                     : t('plugins.candidateSeconds', {
                         seconds: formatNumber(candidate.seconds, 0),
                       }),
+                  candidate.seconds === null || target === null
+                    ? null
+                    : t('plugins.candidateCorridor', {
+                        delta: signed(candidate.seconds - target),
+                        target: clock(target),
+                      }),
                   candidate.note,
                   candidate.files.length === 0
                     ? null
@@ -77,4 +89,28 @@ export function PluginCandidates({ workId, candidates, onClose }: Props) {
       </ul>
     </Dialog>
   )
+}
+
+/** Seconds a length is written as: `3:05`, `185`, `185 s`; null for anything
+ *  else. */
+export function secondsOf(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value !== 'string') return null
+  const text = value.trim()
+  const clocked = /^(\d+):([0-5]\d)$/.exec(text)
+  if (clocked !== null) return Number(clocked[1]) * 60 + Number(clocked[2])
+  const plain = /^(\d+(?:\.\d+)?)\s*s?$/.exec(text)
+  return plain === null ? null : Number(plain[1])
+}
+
+/** `M:SS`. */
+function clock(seconds: number): string {
+  const whole = Math.round(seconds)
+  return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, '0')}`
+}
+
+/** A difference in seconds with its sign: `+4 s`, `-20 s`. */
+function signed(seconds: number): string {
+  const whole = Math.round(seconds)
+  return `${whole > 0 ? '+' : whole < 0 ? '-' : '±'}${String(Math.abs(whole))} s`
 }

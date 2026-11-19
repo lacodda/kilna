@@ -646,6 +646,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::plugins::cancel_plugin,
             commands::plugins::keep_plugin_candidate,
             commands::plugins::run_plugin_batch,
+            commands::plugins::plugin_quotas,
             commands::receiver::receiver_settings,
             commands::receiver::set_receiver_settings,
             commands::receiver::armed_receiver,

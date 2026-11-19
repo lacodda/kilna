@@ -1352,6 +1352,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_plugins: () => [],
     // Nothing waits for a file until a test arms the receiver (v0.156).
     armed_receiver: () => null,
+    plugin_quotas: () => ({}),
     receiver_settings: () => ({ folder: null, auto: false, minutes: 15 }),
     // A work's simple video is built from nothing until a test gives it a
     // picture and a track (v0.149).

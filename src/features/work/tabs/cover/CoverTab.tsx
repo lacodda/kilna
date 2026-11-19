@@ -21,6 +21,7 @@ import { IdeaBoard } from '@/features/work/tabs/cover/IdeaBoard'
 import { Stage } from '@/features/work/tabs/versions/Stage'
 import { RedrawBadge } from '@/features/work/tabs/cover/RedrawBadge'
 import { coverHoldsAnything, useCoverEdit } from '@/features/work/tabs/cover/useCoverEdit'
+import { PluginBar } from '@/features/work/PluginBar'
 
 interface Props {
   work: Work
@@ -131,6 +132,9 @@ export function CoverTab({ work }: Props) {
               workId={work.id}
               kind={work.kind}
             />
+            {/* A picture generator's command (v0.158): its pictures land
+                beside the cover, to choose from. */}
+            <PluginBar target="cover" id={work.id} />
             <CoverResult work={work} view={cover.data} strip />
           </div>
         )}

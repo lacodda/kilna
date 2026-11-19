@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatNumber } from '@/lib/format'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { sayReason } from '@/lib/errors'
@@ -119,6 +120,9 @@ function PluginBlock({ plugin }: { plugin: Plugin }) {
   const { t, i18n } = useTranslation()
   const manifest = plugin.manifest
   const write = useWritePlugin(plugin.executable)
+  // What its service was spent this month, as its runs said (v0.158).
+  const quotas = useQuery(queries.pluginQuotas())
+  const spent = quotas.data?.[plugin.executable]
 
   const toggle = useAppMutation({
     mutationFn: (enabled: boolean) => setPluginEnabled(plugin.executable, enabled),
@@ -161,6 +165,20 @@ function PluginBlock({ plugin }: { plugin: Plugin }) {
 
       {description !== null && description !== '' && (
         <p className="text-sm text-dim">{description}</p>
+      )}
+      {spent !== undefined && (
+        <p className="text-sm text-dim">
+          {spent.left === null
+            ? t('plugins.monthQuota', {
+                used: formatNumber(spent.used, 0),
+                unit: spent.unit,
+              })
+            : t('plugins.monthQuotaLeft', {
+                used: formatNumber(spent.used, 0),
+                left: formatNumber(spent.left, 0),
+                unit: spent.unit,
+              })}
+        </p>
       )}
       {/* Why it cannot run, said from the key the backend names (v0.112):
           until then the sentence came built, and in English. */}

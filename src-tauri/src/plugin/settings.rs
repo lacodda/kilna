@@ -105,6 +105,70 @@ pub fn set_secret(
     Ok(())
 }
 
+/// What a plugin's service was spent this month, as its runs said (v0.158).
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+pub struct PluginMonthQuota {
+    /// The month, `YYYY-MM`.
+    pub month: String,
+    /// Spent this month, summed over the runs.
+    pub used: f64,
+    /// What the service said is left, at the last run that said.
+    pub left: Option<f64>,
+    pub unit: String,
+}
+
+fn quota_file(app_dir: &std::path::Path) -> std::path::PathBuf {
+    app_dir.join("plugin-quota.json")
+}
+
+/// Every plugin's spending this month, by executable; a month gone by is
+/// not this month's.
+pub fn quotas(
+    app_dir: &std::path::Path,
+    month: &str,
+) -> std::collections::BTreeMap<String, PluginMonthQuota> {
+    let kept: Map<String, Value> = std::fs::read_to_string(quota_file(app_dir))
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_default();
+    kept.into_iter()
+        .filter_map(|(executable, spent)| {
+            serde_json::from_value::<PluginMonthQuota>(spent)
+                .ok()
+                .filter(|spent| spent.month == month)
+                .map(|spent| (executable, spent))
+        })
+        .collect()
+}
+
+/// Count what a run spent into its plugin's month: a new month starts from
+/// nothing, another unit than the month's begins again in that unit.
+pub fn count_quota(
+    app_dir: &std::path::Path,
+    executable: &str,
+    month: &str,
+    spent: &crate::plugin::PluginQuota,
+) -> Result<PluginMonthQuota> {
+    let mut kept: Map<String, Value> = std::fs::read_to_string(quota_file(app_dir))
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_default();
+    let before: Option<PluginMonthQuota> = kept
+        .get(executable)
+        .and_then(|value| serde_json::from_value(value.clone()).ok())
+        .filter(|one: &PluginMonthQuota| one.month == month && one.unit == spent.unit);
+    let now = PluginMonthQuota {
+        month: month.to_owned(),
+        used: before.as_ref().map_or(0.0, |one| one.used) + spent.used,
+        left: spent.left.or(before.and_then(|one| one.left)),
+        unit: spent.unit.clone(),
+    };
+    kept.insert(executable.to_owned(), serde_json::to_value(&now)?);
+    std::fs::create_dir_all(app_dir)?;
+    std::fs::write(quota_file(app_dir), serde_json::to_string_pretty(&kept)?)?;
+    Ok(now)
+}
+
 /// What the window is shown of a secret that is set: that it is, never what.
 pub const SET_SECRET: &str = "••••••";
 
@@ -338,5 +402,51 @@ mod tests {
         set_secret(app.path(), "kilna-plugin-suno", "token", None).unwrap();
         assert!(secrets(app.path(), "kilna-plugin-suno").is_empty());
         assert!(secrets(app.path(), "kilna-plugin-other").is_empty());
+    }
+
+    /// A month's spending is summed over its runs and starts again with
+    /// the next month (v0.158).
+    #[test]
+    fn a_months_spending_is_summed_and_a_new_month_starts_afresh() {
+        let app = tempfile::tempdir().unwrap();
+        let spent = |used: f64, left: Option<f64>| crate::plugin::PluginQuota {
+            used,
+            left,
+            unit: "credits".into(),
+        };
+        count_quota(
+            app.path(),
+            "kilna-plugin-suno",
+            "2026-11",
+            &spent(10.0, Some(490.0)),
+        )
+        .unwrap();
+        let now = count_quota(
+            app.path(),
+            "kilna-plugin-suno",
+            "2026-11",
+            &spent(5.0, None),
+        )
+        .unwrap();
+        assert!((now.used - 15.0).abs() < f64::EPSILON);
+        assert_eq!(
+            now.left,
+            Some(490.0),
+            "the last word on what is left stands"
+        );
+
+        assert_eq!(quotas(app.path(), "2026-11").len(), 1);
+        assert!(
+            quotas(app.path(), "2026-12").is_empty(),
+            "last month is not this one's"
+        );
+        let next = count_quota(
+            app.path(),
+            "kilna-plugin-suno",
+            "2026-12",
+            &spent(2.0, Some(58.0)),
+        )
+        .unwrap();
+        assert!((next.used - 2.0).abs() < f64::EPSILON);
     }
 }

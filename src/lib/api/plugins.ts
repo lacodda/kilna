@@ -7,6 +7,7 @@ import type {
   PluginBatchProgress,
   PluginBatchReport,
   PluginCandidate,
+  PluginMonthQuota,
   PluginProgress,
   PluginReply,
 } from '@/lib/api/types'
@@ -14,8 +15,8 @@ import type {
 // Plugins: programs beside kilna that act on a work.
 
 /** Where a plugin's command is offered: a release, a work's head, a work's Cuts
- *  tab, or its Score tab. */
-export type PluginTarget = 'release' | 'work' | 'cuts' | 'score'
+ *  tab, its Score tab, or its Cover tab (v0.158). */
+export type PluginTarget = 'release' | 'work' | 'cuts' | 'score' | 'cover'
 
 export const listPlugins = () => invoke<Plugin[]>('list_plugins')
 
@@ -71,3 +72,6 @@ export const onPluginBatch = (
   handler: (progress: PluginBatchProgress) => void,
 ): Promise<UnlistenFn> =>
   listen<PluginBatchProgress>('plugin-batch', (event) => handler(event.payload))
+
+/** What each plugin's service was spent this month, by executable (v0.158). */
+export const pluginQuotas = () => invoke<Record<string, PluginMonthQuota>>('plugin_quotas')

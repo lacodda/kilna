@@ -40,7 +40,7 @@ pub fn subject(conn: &Connection, target: Target, id: &str) -> Result<Value> {
         Target::Release => Ok(serde_json::to_value(
             release::get(conn, id)?.ok_or_else(|| Error::not_found("release", id))?,
         )?),
-        Target::Work | Target::Cuts | Target::Score => {
+        Target::Work | Target::Cuts | Target::Score | Target::Cover => {
             let found = work::get(conn, id)?.ok_or_else(|| Error::not_found("work", id))?;
             let config = crate::profile::config_for(conn, &found.profile_id)?;
             let mut value = serde_json::to_value(&found)?;
@@ -116,6 +116,20 @@ pub fn subject(conn: &Connection, target: Target, id: &str) -> Result<Value> {
                         serde_json::to_value(&config.vocabulary(&found.kind).axes)?,
                     );
                 }
+                // What a picture generator draws from (v0.158): the cover's
+                // prompt as the Cover tab writes it, for its shape.
+                if target == Target::Cover {
+                    let view = crate::cover::read::view(conn, id, None)?;
+                    object.insert(
+                        "picture".into(),
+                        json!({
+                            "prompt": view.prompts.picture,
+                            "negative": view.prompts.negative,
+                            "typography": view.prompts.typography,
+                            "aspect_ratio": view.format,
+                        }),
+                    );
+                }
             }
             Ok(value)
         }
@@ -165,7 +179,7 @@ pub fn keep(
                 },
             )?;
         }
-        Target::Work | Target::Cuts | Target::Score => {
+        Target::Work | Target::Cuts | Target::Score | Target::Cover => {
             // Only the plugin's own keys: a work's fields merge by key, so the
             // rest cannot be cleared and the undo takes back exactly what the
             // plugin wrote.
@@ -195,6 +209,26 @@ pub fn keep(
 /// nothing. Returns the file made that is now the work's finished file,
 /// found by the rule or chosen for it - what the window says once a cut is
 /// done.
+/// A picture a generator made, set beside the work's cover to choose from
+/// (v0.158): copied into the space as a cover candidate. A file that is no
+/// picture is left out.
+pub fn keep_picture(conn: &Connection, media: &Path, work_id: &str, file: &str) -> Result<bool> {
+    if !crate::actions::media::MediaRole::CandidateCover.fits(file) {
+        return Ok(false);
+    }
+    super::asset::attach(
+        conn,
+        media,
+        file,
+        crate::asset::NewAsset {
+            work_id: Some(work_id.to_owned()),
+            kind: Some(crate::asset::CANDIDATE.to_owned()),
+            ..crate::asset::NewAsset::default()
+        },
+    )?;
+    Ok(true)
+}
+
 pub fn keep_files(conn: &Connection, id: &str, files: &[String]) -> Result<Option<String>> {
     if files.is_empty() {
         return Ok(None);
@@ -456,6 +490,29 @@ mod tests {
 
         let plain = subject(&conn, Target::Work, &song.id).unwrap();
         assert!(plain.get("axes").is_none());
+    }
+
+    /// A picture generator is handed what the Cover tab would copy, for the
+    /// cover's shape (v0.158).
+    #[test]
+    fn a_picture_generator_is_handed_the_covers_prompt_and_shape() {
+        let (conn, profile_id) = crate::fixtures::workspace();
+        let video = crate::fixtures::work(&conn, &profile_id, "video", "Dawn");
+        let handed = subject(&conn, Target::Cover, &video.id).unwrap();
+        let picture = handed.get("picture").expect("a picture to draw");
+        assert!(picture.get("prompt").is_some_and(Value::is_string));
+        assert!(
+            picture
+                .get("aspect_ratio")
+                .and_then(Value::as_str)
+                .is_some_and(|shape| !shape.is_empty())
+        );
+        assert!(
+            subject(&conn, Target::Work, &video.id)
+                .unwrap()
+                .get("picture")
+                .is_none()
+        );
     }
 
     /// A work's attached files travel with it - a track kept on its Files

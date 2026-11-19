@@ -69,7 +69,9 @@ Overview, `"release"` under a release's row in the
 [Releases tab](/kilna/guides/planning-a-release/), `"cuts"` on a work's
 [Cuts tab](/kilna/guides/shorts/#the-cut-list) - where a cutter belongs - and
 `"score"` on a work's [Score tab](/kilna/guides/scoring-a-work/), where a judge
-does.
+does, and since v0.158 `"cover"` on a work's [Cover tab](/kilna/guides/the-cover/),
+where a picture generator does - see
+[Generating pictures](#generating-pictures).
 
 `timeout` is how many seconds the command may run - see
 [How long a plugin may take](#how-long-a-plugin-may-take). `"batch": true`
@@ -230,7 +232,10 @@ exiting:
   first file inside the work's folder the finished one.
 - `quota` — what the run spent of its service's allowance (v0.155). Optional.
   `used` and `unit` (`{ "used": 10, "left": 490, "unit": "credits" }`), `left`
-  when the service says. The window says it; kilna keeps nothing of it.
+  when the service says. The window says it, and since v0.158 kilna sums
+  `used` over the month on this machine and keeps the last `left`: **Settings
+  → Plugins** shows *This month: 15 credits spent, 485 left* under the plugin.
+  A new month, or another unit, starts the count again.
 - `error` — set this instead of the above to report failure without needing a
   non-zero exit code; kilna surfaces it as the command's error.
 
@@ -258,6 +263,29 @@ has not gone out.
 
 A batch's run gets no progress bar of its own - kilna shows how many works are
 done - so a plugin need not change anything to be run in one.
+
+## Generating pictures
+
+A picture generator - by convention named `kilna-plugin-image-<provider>` -
+offers its command on `"cover"` (v0.158). Beside everything a work's command is
+handed, it gets `picture`: what the Cover tab would copy, for the shape the
+cover is written for.
+
+```jsonc
+"picture": {
+  "prompt": "Paper lanterns over a river at night, warm light, …",
+  "negative": "text, watermark, extra fingers",
+  "typography": null,
+  "aspect_ratio": "16:9"
+}
+```
+
+How many pictures to make, which model and the provider's key are the
+plugin's own [settings](#settings) - the key marked `"secret": true`. Every
+picture it returns, as `files` or in `candidates`, is copied into the space
+and set beside the work's cover to choose from on the Cover tab; nothing
+becomes the cover until the person picks it. A file that is not a picture is
+left out.
 
 ## How metadata is merged
 

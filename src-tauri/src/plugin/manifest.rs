@@ -274,12 +274,18 @@ pub enum Target {
     /// handed and the axes to judge along; what it returns as `score` is a
     /// proposal, which the person keeps or does not.
     Score,
+    /// Offered on a work's Cover tab (v0.158, FR-21 21.1 p.3): a picture
+    /// generator, `kilna-plugin-image-*`. Handed what a work is handed and
+    /// `picture` - the prompt, the negative, the lettering and the
+    /// `aspect_ratio` the cover is written for; every picture it returns, its
+    /// candidates' too, is set beside the cover to choose from.
+    Cover,
 }
 
 impl Target {
     /// Whether the command acts on a work, whichever tab offers it.
     pub fn is_work(self) -> bool {
-        matches!(self, Self::Work | Self::Cuts | Self::Score)
+        matches!(self, Self::Work | Self::Cuts | Self::Score | Self::Cover)
     }
 }
 
