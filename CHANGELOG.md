@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.161.0] - 2026-11-19
+
+The channel's own voice. A drafted reply now speaks as the space's passport
+says in its voice section, beside the replies already posted, and comes back
+as three replies in the commenter's language - live speech, no long dashes,
+never echoing the commenter - each translated into the window's language,
+with the comment's own translation and what in it a literal reading misses.
+The one chosen is kept, in the chat or on the comment. Screenshots copied at
+once are read as one batch, and typed text can be several comments, one per
+paragraph.
+
+### Features
+- Replies in the channel's own voice, three ways and translated
+
 ## [0.160.0] - 2026-11-19
 
 How a release did. YouTube Studio's Advanced-mode export - views,
