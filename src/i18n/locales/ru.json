@@ -4255,6 +4255,9 @@
       "badMinutes": "Приёмник ждёт от 1 до {{most}} минут, а не {{value}}.",
       "noFolder": "Папки «{{path}}» нет - ждать файл негде.",
       "noDownloads": "Система не называет папку загрузок - выберите папку в Настройках."
+    },
+    "studio": {
+      "notAVideoLink": "«{{url}}» - не ссылка на видео YouTube."
     }
   },
   "proposalBody": {
@@ -6334,5 +6337,38 @@
     "trashAction_few": "Разложить и выбросить {{count}}",
     "trashAction_many": "Разложить и выбросить {{count}}",
     "trashAction_other": "Разложить и выбросить {{count}}"
+  },
+  "studio": {
+    "open": "YouTube Studio…",
+    "title": "Выкладка в YouTube Studio",
+    "titleStep": "YouTube Studio · {{step}} из {{of}}",
+    "nothing": "Здесь нечего выкладывать на YouTube: нужен ещё не вышедший выпуск с готовым видео.",
+    "skip": {
+      "noRelease": "на YouTube не выходит",
+      "released": "уже вышел",
+      "noVideo": "видео ещё не готово"
+    },
+    "noDate": "день не назначен",
+    "summer": "Переход на летнее/зимнее время: в тот день смещение {{then}}, а не {{now}}, как сегодня.",
+    "showVideo": "Показать видео",
+    "showCover": "Показать обложку",
+    "openFolder": "Открыть папку",
+    "date": "Дата",
+    "time": "Время",
+    "empty": "пусто",
+    "copy": "Копировать",
+    "copied": "Скопировано",
+    "copyField": "Копировать: {{label}}",
+    "linkLabel": "Ссылка, которую дал YouTube",
+    "keepAndNext": "Сохранить ссылку и дальше →",
+    "notALink": "Это не ссылка на видео YouTube.",
+    "skipStep": "Пропустить",
+    "released": "Отмечен вышедшим, ссылка сохранена.",
+    "booked": "Ссылка сохранена; выйдет в свой день.",
+    "linkFailed": "Не удалось сохранить ссылку.",
+    "done_one": "Готово: сохранена {{count}} ссылка.",
+    "done_few": "Готово: сохранены {{count}} ссылки.",
+    "done_many": "Готово: сохранено {{count}} ссылок.",
+    "done_other": "Готово: сохранено {{count}} ссылки."
   }
 }

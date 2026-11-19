@@ -4000,6 +4000,9 @@
       "badMinutes": "A receiver waits from 1 to {{most}} minutes, not {{value}}.",
       "noFolder": "The folder “{{path}}” is not there to wait in.",
       "noDownloads": "This system names no Downloads folder; choose the folder in Settings."
+    },
+    "studio": {
+      "notAVideoLink": "“{{url}}” is not a link to a video on YouTube."
     }
   },
   "proposalBody": {
@@ -5917,5 +5920,36 @@
     "trashTitle_other": "Let {{count}} files go?",
     "trashAction_one": "Sort, and let {{count}} go",
     "trashAction_other": "Sort, and let {{count}} go"
+  },
+  "studio": {
+    "open": "YouTube Studio…",
+    "title": "Putting out in YouTube Studio",
+    "titleStep": "YouTube Studio · {{step}} of {{of}}",
+    "nothing": "Nothing here is ready to put out on YouTube: a release still to go out, with its video made.",
+    "skip": {
+      "noRelease": "nothing goes out on YouTube",
+      "released": "already out",
+      "noVideo": "its video is not made yet"
+    },
+    "noDate": "no day set",
+    "summer": "Summer time: that day the offset is {{then}}, not {{now}} as today.",
+    "showVideo": "Show the video",
+    "showCover": "Show the cover",
+    "openFolder": "Open the folder",
+    "date": "Date",
+    "time": "Time",
+    "empty": "empty",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyField": "Copy {{label}}",
+    "linkLabel": "The link YouTube gave",
+    "keepAndNext": "Keep the link and go on →",
+    "notALink": "This is not a link to a video on YouTube.",
+    "skipStep": "Skip this one",
+    "released": "Marked out, with its link.",
+    "booked": "Its link is kept; it goes out on its day.",
+    "linkFailed": "The link could not be kept.",
+    "done_one": "Done: {{count}} link kept.",
+    "done_other": "Done: {{count}} links kept."
   }
 }

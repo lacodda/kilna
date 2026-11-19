@@ -64,6 +64,7 @@ pub mod shelf;
 pub mod space;
 pub mod speech;
 pub mod state;
+pub mod studio;
 pub mod style_brick;
 pub mod style_proposal;
 pub mod style_set;
@@ -656,6 +657,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::matcher::match_media,
             commands::matcher::media_preview,
             commands::matcher::take_media_batch,
+            commands::studio::studio_pack,
+            commands::studio::studio_link,
             commands::works::works_media,
             commands::plugins::build_sources,
         ])

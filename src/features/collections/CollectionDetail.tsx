@@ -36,6 +36,7 @@ import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { CollectionTable } from './CollectionTable'
 import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
 import { BatchMatcher } from '@/features/receiver/BatchMatcher'
+import { StudioPack } from '@/features/releases/StudioPack'
 import { BulkPlugins } from '@/features/catalogue/BulkPlugins'
 import { GoalLine } from './GoalLine'
 import { useCollectionGestures } from './useCollectionGestures'
@@ -70,6 +71,8 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
   const [checking, setChecking] = useState(false)
   // A heap of takes and covers sorted into the collection's works (v0.157).
   const [sorting, setSorting] = useState(false)
+  // The collection's ready releases put out by hand (v0.159).
+  const [publishing, setPublishing] = useState(false)
   // The works as a table to fill in (v0.152), and the days they are planned
   // on - a draft's day is its slot's.
   const [asTable, setAsTable] = useState(false)
@@ -231,6 +234,9 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
           <BulkPlugins workIds={order} inBar={false} />
           <Button size="sm" variant="ghost" onClick={() => setSorting(true)}>
             {t('matcher.open')}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setPublishing(true)}>
+            {t('studio.open')}
           </Button>
           <span className="ml-auto font-mono text-xs text-faint">
             {t('collections.held', { count: progress.held })}
@@ -458,6 +464,7 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
           title={t('quota.titleCollection', { title: collection.title })}
         />
       )}
+      {publishing && <StudioPack workIds={order} onClose={() => setPublishing(false)} />}
       {sorting && (
         <BatchMatcher
           collectionId={collection.id}

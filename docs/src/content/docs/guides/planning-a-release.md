@@ -469,6 +469,31 @@ the terms the agent proposed for the register, and one undo takes it back. In a 
 [table](/kilna/guides/collections/#an-open-collection) each row then copies
 its prompt and its cover, and **Copy the month** copies them all.
 
+## Putting out in YouTube Studio by hand
+
+The YouTube API's quota is often nothing, and a robot filling YouTube Studio's
+form is how a channel gets banned - so since v0.159 kilna's way of putting a
+batch out on YouTube is a walk through it by hand. **YouTube Studio…** under
+a collection, or in the catalogue's bar of ticked works, takes the releases
+that are still to go out on YouTube and have their video made, in the order
+they go out; the rest are named at the end with why (nothing goes out on
+YouTube, already out, no video yet).
+
+Each release is one step:
+
+- **Show the video** and **Show the cover** open the folder with the file
+  picked, to drag into the browser; **Open the folder** opens the work's.
+- Every field - the date and the time, the title, the description, the tags,
+  the playlists - has **Copy** beside it, which turns to **Copied** once the
+  clipboard took it, so a skipped field shows.
+- The day and time are in the channel's zone, with its offset. When summer
+  time makes that day's offset another than today's, it is said in so many
+  words: YouTube Studio asks in your machine's zone.
+- Paste the link YouTube gave and **Keep the link and go on →**: a link that
+  is not a video's is refused before the press. A release whose day has come
+  is marked out with it; one booked for later keeps the link and goes out on
+  its day. **Skip this one** goes on without a link.
+
 ## Time off
 
 Some days nothing should go out on: a holiday, a fortnight away, the week of
