@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.157.0] - 2026-11-19
+
+A heap sorted. Takes and covers downloaded in a row are dropped on «Sort
+files…» - in the catalogue, or under a collection for its works - and
+matched to their works without guessing: by the work's id in a name, a
+track's tags, the title, the first words of the cover's prompt. A table
+shows each with how sure and what it becomes; nothing moves until it is
+confirmed, and a second download goes to the recycle bin only when let go.
+Pictures named by a moment alone go to the assistant, which looks at them
+and answers with a proposal - each picture's work, why, and how sure - to
+tick and apply.
+
+### Features
+- Sort a heap of files into their works
+
 ## [0.156.0] - 2026-11-19
 
 Files coming in. A copy button in a month's table copies the prompt and arms
