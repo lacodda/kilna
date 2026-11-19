@@ -495,6 +495,8 @@ export type CardPromptProposal = Extract<Proposal, { kind: 'cardPrompt' }>
 export type CoverIdeasProposal = Extract<Proposal, { kind: 'coverIdeas' }>
 export type TrialsProposal = Extract<Proposal, { kind: 'trials' }>
 export type CardsProposal = Extract<Proposal, { kind: 'cards' }>
+export type MonthProposal = Extract<Proposal, { kind: 'month' }>
+export type { MonthItem } from './generated/MonthItem'
 export type WordsProposal = Extract<Proposal, { kind: 'words' }>
 export type BricksProposal = Extract<Proposal, { kind: 'bricks' }>
 export type StylesProposal = Extract<Proposal, { kind: 'styles' }>

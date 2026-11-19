@@ -326,6 +326,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::canon::quota::QuotaReport,
         kilna_lib::canon::bank::BankUse,
         kilna_lib::canon::bank::BankState,
+        kilna_lib::assistant::proposal::MonthItem,
         // error.rs - carried inside `Skipped` and every refusal reason
         kilna_lib::error::Reason,
     };

@@ -212,9 +212,11 @@ fn params_written() -> BTreeMap<String, BTreeSet<String>> {
         // lines up is binding. Looking back a short way covers both without
         // parsing Rust.
         let before = &source[..index];
+        // Thirty lines: the proposals' `match` in mcp.rs grows an arm with
+        // every kind of proposal (a month's, v0.153, put its last past 20).
         let assigned = before
             .rsplit('\n')
-            .take(20)
+            .take(30)
             .any(|line| line.contains("let ") && !line.trim_start().starts_with("//"));
         let window = if assigned {
             &rest[..rest.find("\n}").unwrap_or(rest.len())]

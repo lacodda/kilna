@@ -130,6 +130,11 @@ const proposalOf = (message: Message): Proposal | null => {
       return Array.isArray((proposal as Partial<{ trials: unknown }>).trials)
         ? (proposal as Proposal)
         : null
+    // A month's drafts in one pass (v0.153), applied whole.
+    case 'month':
+      return Array.isArray((proposal as Partial<{ items: unknown }>).items)
+        ? (proposal as Proposal)
+        : null
     // Cards for a board of a conception (v0.99), put on the board.
     case 'cards':
       return Array.isArray((proposal as Partial<{ cards: unknown }>).cards)
@@ -289,7 +294,8 @@ export function offers(item: Exchange, onWork: boolean): Offers {
     kind === 'description' ||
     kind === 'coverIdeas' ||
     kind === 'trials' ||
-    kind === 'cards'
+    kind === 'cards' ||
+    kind === 'month'
   return {
     insert: onWork && settled && !ownCard,
     keep: settled && !ownCard && kind !== 'note',

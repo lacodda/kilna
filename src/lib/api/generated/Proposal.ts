@@ -4,6 +4,7 @@ import type { BricksPackage } from "./BricksPackage";
 import type { CardDropped } from "./CardDropped";
 import type { IdeaDropped } from "./IdeaDropped";
 import type { Marks } from "./Marks";
+import type { MonthItem } from "./MonthItem";
 import type { Package } from "./Package";
 import type { PackagedBoard } from "./PackagedBoard";
 import type { PackagedCard } from "./PackagedCard";
@@ -137,4 +138,12 @@ directions?: Array<string>,
  * What the answer named that the board does not have, left out of
  * its card and said rather than dropped silently.
  */
-dropped?: Array<CardDropped>, };
+dropped?: Array<CardDropped>, } | { "kind": "month", 
+/**
+ * The collection the month gathers in, when it has one.
+ */
+collection_id?: string, 
+/**
+ * The month itself, `YYYY-MM`, when the works are read by their days.
+ */
+month?: string, items: Array<MonthItem>, };

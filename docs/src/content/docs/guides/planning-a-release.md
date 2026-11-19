@@ -452,6 +452,21 @@ month's arc, a tradition from the bank's free items for each draft, the
 neighbouring channels' pictures of the same day kept apart, and the quotas
 checked.
 
+### A month in one pass
+
+The drafts of a month are written together, not one chat at a time: an agent
+that reads the passport, the quotas, the bank's free items, the register and
+the neighbouring channels' days answers with **propose_batch_prompts** - a
+title, the fields and the Suno prompt for every draft, and the tradition each
+takes from the bank. The proposal waits in the agent's chat with a
+**checklist**: the space's [quotas](/kilna/guides/the-canon/#quotas-and-banks)
+read over the month as it would stand, before anything is written - a prompt
+too short, a playlist used too often, a title saying a forbidden word - each
+named with the work and the numbers. **Apply all** writes the whole month,
+marks the bank, and one undo takes it back. In a month's
+[table](/kilna/guides/collections/#an-open-collection) each row then copies
+its prompt and its cover, and **Copy the month** copies them all.
+
 ## Time off
 
 Some days nothing should go out on: a holiday, a fortnight away, the week of

@@ -333,6 +333,59 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         dropped: Vec<crate::board::answer::Dropped>,
     },
+    /// A month's drafts written in one pass (v0.153, FR-20 20.4): for each
+    /// work its title, its fields and its texts, and the items of the bank
+    /// it takes - read against the space's quotas before it is applied, and
+    /// applied together, one undo. Made by an agent outside the window
+    /// (`propose_batch_prompts`), into the chat named after it.
+    Month {
+        /// The collection the month gathers in, when it has one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        collection_id: Option<String>,
+        /// The month itself, `YYYY-MM`, when the works are read by their days.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        month: Option<String>,
+        items: Vec<MonthItem>,
+    },
+}
+
+/// One work of a month's proposal.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct MonthItem {
+    pub work_id: String,
+    /// What the work is called now, for the card that shows the proposal.
+    pub work_title: String,
+    /// The title it is given, when it is renamed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub title: Option<String>,
+    /// Overview field key to value, checked against the profile.
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub fields: Map<String, Value>,
+    /// Texts by role - a Suno prompt, a lyric - each the role's current.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub versions: Vec<PackagedVersion>,
+    /// The items of the space's banks it takes, by fact id: each marked used
+    /// by the work on its planned day when the month is applied.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bank: Vec<String>,
+}
+
+impl MonthItem {
+    /// What the item would write, by field as the quotas name fields: its
+    /// title, its fields, its texts by role.
+    pub fn proposed(&self) -> Map<String, Value> {
+        let mut out = self.fields.clone();
+        if let Some(title) = &self.title {
+            out.insert("title".into(), Value::String(title.clone()));
+        }
+        for version in &self.versions {
+            out.insert(version.role.clone(), Value::String(version.body.clone()));
+        }
+        out
+    }
 }
 
 /// What a scenes proposal does to the board already on the work.

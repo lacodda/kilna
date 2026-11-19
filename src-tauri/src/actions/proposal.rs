@@ -542,6 +542,25 @@ pub fn check(
                 }
             }
         },
+        // A month (v0.153): every work still there and of a kind that has
+        // the roles it is written in, every bank item still an item.
+        Proposal::Month { items, .. } => {
+            for item in items {
+                match work::get(conn, &item.work_id)? {
+                    None => note(Err(Error::not_found("work", &item.work_id))),
+                    Some(found) => {
+                        for version in &item.versions {
+                            note(config.require_role(&found.kind, &version.role));
+                        }
+                    }
+                }
+                for fact_id in &item.bank {
+                    if crate::canon::fact::get(conn, fact_id)?.is_none() {
+                        note(Err(Error::not_found("fact", fact_id)));
+                    }
+                }
+            }
+        }
         Proposal::Cards {
             work_id,
             board,
@@ -1018,6 +1037,47 @@ fn keep(
             outcome.work_id = Some(work_id);
         }
 
+        // A month (v0.153): each work renamed, its fields merged, its texts
+        // kept as the current of their roles, and the bank items it takes
+        // marked used on the day it is planned for - all in this one unit.
+        Proposal::Month { items, .. } => {
+            for item in items {
+                let mut patch = WorkPatch::default();
+                if let Some(title) = item.title.clone().filter(|t| !t.trim().is_empty()) {
+                    patch.title = Some(title.trim().to_owned());
+                }
+                if !item.fields.is_empty() {
+                    outcome.fields.extend(item.fields.keys().cloned());
+                    patch.meta = Some(item.fields.clone());
+                }
+                if patch.title.is_some() || patch.meta.is_some() {
+                    super::work::update(conn, &item.work_id, patch)?;
+                }
+                for packaged in item.versions {
+                    let created = super::version::create(
+                        conn,
+                        &item.work_id,
+                        NewVersion {
+                            role: packaged.role,
+                            body: packaged.body,
+                            label: packaged.label,
+                            meta: None,
+                            make_current: false,
+                            parent_version_id: None,
+                            trial_id: None,
+                        },
+                    )?;
+                    outcome.versions.push(created.id);
+                }
+                let day = crate::work_plan::of_work(conn, &item.work_id)?
+                    .map(|plan| plan.scheduled_at)
+                    .unwrap_or_else(|| crate::time::now().get(..10).unwrap_or_default().to_owned());
+                for fact_id in item.bank {
+                    let used = super::canon::use_bank_item(conn, &fact_id, &item.work_id, &day)?;
+                    outcome.facts.push(used.id);
+                }
+            }
+        }
         Proposal::Cards {
             work_id,
             board,

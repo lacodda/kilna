@@ -634,6 +634,28 @@ fn tools() -> Vec<Value> {
             &[],
         ),
         tool(
+            "propose_batch_prompts",
+            "Propose a month's drafts written in one pass (v0.153): for each work its title, \
+             its overview fields, its texts by role (a Suno prompt, a lyric) and the items of \
+             the bank it takes, by name - one proposal into the chat named after you, which \
+             the person applies whole after reading the checklist the space's quotas give over \
+             the month as it would stand. Name the month with `collection` (an id or its exact \
+             title) or `month` (YYYY-MM), so the checklist reads its works together. Read \
+             `quotas`, the passport's bank and `register` first; a field the profile does not \
+             have and a bank item it does not keep are named and left out, an unknown work or \
+             role refuses the whole proposal. Nothing is written until the person applies it.",
+            json!({
+                "collection": text_arg("The month's collection, by id or exact title"),
+                "month": text_arg("The month, YYYY-MM"),
+                "works": {
+                    "type": "array",
+                    "description": "Each: {work (id or exact title), title?, fields?: {key: value}, versions?: [{role, body}], bank?: [item names]}",
+                    "items": { "type": "object" },
+                },
+            }),
+            &["works"],
+        ),
+        tool(
             "quotas",
             "The space's rules checked over works (v0.151): the facts of the passport's quotas \
              section, each a machine predicate - a field, a metric, a comparison, the works it \
@@ -2136,6 +2158,153 @@ pub fn run_tool(
                 answer["cross_spaces"] = Value::Array(found);
             }
             pretty(&answer)
+        }
+
+        "propose_batch_prompts" => {
+            let collection_id = match arg(args, "collection") {
+                Some(named) => {
+                    let named = named.trim();
+                    let found = crate::collection::list(conn, &profile.id)?
+                        .into_iter()
+                        .find(|one| one.id == named || one.title.trim() == named)
+                        .ok_or_else(|| Error::not_found("collection", named))?;
+                    Some(found.id)
+                }
+                None => None,
+            };
+            let month = arg(args, "month").map(|month| month.trim().to_owned());
+            if let Some(month) = &month {
+                crate::period::month_of(month)?;
+            }
+            // The bank's items by name, case aside, across the space's banks.
+            let mut items_by_name: Vec<(String, String)> = Vec::new();
+            for kind in config.note_kinds.iter().filter(|kind| kind.is_card()) {
+                for section in kind
+                    .sections
+                    .iter()
+                    .filter(|section| section.shape == crate::profile::config::SectionShape::Bank)
+                {
+                    for card in crate::note::list(
+                        conn,
+                        &profile.id,
+                        &NoteFilter {
+                            kind: Some(kind.key.clone()),
+                            ..NoteFilter::default()
+                        },
+                    )? {
+                        for fact in crate::canon::fact::in_section(conn, &card.id, &section.key)? {
+                            items_by_name.push((fact.body.trim().to_lowercase(), fact.id));
+                        }
+                    }
+                }
+            }
+            let mut items = Vec::new();
+            let mut left_out: Vec<String> = Vec::new();
+            let mut body = String::new();
+            for raw in args
+                .get("works")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let raw = raw.as_object().cloned().unwrap_or_default();
+                let found = find_work(conn, &profile.id, required(&raw, "work")?)?;
+                let (fields, unknown) = proposal::fields_from(
+                    raw.get("fields")
+                        .and_then(Value::as_object)
+                        .cloned()
+                        .unwrap_or_default(),
+                    &config,
+                );
+                left_out.extend(
+                    unknown
+                        .into_iter()
+                        .map(|key| format!("{} ({key})", found.title)),
+                );
+                let mut versions = Vec::new();
+                for version in raw
+                    .get("versions")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    let version = version.as_object().cloned().unwrap_or_default();
+                    let role = required(&version, "role")?;
+                    config.require_role(&found.kind, role)?;
+                    versions.push(PackagedVersion {
+                        role: role.to_owned(),
+                        body: required(&version, "body")?.to_owned(),
+                        label: None,
+                        from: None,
+                    });
+                }
+                let mut bank = Vec::new();
+                for name in raw
+                    .get("bank")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    let name = name.as_str().unwrap_or_default().trim();
+                    match items_by_name
+                        .iter()
+                        .find(|(known, _)| *known == name.to_lowercase())
+                    {
+                        Some((_, id)) => bank.push(id.clone()),
+                        None => left_out.push(format!("{} (bank: {name})", found.title)),
+                    }
+                }
+                let title = arg(&raw, "title").map(str::to_owned);
+                body.push_str(&format!(
+                    "### {}\n",
+                    title.as_deref().unwrap_or(&found.title)
+                ));
+                for (key, value) in &fields {
+                    let said = value
+                        .as_str()
+                        .map_or_else(|| value.to_string(), str::to_owned);
+                    body.push_str(&format!("- {key}: {said}\n"));
+                }
+                for version in &versions {
+                    body.push_str(&format!(
+                        "\n{}:\n\n```\n{}\n```\n",
+                        version.role, version.body
+                    ));
+                }
+                body.push('\n');
+                items.push(proposal::MonthItem {
+                    work_id: found.id.clone(),
+                    work_title: found.title.clone(),
+                    title,
+                    fields,
+                    versions,
+                    bank,
+                });
+            }
+            if items.is_empty() {
+                return Err(Error::refused("proposal.monthEmpty"));
+            }
+            let count = items.len();
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                None,
+                Proposal::Month {
+                    collection_id,
+                    month,
+                    items,
+                },
+                body.trim_end(),
+                None,
+            )?;
+            let mut said = format!(
+                "Proposed {count} works of the month in one proposal. It waits in the chat named after you, with the checklist the quotas give; one click applies all of it."
+            );
+            if !left_out.is_empty() {
+                said.push_str(&format!(" Left out: {}.", left_out.join("; ")));
+            }
+            Ok(said)
         }
 
         "quotas" => {
@@ -4099,6 +4268,7 @@ fn deliver(
         (Proposal::CoverIdeas { .. }, _) => Record::new("proposal.coverIdeas"),
         (Proposal::Trials { .. }, _) => Record::new("proposal.trials"),
         (Proposal::Cards { .. }, _) => Record::new("proposal.cards"),
+        (Proposal::Month { .. }, _) => Record::new("proposal.month"),
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
@@ -6730,5 +6900,111 @@ mod tests {
             &args(json!({ "collection": "Nowhere" })),
         );
         assert!(missing.is_err());
+    }
+
+    /// A month's drafts proposed at once (v0.153): the checklist reads the
+    /// month as it would stand, and one click writes every work and marks
+    /// the bank; one undo takes the month back.
+    #[test]
+    fn a_month_is_proposed_checked_and_applied_in_one() {
+        let conn = crate::db::open_in_memory().unwrap();
+        profile::seed(&conn, "track-channel").unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let channel = fixtures::card(&conn, &profile_id, "channel", "The channel");
+        let fact = |section: &str, body: &str, data: Value| {
+            crate::canon::fact::create_minted(
+                &conn,
+                crate::canon::NewFact {
+                    note_id: channel.id.clone(),
+                    section: section.into(),
+                    body: body.into(),
+                    data: data.as_object().cloned().unwrap(),
+                    ..crate::canon::NewFact::default()
+                },
+                crate::minted::Minted::fresh(),
+            )
+            .unwrap()
+        };
+        let mande = fact("bank", "Mande", json!({ "cooldown_months": 6 }));
+        fact(
+            "quotas",
+            "Suno prompt length",
+            json!({ "field": "suno_prompt", "metric": "char_len", "op": "min", "value": 20 }),
+        );
+        let first = fixtures::work(&conn, &profile_id, "track", "Draft one");
+        let second = fixtures::work(&conn, &profile_id, "track", "Draft two");
+
+        let said = run_tool(
+            &conn,
+            &claude(),
+            "propose_batch_prompts",
+            &args(json!({ "works": [
+                { "work": first.id, "title": "Kora at dawn", "fields": { "tradition": "Mande", "nonsense": 1 },
+                  "versions": [{ "role": "suno_prompt", "body": "kora, balafon" }], "bank": ["mande", "Atlantis"] },
+                { "work": "Draft two", "fields": { "mood": "calm" },
+                  "versions": [{ "role": "suno_prompt", "body": "slow strings over a warm sub bass" }] },
+            ] })),
+        )
+        .unwrap();
+        assert!(said.contains("Proposed 2 works"), "{said}");
+        assert!(said.contains("Atlantis"), "{said}");
+
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats.iter().find(|c| c.work_id.is_none()).unwrap();
+        let proposed = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        // The checklist: the first prompt is too short, as it would stand.
+        let crate::assistant::proposal::Proposal::Month { items, .. } =
+            crate::actions::proposal::stored_proposal(&proposed.meta).unwrap()
+        else {
+            panic!("not a month")
+        };
+        let overrides: crate::canon::quota::Proposed = items
+            .iter()
+            .map(|item| (item.work_id.clone(), item.proposed()))
+            .collect();
+        let report = crate::canon::quota::check_with(
+            &conn,
+            &crate::canon::quota::QuotaSubject::default(),
+            &overrides,
+        )
+        .unwrap();
+        let short: Vec<&str> = report
+            .findings
+            .iter()
+            .filter_map(|found| found.title.as_deref())
+            .collect();
+        assert_eq!(short, vec!["Draft one"], "{report:?}");
+
+        crate::actions::proposal::apply(&conn, &proposed.id, Default::default()).unwrap();
+        let renamed = work::get(&conn, &first.id).unwrap().unwrap();
+        assert_eq!(renamed.title, "Kora at dawn");
+        assert_eq!(renamed.meta.get("tradition"), Some(&json!("Mande")));
+        assert_eq!(
+            crate::work::version::for_role(&conn, &second.id, "suno_prompt")
+                .unwrap()
+                .unwrap()
+                .body,
+            "slow strings over a warm sub bass"
+        );
+        let used = crate::canon::fact::get(&conn, &mande.id).unwrap().unwrap();
+        assert_eq!(used.data["used_in"][0]["work_id"], json!(first.id));
+
+        let offer = crate::undo::last(&conn).unwrap().unwrap();
+        crate::undo::undo(&conn, &offer.operation_id).unwrap();
+        assert_eq!(
+            work::get(&conn, &first.id).unwrap().unwrap().title,
+            "Draft one"
+        );
+        assert!(
+            !crate::canon::fact::get(&conn, &mande.id)
+                .unwrap()
+                .unwrap()
+                .data
+                .contains_key("used_in")
+        );
     }
 }

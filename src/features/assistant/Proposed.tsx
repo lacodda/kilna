@@ -3,6 +3,7 @@ import { ProposedCanon, ProposedCardPrompt } from '@/features/assistant/Proposed
 import { ProposedCommentOrReply } from '@/features/assistant/ProposedCommentOrReply'
 import { ProposedCoverIdeas } from '@/features/assistant/ProposedCoverIdeas'
 import { ProposedCards } from '@/features/assistant/ProposedCards'
+import { ProposedMonth } from '@/features/assistant/ProposedMonth'
 import { ProposedTrials } from '@/features/assistant/ProposedTrials'
 import { ProposedDescription } from '@/features/assistant/ProposedDescription'
 import { ProposedNote } from '@/features/assistant/ProposedNote'
@@ -132,6 +133,15 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
     case 'coverIdeas':
       return (
         <ProposedCoverIdeas
+          messageId={messageId}
+          proposal={proposal}
+          applied={applied}
+          dismissed={dismissed}
+        />
+      )
+    case 'month':
+      return (
+        <ProposedMonth
           messageId={messageId}
           proposal={proposal}
           applied={applied}

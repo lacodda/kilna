@@ -2343,7 +2343,8 @@
     "work.markRaisedBatch_one": "“{{mark}}” raised on {{count}} work.",
     "work.markRaisedBatch_other": "“{{mark}}” raised on {{count}} works.",
     "work.markClearedBatch_one": "“{{mark}}” taken off {{count}} work.",
-    "work.markClearedBatch_other": "“{{mark}}” taken off {{count}} works."
+    "work.markClearedBatch_other": "“{{mark}}” taken off {{count}} works.",
+    "proposal.month": "{{client}} proposed the works of a month in one pass."
   },
   "card": {
     "tab": {
@@ -3441,7 +3442,9 @@
       "nothingTaken": "Nothing was chosen to take.",
       "unknownNoteKind": "“{{kind}}” is no kind of note here: a phrase or a note, as the workspace names them.",
       "noteGone": "The note “{{title}}” this would change is no longer there.",
-      "sceneBadBricks": "Scene {{index}} names its bricks in a shape kilna cannot read: {{why}}."
+      "sceneBadBricks": "Scene {{index}} names its bricks in a shape kilna cannot read: {{why}}.",
+      "monthEmpty": "A month proposed names at least one work.",
+      "notAMonth": "This proposal is not a month's."
     },
     "file": {
       "isDirectory": "{{path}} is a folder, not a file.",
@@ -5045,7 +5048,17 @@
     "viewTable": "Table",
     "table": "The works of {{title}}",
     "tableDay": "Day",
-    "tableTitle": "Title"
+    "tableTitle": "Title",
+    "tableCopy": "Copy",
+    "copySound": "Copy the prompt of «{{title}}»",
+    "copyCover": "Copy the cover of «{{title}}»",
+    "copyMonth": "Copy the month",
+    "copied": "Copied.",
+    "copiedSound": "Prompt",
+    "copiedCover": "Cover",
+    "nothingToCopy": "Nothing written yet to copy.",
+    "copiedMonth_one": "The month copied: {{count}} work.",
+    "copiedMonth_other": "The month copied: {{count}} works."
   },
   "phrases": {
     "known_one": "In the dictionary: {{count}}",
@@ -5734,5 +5747,22 @@
     "days_other": "{{count}} days",
     "ofTarget_one": "{{count}} of {{target}}",
     "ofTarget_other": "{{count}} of {{target}}"
+  },
+  "month": {
+    "checklist": "Checklist",
+    "checking": "Reading the quotas…",
+    "allHold": "Every rule holds: {{rules}} checked.",
+    "appliedMark": "Applied",
+    "proposed_one": "A month: {{count}} work in one pass",
+    "proposed_other": "A month: {{count}} works in one pass",
+    "applyAll_one": "Apply {{count}} work",
+    "applyAll_other": "Apply all {{count}}",
+    "applied_one": "{{count}} work written.",
+    "applied_other": "{{count}} works written.",
+    "breaches_one": "{{count}} breach - read before applying:",
+    "breaches_other": "{{count}} breaches - read before applying:",
+    "chatTitle": "The month: {{title}}",
+    "writeWithAssistant": "Write with the assistant",
+    "taskFailed": "The month could not be handed to the assistant."
   }
 }

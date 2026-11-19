@@ -2561,7 +2561,8 @@
     "work.markClearedBatch_one": "Метка «{{mark}}» снята с {{count}} работы.",
     "work.markClearedBatch_few": "Метка «{{mark}}» снята с {{count}} работ.",
     "work.markClearedBatch_many": "Метка «{{mark}}» снята с {{count}} работ.",
-    "work.markClearedBatch_other": "Метка «{{mark}}» снята с {{count}} работы."
+    "work.markClearedBatch_other": "Метка «{{mark}}» снята с {{count}} работы.",
+    "proposal.month": "{{client}} предложил работы месяца за один проход."
   },
   "card": {
     "tab": {
@@ -3688,7 +3689,9 @@
       "nothingTaken": "Ничего не выбрано.",
       "unknownNoteKind": "«{{kind}}» — не вид заметки здесь: фраза или заметка, как их называет пространство.",
       "noteGone": "Заметки «{{title}}», которую это должно изменить, больше нет.",
-      "sceneBadBricks": "Сцена {{index}} называет свои кирпичики в виде, который kilna не читает: {{why}}."
+      "sceneBadBricks": "Сцена {{index}} называет свои кирпичики в виде, который kilna не читает: {{why}}.",
+      "monthEmpty": "Предложение месяца называет хотя бы одну работу.",
+      "notAMonth": "Это предложение - не месяц."
     },
     "file": {
       "isDirectory": "{{path}} — папка, а не файл.",
@@ -5364,7 +5367,19 @@
     "viewTable": "Таблица",
     "table": "Работы подборки {{title}}",
     "tableDay": "День",
-    "tableTitle": "Название"
+    "tableTitle": "Название",
+    "tableCopy": "Копировать",
+    "copySound": "Копировать промпт «{{title}}»",
+    "copyCover": "Копировать обложку «{{title}}»",
+    "copyMonth": "Копировать месяц",
+    "copied": "Скопировано.",
+    "copiedSound": "Промпт",
+    "copiedCover": "Обложка",
+    "nothingToCopy": "Копировать пока нечего.",
+    "copiedMonth_one": "Месяц скопирован: {{count}} работа.",
+    "copiedMonth_few": "Месяц скопирован: {{count}} работы.",
+    "copiedMonth_many": "Месяц скопирован: {{count}} работ.",
+    "copiedMonth_other": "Месяц скопирован: {{count}} работы."
   },
   "phrases": {
     "known_one": "В словаре: {{count}}",
@@ -6113,5 +6128,30 @@
     "ofTarget_few": "{{count}} из {{target}}",
     "ofTarget_many": "{{count}} из {{target}}",
     "ofTarget_other": "{{count}} из {{target}}"
+  },
+  "month": {
+    "checklist": "Чек-лист",
+    "checking": "Сверяю с квотами…",
+    "allHold": "Все правила соблюдены: проверено {{rules}}.",
+    "appliedMark": "Применено",
+    "proposed_one": "Месяц: {{count}} работа за один проход",
+    "proposed_few": "Месяц: {{count}} работы за один проход",
+    "proposed_many": "Месяц: {{count}} работ за один проход",
+    "proposed_other": "Месяц: {{count}} работы за один проход",
+    "applyAll_one": "Применить {{count}} работу",
+    "applyAll_few": "Применить все {{count}}",
+    "applyAll_many": "Применить все {{count}}",
+    "applyAll_other": "Применить все {{count}}",
+    "applied_one": "Записана {{count}} работа.",
+    "applied_few": "Записаны {{count}} работы.",
+    "applied_many": "Записано {{count}} работ.",
+    "applied_other": "Записаны {{count}} работы.",
+    "breaches_one": "{{count}} нарушение - прочтите перед применением:",
+    "breaches_few": "{{count}} нарушения - прочтите перед применением:",
+    "breaches_many": "{{count}} нарушений - прочтите перед применением:",
+    "breaches_other": "{{count}} нарушения - прочтите перед применением:",
+    "chatTitle": "Месяц: {{title}}",
+    "writeWithAssistant": "Написать с ассистентом",
+    "taskFailed": "Не удалось передать месяц ассистенту."
   }
 }

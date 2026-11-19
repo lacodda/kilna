@@ -504,6 +504,20 @@ pub fn rules(conn: &Connection, profile_id: &str, config: &ProfileConfig) -> Res
 /// over its works together and by the rules of the space over all of them.
 /// The whole space is measured by the rules of each work and of the space.
 pub fn check(conn: &Connection, subject: &QuotaSubject) -> Result<QuotaReport> {
+    check_with(conn, subject, &Proposed::new())
+}
+
+/// What a proposal would write, by work and by field - a title, an overview
+/// field, a text's role - read before what the work says now (v0.153): the
+/// checklist a month's proposals are shown with before "Apply all".
+pub type Proposed = BTreeMap<String, Map<String, Value>>;
+
+/// [`check`] as `subject` would stand with `proposed` written.
+pub fn check_with(
+    conn: &Connection,
+    subject: &QuotaSubject,
+    proposed: &Proposed,
+) -> Result<QuotaReport> {
     let profile_id = crate::actions::active_profile_id(conn)?;
     let config = crate::profile::config_for(conn, &profile_id)?;
     let rules: Vec<Rule> = rules(conn, &profile_id, &config)?
@@ -542,6 +556,7 @@ pub fn check(conn: &Connection, subject: &QuotaSubject) -> Result<QuotaReport> {
     let mut reader = Reader {
         conn,
         config: &config,
+        proposed,
         cache: BTreeMap::new(),
     };
     let mut findings = Vec::new();
@@ -651,6 +666,7 @@ impl Said {
 struct Reader<'a> {
     conn: &'a Connection,
     config: &'a ProfileConfig,
+    proposed: &'a Proposed,
     cache: BTreeMap<(String, String), Option<Said>>,
 }
 
@@ -662,7 +678,20 @@ impl Reader<'_> {
         if let Some(found) = self.cache.get(&key) {
             return Ok(found.clone());
         }
-        let found = said(self.conn, self.config, work, field)?;
+        let found = match said(self.conn, self.config, work, field)? {
+            // A field the work's kind has, as the proposal would write it.
+            Some(now) => Some(
+                match self
+                    .proposed
+                    .get(&work.id)
+                    .and_then(|fields| fields.get(field))
+                {
+                    Some(value) => from_json(Some(value)),
+                    None => now,
+                },
+            ),
+            None => None,
+        };
         self.cache.insert(key, found.clone());
         Ok(found)
     }
