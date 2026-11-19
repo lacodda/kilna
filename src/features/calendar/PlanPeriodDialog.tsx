@@ -62,7 +62,7 @@ export function PlanPeriodDialog({ open, onOpenChange }: Props) {
     mutationFn: () =>
       layOutPeriod({
         kind,
-        collection_kind: gather === NONE ? null : gather,
+        collection_kind: gather === NONE ? undefined : gather,
         months: months.map((month) => ({
           month: month.month,
           title: monthTitle(month.month),
