@@ -289,6 +289,10 @@ pub(super) const UPGRADE: &[Step] = &[
         name: "a field's kinds and a kind's roles still as they shipped before a card lost its leftovers",
         carry: card_leftovers,
     },
+    Step {
+        name: "the part of the register a shipped field is read in",
+        carry: register_fields,
+    },
     // Last: every word the steps above brought in is already there to be
     // read against its shipped self.
     Step {
@@ -894,6 +898,24 @@ pub(super) const FIELD_TYPES_BEFORE: [(&str, config::MetaFieldType); 1] =
 /// type; one the owner retyped is theirs. What works hold is left as it is:
 /// a list reads a text stored before it as its lines
 /// ([`config::MetaFieldType::entries`]), so nothing is rewritten here.
+/// The part of the register a field is read in (v0.151, FR-20 20.2): a
+/// shipped field that says it - a track's cover idea, a song's instruments -
+/// says it in the stored copy too, where that copy says nothing. A field the
+/// owner marked otherwise stays as they marked it.
+pub(super) fn register_fields(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for field in &mut config.work_meta_fields {
+        let Some(now) = shipped.work_meta_fields.iter().find(|s| s.key == field.key) else {
+            continue;
+        };
+        if field.register.is_none() && now.register.is_some() {
+            field.register = now.register;
+            changed = true;
+        }
+    }
+    changed
+}
+
 pub(super) fn retyped_fields(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     let mut changed = false;
     for field in &mut config.work_meta_fields {
@@ -1392,7 +1414,7 @@ pub(super) const SECTIONS_BEFORE: [(&str, &str, &[config::Lens], Option<(&str, &
 /// section - a card kind the canon gave its sections - and never in one whose
 /// sections the owner wrote: appending shipped sections there would put two
 /// of one thing on a card under two names.
-pub(super) const SECTIONS_ARRIVED: [(&str, &str, &str); 6] = [
+pub(super) const SECTIONS_ARRIVED: [(&str, &str, &str); 9] = [
     ("channel", "picture_bans", "bans"),
     ("character", "picture_bans", "bans"),
     // v0.94: the channel's own phrases of sound, after its house styles.
@@ -1402,6 +1424,13 @@ pub(super) const SECTIONS_ARRIVED: [(&str, &str, &str); 6] = [
     ("channel", "moves", "template"),
     ("channel", "assemblies", "moves"),
     ("channel", "pinned_forms", "assemblies"),
+    // v0.147: the channel's dressing kits, after its mark - shipped without
+    // an arrival, so a space made before kept a passport without them.
+    ("channel", "branding", "mark"),
+    // v0.151: the rules the works are checked against and the pool of
+    // themes taken in turn, after the dressing.
+    ("channel", "quotas", "branding"),
+    ("channel", "bank", "quotas"),
 ];
 
 /// A card kind's sections the stored copy already has, brought forward

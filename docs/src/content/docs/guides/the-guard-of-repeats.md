@@ -84,6 +84,16 @@ share as links in the register. Once kept, a meaning named for both songs is
 an orange repeat like any spent term. See
 [The register](/kilna/guides/the-register/#meaning-and-the-assistant).
 
+## Titles, pictures and sound
+
+A term of the register scoped to titles, pictures or sound (v0.151) is
+caught where it is scoped - a track with no words at all is held against the
+others by its title, its cover and its sound - and the finding says where:
+*in titles*, *in pictures*, *in the sound*. A term's own limits make it red:
+more works of the song's month than **at most a month** allows, or a
+neighbour nearer than its **days apart**. See
+[The register](/kilna/guides/the-register/#titles-pictures-and-sound).
+
 ## Your numbers
 
 **Settings → Profile → Guard of repeats** sets the window (90 days), the rank

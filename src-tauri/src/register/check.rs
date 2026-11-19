@@ -84,7 +84,12 @@ pub fn text(
     text: &str,
     sung: bool,
 ) -> Result<TextCheck> {
-    let terms = super::spent(conn, profile_id)?;
+    // A text checked here is a text written: a term scoped to a title, a
+    // picture or a sound is looked for where it is scoped (v0.151).
+    let terms: Vec<super::Term> = super::spent(conn, profile_id)?
+        .into_iter()
+        .filter(|term| term.scope.reads(super::TermScope::Lyrics))
+        .collect();
     let mut stems = Stems::default();
     let hits = Matcher::new(&terms, &mut stems).find(text, &mut stems);
     let found = repeats::find(text);

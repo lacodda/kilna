@@ -1,4 +1,4 @@
-import type { Strictness, Term, TermKind } from '@/lib/api/types'
+import type { Strictness, Term, TermKind, TermScope } from '@/lib/api/types'
 import type { Status } from '@/components/ui/status-dot'
 
 /*
@@ -12,6 +12,16 @@ import type { Status } from '@/components/ui/status-dot'
 
 /** Strictest first, the order the register reads in. */
 export const STRICTNESS: readonly Strictness[] = ['ban', 'limit', 'rare']
+
+/** Where a term is looked for (v0.151): the sung text first, as it always
+ *  was, then a title, a picture, a sound, and all of them. */
+export const TERM_SCOPES: readonly TermScope[] = [
+  'lyrics',
+  'title',
+  'visual_motif',
+  'sound_combo',
+  'all',
+]
 
 /** Wording first, then the meanings. */
 export const TERM_KINDS: readonly TermKind[] = [

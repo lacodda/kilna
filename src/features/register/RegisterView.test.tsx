@@ -27,6 +27,9 @@ function entry(id: string, word: string, extra: Partial<RegisterEntry>): Registe
     sung: [],
     topic: null,
     note: null,
+    scope: 'lyrics',
+    max_per_month: null,
+    cooldown_days: null,
     created_at: NOW,
     updated_at: NOW,
     uses: 0,
@@ -106,6 +109,23 @@ describe('the register', () => {
     await settled(client)
 
     expect(backend.argsOf('unlink_term')).toEqual([{ termId: 't-drink', workId: IDS.song }])
+  })
+
+  it('looks for a term in titles when told so (v0.151)', async () => {
+    backend.answer('update_term', ({ patch }) => ({
+      ...TERMS[0],
+      ...(patch as object),
+    }))
+    const { client, main } = await register('/register/t-water')
+    const scope = await within(main).findByRole('combobox', { name: en.register.scopeLabel })
+    expect(scope).toHaveTextContent(en.register.scopes.lyrics)
+    fireEvent.click(scope)
+    const titles = await screen.findByRole('option', { name: en.register.scopes.title })
+    fireEvent.pointerDown(titles, { pointerType: 'mouse' })
+    fireEvent.click(titles)
+    await settled(client)
+
+    expect(backend.argsOf('update_term')).toEqual([{ id: 't-water', patch: { scope: 'title' } }])
   })
 })
 

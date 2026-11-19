@@ -384,6 +384,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0061_note_origin.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 62,
+        name: "term_scope",
+        sql: include_str!("../../migrations/0062_term_scope.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The steps of the application's own database (`app.db`, ADR 0077): what

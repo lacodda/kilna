@@ -2,6 +2,7 @@
 import type { Kind } from "./Kind";
 import type { Label } from "./Label";
 import type { MetaFieldType } from "./MetaFieldType";
+import type { TermScope } from "./TermScope";
 
 /**
  * A typed field inside `work.meta`.
@@ -50,4 +51,11 @@ numbered_from?: string | null,
  * song's anchors, its hooks and devices - goes with every action on the
  * work, and the model is told to keep it as it is unless the author asks.
  */
-protected?: boolean, };
+protected?: boolean, 
+/**
+ * The part of the register that reads the field (v0.151, FR-20 20.2):
+ * a cover's idea is read with what a picture shows (`visual_motif`), a
+ * track's sound design with what its sound is made of (`sound_combo`).
+ * Absent: the register does not read it.
+ */
+register?: TermScope, };

@@ -2,6 +2,7 @@
 import type { Strictness } from "./Strictness";
 import type { Sung } from "./Sung";
 import type { TermKind } from "./TermKind";
+import type { TermScope } from "./TermScope";
 
 /**
  * One word of the record: a term of the register, a way of singing - or
@@ -33,4 +34,17 @@ topic: string | null,
 /**
  * Why it is spent, or what to reach for instead.
  */
-note: string | null, created_at: string, updated_at: string, };
+note: string | null, 
+/**
+ * What it is looked for in (v0.151): the sung text unless said.
+ */
+scope: TermScope, 
+/**
+ * How many works of one month may carry it before the guard says so
+ * loudly (v0.151).
+ */
+max_per_month: number | null, 
+/**
+ * How many days apart two works carrying it must stand (v0.151).
+ */
+cooldown_days: number | null, created_at: string, updated_at: string, };

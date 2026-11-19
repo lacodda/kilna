@@ -4,21 +4,23 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight, Link2, Trash2, X } from 'lucide-react'
 import { deleteTerm, linkTerm, unlinkTerm, updateTerm } from '@/lib/api/register'
-import type { RegisterEntry, TermPatch } from '@/lib/api/types'
+import type { RegisterEntry, TermPatch, TermScope } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { isWording, splitForms } from '@/lib/register'
+import { isWording, splitForms, TERM_SCOPES } from '@/lib/register'
 import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { NumberField } from '@/components/ui/number-field'
 import { ListRow } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Pane } from '@/components/ui/frame'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
+import { Select } from '@/components/AppSelect'
 import {
   KindPicker,
   StrictnessPicker,
@@ -159,6 +161,51 @@ export function TermDetail({ entry, onGone }: Props) {
               if (next.join('\n') !== entry.forms.join('\n')) patch.mutate({ forms: next })
             }}
           />
+        </Field>
+      )}
+      {/* Where it is looked for, and how often it may come back (v0.151,
+          FR-20 20.2): a title, a picture, a sound repeat as surely as a
+          line does. */}
+      {entry.strictness !== null && (
+        <Field label={t('register.scopeLabel')} help={t('register.scopeHelp')}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={entry.scope}
+              onChange={(next) => {
+                if (next !== '' && next !== entry.scope) patch.mutate({ scope: next as TermScope })
+              }}
+              options={TERM_SCOPES.map((one) => ({
+                value: one,
+                label: t(`register.scopes.${one}`),
+              }))}
+              aria-label={t('register.scopeLabel')}
+              className="w-48"
+            />
+            <NumberField
+              className="w-44"
+              min={1}
+              step={1}
+              value={entry.max_per_month}
+              unit={t('register.perMonth')}
+              aria-label={t('register.maxPerMonth')}
+              onValueChange={(most) => {
+                const next = most === null ? null : Math.max(1, Math.trunc(most))
+                if (next !== entry.max_per_month) patch.mutate({ max_per_month: next })
+              }}
+            />
+            <NumberField
+              className="w-44"
+              min={1}
+              step={1}
+              value={entry.cooldown_days}
+              unit={t('register.daysApart')}
+              aria-label={t('register.cooldownDays')}
+              onValueChange={(days) => {
+                const next = days === null ? null : Math.max(1, Math.trunc(days))
+                if (next !== entry.cooldown_days) patch.mutate({ cooldown_days: next })
+              }}
+            />
+          </div>
         </Field>
       )}
       <div className="flex flex-col gap-1.5">

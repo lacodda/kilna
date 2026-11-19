@@ -4701,7 +4701,20 @@
     },
     "notSpent": "Not spent",
     "notSpentHint": "A word kept for how it is sung, not marked in the texts as spent",
-    "wordSeparator": "This reads as several words. One word of the record is one thing a text can say: write other ways of saying it into its forms, and things that differ as words of their own."
+    "wordSeparator": "This reads as several words. One word of the record is one thing a text can say: write other ways of saying it into its forms, and things that differ as words of their own.",
+    "scopeLabel": "Where it is looked for",
+    "scopeHelp": "A channel with no words repeats itself in its titles, its covers and its sound. A limit makes a repeat loud: more works of one month than it allows, or two closer than the days apart.",
+    "scopes": {
+      "lyrics": "In the lyric",
+      "title": "In titles",
+      "visual_motif": "In pictures",
+      "sound_combo": "In the sound",
+      "all": "Everywhere"
+    },
+    "maxPerMonth": "At most a month",
+    "perMonth": "a month",
+    "cooldownDays": "Days apart",
+    "daysApart": "days apart"
   },
   "publications": {
     "caption": "Publications",

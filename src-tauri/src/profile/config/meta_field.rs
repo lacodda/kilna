@@ -50,6 +50,13 @@ pub struct MetaField {
     /// work, and the model is told to keep it as it is unless the author asks.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub protected: bool,
+    /// The part of the register that reads the field (v0.151, FR-20 20.2):
+    /// a cover's idea is read with what a picture shows (`visual_motif`), a
+    /// track's sound design with what its sound is made of (`sound_combo`).
+    /// Absent: the register does not read it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub register: Option<crate::register::TermScope>,
 }
 
 impl MetaField {
@@ -64,6 +71,7 @@ impl MetaField {
             own: false,
             numbered_from: None,
             protected: false,
+            register: None,
         }
     }
 

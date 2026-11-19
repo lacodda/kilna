@@ -528,6 +528,7 @@ any given work:
 | `options` | kind entries, for `choice` | The answers a choice offers, `{ "key", "label" }`, stored by key. Required for a choice and refused on any other type. |
 | `default` | value, optional | What a new work of a kind that has the field starts with: an option's key for a choice. |
 | `own` | boolean, optional | A fact of the work's own media, never taken from the work it is made from: Studio's `duration` - a short is not as long as the clip it is cut from. Absent is `false`. |
+| `register` | string, optional | The part of the [register](/kilna/guides/the-register/#titles-pictures-and-sound) that reads the field (v0.151): `title`, `visual_motif` or `sound_combo`. The music channel marks `cover_idea` and `angle` as pictures and `sound_design` as sound; Studio marks `instruments` as sound. Absent: the register does not read it. |
 | `protected` | boolean, optional | The author's key (v0.146): what the field holds goes with every action on the work, which keeps it as it is unless the author asks. Studio's `anchors` is protected, for songs and experiments. |
 | `numbered_from` | string, optional | The first code of a field works are numbered by, as an example of them all - see [Numbered fields](#numbered-fields). Only on `text`, and not beside a `default`. |
 

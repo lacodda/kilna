@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 use rusqlite::{Connection, params};
 
-use super::Term;
+use super::{Term, TermScope};
 use crate::error::Result;
 use crate::words::{stem, words};
 
@@ -153,12 +153,31 @@ pub fn found_in_corpus(
     if matcher.by_first.is_empty() {
         return Ok(out);
     }
-    for text in corpus(conn, profile_id)? {
-        for hit in matcher.find(&text.body, &mut stems) {
-            *out.entry(terms[hit.term].id.clone())
-                .or_default()
-                .entry(text.work_id.clone())
-                .or_default() += 1;
+    let mut count = |term: usize, work_id: &str| {
+        *out.entry(terms[term].id.clone())
+            .or_default()
+            .entry(work_id.to_owned())
+            .or_default() += 1;
+    };
+    if terms.iter().any(|term| term.scope.reads(TermScope::Lyrics)) {
+        for text in corpus(conn, profile_id)? {
+            for hit in matcher.find(&text.body, &mut stems) {
+                if terms[hit.term].scope.reads(TermScope::Lyrics) {
+                    count(hit.term, &text.work_id);
+                }
+            }
+        }
+    }
+    // A title, a picture, a sound, for the terms scoped to them (v0.151).
+    if terms.iter().any(|term| !term.scope.is_lyrics()) {
+        for work in super::scope::texts(conn, profile_id)? {
+            for (place, text) in &work.texts {
+                for hit in matcher.find(text, &mut stems) {
+                    if terms[hit.term].scope.reads(*place) {
+                        count(hit.term, &work.work_id);
+                    }
+                }
+            }
         }
     }
     Ok(out)
@@ -180,6 +199,9 @@ mod tests {
             sung: Vec::new(),
             topic: None,
             note: None,
+            scope: crate::register::TermScope::Lyrics,
+            max_per_month: None,
+            cooldown_days: None,
             created_at: String::new(),
             updated_at: String::new(),
         }

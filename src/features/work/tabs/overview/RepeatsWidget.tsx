@@ -114,6 +114,13 @@ function FindingRow({
           <span className="shrink-0 text-xs text-faint" title={t(`repeats.whyHint.${finding.why}`)}>
             {t(`repeats.why.${finding.why}`)}
           </span>
+          {/* Found in a title, a picture or a sound rather than the lyric
+              (v0.151). */}
+          {finding.scope !== undefined && finding.scope !== 'lyrics' && (
+            <span className="shrink-0 rounded-sm bg-soft px-1 text-2xs text-dim">
+              {t(`register.scopes.${finding.scope}`)}
+            </span>
+          )}
         </span>
         <span className="flex min-w-0 items-center gap-1.5 pl-3.5 text-xs text-dim">
           <Link

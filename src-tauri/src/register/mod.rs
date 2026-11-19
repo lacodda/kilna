@@ -24,6 +24,7 @@ pub mod guard;
 pub mod matching;
 pub mod neighbours;
 pub mod proposal;
+pub mod scope;
 pub mod sheet;
 
 use std::collections::{BTreeSet, HashMap};
@@ -152,6 +153,76 @@ impl TermKind {
     }
 }
 
+/// What a term is looked for in (v0.151, FR-20 20.2): a channel that puts
+/// out instrumentals repeats itself in its titles, its covers and its sound
+/// long before it does in words nobody sings.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    ts_rs::TS,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum TermScope {
+    /// The sung text: what the register always read.
+    #[default]
+    Lyrics,
+    /// The work's title.
+    Title,
+    /// What its picture shows: the cover's idea and scene, the prompt it was
+    /// drawn from, the frame's still, and the fields the profile marks so.
+    VisualMotif,
+    /// What its sound is made of: the texts a composition writes - a style
+    /// prompt - and the fields the profile marks so.
+    SoundCombo,
+    /// Every one of them.
+    All,
+}
+
+impl TermScope {
+    pub const ALL: [TermScope; 5] = [
+        TermScope::Lyrics,
+        TermScope::Title,
+        TermScope::VisualMotif,
+        TermScope::SoundCombo,
+        TermScope::All,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            TermScope::Lyrics => "lyrics",
+            TermScope::Title => "title",
+            TermScope::VisualMotif => "visual_motif",
+            TermScope::SoundCombo => "sound_combo",
+            TermScope::All => "all",
+        }
+    }
+
+    fn parse(raw: &str) -> Result<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|one| one.as_str() == raw)
+            .ok_or_else(|| Error::Internal(format!("a stored term scope reads `{raw}`")))
+    }
+
+    /// Whether a term of this scope is looked for in a text of `place`.
+    pub fn reads(self, place: TermScope) -> bool {
+        self == TermScope::All || self == place
+    }
+
+    pub fn is_lyrics(&self) -> bool {
+        *self == TermScope::Lyrics
+    }
+}
+
 /// How one written form of a word is sung, where that is not how it is
 /// written: "Марсель" sung "МарсЭль", "пульсар" sung "пульсАр". The capital
 /// vowel is the stress, the way the owner writes it for the singer; a
@@ -212,6 +283,13 @@ pub struct Term {
     pub topic: Option<String>,
     /// Why it is spent, or what to reach for instead.
     pub note: Option<String>,
+    /// What it is looked for in (v0.151): the sung text unless said.
+    pub scope: TermScope,
+    /// How many works of one month may carry it before the guard says so
+    /// loudly (v0.151).
+    pub max_per_month: Option<u32>,
+    /// How many days apart two works carrying it must stand (v0.151).
+    pub cooldown_days: Option<u32>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -237,6 +315,13 @@ pub struct NewTerm {
     pub topic: Option<String>,
     #[serde(default)]
     pub note: Option<String>,
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub scope: TermScope,
+    #[serde(default)]
+    pub max_per_month: Option<u32>,
+    #[serde(default)]
+    pub cooldown_days: Option<u32>,
 }
 
 impl Default for NewTerm {
@@ -249,6 +334,9 @@ impl Default for NewTerm {
             sung: Vec::new(),
             topic: None,
             note: None,
+            scope: TermScope::Lyrics,
+            max_per_month: None,
+            cooldown_days: None,
         }
     }
 }
@@ -292,6 +380,20 @@ pub struct TermPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub note: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<TermScope>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_per_month: Option<Option<u32>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cooldown_days: Option<Option<u32>>,
 }
 
 /// A term with the works it is in, counted as it stands: the register as the
@@ -318,7 +420,7 @@ pub struct TermUse {
 }
 
 const SELECT_TERM: &str = "SELECT id, profile_id, word, forms, kind, strictness, sung, \
-     topic, note, created_at, updated_at FROM term";
+     topic, note, created_at, updated_at, scope, max_per_month, cooldown_days FROM term";
 
 /// The words a term's forms are kept as: trimmed, the empty ones and the term's
 /// own word dropped, each once whatever its case.
@@ -367,8 +469,8 @@ pub fn create_minted(
 
     conn.execute(
         "INSERT INTO term (id, profile_id, word, forms, kind, strictness, sung, topic, note,
-                           created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
+                           created_at, updated_at, scope, max_per_month, cooldown_days)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10, ?11, ?12, ?13)",
         params![
             minted.id(),
             profile_id,
@@ -380,6 +482,9 @@ pub fn create_minted(
             blank_is_none(new.topic),
             blank_is_none(new.note),
             minted.at(),
+            new.scope.as_str(),
+            new.max_per_month.filter(|most| *most > 0),
+            new.cooldown_days.filter(|days| *days > 0),
         ],
     )?;
     get(conn, minted.id())?.ok_or_else(|| Error::Internal("the term vanished after insert".into()))
@@ -502,6 +607,15 @@ pub fn update_at(conn: &Connection, id: &str, patch: TermPatch, at: &str) -> Res
     }
     if let Some(note) = patch.note {
         set("note", Box::new(blank_is_none(note)));
+    }
+    if let Some(scope) = patch.scope {
+        set("scope", Box::new(scope.as_str().to_owned()));
+    }
+    if let Some(most) = patch.max_per_month {
+        set("max_per_month", Box::new(most.filter(|most| *most > 0)));
+    }
+    if let Some(days) = patch.cooldown_days {
+        set("cooldown_days", Box::new(days.filter(|days| *days > 0)));
     }
 
     if assignments.is_empty() {
@@ -652,6 +766,9 @@ pub fn preview(conn: &Connection, profile_id: &str, word: &str, forms: &[String]
         sung: Vec::new(),
         topic: None,
         note: None,
+        scope: TermScope::Lyrics,
+        max_per_month: None,
+        cooldown_days: None,
         created_at: String::new(),
         updated_at: String::new(),
     };
@@ -678,6 +795,9 @@ struct RawTerm {
     note: Option<String>,
     created_at: String,
     updated_at: String,
+    scope: String,
+    max_per_month: Option<u32>,
+    cooldown_days: Option<u32>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawTerm> {
@@ -693,6 +813,9 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawTerm> {
         note: row.get(8)?,
         created_at: row.get(9)?,
         updated_at: row.get(10)?,
+        scope: row.get(11)?,
+        max_per_month: row.get(12)?,
+        cooldown_days: row.get(13)?,
     })
 }
 
@@ -712,6 +835,9 @@ impl RawTerm {
             word: self.word,
             topic: self.topic,
             note: self.note,
+            scope: TermScope::parse(&self.scope)?,
+            max_per_month: self.max_per_month,
+            cooldown_days: self.cooldown_days,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })

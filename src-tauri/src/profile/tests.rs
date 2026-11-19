@@ -2674,6 +2674,61 @@ fn a_stored_channel_card_gains_the_house_sound_after_its_styles() {
     assert!(carried.validate().is_empty(), "{:?}", carried.validate());
 }
 
+/// v0.151: a passport stored before the dressing kits, the quotas and the
+/// bank gains the three after its mark, in that order, and a shipped field
+/// the register reads says so in the stored copy too.
+#[test]
+fn a_stored_channel_card_gains_its_dressing_quotas_and_bank() {
+    let conn = db::open_in_memory().unwrap();
+    seed(&conn, DEFAULT_KIND).unwrap();
+    let (id, raw): (String, String) = conn
+        .query_row(
+            "SELECT id, config FROM profile WHERE key = 'music'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let mut stored: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    for kind in stored["note_kinds"].as_array_mut().unwrap() {
+        if let Some(sections) = kind.get_mut("sections").and_then(|v| v.as_array_mut()) {
+            sections.retain(|section| {
+                !["branding", "quotas", "bank"].contains(&section["key"].as_str().unwrap_or(""))
+            });
+        }
+    }
+    for field in stored["work_meta_fields"].as_array_mut().unwrap() {
+        field.as_object_mut().unwrap().remove("register");
+    }
+    conn.execute(
+        "UPDATE profile SET config = ?2 WHERE id = ?1",
+        params![id, stored.to_string()],
+    )
+    .unwrap();
+    conn.execute("DELETE FROM shipped_entry", []).unwrap();
+
+    seed(&conn, DEFAULT_KIND).unwrap();
+
+    let carried = config_for(&conn, &id).unwrap();
+    let channel = carried.card_kind("channel").unwrap();
+    let keys: Vec<&str> = channel.sections.iter().map(|s| s.key.as_str()).collect();
+    let mark = keys.iter().position(|k| *k == "mark").unwrap();
+    assert_eq!(
+        keys.get(mark + 1..mark + 4),
+        Some(&["branding", "quotas", "bank"][..]),
+        "{keys:?}"
+    );
+    let instruments = carried
+        .work_meta_fields
+        .iter()
+        .find(|field| field.key == "instruments")
+        .unwrap();
+    assert_eq!(
+        instruments.register,
+        Some(crate::register::TermScope::SoundCombo)
+    );
+    assert!(carried.validate().is_empty(), "{:?}", carried.validate());
+}
+
 #[test]
 fn a_workspace_from_before_the_constructor_gains_covers_and_picture_bans() {
     let conn = db::open_in_memory().unwrap();

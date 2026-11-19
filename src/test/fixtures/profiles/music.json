@@ -5585,6 +5585,7 @@
           "en": "Instruments",
           "ru": "Инструменты"
         },
+        "register": "sound_combo",
         "type": "text"
       },
       {

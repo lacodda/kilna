@@ -58,6 +58,31 @@ number is not stored anywhere: it is read off the works each time you look.
 Open a term to see the works: how many times each one says it, and which
 ones you named. **×** lets a named work go.
 
+## Titles, pictures and sound
+
+A channel of instrumentals repeats itself long before it repeats a word
+nobody sings: the third *Night drive* of a month, the fourth cover with a
+lighthouse, the fifth kora over a sub bass. Since v0.151 a term says **where
+it is looked for**:
+
+- **In the lyric** - the sung text, as the register always read;
+- **In titles** - the work's title;
+- **In pictures** - the cover's idea and scene, the prompt it was drawn
+  from, the frame's still, and the overview fields the profile marks so (the
+  music channel's *cover idea* and *angle*);
+- **In the sound** - the text a composition writes (a style prompt, a Suno
+  prompt) and the fields the profile marks so (a track's *sound design*, a
+  song's *instruments*);
+- **Everywhere**.
+
+A title, a picture and a sound are read of a work made from nothing - the
+song or the track; what is made from it carries them on and is not counted
+again. Two limits make such a repeat loud in the
+[guard](/kilna/guides/the-guard-of-repeats/): **at most a month** - more
+works of the song's month carrying it than that turn it red - and **days
+apart** - a work carrying it nearer than that turns it red. A text checked as
+it is written is checked for the lyric's terms alone.
+
 ## In every text
 
 Under a version's toolbar a strip lists the terms of the register this text

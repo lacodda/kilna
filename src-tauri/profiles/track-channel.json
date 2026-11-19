@@ -2874,7 +2874,8 @@
         "type": "multiline",
         "kinds": [
           "track"
-        ]
+        ],
+        "register": "sound_combo"
       },
       {
         "key": "vocal_mode",
@@ -2933,7 +2934,8 @@
         "type": "multiline",
         "kinds": [
           "track"
-        ]
+        ],
+        "register": "visual_motif"
       },
       {
         "key": "artist_register",
@@ -2955,7 +2957,8 @@
         "type": "text",
         "kinds": [
           "track"
-        ]
+        ],
+        "register": "visual_motif"
       },
       {
         "key": "slot_flags",

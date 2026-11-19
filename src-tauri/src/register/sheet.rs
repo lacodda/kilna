@@ -97,6 +97,16 @@ fn line(entry: &RegisterEntry) -> String {
         line.push_str(&format!(" / {}", term.forms.join(" / ")));
     }
     line.push_str(&format!(" ({})", entry.uses));
+    // Where it is looked for, and how often it may come back (v0.151).
+    if !term.scope.is_lyrics() {
+        line.push_str(&format!(" [in {}]", term.scope.as_str().replace('_', " ")));
+    }
+    if let Some(most) = term.max_per_month {
+        line.push_str(&format!(" [at most {most} a month]"));
+    }
+    if let Some(days) = term.cooldown_days {
+        line.push_str(&format!(" [{days} days apart]"));
+    }
     if let Some(note) = term.note.as_deref() {
         line.push_str(&format!(" - {}", note.replace('\n', " ")));
     }

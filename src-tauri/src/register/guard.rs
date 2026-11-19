@@ -35,6 +35,7 @@ use rusqlite::{Connection, params};
 use serde::Serialize;
 use time::{Date, macros::format_description};
 
+use super::TermScope;
 use super::matching::{Matcher, Stems};
 use crate::error::Result;
 use crate::words::{self, pack};
@@ -84,6 +85,11 @@ pub struct RepeatFinding {
     pub also: u32,
     /// The person said they know and keep it: drawn, not counted.
     pub kept: bool,
+    /// Where it was found (v0.151): the sung text unless said - a title, a
+    /// picture, a sound, for a term of the register scoped to one.
+    #[serde(default, skip_serializing_if = "TermScope::is_lyrics")]
+    #[ts(optional, as = "Option<TermScope>")]
+    pub scope: TermScope,
 }
 
 impl RepeatFinding {
@@ -126,6 +132,9 @@ struct Song {
     id: String,
     title: String,
     body: String,
+    /// Its title, picture and sound, for the terms scoped to them (v0.151):
+    /// read of a work made from nothing, and only while such a term exists.
+    texts: BTreeMap<TermScope, String>,
     /// The first day something made from it went out.
     out: Option<Date>,
     /// The first day something made from it is booked for, not out yet.
@@ -156,7 +165,7 @@ fn iso(day: Date) -> String {
 /// Every work with a sung text, the text of its sung roles as they stand -
 /// the latest version of each - and where it stands, read off its own
 /// releases and those of everything made from it.
-fn songs(conn: &Connection, profile_id: &str) -> Result<Vec<Song>> {
+fn songs(conn: &Connection, profile_id: &str, scoped: bool) -> Result<Vec<Song>> {
     let config = crate::profile::config_for(conn, profile_id)?;
     let mut statement = conn.prepare(
         "SELECT w.id, w.title, w.kind, v.role, v.body FROM work w
@@ -197,9 +206,27 @@ fn songs(conn: &Connection, profile_id: &str) -> Result<Vec<Song>> {
                 id,
                 title,
                 body,
+                texts: BTreeMap::new(),
                 out: None,
                 booked: None,
             }),
+        }
+    }
+    // A work with no sung text still has a title, a picture and a sound: an
+    // instrumental is read for the terms scoped to them (v0.151).
+    if scoped {
+        for work in super::scope::texts(conn, profile_id)? {
+            match by_work.iter_mut().find(|song| song.id == work.work_id) {
+                Some(song) => song.texts = work.texts,
+                None => by_work.push(Song {
+                    id: work.work_id,
+                    title: work.title,
+                    body: String::new(),
+                    texts: work.texts,
+                    out: None,
+                    booked: None,
+                }),
+            }
         }
     }
 
@@ -319,6 +346,7 @@ fn researched(
                 id: work.id,
                 title: work.title,
                 body: String::new(),
+                texts: BTreeMap::new(),
                 out: None,
                 booked: None,
             });
@@ -363,6 +391,12 @@ struct Shared {
     /// of the day asked about. A spent term and a shared source are orange
     /// whenever the neighbour said them.
     rare_on: Option<Date>,
+    /// A term that must stand this many days from the next work carrying it
+    /// (v0.151): red when the neighbour is that near the day asked about.
+    cooldown: Option<u32>,
+    /// A term carried by more works of the song's month than it allows
+    /// (v0.151): red for the neighbours of that month.
+    over_month: bool,
 }
 
 /// A song that has not gone out, and everything it shares.
@@ -405,6 +439,15 @@ impl Reading {
         for entry in &song.shared {
             let mut found = entry.finding.clone();
             if entry.rare_on.is_some_and(near) {
+                found.level = RepeatLevel::Red;
+            }
+            if entry.over_month
+                || entry.cooldown.is_some_and(|days| {
+                    day_of(&found.day).is_some_and(|day| {
+                        (day - today).whole_days().unsigned_abs() <= u64::from(days)
+                    })
+                })
+            {
                 found.level = RepeatLevel::Red;
             }
             let neighbour = entry.finding.neighbour_id.as_str();
@@ -495,7 +538,11 @@ impl Reading {
 pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
     let config = crate::profile::config_for(conn, profile_id)?;
     let guard = config.guard.unwrap_or_default();
-    let songs = songs(conn, profile_id)?;
+    let terms = super::list(conn, profile_id)?;
+    let scoped = terms
+        .iter()
+        .any(|term| term.strictness.is_some() && !term.scope.is_lyrics());
+    let songs = songs(conn, profile_id, scoped)?;
     if songs.is_empty() {
         return Ok(Reading {
             window_days: guard.window_days,
@@ -518,7 +565,6 @@ pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
 
     // The register, found in each text; and the words kept as phrases, by
     // stem.
-    let terms = super::list(conn, profile_id)?;
     let spent: Vec<super::Term> = terms
         .iter()
         .filter(|term| term.strictness.is_some())
@@ -537,22 +583,35 @@ pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
             named.entry(work).or_default().insert(term);
         }
     }
-    let taken: Vec<BTreeMap<usize, String>> = songs
+    // Each term in the place it is scoped to (v0.151): the sung text, the
+    // title, the picture, the sound - and where it was found.
+    let taken: Vec<BTreeMap<usize, (String, TermScope)>> = songs
         .iter()
         .map(|song| {
-            let units: Vec<u16> = song.body.encode_utf16().collect();
-            let mut out: BTreeMap<usize, String> = BTreeMap::new();
-            for hit in matcher.find(&song.body, &mut stems) {
-                let said = String::from_utf16_lossy(&units[hit.start..hit.end]);
-                out.entry(hit.term)
-                    .or_insert_with(|| words::sung::clean(&said, &[]).to_lowercase());
+            let mut out: BTreeMap<usize, (String, TermScope)> = BTreeMap::new();
+            let places = std::iter::once((TermScope::Lyrics, &song.body))
+                .chain(song.texts.iter().map(|(place, text)| (*place, text)));
+            for (place, text) in places {
+                if text.is_empty() {
+                    continue;
+                }
+                let units: Vec<u16> = text.encode_utf16().collect();
+                for hit in matcher.find(text, &mut stems) {
+                    if !spent[hit.term].scope.reads(place) {
+                        continue;
+                    }
+                    let said = String::from_utf16_lossy(&units[hit.start..hit.end]);
+                    out.entry(hit.term)
+                        .or_insert_with(|| (words::sung::clean(&said, &[]).to_lowercase(), place));
+                }
             }
             for (index, term) in spent.iter().enumerate() {
                 if named
                     .get(&song.id)
                     .is_some_and(|ids| ids.contains(&term.id))
                 {
-                    out.entry(index).or_insert_with(|| term.word.clone());
+                    out.entry(index)
+                        .or_insert_with(|| (term.word.clone(), TermScope::Lyrics));
                 }
             }
             out
@@ -580,6 +639,34 @@ pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
         if song.out.is_some() {
             continue;
         }
+        // The terms carried by more works of this song's month than they
+        // allow (v0.151): the month of the day it is booked or planned for,
+        // the song itself counted.
+        let month = |day: Date| (day.year(), day.month());
+        let crowded: BTreeSet<usize> = match song.day() {
+            Some((own, _)) => taken[index]
+                .keys()
+                .filter(|term| {
+                    spent[**term].max_per_month.is_some_and(|most| {
+                        let carriers = 1 + songs
+                            .iter()
+                            .enumerate()
+                            .filter(|(other, neighbour)| {
+                                *other != index
+                                    && taken[*other].contains_key(*term)
+                                    && neighbour
+                                        .day()
+                                        .is_some_and(|(day, _)| month(day) == month(own))
+                            })
+                            .count();
+                        carriers > most as usize
+                    })
+                })
+                .copied()
+                .collect(),
+            None => BTreeSet::new(),
+        };
+        let own_month = song.day().map(|(own, _)| month(own));
         let mut shared: Vec<Shared> = Vec::new();
         for (other, neighbour) in songs.iter().enumerate() {
             if other == index {
@@ -599,19 +686,28 @@ pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
                     booked,
                     also: 0,
                     kept: kept.contains(&(song.id.clone(), stem.to_owned())),
+                    scope: TermScope::Lyrics,
                 };
             let mut said: BTreeSet<String> = BTreeSet::new();
-            for (term, word) in &taken[index] {
+            for (term, (word, place)) in &taken[index] {
                 if !taken[other].contains_key(term) {
                     continue;
                 }
                 let stem = stems.of(word);
                 said.insert(stem.clone());
-                let found = finding(word, RepeatWhy::Register, RepeatLevel::Orange, &stem);
+                let mut found = finding(word, RepeatWhy::Register, RepeatLevel::Orange, &stem);
+                found.scope = *place;
                 shared.push(Shared {
-                    key: stem,
+                    // A title and a lyric saying one word are two findings.
+                    key: if place.is_lyrics() {
+                        stem
+                    } else {
+                        format!("{}:{stem}", place.as_str())
+                    },
                     finding: found,
                     rare_on: None,
+                    cooldown: spent[*term].cooldown_days,
+                    over_month: crowded.contains(term) && own_month == Some(month(day)),
                 });
             }
             for (stem, word) in &words_of[index] {
@@ -625,6 +721,8 @@ pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
                     key: stem.clone(),
                     finding: finding(word, RepeatWhy::Rare, RepeatLevel::Orange, stem),
                     rare_on: Some(day),
+                    cooldown: None,
+                    over_month: false,
                 });
             }
             // The works of culture both drew on: "Old Joy already worked in
@@ -640,6 +738,8 @@ pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
                         key: format!("source:{note_id}"),
                         finding: found,
                         rare_on: None,
+                        cooldown: None,
+                        over_month: false,
                     });
                 }
             }
@@ -662,7 +762,7 @@ pub fn read(conn: &Connection, profile_id: &str) -> Result<Reading> {
 /// for `{released}`, what an action reads a song against for a meaning the
 /// stemmer cannot see (ADR 0054). The song asking is left out.
 pub fn released_sheet(conn: &Connection, profile_id: &str, except: &str) -> Result<String> {
-    let mut out: Vec<Song> = songs(conn, profile_id)?
+    let mut out: Vec<Song> = songs(conn, profile_id, false)?
         .into_iter()
         .filter(|song| song.out.is_some() && song.id != except)
         .collect();

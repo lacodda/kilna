@@ -3970,7 +3970,8 @@
         "type": "text",
         "kinds": [
           "song"
-        ]
+        ],
+        "register": "sound_combo"
       },
       {
         "key": "premise",

@@ -2,5 +2,6 @@
 import type { Strictness } from "./Strictness";
 import type { Sung } from "./Sung";
 import type { TermKind } from "./TermKind";
+import type { TermScope } from "./TermScope";
 
-export type TermPatch = { word?: string | null, forms?: Array<string> | null, kind?: TermKind | null, strictness?: Strictness | null | null, sung?: Array<Sung> | null, topic?: string | null | null, note?: string | null | null, };
+export type TermPatch = { word?: string | null, forms?: Array<string> | null, kind?: TermKind | null, strictness?: Strictness | null | null, sung?: Array<Sung> | null, topic?: string | null | null, note?: string | null | null, scope?: TermScope | null, max_per_month?: number | null | null, cooldown_days?: number | null | null, };

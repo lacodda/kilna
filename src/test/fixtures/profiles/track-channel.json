@@ -3844,6 +3844,7 @@
           "en": "Sound design",
           "ru": "Саунд-дизайн"
         },
+        "register": "sound_combo",
         "type": "multiline"
       },
       {
@@ -3903,6 +3904,7 @@
           "en": "Cover idea",
           "ru": "Идея обложки"
         },
+        "register": "visual_motif",
         "type": "multiline"
       },
       {
@@ -3925,6 +3927,7 @@
           "en": "Angle",
           "ru": "Ракурс"
         },
+        "register": "visual_motif",
         "type": "text"
       },
       {

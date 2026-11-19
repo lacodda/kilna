@@ -643,6 +643,7 @@ pub fn keep(conn: &Connection, package: WordsPackage, items: Option<&[String]>) 
                     sung: word.sung.clone(),
                     topic: word.topic.clone(),
                     note: word.note.clone(),
+                    ..super::NewTerm::default()
                 },
             )?,
         };
@@ -695,6 +696,10 @@ fn split(
                     sung,
                     topic: found.topic.clone(),
                     note: found.note.clone(),
+                    // A part of a split term reads where the whole did.
+                    scope: found.scope,
+                    max_per_month: found.max_per_month,
+                    cooldown_days: found.cooldown_days,
                 },
             )?,
         };

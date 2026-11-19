@@ -77,6 +77,10 @@ pub fn rows(conn: &Connection, profile_id: &str, filter: &NoteFilter) -> Result<
                 sung: Vec::new(),
                 topic: None,
                 note: None,
+                // A phrase is said in the sung text.
+                scope: crate::register::TermScope::Lyrics,
+                max_per_month: None,
+                cooldown_days: None,
                 created_at: String::new(),
                 updated_at: String::new(),
             }

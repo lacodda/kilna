@@ -2,6 +2,7 @@
 import type { Strictness } from "./Strictness";
 import type { Sung } from "./Sung";
 import type { TermKind } from "./TermKind";
+import type { TermScope } from "./TermScope";
 
 export type NewTerm = { word: string, forms?: Array<string>, 
 /**
@@ -12,4 +13,4 @@ kind?: TermKind,
  * A limit when absent; `null` for a word that is not spent - only a way
  * of singing.
  */
-strictness?: Strictness, sung?: Array<Sung>, topic?: string, note?: string, };
+strictness?: Strictness, sung?: Array<Sung>, topic?: string, note?: string, scope?: TermScope, max_per_month?: number, cooldown_days?: number, };
