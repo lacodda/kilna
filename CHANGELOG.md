@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.152.0] - 2026-11-19
+
+A period on the grid. A channel plans its year before a track of it exists:
+Plan a period in the calendar lays out a month, a quarter or a year by the
+profile's rhythm - its weekdays, its target a month, a floating day for a
+short month's peak - shows every day first, passes over days off and days
+already taken, and makes in one gesture a collection for each month and a
+draft for each day, planned on it; one undo takes it back, and a draft has
+no folder on disk until something of it is kept. A month's drafts are then
+filled in as a table - a field a column, a cell kept on leaving it - and the
+music channel's assistant has a skill that walks a month through its arc,
+the bank's free traditions and the quotas.
+
+### Bug Fixes
+- A period's days read without the year their month names
+- A period with no collection sends no collection kind
+
+### Features
+- Plan a month, a quarter or a year ahead
+- Fill a month's drafts in as a table
+
 ## [0.151.0] - 2026-11-19
 
 Quotas and a bank. The rules a channel counts by hand - a Suno prompt of 400
