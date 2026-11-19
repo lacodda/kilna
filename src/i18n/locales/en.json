@@ -3386,14 +3386,19 @@
     "screenshotAlt": "The pasted screenshot",
     "noReader": "The profile has no action that reads a comment from a screenshot. Add one in Settings, or type the comment in.",
     "read": "Read it",
-    "reading": "Reading the comment…",
     "readingOn": "Reading a screenshot from {{channel}}…",
     "readFailed": "Could not read the screenshot.",
     "readOff": "Read from a screenshot — check it and keep it",
     "waitingCount_one": "{{count}} waits for a reply",
     "waitingCount_other": "{{count}} wait for a reply",
     "notAPublication": "“{{title}}” does not go out itself, so nobody commented on it there. Move the comment to the publication it was left under.",
-    "moveToPublication": "Move to a publication"
+    "moveToPublication": "Move to a publication",
+    "screenshotAltOf": "Screenshot {{n}}",
+    "readingMany_one": "Reading the comment…",
+    "readingMany_other": "Reading {{count}} comments…",
+    "several": "Several comments: each paragraph is one",
+    "keepMany_one": "Keep {{count}} comment",
+    "keepMany_other": "Keep {{count}} comments"
   },
   "refusal": {
     "profile": {
@@ -5982,5 +5987,11 @@
     "keep_other": "Keep the numbers of {{count}} releases",
     "kept_one": "Numbers kept on {{count}} release.",
     "kept_other": "Numbers kept on {{count}} releases."
+  },
+  "replies": {
+    "comment": "The comment:",
+    "context": "What it means:",
+    "choose": "Choose the reply to keep",
+    "useThis": "Use this one"
   }
 }

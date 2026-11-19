@@ -41,7 +41,12 @@ anything that was misread, then **Keep**. Nothing is saved until you do.
 The picture itself is not kept. It is a way in, not a record: once the words
 are in, nobody needs it, and a folder of screenshots only grows.
 
-**+ Comment** types one in by hand, for when there is no screenshot.
+Several screenshots copied at once are one batch (v0.162): one channel for all
+of them, and each is read on its own.
+
+**+ Comment** types one in by hand, for when there is no screenshot. With
+**Several comments** on, each paragraph of what you paste - comments copied
+from a page, a blank line between them - becomes a comment of its own.
 
 ## Answering
 
@@ -50,12 +55,19 @@ leave the box.
 
 **Draft a reply** asks the assistant for one, in the background. It is given
 the comment, the work it is under with the opening of its text - and of the
-song it was made from, which is usually what the comment is about - and the
-replies you have **already posted on the same channel** — that is the
-channel's voice, and the draft is written in it. A channel with nothing
-posted yet gets a plain, warm answer. A reply you have started is rewritten
-rather than ignored. When the draft arrives it appears under the box; **Use
-this** puts it in the box, where it can still be changed.
+song it was made from, which is usually what the comment is about - the
+**voice** section of the space's passport (since v0.162: each space answers
+as itself), and the replies you have **already posted on the same channel**
+as samples of how it speaks. A reply you have started is rewritten rather
+than ignored.
+
+The draft comes back as **three replies** in the language the comment is
+written in - live speech, no long dashes, never repeating the commenter's
+words back - each with its translation into the window's language, along
+with the comment's own translation and what in it a literal reading misses:
+sarcasm, slang, a reference. **Use this one** puts the reply you choose in
+the box, where it can still be changed; in the chat the same three are a
+choice before **Keep as the reply**.
 
 kilna never posts anything. **Copy** puts the reply on the clipboard to paste
 where the comment is; **Mark as answered** is you saying it went. **Archive**

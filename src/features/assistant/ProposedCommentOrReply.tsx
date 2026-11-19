@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import type { Applied, CommentProposal, ReplyProposal } from '@/lib/api/types'
@@ -36,6 +37,9 @@ export function ProposedCommentOrReply({ messageId, proposal, applied, dismissed
     message: t('assistant.commentKept'),
     refresh: refresh.keptComment,
   })
+  // Three ways to answer (v0.162): the one chosen is what is kept.
+  const variants = proposal.kind === 'reply' ? (proposal.variants ?? []) : []
+  const [chosen, setChosen] = useState(0)
 
   // A reply goes to its comment; a reading has no comment yet, only the inbox.
   const where = reply ? `/comments/${proposal.comment_id}` : '/comments'
@@ -54,7 +58,8 @@ export function ProposedCommentOrReply({ messageId, proposal, applied, dismissed
       dismissed={dismissed}
       applyLabel={t(reply ? 'assistant.keepReply' : 'assistant.keepComment')}
       onApply={() => {
-        keep.mutate(undefined)
+        const picked = variants[chosen]
+        keep.mutate(picked === undefined ? undefined : { reply: picked.reply })
       }}
       applying={keep.isPending}
       more={
@@ -72,6 +77,40 @@ export function ProposedCommentOrReply({ messageId, proposal, applied, dismissed
       appliedLabel={t('assistant.commentKept')}
     >
       {read.length > 0 && <p>{read.join(' · ')}</p>}
+      {proposal.kind === 'reply' && variants.length > 0 && (
+        <div className="flex flex-col gap-2 text-xs">
+          {proposal.translation !== undefined && (
+            <p className="text-dim">
+              <span className="font-semibold text-text">{t('replies.comment')}</span>{' '}
+              {proposal.translation}
+            </p>
+          )}
+          {proposal.context !== undefined && (
+            <p className="text-dim">
+              <span className="font-semibold text-text">{t('replies.context')}</span>{' '}
+              {proposal.context}
+            </p>
+          )}
+          <div role="radiogroup" aria-label={t('replies.choose')} className="flex flex-col gap-1">
+            {variants.map((variant, index) => (
+              <Button
+                key={`${String(index)}:${variant.reply}`}
+                variant={chosen === index ? 'soft' : 'ghost'}
+                role="radio"
+                aria-checked={chosen === index}
+                disabled={applied !== null || dismissed}
+                onClick={() => setChosen(index)}
+                className="h-auto flex-col items-start gap-0.5 py-1.5 text-left whitespace-normal"
+              >
+                <span className="text-sm text-text">{variant.reply}</span>
+                {variant.translation !== undefined && (
+                  <span className="text-xs font-normal text-dim">{variant.translation}</span>
+                )}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
     </ProposalCard>
   )
 }

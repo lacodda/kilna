@@ -68,7 +68,7 @@ export function CommentDetail({
   onWork = false,
   onGone,
 }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const client = useQueryClient()
   const { config } = useProfile()
@@ -118,7 +118,7 @@ export function CommentDetail({
       if (reply !== (comment.reply ?? '')) {
         await updateComment(comment.id, { reply: reply.trim() === '' ? null : reply })
       }
-      return startCommentTask(comment.id, replier!.key)
+      return startCommentTask(comment.id, replier!.key, i18n.language)
     },
     refresh: [keys.activeTasks, keys.allChats],
     onSuccess: () => {
@@ -127,7 +127,9 @@ export function CommentDetail({
   })
 
   const keepDraft = useAppMutation({
-    mutationFn: (messageId: string) => applyProposal(messageId),
+    // One of three ways (v0.162) is taken as it was chosen; a plain draft whole.
+    mutationFn: ({ messageId, reply }: { messageId: string; reply?: string }) =>
+      applyProposal(messageId, reply === undefined ? undefined : { reply }),
     failure: 'comments.saveFailed',
     refresh: refresh.keptComment,
   })
@@ -335,7 +337,49 @@ export function CommentDetail({
               className="flex flex-col gap-2 rounded-lg border border-accent/40 bg-accent-soft/40 p-2.5"
             >
               <p className="text-xs font-medium text-accent-2">{t('comments.draftReady')}</p>
-              <p className="selectable text-sm whitespace-pre-wrap">{pending.body}</p>
+              {pending.proposal.kind === 'reply' && (pending.proposal.variants ?? []).length > 0 ? (
+                // Three ways to answer (v0.162): each in the commenter's
+                // language with its translation, and one taken on a press.
+                <div className="flex flex-col gap-1.5">
+                  {pending.proposal.translation !== undefined && (
+                    <p className="text-xs text-dim">
+                      {t('replies.comment')} {pending.proposal.translation}
+                    </p>
+                  )}
+                  {pending.proposal.context !== undefined && (
+                    <p className="text-xs text-dim">
+                      {t('replies.context')} {pending.proposal.context}
+                    </p>
+                  )}
+                  {(pending.proposal.variants ?? []).map((variant, index) => (
+                    <div
+                      key={`${String(index)}:${variant.reply}`}
+                      className="flex items-start gap-2 rounded-md border border-line px-2.5 py-1.5"
+                    >
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="selectable text-sm whitespace-pre-wrap">
+                          {variant.reply}
+                        </span>
+                        {variant.translation !== undefined && (
+                          <span className="text-xs text-dim">{variant.translation}</span>
+                        )}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        disabled={keepDraft.isPending}
+                        onClick={() =>
+                          keepDraft.mutate({ messageId: pending.message_id, reply: variant.reply })
+                        }
+                      >
+                        {t('replies.useThis')}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="selectable text-sm whitespace-pre-wrap">{pending.body}</p>
+              )}
               <div className="flex justify-end gap-1.5">
                 <Button
                   size="sm"
@@ -349,7 +393,7 @@ export function CommentDetail({
                   size="sm"
                   variant="primary"
                   disabled={keepDraft.isPending}
-                  onClick={() => keepDraft.mutate(pending.message_id)}
+                  onClick={() => keepDraft.mutate({ messageId: pending.message_id })}
                 >
                   <Check aria-hidden />
                   {t('comments.useDraft')}

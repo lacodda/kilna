@@ -17,6 +17,7 @@ import type { PackagedScene } from "./PackagedScene";
 import type { PackagedTrial } from "./PackagedTrial";
 import type { PackagedVersion } from "./PackagedVersion";
 import type { ProposedNote } from "./ProposedNote";
+import type { ReplyVariant } from "./ReplyVariant";
 import type { StylesPackage } from "./StylesPackage";
 import type { TrialDropped } from "./TrialDropped";
 import type { Vibe } from "./Vibe";
@@ -111,7 +112,19 @@ commented_on?: string | null,
  * What the picture says it was written under — a video's title —
  * when no work was given: a hint for choosing one, never a key.
  */
-about?: string | null, } | { "kind": "reply", comment_id: string, } | { "kind": "description", style_id: string, } | { "kind": "canon", package: Package, } | { "kind": "words", package: WordsPackage, } | { "kind": "styles", package: StylesPackage, } | { "kind": "bricks", package: BricksPackage, } | { "kind": "cardPrompt", note_id: string, basis?: string | null, } | { "kind": "cardNote", note_id: string, } | { "kind": "release", release_id: string, fields: { [key in string]: JsonValue }, 
+about?: string | null, } | { "kind": "reply", comment_id: string, variants?: Array<ReplyVariant>, 
+/**
+ * The comment in the window's language.
+ */
+translation?: string, 
+/**
+ * Sarcasm, slang, a reference - what a literal reading misses.
+ */
+context?: string, 
+/**
+ * The commenter's language, as the answer named it.
+ */
+language?: string, } | { "kind": "description", style_id: string, } | { "kind": "canon", package: Package, } | { "kind": "words", package: WordsPackage, } | { "kind": "styles", package: StylesPackage, } | { "kind": "bricks", package: BricksPackage, } | { "kind": "cardPrompt", note_id: string, basis?: string | null, } | { "kind": "cardNote", note_id: string, } | { "kind": "release", release_id: string, fields: { [key in string]: JsonValue }, 
 /**
  * Keys the answer named that the release kind does not have, shown
  * rather than dropped silently.

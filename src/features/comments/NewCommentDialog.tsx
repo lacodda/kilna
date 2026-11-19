@@ -8,6 +8,7 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { publicationKinds, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { DatePicker } from '@/components/DatePicker'
 import { Dialog } from '@/components/AppDialog'
 import { Input } from '@/components/ui/input'
@@ -41,6 +42,8 @@ export function NewCommentDialog({
   const [where, setWhere] = useState('')
   const [author, setAuthor] = useState('')
   const [body, setBody] = useState('')
+  // Several comments in one go (v0.162): each paragraph is one.
+  const [several, setSeveral] = useState(false)
   const [day, setDay] = useState('')
   const [work, setWork] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
@@ -63,15 +66,22 @@ export function NewCommentDialog({
     enabled: work !== null,
   })
 
+  const bodies = several ? paragraphsOf(body) : [body.trim()]
   const create = useAppMutation({
-    mutationFn: () =>
-      createComment({
-        channel: where.trim(),
-        body: body.trim(),
-        author: author.trim() === '' ? undefined : author.trim(),
-        commented_on: day === '' ? undefined : day,
-        work_id: work ?? undefined,
-      }),
+    mutationFn: async () => {
+      let last = null
+      for (const one of bodies) {
+        last = await createComment({
+          channel: where.trim(),
+          body: one,
+          author: several || author.trim() === '' ? undefined : author.trim(),
+          commented_on: day === '' ? undefined : day,
+          work_id: work ?? undefined,
+        })
+      }
+      if (last === null) throw new Error('nothing to keep')
+      return last
+    },
     failure: 'comments.saveFailed',
     refresh: refresh.comment,
     onSuccess: (created) => {
@@ -81,7 +91,7 @@ export function NewCommentDialog({
     },
   })
 
-  const ready = where.trim() !== '' && body.trim() !== ''
+  const ready = where.trim() !== '' && bodies.some((one) => one !== '')
 
   return (
     <>
@@ -97,7 +107,9 @@ export function NewCommentDialog({
             variant="primary"
             disabled={!ready || create.isPending}
           >
-            {t('comments.keep')}
+            {several && bodies.length > 1
+              ? t('comments.keepMany', { count: bodies.length })
+              : t('comments.keep')}
           </Button>
         }
       >
@@ -132,6 +144,9 @@ export function NewCommentDialog({
             placeholder={t('comments.bodyPlaceholder')}
             aria-label={t('comments.body')}
           />
+          <Switch checked={several} onCheckedChange={setSeveral}>
+            {t('comments.several')}
+          </Switch>
           {workId === undefined && (
             <div className="flex items-center gap-2 text-xs text-dim">
               <span className="min-w-0 truncate">
@@ -156,4 +171,12 @@ export function NewCommentDialog({
       />
     </>
   )
+}
+
+/** The paragraphs of a text: each run of lines a blank line ends. */
+export function paragraphsOf(text: string): string[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((one) => one.trim())
+    .filter((one) => one !== '')
 }

@@ -439,7 +439,7 @@ pub fn check(
             Err(cause) => note(Err(cause)),
         },
         Proposal::Comment { .. } => {}
-        Proposal::Reply { comment_id } => {
+        Proposal::Reply { comment_id, .. } => {
             if crate::comment::get(conn, comment_id)?.is_none() {
                 note(Err(Error::not_found("comment", comment_id)));
             }
@@ -913,8 +913,17 @@ fn keep(
             outcome.comment = Some(super::comment::create(conn, new)?.id);
         }
 
-        Proposal::Reply { comment_id } => {
-            let text = overrides.reply.unwrap_or_else(|| body.to_owned());
+        Proposal::Reply {
+            comment_id,
+            variants,
+            ..
+        } => {
+            // The reply the person chose or wrote, else the first of the
+            // three, else the whole answer (v0.162).
+            let text = overrides
+                .reply
+                .or_else(|| variants.first().map(|one| one.reply.clone()))
+                .unwrap_or_else(|| body.to_owned());
             super::comment::reply(conn, &comment_id, text.trim())?;
             outcome.comment = Some(comment_id);
         }
@@ -1989,6 +1998,10 @@ mod tests {
             "It is about the last light.",
             Proposal::Reply {
                 comment_id: comment.id.clone(),
+                variants: Vec::new(),
+                translation: None,
+                context: None,
+                language: None,
             },
         );
         let second = propose(
@@ -1997,6 +2010,10 @@ mod tests {
             "Another take.",
             Proposal::Reply {
                 comment_id: comment.id.clone(),
+                variants: Vec::new(),
+                translation: None,
+                context: None,
+                language: None,
             },
         );
 

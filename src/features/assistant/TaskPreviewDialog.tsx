@@ -100,7 +100,7 @@ export function TaskPreviewDialog({
   before,
   onStarted,
 }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [attachmentsText, setAttachmentsText] = useState('')
   // What the preview is composed against: set when the box is left, so a
   // half-typed path is not sent to be checked keystroke by keystroke.
@@ -184,7 +184,7 @@ export function TaskPreviewDialog({
         case 'style':
           return startStyleTask(target.id, action.key)
         case 'comment':
-          return startCommentTask(target.id, action.key)
+          return startCommentTask(target.id, action.key, i18n.language)
         case 'card':
           return startCardTask(target.id, action.key)
         case 'release':

@@ -74,7 +74,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
   const [state, setState] = useState<CommentState>('open')
   const [text, setText] = useState('')
   const query = useDebounced(text.trim(), 200)
-  const [pasted, setPasted] = useState<File | null>(null)
+  const [pasted, setPasted] = useState<File[]>([])
   const [adding, setAdding] = useState(false)
 
   const filter = {
@@ -114,12 +114,14 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
   // the reply or the search is left to the box, which is what it means there.
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
-      const file = Array.from(event.clipboardData?.files ?? []).find((one) =>
+      // Every picture pasted at once is one batch (v0.162): screenshots of a
+      // thread come together.
+      const files = Array.from(event.clipboardData?.files ?? []).filter((one) =>
         one.type.startsWith('image/'),
       )
-      if (file === undefined) return
+      if (files.length === 0) return
       event.preventDefault()
-      setPasted(file)
+      setPasted(files)
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
@@ -271,8 +273,8 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
       />
 
       <ScreenshotDialog
-        file={pasted}
-        onClose={() => setPasted(null)}
+        files={pasted}
+        onClose={() => setPasted([])}
         channels={known}
         channel={channel}
         workId={workId}

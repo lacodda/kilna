@@ -17,8 +17,9 @@ import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { ChannelField } from '@/features/comments/ChannelField'
 
 interface Props {
-  /** The picture pasted; null keeps the dialog closed. */
-  file: File | null
+  /** The pictures pasted, read as one batch (v0.162); none keeps the dialog
+   *  closed. */
+  files: readonly File[]
   onClose: () => void
   /** The channels already used, for the chips. */
   channels: string[]
@@ -37,7 +38,7 @@ interface Props {
  * comes back as something to keep on the comments screen. The picture is
  * not kept (migration 0027).
  */
-export function ScreenshotDialog({ file, onClose, channels, channel, workId }: Props) {
+export function ScreenshotDialog({ files, onClose, channels, channel, workId }: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
   const reader = commentAction(config.prompts, 'comment')
@@ -45,22 +46,22 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
   const [where, setWhere] = useState('')
   const [work, setWork] = useState<string | null>(workId ?? null)
   const [picking, setPicking] = useState(false)
-  const [openedFor, setOpenedFor] = useState<File | null>(null)
+  const [openedFor, setOpenedFor] = useState<readonly File[]>([])
 
-  // Each picture starts from the channel in view, or the last one used here:
+  // Each batch starts from the channel in view, or the last one used here:
   // comments arrive in runs from one place.
-  if (file !== null && openedFor !== file) {
-    setOpenedFor(file)
+  if (files.length > 0 && openedFor !== files) {
+    setOpenedFor(files)
     setWhere(channel ?? recallChannel())
     setWork(workId ?? null)
   }
 
-  const preview = useMemo(() => (file === null ? null : URL.createObjectURL(file)), [file])
+  const previews = useMemo(() => files.map((one) => URL.createObjectURL(one)), [files])
   useEffect(
     () => () => {
-      if (preview !== null) URL.revokeObjectURL(preview)
+      for (const one of previews) URL.revokeObjectURL(one)
     },
-    [preview],
+    [previews],
   )
 
   const chosen = useQuery({
@@ -70,22 +71,25 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
 
   const read = useAppMutation({
     mutationFn: async () => {
-      if (file === null || reader === undefined) throw new Error('nothing to read')
-      const bytes = new Uint8Array(await file.arrayBuffer())
-      return startScreenshotTask({
-        bytes,
-        name: file.name || `comment.${file.type.split('/')[1] ?? 'png'}`,
-        channel: where.trim(),
-        workId: work,
-        action: reader.key,
-        today: today(),
-      })
+      if (files.length === 0 || reader === undefined) throw new Error('nothing to read')
+      // One reading per picture, all from the one channel and work.
+      for (const one of files) {
+        const bytes = new Uint8Array(await one.arrayBuffer())
+        await startScreenshotTask({
+          bytes,
+          name: one.name || `comment.${one.type.split('/')[1] ?? 'png'}`,
+          channel: where.trim(),
+          workId: work,
+          action: reader.key,
+          today: today(),
+        })
+      }
     },
     failure: 'comments.readFailed',
     refresh: [keys.activeTasks, keys.allChats],
     onSuccess: () => {
       rememberChannel(where)
-      say.info(t('comments.reading'))
+      say.info(t('comments.readingMany', { count: files.length }))
       onClose()
     },
   })
@@ -93,7 +97,7 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
   return (
     <>
       <Dialog
-        open={file !== null}
+        open={files.length > 0}
         onOpenChange={(open) => {
           if (!open) onClose()
         }}
@@ -119,12 +123,23 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
             if (where.trim() !== '' && reader !== undefined) read.mutate()
           }}
         >
-          {preview !== null && (
+          {previews.length === 1 ? (
             <img
-              src={preview}
+              src={previews[0]}
               alt={t('comments.screenshotAlt')}
               className="max-h-56 w-full rounded-lg border border-line object-contain"
             />
+          ) : (
+            <div className="grid grid-cols-3 gap-1.5">
+              {previews.map((one, index) => (
+                <img
+                  key={one}
+                  src={one}
+                  alt={t('comments.screenshotAltOf', { n: index + 1 })}
+                  className="h-24 w-full rounded-md border border-line object-cover"
+                />
+              ))}
+            </div>
           )}
           <ChannelField value={where} onChange={setWhere} known={channels} autoFocus />
           {workId === undefined && (

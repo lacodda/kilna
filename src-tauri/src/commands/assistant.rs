@@ -697,6 +697,7 @@ pub fn start_comment_task(
     state: State<'_, AppState>,
     id: String,
     action: String,
+    language: Option<String>,
 ) -> Result<StartedTask> {
     let state = state.inner();
     if state
@@ -705,7 +706,8 @@ pub fn start_comment_task(
     {
         return Err(Error::AlreadyRunning);
     }
-    let prepared = assistant::task::prepare_for_comment(&state.conn(), &id, &action)?;
+    let prepared =
+        assistant::task::prepare_for_comment(&state.conn(), &id, &action, language.as_deref())?;
     launch(&app, state, prepared, None)
 }
 

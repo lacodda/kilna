@@ -786,9 +786,7 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
         }
         // The whole answer is the reply; the proposal says whose.
         super::prompt::Produces::Reply => match super::task::comment_of_key(task_key) {
-            Some(comment_id) => value(super::proposal::Proposal::Reply {
-                comment_id: comment_id.to_owned(),
-            }),
+            Some(comment_id) => value(super::proposal::read_reply(body, comment_id)),
             None => Read::Nothing,
         },
         // The whole answer is the description; the proposal says of which

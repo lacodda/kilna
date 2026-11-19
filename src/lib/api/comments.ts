@@ -22,9 +22,10 @@ export const updateComment = (id: string, patch: CommentPatch) =>
 export const deleteComment = (id: string) => invoke<string>('delete_comment', { id })
 export const pendingCommentProposals = () =>
   invoke<PendingCommentProposal[]>('pending_comment_proposals')
-/** Draft a reply in the background, in the voice of the comment's channel. */
-export const startCommentTask = (id: string, action: string) =>
-  invoke<StartedTask>('start_comment_task', { id, action })
+/** Draft a reply in the background, in the voice of the comment's channel;
+ *  its translations come in `language`, the window's (v0.162). */
+export const startCommentTask = (id: string, action: string, language?: string) =>
+  invoke<StartedTask>('start_comment_task', { id, action, language: language ?? null })
 /** What drafting a reply would send, without sending it. */
 export const previewCommentTask = (id: string, action: string) =>
   invoke<ComposedTask>('preview_comment_task', { id, action })

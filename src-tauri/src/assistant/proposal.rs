@@ -237,8 +237,27 @@ pub enum Proposal {
         about: Option<String>,
     },
     /// A reply to one comment; the text is the message body, the way a
-    /// version's is.
-    Reply { comment_id: String },
+    /// version's is - or, since v0.162 (FR-22 22.3), three ways to answer
+    /// in the commenter's language, each with its translation into the
+    /// window's, the comment's own translation and what in it is cultural.
+    Reply {
+        comment_id: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[ts(optional, as = "Option<Vec<ReplyVariant>>")]
+        variants: Vec<ReplyVariant>,
+        /// The comment in the window's language.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        translation: Option<String>,
+        /// Sarcasm, slang, a reference - what a literal reading misses.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        context: Option<String>,
+        /// The commenter's language, as the answer named it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        language: Option<String>,
+    },
     /// A style brick's description; the text is the message body.
     Description { style_id: String },
     /// Cards, facts and relations for the canon (ADR 0043), read and checked
@@ -747,13 +766,88 @@ pub fn comment_instruction(today: &str) -> String {
     )
 }
 
-/// What an action that drafts a reply appends to its prompt.
-///
-/// The whole answer is what gets kept, as with a version: a preamble would be
-/// posted under someone's comment.
-pub fn reply_instruction() -> &'static str {
-    "\n\nYour whole reply is kept as the answer to the comment, word for word: write only it — \
-     no preamble, no options to choose from, no quotation marks around it."
+/// One way to answer a comment (v0.162).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct ReplyVariant {
+    /// The reply, in the commenter's language.
+    pub reply: String,
+    /// It in the window's language.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub translation: Option<String>,
+}
+
+/// What a reply action appends to its prompt since v0.162 (FR-22 22.3): three
+/// replies in the commenter's language, each translated into `language`, the
+/// comment translated and its cultural context said - all in one block the
+/// window lays out to choose from.
+pub fn replies_instruction(language: &str) -> String {
+    format!(
+        "\n\nWrite three replies that answer the comment in different ways - each in the \
+         language the comment is written in, as the channel speaks: live speech, no long \
+         dashes, never repeating the commenter's words back at them. Then translate the \
+         comment and each reply into {language}, and say in {language} what in the comment a \
+         literal reading misses - sarcasm, slang, a reference - or leave it empty. Answer with \
+         one ```json block and nothing else:\n\n```json\n{{\"language\": \"<the comment's \
+         language>\", \"translation\": \"<the comment in {language}>\", \"context\": \"<what \
+         is cultural, or empty>\", \"variants\": [{{\"reply\": \"<a reply>\", \"translation\": \
+         \"<it in {language}>\"}}, {{...}}, {{...}}]}}\n```"
+    )
+}
+
+/// The proposal a reply's answer makes: three replies when it holds the
+/// block (v0.162), the whole answer as the one reply otherwise.
+pub fn read_reply(body: &str, comment_id: &str) -> Proposal {
+    let plain = || Proposal::Reply {
+        comment_id: comment_id.to_owned(),
+        variants: Vec::new(),
+        translation: None,
+        context: None,
+        language: None,
+    };
+    let Some(block) = fenced_json(body) else {
+        return plain();
+    };
+    let Ok(raw) = serde_json::from_str::<Map<String, Value>>(&block) else {
+        return plain();
+    };
+    let text = |key: &str| {
+        raw.get(key)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+    };
+    let variants: Vec<ReplyVariant> = raw
+        .get("variants")
+        .and_then(Value::as_array)
+        .map(|all| {
+            all.iter()
+                .filter_map(|one| {
+                    let reply = one.get("reply").and_then(Value::as_str)?.trim().to_owned();
+                    (!reply.is_empty()).then(|| ReplyVariant {
+                        reply,
+                        translation: one
+                            .get("translation")
+                            .and_then(Value::as_str)
+                            .map(str::trim)
+                            .filter(|said| !said.is_empty())
+                            .map(str::to_owned),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    if variants.is_empty() {
+        return plain();
+    }
+    Proposal::Reply {
+        comment_id: comment_id.to_owned(),
+        variants,
+        translation: text("translation"),
+        context: text("context"),
+        language: text("language"),
+    }
 }
 
 /// What an action that writes a release's metadata appends to its prompt.
@@ -1505,6 +1599,36 @@ pub fn fenced_json(body: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+
+    /// A reply's answer holding the block is three ways to answer; one
+    /// without it is the reply itself (v0.162).
+    #[test]
+    fn a_replys_answer_is_three_ways_when_it_holds_the_block() {
+        let body = "```json
+{\"language\": \"Spanish\", \"translation\": \"что это за инструмент?\",                     \"context\": \"\", \"variants\": [{\"reply\": \"Es un charango.\", \"translation\":                     \"Это чаранго.\"}, {\"reply\": \"Un charango, ¡pequeño y ruidoso!\"}, {\"reply\": \"  \"}]}
+```";
+        let Proposal::Reply {
+            variants,
+            translation,
+            context,
+            language,
+            ..
+        } = read_reply(body, "c1")
+        else {
+            panic!("not a reply")
+        };
+        assert_eq!(variants.len(), 2, "an empty reply is no way to answer");
+        assert_eq!(variants[0].translation.as_deref(), Some("Это чаранго."));
+        assert_eq!(translation.as_deref(), Some("что это за инструмент?"));
+        assert_eq!(context, None);
+        assert_eq!(language.as_deref(), Some("Spanish"));
+
+        let Proposal::Reply { variants, .. } = read_reply("Thank you, friend!", "c1") else {
+            panic!("not a reply")
+        };
+        assert!(variants.is_empty());
+    }
+
     use super::*;
     use crate::db;
     use crate::profile;
@@ -1527,7 +1651,7 @@ mod tests {
     fn the_comment_instructions_read_as_sentences() {
         for text in [
             comment_instruction("2026-09-22"),
-            reply_instruction().to_owned(),
+            replies_instruction("Russian"),
         ] {
             assert!(!text.contains("   "), "a hole in the prose: {text:?}");
             assert!(

@@ -937,6 +937,9 @@ pub fn channel_of_key(key: &str) -> Option<String> {
 /// How many replies already posted on a channel are shown as its voice.
 /// Enough to hear a manner in; few enough that the comment itself is not
 /// buried under them.
+/// The section of the passport a reply takes its persona from (v0.162).
+const PERSONA: &str = "voice";
+
 const VOICE_SAMPLES: usize = 8;
 
 /// How much of a work's text travels with a reply draft. A reply is about
@@ -983,6 +986,35 @@ pub fn compose_for_comment(
     conn: &Connection,
     comment_id: &str,
     action: &str,
+) -> Result<(Composed, String)> {
+    compose_for_comment_in(conn, comment_id, action, None)
+}
+
+/// The name of a window's language for a prompt: `ru` is Russian. English
+/// when the window said none.
+pub fn language_name(code: Option<&str>) -> String {
+    let code = code.unwrap_or("en").trim().to_lowercase();
+    let base = code.split(['-', '_']).next().unwrap_or_default();
+    match base {
+        "ru" => "Russian",
+        "en" => "English",
+        "es" => "Spanish",
+        "pt" => "Portuguese",
+        "de" => "German",
+        "fr" => "French",
+        "uk" => "Ukrainian",
+        _ => return code,
+    }
+    .to_owned()
+}
+
+/// [`compose_for_comment`], the translations in the window's `language`
+/// (v0.162, FR-22 22.3).
+pub fn compose_for_comment_in(
+    conn: &Connection,
+    comment_id: &str,
+    action: &str,
+    language: Option<&str>,
 ) -> Result<(Composed, String)> {
     let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
     let template = comment_action(&profile, action, Produces::Reply)?;
@@ -1066,6 +1098,28 @@ pub fn compose_for_comment(
         }
     }
 
+    // The channel's own voice as its passport says it (v0.162, FR-22 22.3):
+    // each space answers as itself, whatever was posted before.
+    let config = profile::config_for(conn, &profile.id)?;
+    if let Some(root) = crate::note::root_card(conn, &profile.id, &config)? {
+        let persona: Vec<String> = crate::canon::fact::in_section(conn, &root.id, PERSONA)?
+            .into_iter()
+            .filter(|fact| {
+                matches!(
+                    fact.status,
+                    crate::canon::FactStatus::Canon | crate::canon::FactStatus::Open
+                )
+            })
+            .map(|fact| one_line(&fact.body))
+            .collect();
+        if !persona.is_empty() {
+            prompt.push_str("\nThe channel's voice, as its passport says - answer as it speaks:\n");
+            for line in persona {
+                prompt.push_str(&format!("- {line}\n"));
+            }
+        }
+    }
+
     let voice = crate::comment::posted_on(
         conn,
         &profile.id,
@@ -1099,7 +1153,9 @@ pub fn compose_for_comment(
 
     prompt.push('\n');
     prompt.push_str(&template.template);
-    prompt.push_str(super::proposal::reply_instruction());
+    prompt.push_str(&super::proposal::replies_instruction(&language_name(
+        language,
+    )));
     let prompt = super::waiting::instruct(&prompt);
 
     let who = comment
@@ -1120,8 +1176,13 @@ pub fn compose_for_comment(
 
 /// [`compose_for_comment`] with the chat it will be answered in: on the
 /// comment's work, when it has one, so the answer is where the work is.
-pub fn prepare_for_comment(conn: &Connection, comment_id: &str, action: &str) -> Result<Prepared> {
-    let (composed, profile_id) = compose_for_comment(conn, comment_id, action)?;
+pub fn prepare_for_comment(
+    conn: &Connection,
+    comment_id: &str,
+    action: &str,
+    language: Option<&str>,
+) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_comment_in(conn, comment_id, action, language)?;
     let work_id = crate::comment::get(conn, comment_id)?.and_then(|comment| comment.work_id);
     prepared(conn, &profile_id, composed, work_id, action)
 }
@@ -2179,6 +2240,60 @@ mod tests {
             "2026-09-20T00:00:00Z",
         )
         .unwrap();
+    }
+
+    /// A reply speaks as its own space's passport says, and asks for three
+    /// replies translated into the window's language (v0.162).
+    #[test]
+    fn a_reply_takes_the_passports_voice_and_the_windows_language() {
+        let conn = crate::db::open_in_memory().unwrap();
+        crate::profile::seed(&conn, "track-channel").unwrap();
+        let profile_id = crate::profile::active(&conn).unwrap().unwrap().id;
+        let channel = fixtures::card(&conn, &profile_id, "channel", "The channel");
+        crate::canon::fact::create_minted(
+            &conn,
+            crate::canon::NewFact {
+                note_id: channel.id.clone(),
+                section: "voice".into(),
+                body: "Dry, a little ironic, never a sales pitch.".into(),
+                ..crate::canon::NewFact::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        let comment = crate::comment::create_minted(
+            &conn,
+            &profile_id,
+            crate::comment::NewComment {
+                channel: "main".into(),
+                body: "¿qué instrumento es ese?".into(),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+
+        let (composed, _) =
+            compose_for_comment_in(&conn, &comment.id, "reply-to-comment", Some("ru")).unwrap();
+
+        assert!(
+            composed
+                .prompt
+                .contains("The channel's voice, as its passport says")
+        );
+        assert!(
+            composed
+                .prompt
+                .contains("- Dry, a little ironic, never a sales pitch.")
+        );
+        assert!(
+            composed
+                .prompt
+                .contains("translate the comment and each reply into Russian")
+        );
+        assert!(composed.prompt.contains("Write three replies"));
+        assert_eq!(language_name(None), "English");
+        assert_eq!(language_name(Some("pt-BR")), "Portuguese");
     }
 
     /// The reply is drafted against the comment, the work it is under, and
