@@ -583,7 +583,7 @@ fn works_where(
     value: &str,
 ) -> Result<Vec<Work>> {
     let mut statement = conn.prepare(&format!(
-        "SELECT id FROM work WHERE profile_id = ?1 AND {clause} ORDER BY position, created_at"
+        "SELECT id FROM work WHERE profile_id = ?1 AND {clause} ORDER BY position, created_at, rowid"
     ))?;
     let ids = statement
         .query_map(params![profile_id, value], |row| row.get::<_, String>(0))?
@@ -601,7 +601,7 @@ fn month_works(conn: &Connection, profile_id: &str, month: &str) -> Result<Vec<W
                           AND substr(coalesce(r.scheduled_at, r.released_at), 1, 7) = ?2)
               OR EXISTS (SELECT 1 FROM work_plan p WHERE p.work_id = w.id
                           AND substr(p.scheduled_at, 1, 7) = ?2))
-          ORDER BY w.position, w.created_at",
+          ORDER BY w.position, w.created_at, w.rowid",
     )?;
     let ids = statement
         .query_map(params![profile_id, month], |row| row.get::<_, String>(0))?
