@@ -310,6 +310,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::build::BuildSources,
         kilna_lib::commands::plugins::PluginProgress,
         kilna_lib::plugin::PluginCandidate,
+        kilna_lib::work::media::WorkMedia,
         kilna_lib::commands::plugins::PluginBatchProgress,
         kilna_lib::commands::plugins::PluginBatchItem,
         kilna_lib::commands::plugins::PluginBatchReport,

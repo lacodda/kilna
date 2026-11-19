@@ -754,7 +754,11 @@
     "gap": {
       "unscored": "Not scored",
       "unscheduled": "Nothing planned",
-      "stale": "Score is old"
+      "stale": "Score is old",
+      "readyForVideo": "Ready for a video",
+      "noAudio": "No audio",
+      "noCover": "No cover",
+      "readyToPublish": "Ready to go out"
     },
     "repeats": "Repeats",
     "repeat": {
@@ -768,7 +772,11 @@
     "gapHint": {
       "unscored": "Nothing has judged these yet.",
       "unscheduled": "Judged, but nothing has gone out and nothing is booked.",
-      "stale": "The work changed after it was scored."
+      "stale": "The work changed after it was scored.",
+      "readyForVideo": "A track and its cover, no video yet: what a render makes.",
+      "noAudio": "Not out, and no track attached or finished.",
+      "noCover": "Not out, goes out under a cover, and has none chosen.",
+      "readyToPublish": "Not out, with its file and its cover: nothing missing to go out."
     },
     "showing": "{{shown}} of {{total}}",
     "count_one": "{{count}} work",
@@ -867,7 +875,8 @@
       "planned": "Planned",
       "overdue": "Overdue",
       "undated": "No date"
-    }
+    },
+    "mediaGaps": "Media"
   },
   "assistant": {
     "title": "Assistant",

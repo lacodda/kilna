@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import {
+  MEDIA_GAPS,
   narrow,
   narrowByColumns,
   sortRows,
@@ -8,6 +9,7 @@ import {
   type CatalogueFilter,
   type CatalogueRow,
   type ColumnFilters,
+  type MediaOf,
   type RepeatLevels,
   type Sort,
 } from '@/lib/catalogue'
@@ -19,6 +21,8 @@ interface Shown {
   all: CatalogueRow[]
   /** What the table shows: narrowed by the box and the funnels, then sorted. */
   visible: CatalogueRow[]
+  /** Every work's media, once a filter by them asked (v0.155). */
+  media: MediaOf | undefined
 }
 
 /**
@@ -56,14 +60,20 @@ export function useShownRows(
 
   // The planned slots ride with their works, for the next release's cell.
   const plans = useQuery(queries.workPlans())
+  // A work's media are looked for on disk: asked only while a filter by
+  // them is on (v0.155).
+  const media = useQuery({
+    ...queries.worksMedia(),
+    enabled: filter.gap !== undefined && MEDIA_GAPS.includes(filter.gap),
+  })
 
   if (rows === undefined) return undefined
   const all = withNextReleases(rows, releases, plans.data)
   // The funnels narrow what the query left: the two compose as AND, and the
   // count above the table reads both.
   const visible = sortRows(
-    narrowByColumns(narrow(all, filter, matching, repeats), columnFilters),
+    narrowByColumns(narrow(all, filter, matching, repeats, media.data), columnFilters),
     sort,
   )
-  return { all, visible }
+  return { all, visible, media: media.data }
 }

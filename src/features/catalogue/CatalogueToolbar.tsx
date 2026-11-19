@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Star } from 'lucide-react'
 import {
   GAPS,
+  MEDIA_GAPS,
   REPEAT_SLICES,
   type CatalogueFilter,
   type ColumnId,
@@ -41,7 +42,7 @@ interface Props {
   onGroupBy: (next: GroupBy) => void
   /** Every work, by kind, and every gap: the chips count the whole catalogue. */
   kindCounts: ReadonlyMap<string, number>
-  gapCounts: Record<Gap, number> | undefined
+  gapCounts: Partial<Record<Gap, number>> | undefined
   repeatCounts: Record<RepeatSlice, number> | undefined
   /** What the table shows, and of how many; undefined while it loads. */
   shown: number | undefined
@@ -156,10 +157,32 @@ export function CatalogueToolbar(props: Props) {
         <ChipGroup
           aria-label={t('catalogue.gaps')}
           className="ml-2"
-          value={filter.gap === undefined ? [] : [filter.gap]}
+          value={filter.gap === undefined || MEDIA_GAPS.includes(filter.gap) ? [] : [filter.gap]}
           onValueChange={(next) => props.onGap(GAPS.find((gap) => gap === next[0]))}
         >
-          {GAPS.map((gap) => (
+          {GAPS.filter((gap) => !MEDIA_GAPS.includes(gap)).map((gap) => (
+            <Chip
+              key={gap}
+              value={gap}
+              variant="dashed"
+              count={props.gapCounts?.[gap]}
+              title={t(`catalogue.gapHint.${gap}`)}
+            >
+              {t(`catalogue.gap.${gap}`)}
+            </Chip>
+          ))}
+        </ChipGroup>
+
+        {/* What a work holds of its media, for choosing a batch (v0.155):
+            a track, a cover, a video. The same one-at-a-time switch as the
+            gaps, apart from them because what they read is looked for on
+            disk, and counted only once it has been. */}
+        <ChipGroup
+          aria-label={t('catalogue.mediaGaps')}
+          value={filter.gap !== undefined && MEDIA_GAPS.includes(filter.gap) ? [filter.gap] : []}
+          onValueChange={(next) => props.onGap(MEDIA_GAPS.find((gap) => gap === next[0]))}
+        >
+          {MEDIA_GAPS.map((gap) => (
             <Chip
               key={gap}
               value={gap}

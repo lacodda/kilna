@@ -1,10 +1,17 @@
 import type { WorkPlan } from '@/lib/api/types'
 import { today as todayOf } from '@/lib/month'
-import type { RepeatLevel, ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import type { RepeatLevel, ScheduledRelease, ScoredWork, WorkMedia } from '@/lib/api/types'
 import { standsAt, stopOf } from '@/lib/stages'
 
 /** A working gap: something started but not carried through. */
-export type Gap = 'unscored' | 'unscheduled' | 'stale'
+export type Gap =
+  'unscored' | 'unscheduled' | 'stale' | 'readyForVideo' | 'noAudio' | 'noCover' | 'readyToPublish'
+
+/** The gaps read off a work's media, asked apart from the rows (v0.155). */
+export const MEDIA_GAPS: readonly Gap[] = ['readyForVideo', 'noAudio', 'noCover', 'readyToPublish']
+
+/** Every work's media, by id. */
+export type MediaOf = Readonly<Record<string, WorkMedia>>
 
 /**
  * A slice by what the guard of repeats says of a work (ADR 0054): `any` for
@@ -164,6 +171,7 @@ export function narrow<Row extends ScoredWork>(
   filter: CatalogueFilter,
   matching?: readonly string[],
   repeats?: RepeatLevels,
+  media?: MediaOf,
 ): Row[] {
   const needle = filter.search?.trim().toLowerCase() ?? ''
   const found = matching === undefined ? undefined : new Set(matching)
@@ -177,7 +185,7 @@ export function narrow<Row extends ScoredWork>(
     // is the one a person means; substring matching would make the narrowest
     // tool in the box the vaguest.
     if (filter.tag !== undefined && !hasTag(row, filter.tag)) return false
-    if (filter.gap !== undefined && !hasGap(row, filter.gap)) return false
+    if (filter.gap !== undefined && !hasGap(row, filter.gap, media?.[row.work_id])) return false
     // The marks are read off the guard, not off the row. Until they arrive
     // nothing is known to repeat, and the slice is empty rather than wrong.
     if (
@@ -213,7 +221,15 @@ function hasTag(row: ScoredWork, tag: string): boolean {
 /** The gaps a work can have, in the order they are offered. Exported because
  * the chips above the table and the check on a stored filter must be reading
  * one list - two would agree today and differ after the next gap is added. */
-export const GAPS: Gap[] = ['unscored', 'unscheduled', 'stale']
+export const GAPS: Gap[] = [
+  'unscored',
+  'unscheduled',
+  'stale',
+  'readyForVideo',
+  'noAudio',
+  'noCover',
+  'readyToPublish',
+]
 
 /**
  * How many works have each gap, across the whole catalogue.
@@ -223,9 +239,18 @@ export const GAPS: Gap[] = ['unscored', 'unscheduled', 'stale']
  * closed when it is only out of sight. The count is what makes the chip
  * worth pressing - "Not scored · 12" is a job, "Not scored" is a label.
  */
-export function countGaps(rows: readonly ScoredWork[]): Record<Gap, number> {
-  const counts: Record<Gap, number> = { unscored: 0, unscheduled: 0, stale: 0 }
-  for (const row of rows) for (const gap of GAPS) if (hasGap(row, gap)) counts[gap] += 1
+export function countGaps(
+  rows: readonly ScoredWork[],
+  media?: MediaOf,
+): Partial<Record<Gap, number>> {
+  // The gaps read off a work's media are counted only once the media are
+  // known (v0.155): a chip reading 0 before they are looked for would say
+  // every work holds its track.
+  const counted = media === undefined ? GAPS.filter((gap) => !MEDIA_GAPS.includes(gap)) : GAPS
+  const counts: Partial<Record<Gap, number>> = {}
+  for (const gap of counted) counts[gap] = 0
+  for (const row of rows)
+    for (const gap of counted) if (hasGap(row, gap, media?.[row.work_id])) counts[gap]! += 1
   return counts
 }
 
@@ -236,7 +261,7 @@ export function countGaps(rows: readonly ScoredWork[]): Record<Gap, number> {
  * this listed ten works that had already gone out, offering to fix something
  * finished — the rule since: the automation shows what is still open.
  */
-function hasGap(row: ScoredWork, gap: Gap): boolean {
+function hasGap(row: ScoredWork, gap: Gap, media: WorkMedia | undefined): boolean {
   switch (gap) {
     // Nothing has judged it yet, so nothing can rank it.
     case 'unscored':
@@ -248,6 +273,29 @@ function hasGap(row: ScoredWork, gap: Gap): boolean {
     // The score describes a draft that has since been rewritten.
     case 'stale':
       return row.stale
+    // What a batch of a plugin is asked about (v0.155, FR-21 21.3), read off
+    // the work's media and only of what has not gone out. Until the media
+    // arrive nothing is known to hold anything, and the slice is empty
+    // rather than wrong.
+    case 'readyForVideo':
+      return (
+        media !== undefined &&
+        row.released === 0 &&
+        media.audio &&
+        !media.video &&
+        (media.cover || !media.wants_cover)
+      )
+    case 'noAudio':
+      return media !== undefined && row.released === 0 && !media.audio
+    case 'noCover':
+      return media !== undefined && row.released === 0 && media.wants_cover && !media.cover
+    case 'readyToPublish':
+      return (
+        media !== undefined &&
+        row.released === 0 &&
+        (media.audio || media.video) &&
+        (media.cover || !media.wants_cover)
+      )
   }
 }
 

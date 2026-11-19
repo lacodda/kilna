@@ -442,7 +442,7 @@ export function Catalogue({ onSelect }: Props) {
           groupBy={groupBy}
           onGroupBy={setGroupBy}
           kindCounts={kindCounts}
-          gapCounts={rows.data === undefined ? undefined : countGaps(rows.data)}
+          gapCounts={rows.data === undefined ? undefined : countGaps(rows.data, shown?.media)}
           repeatCounts={rows.data === undefined ? undefined : countRepeats(rows.data, repeats)}
           shown={shown?.visible.length}
           total={shown?.all.length}

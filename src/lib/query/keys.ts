@@ -64,6 +64,8 @@ export const keys = {
   latestScore: (workId: string) => ['scores', 'latest', workId] as const,
   kindVerdicts: (workId: string) => ['scores', 'kinds', workId] as const,
   catalogue: ['catalogue'] as const,
+  /** Every work's media, under the catalogue: what refreshes it refreshes this. */
+  worksMedia: ['catalogue', 'media'] as const,
 
   releases: ['releases'] as const,
   releasesForWork: (workId: string) => ['releases', 'work', workId] as const,

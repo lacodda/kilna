@@ -644,6 +644,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::plugins::cancel_plugin,
             commands::plugins::keep_plugin_candidate,
             commands::plugins::run_plugin_batch,
+            commands::works::works_media,
             commands::plugins::build_sources,
         ])
         .build({

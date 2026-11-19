@@ -74,7 +74,10 @@ does.
 `timeout` is how many seconds the command may run - see
 [How long a plugin may take](#how-long-a-plugin-may-take). `"batch": true`
 (v0.148) says a command is meant for many works at once - a render by a
-preset, with no editor - and Settings says so beside it. Every field added
+preset, with no editor - and Settings says so beside it. Since v0.155 such a
+command on `"work"` is offered under **Plugins…** in the catalogue's bar of
+ticked works and on a collection: see
+[Running over many works](#running-over-many-works). Every field added
 since the first protocol is optional on both sides, which is why the version
 is still `1`.
 
@@ -122,9 +125,19 @@ plugin needs no configuration file and no screen of its own:
   earlier that no longer fits - an option you removed - is not handed over, and
   the default stands instead.
 
-**Not for a secret.** Settings are kept in the workspace, so they go into every
-backup and travel to the plugin in the clear. A plugin with a token asks the
-system's keychain for it.
+**A secret is marked so.** Settings are kept in the workspace, so they go into
+every backup and export. A key, a token or a password is declared with
+`"secret": true` (v0.155):
+
+```jsonc
+{ "key": "token", "type": "text", "label": "API token", "secret": true }
+```
+
+kilna keeps a secret on this machine only, in a file of its own beside the
+plugins (`plugin-secrets/<executable>.json` in kilna's own folder), never in
+the workspace's database or its exports. The form shows only that it is set;
+every run is handed its value with the other settings. A plugin that would
+rather ask the system's keychain still may.
 
 A manifest at odds with itself - a command or a setting named twice, a choice
 with nothing to choose, a default its setting does not take - leaves the plugin
@@ -208,11 +221,42 @@ exiting:
   axis the kind does not have named, one left out named too. Kept, it is an
   ordinary score naming the plugin as its judge. Marks along none of the kind's
   axes are refused, and the refusal says which axes there are.
+- `candidates` — several results to choose from (v0.155): the takes a
+  generator made, say. Optional, and read only on a work. One object per
+  result: `label`, `files` (whole paths), `meta` (fields as above), `seconds`
+  (how long it plays) and `note` (how it strays from what was asked); all but
+  `label` optional. Nothing of them is kept until the person picks one in the
+  window; the one picked is kept as a run's answer is - its `meta` merged, its
+  first file inside the work's folder the finished one.
+- `quota` — what the run spent of its service's allowance (v0.155). Optional.
+  `used` and `unit` (`{ "used": 10, "left": 490, "unit": "credits" }`), `left`
+  when the service says. The window says it; kilna keeps nothing of it.
 - `error` — set this instead of the above to report failure without needing a
   non-zero exit code; kilna surfaces it as the command's error.
 
 Printing nothing at all on stdout is treated as success with nothing to say,
 not as a failure.
+
+## Running over many works
+
+A command marked `"batch": true` on `"work"` can be run over many works at
+once (v0.155): the works ticked in the catalogue, or every work of a
+collection, under **Plugins…**. kilna asks how many runs go at a time - one to
+four - and runs the command once per work, exactly as a single run would: the
+same request on stdin, the same settings, the same allowance of time. What
+each run returns is kept as it comes back, so a batch stopped halfway keeps
+what was done. **Stop** stops the runs going on and starts no more; the report
+at the end says work by work how it went, in the plugin's own words or its
+error.
+
+The catalogue's **Media** chips - *Ready for a video*, *No audio*, *No cover*,
+*Ready to go out* - pick the works a batch is for: what holds a track and a
+cover and no video yet is what a render makes. They read what is attached to
+each work, its chosen cover and its finished file, and count only what has
+not gone out.
+
+A batch's run gets no progress bar of its own - kilna shows how many works are
+done - so a plugin need not change anything to be run in one.
 
 ## How metadata is merged
 

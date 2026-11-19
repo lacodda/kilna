@@ -167,6 +167,16 @@ pub fn catalogue(state: State<'_, AppState>) -> Result<Vec<ScoredWork>> {
     score::catalogue(&conn, &active(&conn)?)
 }
 
+/// What every work holds of its media, for the catalogue's filters a batch
+/// is chosen by (v0.155).
+#[tauri::command(async)]
+pub fn works_media(
+    state: State<'_, AppState>,
+) -> Result<std::collections::BTreeMap<String, work::media::WorkMedia>> {
+    let conn = state.conn();
+    work::media::of_profile(&conn, &active(&conn)?)
+}
+
 /// The number beside each of a work's tabs, in one answer.
 #[tauri::command]
 pub fn card_counts(state: State<'_, AppState>, work_id: String) -> Result<card::Counts> {

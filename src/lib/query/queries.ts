@@ -103,6 +103,7 @@ import {
   listWorks,
   workTags,
   workTimeline,
+  worksMedia,
 } from '@/lib/api/works'
 import {
   getWorkspace,
@@ -179,6 +180,7 @@ export const queries = {
       queryFn: () => sceneFrameView(sceneId),
     }),
   catalogue: () => queryOptions({ queryKey: keys.catalogue, queryFn: catalogue }),
+  worksMedia: () => queryOptions({ queryKey: keys.worksMedia, queryFn: worksMedia }),
   workTags: () => queryOptions({ queryKey: keys.workTags, queryFn: workTags }),
   collections: () => queryOptions({ queryKey: keys.collections, queryFn: listCollections }),
   covers: () => queryOptions({ queryKey: keys.covers, queryFn: listCovers }),

@@ -277,6 +277,28 @@ describe('gap filters', () => {
     expect(narrow(rows, { gap: 'unscheduled' }).map((r) => r.work_id)).toEqual(['ready'])
   })
 
+  it('narrows by what a work holds, and to nothing before that is known', () => {
+    const rows = [
+      row({ work_id: 'to-render', kind: 'clip' }),
+      row({ work_id: 'rendered', kind: 'clip' }),
+      row({ work_id: 'coverless', kind: 'clip' }),
+      row({ work_id: 'song' }),
+    ]
+    const media = {
+      'to-render': { cover: true, wants_cover: true, audio: true, video: false },
+      rendered: { cover: true, wants_cover: true, audio: true, video: true },
+      coverless: { cover: false, wants_cover: true, audio: true, video: false },
+      song: { cover: false, wants_cover: false, audio: false, video: false },
+    }
+    const ids = (gap: CatalogueFilter['gap']) =>
+      narrow(rows, { gap }, undefined, undefined, media).map((r) => r.work_id)
+    expect(ids('readyForVideo')).toEqual(['to-render'])
+    expect(ids('noAudio')).toEqual(['song'])
+    expect(ids('noCover')).toEqual(['coverless'])
+    expect(ids('readyToPublish')).toEqual(['to-render', 'rendered'])
+    expect(narrow(rows, { gap: 'noAudio' })).toEqual([])
+  })
+
   it('finds a score that describes an older draft', () => {
     const rows = [row({ work_id: 'a', stale: true }), row({ work_id: 'b' })]
     expect(narrow(rows, { gap: 'stale' }).map((r) => r.work_id)).toEqual(['a'])
@@ -1066,6 +1088,28 @@ describe('the gap counts', () => {
       row({ work_id: 'out', total: 9, released: 1 }),
     ]
     expect(countGaps(rows)).toEqual({ unscored: 1, unscheduled: 2, stale: 1 })
+  })
+
+  it('counts the gaps of media only once the media are known', () => {
+    const rows = [
+      row({ work_id: 'track', total: 7 }),
+      row({ work_id: 'bare', total: 7 }),
+      row({ work_id: 'out', total: 7, released: 1 }),
+    ]
+    const media = {
+      track: { cover: true, wants_cover: true, audio: true, video: false },
+      bare: { cover: false, wants_cover: true, audio: false, video: false },
+      out: { cover: false, wants_cover: true, audio: false, video: false },
+    }
+    expect(countGaps(rows, media)).toEqual({
+      unscored: 0,
+      unscheduled: 2,
+      stale: 0,
+      readyForVideo: 1,
+      noAudio: 1,
+      noCover: 1,
+      readyToPublish: 1,
+    })
   })
 
   it('counts nothing in an empty catalogue', () => {

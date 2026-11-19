@@ -12,6 +12,7 @@ import type {
   StatusChange,
   Work,
   WorkFilter,
+  WorkMedia,
   WorkPatch,
 } from '@/lib/api/types'
 
@@ -49,6 +50,9 @@ export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
 /** Tags in use on works, most used first — what the tag box offers. */
 export const workTags = () => invoke<[string, number][]>('work_tags')
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
+
+/** What every work holds of its media, by id (v0.155). */
+export const worksMedia = () => invoke<Record<string, WorkMedia>>('works_media')
 /** The number beside each of a work's tabs, in one answer. */
 export const cardCounts = (workId: string) => invoke<CardCounts>('card_counts', { workId })
 /** A work's history on one axis: versions, scores, what was made from it and
