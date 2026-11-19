@@ -2359,12 +2359,12 @@ pub fn run_tool(
             let raw = args
                 .get("items")
                 .and_then(Value::as_array)
-                .ok_or_else(|| Error::refused("mcp.missingArgument").param("name", "items"))?;
+                .ok_or_else(|| Error::refused("mcp.missingArg").param("key", "items"))?;
             let mut items = Vec::new();
             for one in raw {
                 let one = one
                     .as_object()
-                    .ok_or_else(|| Error::refused("mcp.missingArgument").param("name", "items"))?;
+                    .ok_or_else(|| Error::refused("mcp.missingArg").param("key", "items"))?;
                 let work = find_work(conn, &profile.id, required(one, "work")?)?;
                 let path = required(one, "path")?.trim().to_owned();
                 let said = required(one, "role")?;

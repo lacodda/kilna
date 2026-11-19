@@ -248,6 +248,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'proposal.trials': ['accent', Sparkles],
   'proposal.cards': ['accent', Sparkles],
   'proposal.month': ['accent', Sparkles],
+  'proposal.media': ['accent', Sparkles],
   'assistant.batchStarted': ['accent', Sparkles],
   'assistant.overBudget': ['warn', Wallet],
 
