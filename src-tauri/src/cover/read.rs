@@ -493,7 +493,9 @@ impl Channel {
                     SectionShape::Facts
                     | SectionShape::Relations
                     | SectionShape::Appearances
-                    | SectionShape::Branding => {}
+                    | SectionShape::Branding
+                    | SectionShape::Quotas
+                    | SectionShape::Bank => {}
                 }
             }
         }

@@ -17,11 +17,13 @@
 //! the generator is handed another.
 
 pub mod appearances;
+pub mod bank;
 #[cfg(test)]
 mod behaviour;
 pub mod fact;
 pub mod link;
 pub mod proposal;
+pub mod quota;
 pub mod view;
 pub mod when;
 

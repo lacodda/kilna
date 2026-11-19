@@ -469,6 +469,44 @@ fn render_from(
             // A kit of the channel's dressing is for people and generators,
             // not for a text written beside it (v0.147).
             SectionShape::Appearances | SectionShape::Branding => {}
+            // A rule is told as the check measures it, so a text written
+            // beside it keeps to the same numbers (v0.151).
+            SectionShape::Quotas => {
+                for read in view
+                    .facts
+                    .iter()
+                    .filter(|f| f.fact.section == section.key && f.lenses.contains(&lens))
+                {
+                    if let Some(rule) = super::quota::Rule::of(&read.fact)
+                        && rule.active
+                    {
+                        lines.push(rule.line());
+                    }
+                }
+            }
+            // A bank hands over what is free to take today: an item resting
+            // or locked is left out, and the count of them said.
+            SectionShape::Bank => {
+                let today = super::bank::today();
+                let mut resting = 0usize;
+                for read in view
+                    .facts
+                    .iter()
+                    .filter(|f| f.fact.section == section.key && f.lenses.contains(&lens))
+                {
+                    match super::bank::state(&read.fact.data, today).0 {
+                        super::bank::BankState::Available => {
+                            lines.push(super::bank::line(&read.fact.body, &read.fact.data));
+                        }
+                        _ => resting += 1,
+                    }
+                }
+                if resting > 0 && !lines.is_empty() {
+                    lines.push(format!(
+                        "({resting} more resting or locked: not to be taken now)"
+                    ));
+                }
+            }
             shape => {
                 for read in view
                     .facts

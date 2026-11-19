@@ -28,6 +28,7 @@ import { QueuePane, type PaneSource } from '@/features/calendar/QueuePane'
 import { ShiftPreview } from '@/features/calendar/ShiftPreview'
 import { useCalendarActions } from '@/features/calendar/useCalendarActions'
 import { QUEUE, carriedWork, useCalendarDrag } from '@/features/calendar/useCalendarDrag'
+import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
 import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
 import { loadLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
 import {
@@ -111,6 +112,8 @@ export function CalendarView({ onSelect }: Props) {
   // The dialog open, and on what - by id, not by row: holding the row would
   // freeze it at the moment it was opened.
   const [dialog, setDialog] = useState<CalendarDialog>(null)
+  // The month on screen checked against the space's rules (v0.151).
+  const [checkingMonth, setCheckingMonth] = useState(false)
 
   const slots = useQuery(queries.calendar())
   const queued = useQuery(queries.releaseQueue())
@@ -389,6 +392,7 @@ export function CalendarView({ onSelect }: Props) {
             onExportMonth={() => void exportMonth()}
             onExportIcs={() => void exportIcs()}
             onImportPlan={() => void importPlan()}
+            onCheckQuotas={() => setCheckingMonth(true)}
             pinning={actions.pinPeriod.isPending}
             width={width}
             onWidthChange={(next) => {
@@ -490,6 +494,14 @@ export function CalendarView({ onSelect }: Props) {
         actions={actions}
         onOpenWork={onSelect}
       />
+      {checkingMonth && (
+        <QuotaReportDialog
+          open
+          onOpenChange={setCheckingMonth}
+          subject={{ month: anchor.slice(0, 7) }}
+          title={t('quota.titleMonth', { month: anchor.slice(0, 7) })}
+        />
+      )}
     </Frame>
   )
 }

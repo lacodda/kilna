@@ -24,6 +24,7 @@ import {
 import {
   canonLinks,
   canonTimeline,
+  checkQuotas,
   cardAsSeen,
   listCards,
   pendingCanonProposals,
@@ -89,6 +90,7 @@ import type {
   IntakeRequest,
   Lens,
   NoteFilter,
+  QuotaSubject,
   TaskAbout,
 } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
@@ -322,6 +324,14 @@ export const queries = {
     queryOptions({ queryKey: keys.cardsMatching(filter), queryFn: () => listCards(filter) }),
   canonLinks: () => queryOptions({ queryKey: keys.canonLinks, queryFn: canonLinks }),
   card: (id: string) => queryOptions({ queryKey: keys.card(id), queryFn: () => readCard(id) }),
+  quotas: (subject: QuotaSubject) =>
+    queryOptions({
+      queryKey: keys.quotas(subject),
+      queryFn: () => checkQuotas(subject),
+      // Asked when a report opens: a release marked since, or a field
+      // written, is measured anew rather than read from before.
+      staleTime: 0,
+    }),
   cardAsSeen: (id: string, lens: Lens) =>
     queryOptions({ queryKey: keys.cardAsSeen(id, lens), queryFn: () => cardAsSeen(id, lens) }),
   canonTimeline: (id: string | null) =>

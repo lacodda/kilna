@@ -1649,6 +1649,31 @@
             "shape": "branding"
           },
           {
+            "key": "quotas",
+            "label": {
+              "en": "Quotas",
+              "ru": "Квоты"
+            },
+            "hint": {
+              "en": "Rules the works are checked against: a field, what is measured, the numbers - for each work, a month or all of them",
+              "ru": "Правила, по которым проверяются работы: поле, что мерить, числа - для каждой работы, месяца или всех сразу"
+            },
+            "shape": "quotas"
+          },
+          {
+            "key": "bank",
+            "label": {
+              "en": "Traditions",
+              "ru": "Банк традиций"
+            },
+            "hint": {
+              "en": "A pool of themes used in turn: each rests its months after a use; locked ones stay out",
+              "ru": "Пул тем, которые берут по очереди: после использования тема отдыхает свои месяцы; заблокированные не берутся"
+            },
+            "shape": "bank",
+            "binds": "tradition"
+          },
+          {
             "key": "palette",
             "label": {
               "en": "Palette",

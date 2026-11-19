@@ -154,6 +154,9 @@ lets the channel be a card like the others:
   use. **Before the rebranding** sends a kit to the archive - kept, said
   apart, and out of the way of the current look. Kits are for people and
   generators: a text written beside a work never reads them.
+- **Quotas** and **Bank** (v0.151) — the rules the works are checked
+  against, and a pool of themes taken in turn: see
+  [Quotas and banks](#quotas-and-banks).
 - **Bans** — what must not appear. A cover reads a picture's bans into its
   negative; a public text reads the bans of texts. Studio keeps them apart on
   the channel and on a character - *Bans* for what is said, *Picture bans*
@@ -167,6 +170,46 @@ a dressing, picture bans its negative.
 
 The channel card lays these out as a board of panels rather than one
 column.
+
+### Quotas and banks
+
+A channel that puts out thirteen tracks a month keeps rules a person would
+otherwise count by hand: a Suno prompt of 400 to 500 characters, no more
+than four tracks of a month in one playlist, at least five angles of a cover,
+no artist's name in a title. Since v0.151 these are entries of the
+passport's **Quotas** section, each a rule a machine can measure:
+
+- **the field** - `title`, `tags`, `cover`, a text's role (`suno_prompt`,
+  `lyrics`), an overview field (`genre`, `angle`), a release's field
+  (`playlists`, or `youtube.title` for one door's);
+- **what is measured** - its characters, its words, how many works carry
+  each value, how many values differ, how many times a pattern matches, which
+  share of the works have it, or words it must not say;
+- **against what** - between two numbers, at least, at most, exactly;
+- **over which works** - each work alone, a month's or a collection's works
+  together, or all of them;
+- **how strict** - a warning, or a must; and whether it is checked at all.
+  **Only where** narrows a rule to the works whose field says one of a few
+  values - only the tracks, or every work but the clips.
+
+**Check** beside the section measures the whole space; **Check the month's
+quotas** in the calendar's menu measures the month on screen, and **Check
+quotas** under a collection its works. Each breach names the rule, the work
+- or the works together - what was measured and what the rule wants. A
+prompt written beside a work is told the rules that are on, so a model keeps
+to the numbers the check measures, and the assistant reads the same check
+through MCP (`quotas`). No number is written in kilna: they are the space's.
+
+A **Bank** is a pool of themes taken in turn - the traditions a channel
+draws its tracks from. An item has its name, its group, what it is made of,
+how many months it rests after a use, when it was last used and by which
+works, and whether it is locked for good. The card says where each stands
+today - available, resting until a month, locked - and narrows to one of
+them. **Mark used by a work…** on an item records a use; a bank whose
+section names a work field (`binds` - the music channel's `tradition`)
+marks its item by itself when a release of a work naming it goes out, and
+one undo takes back the mark and the use. A prompt is handed only the items
+free today.
 
 ### Places in detail
 

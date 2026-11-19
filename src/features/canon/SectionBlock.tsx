@@ -4,17 +4,21 @@ import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { settleSection, unrelateCards } from '@/lib/api/canon'
-import type { CanonSection, CardView, ReadFact, Relation } from '@/lib/api/types'
+import type { BankState, CanonSection, CardView, ReadFact, Relation } from '@/lib/api/types'
+import { bankState } from '@/lib/bank'
 import { factsIn, seenThrough, type LensChoice } from '@/lib/canon'
 import { announceEdited } from '@/lib/edited'
+import { today } from '@/lib/month'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say as sayLabel } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { RowMenu } from '@/components/RowMenu'
 import { useDetailed } from '@/features/canon/disclosure'
 import { FactEditor } from '@/features/canon/FactEditor'
 import { FactRow } from '@/features/canon/FactRow'
+import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
 import { RelationDialog } from '@/features/canon/RelationDialog'
 import { cn } from '@/lib/utils'
 
@@ -64,6 +68,10 @@ export function SectionBlock({
   const [all, setAll] = useState(false)
   const [relating, setRelating] = useState(false)
   const [changing, setChanging] = useState<Relation | null>(null)
+  // The space's rules checked from where they are written (v0.151), and a
+  // bank narrowed to where its items stand today.
+  const [checking, setChecking] = useState(false)
+  const [standing, setStanding] = useState<BankState | 'all'>('all')
   const client = useQueryClient()
   const unrelate = useAppMutation({
     mutationFn: (id: string) => unrelateCards(id),
@@ -133,6 +141,11 @@ export function SectionBlock({
           text is handed. */}
       {section.draw != null && (
         <span className="text-2xs text-faint">{t('canon.drawn', { count: section.draw })}</span>
+      )}
+      {shape === 'quotas' && held > 0 && (
+        <Button size="xs" variant="soft" className="ml-auto" onClick={() => setChecking(true)}>
+          {t('quota.checkSpace')}
+        </Button>
       )}
       {drafts > 1 && (
         <Button
@@ -260,10 +273,29 @@ export function SectionBlock({
       </>
     )
   } else {
-    const own = facts ?? factsIn(view.facts, section.key)
+    const every = facts ?? factsIn(view.facts, section.key)
+    const day = today()
+    const own =
+      shape === 'bank' && standing !== 'all'
+        ? every.filter((read) => bankState(read.fact.data, day).state === standing)
+        : every
     const cut = own.length > LONG_SECTION && !all
     inner = (
       <>
+        {shape === 'bank' && every.length > 0 && (
+          <SegmentedControl
+            aria-label={t('canon.bank.standing')}
+            value={standing}
+            onValueChange={(next) => setStanding(next as BankState | 'all')}
+            className="mb-1 self-start"
+          >
+            {(['all', 'available', 'cooldown', 'locked'] as const).map((one) => (
+              <Segment key={one} value={one}>
+                {t(`canon.bank.filter.${one}`)}
+              </Segment>
+            ))}
+          </SegmentedControl>
+        )}
         {(cut ? own.slice(0, SHOWN_OF_LONG) : own).map((read) => (
           <FactRow key={read.fact.id} read={read} view={view} shape={shape} lens={lens} />
         ))}
@@ -313,6 +345,14 @@ export function SectionBlock({
     >
       {head}
       {!folded && inner}
+      {checking && (
+        <QuotaReportDialog
+          open
+          onOpenChange={setChecking}
+          subject={{}}
+          title={t('quota.titleSpace')}
+        />
+      )}
     </section>
   )
 }

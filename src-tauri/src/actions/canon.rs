@@ -13,6 +13,7 @@ use crate::canon::{
 };
 use crate::error::{Error, Result};
 use crate::note::{self, NewNote, Note, NotePatch};
+use crate::profile::config::SectionShape;
 
 /// Make a card: a note of a kind the profile names with sections.
 ///
@@ -151,6 +152,86 @@ pub fn update_fact(conn: &Connection, id: &str, patch: FactPatch) -> Result<Fact
         }
         Ok(after)
     })
+}
+
+/// Mark an item of a bank used by a work on a day (v0.151, FR-20 20.2): the
+/// work added to its uses and its last use moved, as an edit of the item -
+/// one undo takes it back.
+pub fn use_bank_item(conn: &Connection, fact_id: &str, work_id: &str, date: &str) -> Result<Fact> {
+    let fact = canon::fact::get(conn, fact_id)?.ok_or_else(|| Error::not_found("fact", fact_id))?;
+    let config = crate::profile::config_for(conn, &fact.profile_id)?;
+    let (_, kind) = canon::fact::card_of(conn, &config, &fact.note_id)?;
+    let in_bank = kind
+        .sections
+        .iter()
+        .any(|section| section.key == fact.section && section.shape == SectionShape::Bank);
+    if !in_bank {
+        return Err(Error::refused("canon.notABank").param("title", fact.body.clone()));
+    }
+    let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    let data = canon::bank::used(&fact.data, work_id, &work.title, date)?;
+    update_fact(
+        conn,
+        fact_id,
+        FactPatch {
+            data: Some(data),
+            ..FactPatch::default()
+        },
+    )
+}
+
+/// The items of the space's banks that `work_id` names, marked used by it on
+/// `date` (v0.151): what a release going out does. A bank says which field
+/// of a work names its items (`binds`) - a track's tradition - and an item
+/// is named when its words are the field's value, case aside. An item the
+/// work already used is left as it is; a bank naming no field is marked by
+/// hand alone.
+pub fn use_bound_items(conn: &Connection, work_id: &str, date: &str) -> Result<Vec<Fact>> {
+    let profile_id = super::active_profile_id(conn)?;
+    let config = crate::profile::config_for(conn, &profile_id)?;
+    let Some(work) = crate::work::get(conn, work_id)? else {
+        return Ok(Vec::new());
+    };
+    let mut marked = Vec::new();
+    for kind in config.note_kinds.iter().filter(|kind| kind.is_card()) {
+        for section in &kind.sections {
+            let (SectionShape::Bank, Some(field)) = (section.shape, section.binds.as_deref())
+            else {
+                continue;
+            };
+            let named: Vec<String> = canon::quota::values_of(conn, &config, &work, field)?
+                .into_iter()
+                .map(|value| value.to_lowercase())
+                .collect();
+            if named.is_empty() {
+                continue;
+            }
+            let mut statement = conn.prepare(
+                "SELECT f.id FROM canon_fact f JOIN note n ON n.id = f.note_id
+                  WHERE f.profile_id = ?1 AND n.kind = ?2 AND f.section = ?3
+                  ORDER BY f.position, f.rowid",
+            )?;
+            let ids = statement
+                .query_map(
+                    rusqlite::params![profile_id, kind.key, section.key],
+                    |row| row.get::<_, String>(0),
+                )?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            for id in ids {
+                let Some(item) = canon::fact::get(conn, &id)? else {
+                    continue;
+                };
+                if item.status == FactStatus::Retired
+                    || !named.contains(&item.body.trim().to_lowercase())
+                    || canon::bank::uses(&item.data, work_id)
+                {
+                    continue;
+                }
+                marked.push(use_bank_item(conn, &id, work_id, date)?);
+            }
+        }
+    }
+    Ok(marked)
 }
 
 /// Retire a fact, saying why. Kept, not deleted: the reason is what stops the

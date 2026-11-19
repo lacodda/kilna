@@ -6,6 +6,7 @@ use tauri::State;
 use super::active;
 use crate::actions;
 use crate::asset::{Asset, NewAsset};
+use crate::canon::quota::{QuotaReport, Subject};
 use crate::canon::view::{self, CardFilter, CardSummary, CardView, Dated};
 use crate::canon::{CanonLink, CanonLinkPatch, Fact, FactPatch, NewCanonLink, NewFact};
 use crate::error::Result;
@@ -84,6 +85,24 @@ pub fn add_fact(state: State<'_, AppState>, fact: NewFact) -> Result<Fact> {
 #[tauri::command]
 pub fn update_fact(state: State<'_, AppState>, id: String, patch: FactPatch) -> Result<Fact> {
     actions::canon::update_fact(&state.conn(), &id, patch)
+}
+
+/// The works of a subject checked against the space's rules (v0.151, FR-20
+/// 20.2): one work, a collection, a month, or the whole space.
+#[tauri::command]
+pub fn check_quotas(state: State<'_, AppState>, subject: Subject) -> Result<QuotaReport> {
+    crate::canon::quota::check(&state.conn(), &subject)
+}
+
+/// An item of a bank marked used by a work on a day (v0.151).
+#[tauri::command]
+pub fn use_bank_item(
+    state: State<'_, AppState>,
+    fact_id: String,
+    work_id: String,
+    date: String,
+) -> Result<Fact> {
+    actions::canon::use_bank_item(&state.conn(), &fact_id, &work_id, &date)
 }
 
 #[tauri::command]

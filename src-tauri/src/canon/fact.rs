@@ -621,6 +621,8 @@ pub fn data_keys(shape: SectionShape) -> &'static [&'static str] {
         SectionShape::Marks => &["code", "prompt"],
         SectionShape::Styles => &["styleId"],
         SectionShape::Branding => &["kind", "prompt", "negative", "about", "archived", "active"],
+        SectionShape::Quotas => super::quota::DATA_KEYS,
+        SectionShape::Bank => super::bank::DATA_KEYS,
     }
 }
 
@@ -708,6 +710,11 @@ pub fn checked_data(
                 out.insert("archived".into(), Value::Bool(true));
             }
         }
+        // A rule and an item of a bank are checked whole by their own
+        // modules (v0.151): what they carry is read by the evaluator and the
+        // pool, never by a screen alone.
+        SectionShape::Quotas => return super::quota::checked(&data),
+        SectionShape::Bank => return super::bank::checked(&data),
         SectionShape::Styles => {
             let style_id =
                 text("styleId").ok_or_else(|| Error::refused("canon.styleNeedsBrick"))?;

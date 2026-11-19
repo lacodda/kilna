@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ListFilter, Plus, X } from 'lucide-react'
+import { ListChecks, ListFilter, Plus, X } from 'lucide-react'
 import { deleteCollection, updateCollection } from '@/lib/api/collections'
 import type { Collection, CollectionPatch, ScoredWork } from '@/lib/api/types'
 import { saveFilter } from '@/lib/catalogue'
@@ -28,6 +28,7 @@ import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { RowMenu } from '@/components/RowMenu'
 import { Select } from '@/components/AppSelect'
 import { StageDial } from '@/components/StageDial'
+import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
 import { GoalLine } from './GoalLine'
 import { useCollectionGestures } from './useCollectionGestures'
 
@@ -56,6 +57,9 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
   const covers = useCovers()
   const { add, arrange } = useCollectionGestures()
   const [picking, setPicking] = useState(false)
+  // Its works checked against the space's rules (v0.151): a month's pack is
+  // where a channel's quotas are kept.
+  const [checking, setChecking] = useState(false)
 
   // The order a drop asked for, until the answer comes back with it: the
   // list must not jump back to where the row was for the length of a round
@@ -171,6 +175,10 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
           <Button size="sm" variant="ghost" onClick={showInCatalogue}>
             <ListFilter aria-hidden />
             {t('collections.showInCatalogue')}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setChecking(true)}>
+            <ListChecks aria-hidden />
+            {t('quota.checkCollection')}
           </Button>
           <span className="ml-auto font-mono text-xs text-faint">
             {t('collections.held', { count: progress.held })}
@@ -369,6 +377,14 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
         title={t('collections.addTo', { title: collection.title })}
         onPick={(work) => add.mutate({ collection, workIds: [work.work_id] })}
       />
+      {checking && (
+        <QuotaReportDialog
+          open
+          onOpenChange={setChecking}
+          subject={{ collection_id: collection.id }}
+          title={t('quota.titleCollection', { title: collection.title })}
+        />
+      )}
     </Pane>
   )
 }

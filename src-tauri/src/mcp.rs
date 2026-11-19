@@ -611,6 +611,23 @@ fn tools() -> Vec<Value> {
             &[],
         ),
         tool(
+            "quotas",
+            "The space's rules checked over works (v0.151): the facts of the passport's quotas \
+             section, each a machine predicate - a field, a metric, a comparison, the works it \
+             reads, warn or error. Give `work` for one work, `collection` (an id or its exact \
+             title) for a collection's works together, `month` (YYYY-MM) for the works going \
+             out or planned that month, or nothing for the whole space. Returns how many rules \
+             were asked and works measured, and each breach: the rule, the work (none for the \
+             works together), what was measured, the value counted or the words found, and \
+             what the rule wants. Check a month's drafts before proposing them.",
+            json!({
+                "work": work_arg(),
+                "collection": text_arg("A collection, by id or exact title"),
+                "month": text_arg("A month, YYYY-MM"),
+            }),
+            &[],
+        ),
+        tool(
             "notes",
             "Notes in the profile, newest first — all of them, or those of one work, or the \
              phrases of one shelf. A phrase and a note are notes of their kinds (see \
@@ -2058,6 +2075,30 @@ pub fn run_tool(
                 }));
             }
             pretty(&json!({ "releases": releases, "closed": closed, "work_plans": plans }))
+        }
+
+        "quotas" => {
+            let work_id = match arg(args, "work") {
+                Some(named) => Some(find_work(conn, &profile.id, named)?.id),
+                None => None,
+            };
+            let collection_id = match arg(args, "collection") {
+                Some(named) => {
+                    let named = named.trim();
+                    let found = crate::collection::list(conn, &profile.id)?
+                        .into_iter()
+                        .find(|one| one.id == named || one.title.trim() == named)
+                        .ok_or_else(|| Error::not_found("collection", named))?;
+                    Some(found.id)
+                }
+                None => None,
+            };
+            let subject = crate::canon::quota::Subject {
+                work_id,
+                collection_id,
+                month: arg(args, "month").map(str::to_owned),
+            };
+            pretty(&crate::canon::quota::check(conn, &subject)?)
         }
 
         "notes" => {
@@ -3754,6 +3795,8 @@ fn read_canon(
         SectionShape::Styles,
         SectionShape::Bans,
         SectionShape::Branding,
+        SectionShape::Quotas,
+        SectionShape::Bank,
     ]
     .into_iter()
     .map(|shape| {
@@ -3820,6 +3863,53 @@ fn section_schema(shape: SectionShape) -> Value {
                     "active",
                     "the id of the picture in use, among the kit's own",
                 ),
+            ],
+        ),
+        SectionShape::Quotas => (
+            "the rule's name, as a person reads it",
+            vec![
+                (
+                    "field",
+                    "what is measured: title, tags, cover, a text role (suno_prompt, lyrics), an overview field (genre), a release field (playlists, or youtube.title)",
+                ),
+                (
+                    "metric",
+                    "char_len, word_count, count_per_value, unique_count, match_count, share or forbidden_terms",
+                ),
+                (
+                    "op",
+                    "between, min, max or eq; not_contains for forbidden_terms",
+                ),
+                (
+                    "value",
+                    "a number, [low, high] for between, a percent for share, a list of words for forbidden_terms",
+                ),
+                (
+                    "pattern",
+                    "a regular expression, for match_count and optionally share",
+                ),
+                (
+                    "filter",
+                    "optional: {field, equals: [values], not?: true} - only the works whose field says one of them",
+                ),
+                (
+                    "scope",
+                    "item (each work), collection_period (a month's or a collection's works) or global",
+                ),
+                ("severity", "warn or error"),
+                ("active", "false to keep the rule without checking it"),
+            ],
+        ),
+        SectionShape::Bank => (
+            "the item's name",
+            vec![
+                ("group", "the region, continent or rubric it belongs to"),
+                ("attributes", "a list: instruments, devices, character"),
+                ("cooldown_months", "how many months it rests after a use"),
+                ("last_used_at", "YYYY-MM-DD of the last use"),
+                ("used_in", "a list of {work_id, title, date}"),
+                ("locked", "true for an item out of the pool for good"),
+                ("note", "anything else"),
             ],
         ),
         SectionShape::Relations | SectionShape::Appearances => ("", vec![]),
@@ -6417,5 +6507,50 @@ mod tests {
         let closed = read["closed"].as_array().unwrap();
         assert_eq!(closed.len(), 1, "a span over by then is not ahead");
         assert_eq!(closed[0]["label"], "Away", "one still running on `from` is");
+    }
+
+    /// An agent checks the space's rules the way the window does (v0.151):
+    /// the breach names the rule, the work and what was measured.
+    #[test]
+    fn an_agent_checks_the_quotas() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let channel = fixtures::card(&conn, &profile_id, "channel", "The channel");
+        crate::canon::fact::create_minted(
+            &conn,
+            crate::canon::NewFact {
+                note_id: channel.id.clone(),
+                section: "quotas".into(),
+                body: "Short titles".into(),
+                data: json!({ "field": "title", "metric": "char_len", "op": "max", "value": 5 })
+                    .as_object()
+                    .cloned()
+                    .unwrap(),
+                ..crate::canon::NewFact::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        fixtures::song(&conn, &profile_id, "A title too long");
+
+        let read = run_tool(&conn, &claude(), "quotas", &args(json!({}))).unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+        assert_eq!(read["rules"], 1);
+        let found = read["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|one| one["title"] == "A title too long")
+            .unwrap_or_else(|| panic!("{read}"));
+        assert_eq!(found["label"], "Short titles");
+        assert_eq!(found["measured"], 16.0);
+
+        let missing = run_tool(
+            &conn,
+            &claude(),
+            "quotas",
+            &args(json!({ "collection": "Nowhere" })),
+        );
+        assert!(missing.is_err());
     }
 }

@@ -343,6 +343,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::canon::add_facts,
             commands::canon::canon_links,
             commands::canon::update_fact,
+            commands::canon::check_quotas,
+            commands::canon::use_bank_item,
             commands::canon::retire_fact,
             commands::canon::reorder_facts,
             commands::canon::settle_section,

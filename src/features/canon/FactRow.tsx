@@ -6,6 +6,7 @@ import { open as openFile } from '@tauri-apps/plugin-dialog'
 import {
   deleteFact,
   expandCardReferences,
+  markBankItemUsed,
   reorderFacts,
   retireFact,
   setPictureRole,
@@ -14,6 +15,7 @@ import {
 import { attachAsset, detachAsset } from '@/lib/api/assets'
 import type { CardView, FactPatch, ReadFact, SectionShape } from '@/lib/api/types'
 import { PICTURES } from '@/lib/media'
+import { today } from '@/lib/month'
 import { factsIn, seenThrough, whenOf, type LensChoice } from '@/lib/canon'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
@@ -24,9 +26,11 @@ import { Dialog } from '@/components/AppDialog'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { RowMenu, type RowAction } from '@/components/RowMenu'
 import { CardPicture } from '@/features/canon/CardPicture'
 import { FactEditor } from '@/features/canon/FactEditor'
+import { BankWords, QuotaWords } from '@/features/canon/QuotaWords'
 import { LayerMark } from '@/features/canon/SectionBlock'
 import { useDetailed } from '@/features/canon/disclosure'
 import { cn } from '@/lib/utils'
@@ -53,6 +57,8 @@ export function FactRow({ read, view, shape, lens }: Props) {
   const [editing, setEditing] = useState(false)
   const [retiring, setRetiring] = useState(false)
   const [reason, setReason] = useState('')
+  // An item of a bank marked used by a work picked for it (v0.151).
+  const [using, setUsing] = useState(false)
   const fact = read.fact
 
   const change = useAppMutation({
@@ -126,6 +132,13 @@ export function FactRow({ read, view, shape, lens }: Props) {
     if (paths.length > 0) attach.mutate(paths.filter((path) => typeof path === 'string'))
   }
 
+  const markUsed = useAppMutation({
+    mutationFn: (workId: string) => markBankItemUsed(fact.id, workId, today()),
+    failure: 'toast.factSaveFailed',
+    refresh: refresh.canon,
+    onSuccess: () => say.ok(t('canon.bank.markedUsed', { name: fact.body })),
+  })
+
   const remove = useAppMutation({
     mutationFn: () => deleteFact(fact.id),
     failure: 'toast.factSaveFailed',
@@ -174,6 +187,9 @@ export function FactRow({ read, view, shape, lens }: Props) {
           },
         ]
       : []),
+    ...(shape === 'bank'
+      ? [{ key: 'use', label: t('canon.bank.markUsed'), onSelect: () => setUsing(true) }]
+      : []),
     ...(fact.status === 'draft' || fact.status === 'open'
       ? [
           {
@@ -216,6 +232,8 @@ export function FactRow({ read, view, shape, lens }: Props) {
         fact.status === 'draft' && 'bg-info-soft/60',
         // A kit of the look before the rebranding stands back (v0.147).
         shape === 'branding' && fact.data.archived === true && 'opacity-60',
+        // A rule kept but not checked stands back too (v0.151).
+        shape === 'quotas' && fact.data.active === false && 'opacity-60',
       )}
     >
       <LayerMark layer={fact.layer} />
@@ -299,6 +317,17 @@ export function FactRow({ read, view, shape, lens }: Props) {
         </div>
       </div>
       <RowMenu actions={actions} label={t('canon.factActions')} />
+      {using && (
+        <PickWorkDialog
+          open
+          onOpenChange={setUsing}
+          title={t('canon.bank.markUsedTitle', { name: fact.body })}
+          onPick={(work) => {
+            setUsing(false)
+            markUsed.mutate(work.work_id)
+          }}
+        />
+      )}
 
       <Dialog
         open={retiring}
@@ -399,6 +428,10 @@ function FactWords({ fact, shape }: { fact: ReadFact['fact']; shape: SectionShap
           )}
         </>
       )
+    case 'quotas':
+      return <QuotaWords fact={fact} />
+    case 'bank':
+      return <BankWords fact={fact} />
     case 'branding':
       return (
         <>

@@ -54,4 +54,11 @@ advanced?: boolean,
  * Turned off in the profile editor (v0.141): not offered when a section
  * is added to a card. One that holds facts still shows them.
  */
-off?: boolean, };
+off?: boolean, 
+/**
+ * For a bank: the work field whose value names one of its items - a
+ * track's `tradition` (v0.151, FR-20 20.2). When a release of a work
+ * goes out, the items its field names are marked used by it on that
+ * day. Absent: items are marked by hand.
+ */
+binds?: string | null, };

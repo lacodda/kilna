@@ -1932,12 +1932,16 @@
         "bans": "Bans",
         "relations": "Relations",
         "appearances": "Appearances",
-        "branding": "Dressing kits"
+        "branding": "Dressing kits",
+        "quotas": "Quotas",
+        "bank": "Bank"
       },
       "wordOf": "The word of {{key}} in {{kind}}",
       "kindOffered": "{{kind}}: offered for new cards",
       "kindOfferedOf": "Offer {{kind}} for new cards",
-      "sectionOfferedOf": "Offer the section {{key}} of {{kind}}"
+      "sectionOfferedOf": "Offer the section {{key}} of {{kind}}",
+      "bindsPlaceholder": "The work field that names an item: tradition",
+      "bindsOf": "The work field the items of {{key}} in {{kind}} are named by"
     },
     "vibe": {
       "hint": "The three lines a work’s feel is said along. A mood is drawn in its colour (#RRGGBB, as it reads on the dark theme), a character in its shape, a complexity in its strokes.",
@@ -3710,7 +3714,23 @@
       "noSuchRelation": "{{item}} takes away a relation the two cards do not have.",
       "moveNeedsSection": "A fact is moved to a section: name it.",
       "brandingNeedsKind": "A kit of the dressing is an avatar, a banner or a watermark.",
-      "pictureless": "“{{title}}” is never drawn: there is no description for a picture to write."
+      "pictureless": "“{{title}}” is never drawn: there is no description for a picture to write.",
+      "quotaNeedsField": "A rule names the field it measures.",
+      "quotaBadMetric": "A rule measures characters, words, values, matches, a share or forbidden words, not «{{metric}}».",
+      "quotaBadOp": "«{{op}}» does not compare {{metric}}: a number takes between, min, max or eq, and forbidden words take not_contains.",
+      "quotaBadValue": "The rule's numbers do not read for {{metric}}: a number of zero or more, two for between with the lower first, a percent up to 100 for a share, a list of words for forbidden words.",
+      "quotaNeedsPattern": "Counting matches needs a pattern to match.",
+      "quotaBadPattern": "«{{pattern}}» is not a pattern that reads.",
+      "quotaBadScope": "A rule reads each work, a month or a collection, or all works - not «{{scope}}».",
+      "quotaNeedsSet": "A share is of many works: give the rule a month, a collection or all works.",
+      "quotaBadSeverity": "A rule warns or is a must, not «{{severity}}».",
+      "quotaBadFilter": "A rule's filter names a field and the values it keeps.",
+      "quotaBadMonth": "«{{month}}» is not a month: give it as YYYY-MM.",
+      "bankBadAttributes": "An item's attributes are a list of words.",
+      "bankBadCooldown": "An item rests between 0 and 120 months.",
+      "bankBadDay": "«{{day}}» is not a day: give it as YYYY-MM-DD.",
+      "bankBadUse": "A use of an item names the work and the day.",
+      "notABank": "«{{title}}» is not an item of a bank."
     },
     "term": {
       "exists": "“{{word}}” is in the register already.",
@@ -4289,7 +4309,9 @@
       "marks": "Variant of the mark",
       "styles": "House style",
       "bans": "Ban",
-      "branding": "Kit: avatar, banner or watermark"
+      "branding": "Kit: avatar, banner or watermark",
+      "quotas": "Add a rule",
+      "bank": "Add an item"
     },
     "placeholder": {
       "facts": "One short statement, true of the world",
@@ -4297,7 +4319,9 @@
       "details": "The detail's name",
       "palette": "What the colour is for",
       "marks": "The variant's name and meaning",
-      "styles": "Why it is a house style (optional)"
+      "styles": "Why it is a house style (optional)",
+      "quotas": "The rule's name: Suno prompt length",
+      "bank": "The item: a tradition, a region, a rubric"
     },
     "factWords": "The fact",
     "slot": "Slot",
@@ -4518,7 +4542,87 @@
     "kitNegativeSaid": "Keeps out: {{text}}",
     "kitAbout": "The idea",
     "kitAboutPlaceholder": "The idea of it, in a line or two",
-    "kitUse": "Use this one"
+    "kitUse": "Use this one",
+    "quota": {
+      "field": "Field",
+      "fieldPlaceholder": "field: title, suno_prompt, playlists",
+      "metricLabel": "What is measured",
+      "metric": {
+        "char_len": "characters",
+        "word_count": "words",
+        "count_per_value": "works per value",
+        "unique_count": "different values",
+        "match_count": "matches",
+        "share": "share of works, %",
+        "forbidden_terms": "must not say"
+      },
+      "opLabel": "Comparison",
+      "op": {
+        "between": "between",
+        "min": "at least",
+        "max": "at most",
+        "eq": "exactly"
+      },
+      "value": "Number",
+      "low": "From",
+      "high": "To",
+      "terms": "Words",
+      "termsPlaceholder": "Words it must not say, comma by comma",
+      "pattern": "Pattern",
+      "patternPlaceholder": "A regular expression, as night|dusk",
+      "patternOptional": "Optional: count only the works that match this pattern",
+      "scopeLabel": "Over which works",
+      "scope": {
+        "item": "each work",
+        "collection_period": "a month or collection",
+        "global": "all works"
+      },
+      "severityLabel": "How strict",
+      "severity": {
+        "warn": "warn",
+        "error": "must"
+      },
+      "active": "Checked",
+      "off": "off",
+      "onlyWhere": "Only where",
+      "filterField": "Filter field",
+      "filterFieldPlaceholder": "field: kind",
+      "filterNot": "is not",
+      "filterEquals": "Filter values",
+      "filterEqualsPlaceholder": "values, comma by comma",
+      "filterSaid": "only where {{field}} is {{values}}",
+      "filterSaidNot": "only where {{field}} is not {{values}}"
+    },
+    "bank": {
+      "group": "Group",
+      "groupPlaceholder": "Group: a region, a rubric",
+      "attributes": "Attributes",
+      "attributesPlaceholder": "Instruments, devices, character - comma by comma",
+      "cooldown": "Rest after a use",
+      "months": "months",
+      "lastUsed": "Last used",
+      "locked": "Locked",
+      "note": "Note",
+      "notePlaceholder": "Anything else",
+      "state": {
+        "available": "available",
+        "locked": "locked"
+      },
+      "restingUntil": "resting until {{month}}",
+      "used_one": "Used by {{count}} work, last {{last}}",
+      "used_other": "Used by {{count}} works, last {{last}}",
+      "lastUsedOn": "Last used {{day}}",
+      "markUsed": "Mark used by a work…",
+      "markUsedTitle": "Which work used «{{name}}»?",
+      "markedUsed": "«{{name}}» marked used.",
+      "standing": "Where the items stand",
+      "filter": {
+        "all": "All",
+        "available": "Available",
+        "cooldown": "Resting",
+        "locked": "Locked"
+      }
+    }
   },
   "register": {
     "new": "Term",
@@ -5556,5 +5660,24 @@
     "decoding": "Reading the track…",
     "noWaveform": "No waveform here: this window cannot decode sound",
     "cannotDecode": "The track cannot be read here; the render can still read it"
+  },
+  "quota": {
+    "summary": "Rules checked: {{rules}} · works: {{works}} · breaches: {{count}}",
+    "noRules": "No rules to check",
+    "noRulesHint": "Write rules in the passport's Quotas section: a field, what is measured, the numbers.",
+    "allHold": "Every rule holds.",
+    "together": {
+      "item": "the work",
+      "collection_period": "the works together",
+      "global": "all works together"
+    },
+    "measured": "{{measured}}, wants {{expected}}",
+    "saysForbidden": "says what it must not",
+    "checkSpace": "Check",
+    "checkMonth": "Check the month's quotas",
+    "checkCollection": "Check quotas",
+    "titleSpace": "Quotas: the whole space",
+    "titleMonth": "Quotas: {{month}}",
+    "titleCollection": "Quotas: {{title}}"
   }
 }

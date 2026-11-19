@@ -2091,6 +2091,7 @@ dependencies = [
  "fst",
  "jiff 1.0.1",
  "process-wrap",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

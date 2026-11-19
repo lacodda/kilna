@@ -15,7 +15,9 @@ import type {
   WorldTime,
 } from '@/lib/api/types'
 import type { JsonValue } from '@/lib/api/generated/serde_json/JsonValue'
+import { bankDataOf, bankDraftOf } from '@/lib/bank'
 import { cardKindOf, LAYERS, SETTLED, writableSections } from '@/lib/canon'
+import { dataOf, draftOf, draftReady } from '@/lib/quota'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -28,6 +30,8 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/AppSelect'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
+import { BankFields } from '@/features/canon/BankFields'
+import { QuotaFields } from '@/features/canon/QuotaFields'
 
 /** Where a signature detail may act; the backend holds the same three. */
 const PLACES = ['cover', 'frame', 'scene'] as const
@@ -106,6 +110,9 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
   const [negative, setNegative] = useState(text('negative'))
   const [about, setAbout] = useState(text('about'))
   const [archived, setArchived] = useState(fact?.data.archived === true)
+  // A rule of the quotas and an item of a bank (v0.151): their boxes.
+  const [quota, setQuota] = useState(() => draftOf(fact?.data ?? {}))
+  const [item, setItem] = useState(() => bankDraftOf(fact?.data ?? {}))
   const bricks = useQuery({ ...queries.styleBricksMatching(null, ''), enabled: shape === 'styles' })
 
   const source = (): FactSource | null => {
@@ -163,6 +170,10 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
         if (active !== '') kept.active = active
         return kept
       }
+      case 'quotas':
+        return dataOf(quota)
+      case 'bank':
+        return bankDataOf(item, fact?.data ?? {})
       default:
         return {}
     }
@@ -229,6 +240,7 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
     (shape !== 'slots' || slot.trim() !== '') &&
     (shape !== 'details' || template.trim() !== '') &&
     (shape !== 'styles' || styleId !== '') &&
+    (shape !== 'quotas' || draftReady(quota)) &&
     (sourceKind !== 'work' || sourceWork !== null) &&
     ((sourceKind !== 'decision' && sourceKind !== 'document') || sourceLabel.trim() !== '')
 
@@ -362,6 +374,8 @@ export function FactEditor({ view, section, shape, fact, onDone }: Props) {
           />
         </div>
       )}
+      {shape === 'quotas' && <QuotaFields draft={quota} onChange={setQuota} />}
+      {shape === 'bank' && <BankFields draft={item} onChange={setItem} />}
       {shape === 'details' && (
         <>
           <Textarea

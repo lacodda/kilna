@@ -76,6 +76,10 @@ sha2 = "0.10"
 # into the binary rather than the system's (v0.150, FR-20): a release goes
 # out at noon in Asuncion whatever machine planned it.
 jiff = { version = "1.0.1", default-features = false, features = ["std", "tzdb-bundle-always"] }
+# A quota's pattern - how many titles of a month say "night" - is a regular
+# expression a person writes on the passport (v0.151, FR-20 20.2). Already in
+# the lock file through other crates; named here for that one use.
+regex = "1.13"
 
 [target.'cfg(windows)'.dependencies]
 # The flags a plugin is started with, kept beside its job object.

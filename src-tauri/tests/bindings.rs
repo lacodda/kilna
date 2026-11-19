@@ -309,6 +309,15 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::commands::plugins::PluginReply,
         kilna_lib::build::BuildSources,
         kilna_lib::commands::plugins::PluginProgress,
+        // canon quotas and banks (v0.151)
+        kilna_lib::canon::quota::Metric,
+        kilna_lib::canon::quota::Scope,
+        kilna_lib::canon::quota::Severity,
+        kilna_lib::canon::quota::Subject,
+        kilna_lib::canon::quota::QuotaFinding,
+        kilna_lib::canon::quota::QuotaReport,
+        kilna_lib::canon::bank::BankUse,
+        kilna_lib::canon::bank::BankState,
         // error.rs - carried inside `Skipped` and every refusal reason
         kilna_lib::error::Reason,
     };

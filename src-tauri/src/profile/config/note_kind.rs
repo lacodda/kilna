@@ -267,6 +267,12 @@ pub struct CanonSection {
     /// is added to a card. One that holds facts still shows them.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub off: bool,
+    /// For a bank: the work field whose value names one of its items - a
+    /// track's `tradition` (v0.151, FR-20 20.2). When a release of a work
+    /// goes out, the items its field names are marked used by it on that
+    /// day. Absent: items are marked by hand.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub binds: Option<String>,
 }
 
 impl CanonSection {
@@ -282,6 +288,7 @@ impl CanonSection {
             slots: Vec::new(),
             advanced: false,
             off: false,
+            binds: None,
         }
     }
 
@@ -318,6 +325,16 @@ pub enum SectionShape {
     /// look before a rebranding. Read by people and generators, never handed
     /// to the assistant with a work.
     Branding,
+    /// Rules a body of work is checked against (v0.151, FR-20 20.2): each a
+    /// machine predicate over a field - its length, its words, how often a
+    /// value repeats, how many differ, what it must not say - for each work,
+    /// a month's or a collection's works, or all of them. The numbers are the
+    /// space's own; none is written in the code.
+    Quotas,
+    /// A pool of themes used in turn (v0.151, FR-20 20.2): each item a name,
+    /// its group and attributes, how many months it rests after a use, when
+    /// it was last used and by which works, and whether it is locked.
+    Bank,
     /// House styles: bricks of the style dictionary.
     Styles,
     /// What must not appear: statements a picture's negative reads through

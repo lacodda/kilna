@@ -186,6 +186,10 @@ export const keys = {
   /** Every relation of the canon, for its graph (v0.143). */
   canonLinks: ['canon', 'links'] as const,
   card: (id: string) => ['canon', 'card', id] as const,
+  /** The space's rules checked over a subject (v0.151): under the canon, so
+   *  a rule written anew is checked anew. */
+  quotas: (subject: { work_id?: string; collection_id?: string; month?: string }) =>
+    ['canon', 'quotas', subject] as const,
   /** A card read through a task's eyes, as the prompt receives it. */
   cardAsSeen: (id: string, lens: string) => ['canon', 'seen', id, lens] as const,
   canonTimeline: (id: string | null) => ['canon', 'timeline', id] as const,

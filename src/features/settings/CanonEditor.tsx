@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { CanonSection, NoteKind, SectionShape } from '@/lib/api/types'
 import { say as sayLabel } from '@/lib/useProfile'
 import { Select } from '@/components/AppSelect'
+import { Input } from '@/components/ui/input'
 import { KeyedList } from '@/features/settings/KeyedList'
 import { LabelInput } from '@/features/settings/LabelInput'
 import type { ProblemsAt } from '@/features/settings/useProfileProblems'
@@ -14,6 +15,8 @@ const SHAPES: SectionShape[] = [
   'palette',
   'marks',
   'branding',
+  'quotas',
+  'bank',
   'styles',
   'bans',
   'relations',
@@ -71,16 +74,35 @@ export function CanonEditor({
             addLabel={t('editor.canon.addSection')}
             problems={(key) => problemsAt(['noteKind', kind.key], ['section', key])}
             below={(section, set) => (
-              <LabelInput
-                optional
-                label={section.hint}
-                placeholder={t('editor.canon.sectionHint')}
-                aria-label={t('editor.canon.sectionHintOf', {
-                  key: section.key,
-                  kind: sayLabel(kind.label),
-                })}
-                onChange={(hint) => set({ hint })}
-              />
+              <>
+                <LabelInput
+                  optional
+                  label={section.hint}
+                  placeholder={t('editor.canon.sectionHint')}
+                  aria-label={t('editor.canon.sectionHintOf', {
+                    key: section.key,
+                    kind: sayLabel(kind.label),
+                  })}
+                  onChange={(hint) => set({ hint })}
+                />
+                {/* The work field a bank's items are named by (v0.151): a
+                    release going out marks the item its work names. */}
+                {section.shape === 'bank' && (
+                  <Input
+                    value={section.binds ?? ''}
+                    onChange={(event) => {
+                      const binds = event.target.value.trim()
+                      set({ binds: binds === '' ? undefined : binds })
+                    }}
+                    placeholder={t('editor.canon.bindsPlaceholder')}
+                    aria-label={t('editor.canon.bindsOf', {
+                      key: section.key,
+                      kind: sayLabel(kind.label),
+                    })}
+                    className="font-mono text-xs"
+                  />
+                )}
+              </>
             )}
           >
             {(section, set) => (

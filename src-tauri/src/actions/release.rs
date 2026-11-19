@@ -478,7 +478,36 @@ pub fn unschedule_works(conn: &Connection, work_ids: &[String]) -> Result<BulkOu
 /// (v0.97). Changed inside the mark rather than as an edit before it, so one
 /// undo takes back both - a mark that went somewhere else is one thing that
 /// happened.
+///
+/// What the work takes from the space's banks is marked used by it on the
+/// day it went out (v0.151, FR-20 20.2), in the same unit: one undo takes
+/// back the mark and the bank's record of it.
 pub fn mark_released(
+    conn: &Connection,
+    id: &str,
+    url: Option<String>,
+    on_day: Option<String>,
+    door: Option<String>,
+) -> Result<Release> {
+    atomically(conn, |tx| {
+        let released = mark_alone(tx, id, url, on_day, door)?;
+        let day = out_on(&released);
+        super::canon::use_bound_items(tx, &released.work_id, &day)?;
+        Ok(released)
+    })
+}
+
+/// The day a release went out on, `YYYY-MM-DD`.
+fn out_on(release: &Release) -> String {
+    let stamp = release
+        .released_at
+        .as_deref()
+        .or(release.scheduled_at.as_deref())
+        .unwrap_or_default();
+    stamp.get(..10).unwrap_or(stamp).to_owned()
+}
+
+fn mark_alone(
     conn: &Connection,
     id: &str,
     url: Option<String>,
@@ -552,10 +581,25 @@ pub fn mark_released(
 /// Only a planned release holding a day is touched: the day is what it is
 /// marked with, and one with none has no day to have gone out on. No link is
 /// asked for; the finding about a release out with no address says so after.
+///
+/// Each work's bank items are marked as a single mark marks them.
 pub fn mark_released_batch(conn: &Connection, ids: &[String]) -> Result<BulkOutcome> {
+    atomically(conn, |tx| {
+        let (outcome, out) = mark_batch(tx, ids)?;
+        for (work_id, day) in out {
+            super::canon::use_bound_items(tx, &work_id, &day)?;
+        }
+        Ok(outcome)
+    })
+}
+
+/// [`mark_released_batch`] without the banks: the outcome, and each work
+/// marked with the day it went out.
+fn mark_batch(conn: &Connection, ids: &[String]) -> Result<(BulkOutcome, Vec<(String, String)>)> {
     gesture(conn, "release.markReleasedBatch", |act| {
         let mut marked: Vec<String> = Vec::new();
         let mut works: Vec<String> = Vec::new();
+        let mut out: Vec<(String, String)> = Vec::new();
         let mut skipped: Vec<Skipped> = Vec::new();
 
         for id in ids {
@@ -585,8 +629,9 @@ pub fn mark_released_batch(conn: &Connection, ids: &[String]) -> Result<BulkOutc
             match atomically(act, |tx| {
                 release::mark_released_at(tx, id, None, Some(day.clone()), act.at())
             }) {
-                Ok(_) => {
+                Ok(released) => {
                     marked.push(id.clone());
+                    out.push((found.work_id.clone(), out_on(&released)));
                     works.push(found.work_id);
                 }
                 Err(cause) => skipped.push(Skipped {
@@ -612,10 +657,13 @@ pub fn mark_released_batch(conn: &Connection, ids: &[String]) -> Result<BulkOutc
             act.journal(Record::new("release.releasedBatch").param("count", count(marked.len())));
         }
 
-        Ok(BulkOutcome {
-            changed: marked.len(),
-            skipped,
-        })
+        Ok((
+            BulkOutcome {
+                changed: marked.len(),
+                skipped,
+            },
+            out,
+        ))
     })
 }
 

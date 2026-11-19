@@ -18,6 +18,8 @@ import type {
   NewFact,
   NewNote,
   Note,
+  QuotaReport,
+  QuotaSubject,
   StartedTask,
 } from '@/lib/api/types'
 
@@ -53,6 +55,12 @@ export const settleSection = (noteId: string, section: string) =>
   invoke<number>('settle_section', { noteId, section })
 /** Returns the trash entry, which is what the undo on the toast restores. */
 export const deleteFact = (id: string) => invoke<string>('delete_fact', { id })
+// The space's rules checked over a work, a collection, a month or all of
+// them, and an item of a bank marked used (v0.151, FR-20 20.2).
+export const checkQuotas = (subject: QuotaSubject) =>
+  invoke<QuotaReport>('check_quotas', { subject })
+export const markBankItemUsed = (factId: string, workId: string, date: string) =>
+  invoke<Fact>('use_bank_item', { factId, workId, date })
 export const relateCards = (link: NewCanonLink) => invoke<CanonLink>('relate_cards', { link })
 export const updateRelation = (id: string, patch: CanonLinkPatch) =>
   invoke<CanonLink>('update_relation', { id, patch })
