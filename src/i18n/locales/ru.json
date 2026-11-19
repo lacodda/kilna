@@ -2248,7 +2248,13 @@
     "picturesKept_one": "{{count}} картинка добавлена к вариантам обложки.",
     "picturesKept_few": "{{count}} картинки добавлены к вариантам обложки.",
     "picturesKept_many": "{{count}} картинок добавлены к вариантам обложки.",
-    "picturesKept_other": "{{count}} картинки добавлены к вариантам обложки."
+    "picturesKept_other": "{{count}} картинки добавлены к вариантам обложки.",
+    "copyPath": "Скопировать путь плагина",
+    "pathCopied": "Путь в буфере обмена.",
+    "settingsFolded_one": "Его настройки · {{count}}",
+    "settingsFolded_few": "Его настройки · {{count}}",
+    "settingsFolded_many": "Его настройки · {{count}}",
+    "settingsFolded_other": "Его настройки · {{count}}"
   },
   "error": {
     "database": "База рабочего пространства отклонила действие. Ничего не изменилось.",

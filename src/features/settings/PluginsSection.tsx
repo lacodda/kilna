@@ -13,6 +13,7 @@ import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
+import { Copyable } from '@/components/ui/copyable'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -93,7 +94,7 @@ export function PluginsSection() {
       ) : (
         <ul className="flex flex-col gap-2.5">
           {installed.map((plugin) => (
-            <PluginBlock key={plugin.executable} plugin={plugin} />
+            <PluginBlock key={plugin.executable} plugin={plugin} folded={installed.length > 1} />
           ))}
         </ul>
       )}
@@ -116,7 +117,10 @@ function useWritePlugin(executable: string) {
 }
 
 /** One plugin: its name and state in the bar, then what it offers and takes. */
-function PluginBlock({ plugin }: { plugin: Plugin }) {
+/** How many fields a plugin shows open among several plugins (v0.163). */
+const FOLD_AFTER = 2
+
+function PluginBlock({ plugin, folded }: { plugin: Plugin; folded: boolean }) {
   const { t, i18n } = useTranslation()
   const manifest = plugin.manifest
   const write = useWritePlugin(plugin.executable)
@@ -202,18 +206,41 @@ function PluginBlock({ plugin }: { plugin: Plugin }) {
         </dl>
       )}
 
-      {manifest !== null && manifest.settings.length > 0 && (
-        <div className="flex flex-col gap-3 border-t border-line pt-3">
-          <h3 className="caption">{t('plugins.settings')}</h3>
-          <div className="flex max-w-105 flex-col gap-3">
-            {manifest.settings.map((setting) => (
-              <SettingField key={setting.key} plugin={plugin} setting={setting} />
-            ))}
+      {manifest !== null &&
+        manifest.settings.length > 0 &&
+        // Among several plugins a long form is folded to its heading
+        // (v0.163): the list reads plugin by plugin, and a plugin's fields
+        // open where they are asked for.
+        (folded && manifest.settings.length > FOLD_AFTER ? (
+          <details className="border-t border-line pt-3">
+            <summary className="caption cursor-pointer">
+              {t('plugins.settingsFolded', { count: manifest.settings.length })}
+            </summary>
+            <div className="mt-3 flex max-w-105 flex-col gap-3">
+              {manifest.settings.map((setting) => (
+                <SettingField key={setting.key} plugin={plugin} setting={setting} />
+              ))}
+            </div>
+          </details>
+        ) : (
+          <div className="flex flex-col gap-3 border-t border-line pt-3">
+            <h3 className="caption">{t('plugins.settings')}</h3>
+            <div className="flex max-w-105 flex-col gap-3">
+              {manifest.settings.map((setting) => (
+                <SettingField key={setting.key} plugin={plugin} setting={setting} />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        ))}
 
-      <code className="selectable font-mono text-xs break-all text-faint">{plugin.path}</code>
+      {/* Where it lies, a press from the clipboard (v0.163). */}
+      <Copyable
+        className="self-start font-mono text-xs break-all text-faint"
+        label={t('plugins.copyPath')}
+        copiedLabel={t('plugins.pathCopied')}
+      >
+        {plugin.path}
+      </Copyable>
     </li>
   )
 }

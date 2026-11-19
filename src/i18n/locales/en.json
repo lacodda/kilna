@@ -2076,7 +2076,11 @@
     "monthQuotaLeft": "This month: {{used}} {{unit}} spent, {{left}} left",
     "candidateCorridor": "{{delta}} from {{target}}",
     "picturesKept_one": "{{count}} picture set beside the cover.",
-    "picturesKept_other": "{{count}} pictures set beside the cover."
+    "picturesKept_other": "{{count}} pictures set beside the cover.",
+    "copyPath": "Copy the plugin’s path",
+    "pathCopied": "The path is on the clipboard.",
+    "settingsFolded_one": "Its settings · {{count}}",
+    "settingsFolded_other": "Its settings · {{count}}"
   },
   "error": {
     "database": "The workspace database refused that. Nothing was changed.",
