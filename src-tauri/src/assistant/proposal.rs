@@ -354,6 +354,30 @@ pub enum Proposal {
         #[ts(optional, as = "Option<Vec<MonthTerm>>")]
         terms: Vec<MonthTerm>,
     },
+    /// Files an assistant beside kilna made - takes from a music generator,
+    /// pictures from an image one - each for a work and as what (v0.156,
+    /// FR-21 21.1 p.4). Applied, each is checked, moved into its work's
+    /// folder under a name of the work's and given its role. Made by
+    /// `propose_media`, into the chat named after the agent.
+    Media { items: Vec<MediaItem> },
+}
+
+/// One file of a media proposal.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct MediaItem {
+    pub work_id: String,
+    /// What the work is called, for the card that shows the proposal.
+    pub work_title: String,
+    /// Where the file lies now, whole.
+    pub path: String,
+    pub role: crate::actions::media::MediaRole,
+    /// Given a name of the work's; kept as it is named otherwise.
+    #[serde(default = "yes")]
+    pub rename: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 /// A term a month's proposal adds to the register.

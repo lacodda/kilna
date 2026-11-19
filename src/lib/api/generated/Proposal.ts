@@ -4,6 +4,7 @@ import type { BricksPackage } from "./BricksPackage";
 import type { CardDropped } from "./CardDropped";
 import type { IdeaDropped } from "./IdeaDropped";
 import type { Marks } from "./Marks";
+import type { MediaItem } from "./MediaItem";
 import type { MonthItem } from "./MonthItem";
 import type { MonthTerm } from "./MonthTerm";
 import type { Package } from "./Package";
@@ -152,4 +153,4 @@ month?: string, items: Array<MonthItem>,
  * Terms the month spends, for the register: a title word, a motif
  * of a cover, a sound - kept when the month is applied.
  */
-terms?: Array<MonthTerm>, };
+terms?: Array<MonthTerm>, } | { "kind": "media", items: Array<MediaItem>, };

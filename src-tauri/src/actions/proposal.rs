@@ -542,6 +542,29 @@ pub fn check(
                 }
             }
         },
+        // Files to take (v0.156): every work still there, every file still
+        // a file of the kind its role takes.
+        Proposal::Media { items } => {
+            for item in items {
+                if work::get(conn, &item.work_id)?.is_none() {
+                    note(Err(Error::not_found("work", &item.work_id)));
+                }
+                let path = std::path::Path::new(&item.path);
+                let name = path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                if !path.is_file() {
+                    note(Err(
+                        Error::refused("media.notAFile").param("path", item.path.clone())
+                    ));
+                } else if !item.role.fits(&name) {
+                    note(Err(Error::refused("media.wrongKind")
+                        .param("name", name)
+                        .param("role", serde_json::to_value(item.role)?)));
+                }
+            }
+        }
         // A month (v0.153): every work still there and of a kind that has
         // the roles it is written in, every bank item still an item.
         Proposal::Month { items, .. } => {
@@ -1035,6 +1058,34 @@ fn keep(
                     .is_none_or(|items| items.iter().any(|item| *item == format!("trial:{index}")))
             })?;
             outcome.work_id = Some(work_id);
+        }
+
+        // Files taken into their works (v0.156), each moved in and given its
+        // role, in the order they were proposed.
+        Proposal::Media { items } => {
+            // The space's own folder of files is asked only for a picture:
+            // a cover is kept there, a track or a video only in its work's.
+            let covers = items.iter().any(|item| {
+                matches!(
+                    item.role,
+                    super::media::MediaRole::FinalCover | super::media::MediaRole::CandidateCover
+                )
+            });
+            let media = if covers {
+                crate::state::media_dir_of(conn)?
+            } else {
+                std::path::PathBuf::new()
+            };
+            for item in items {
+                super::media::take(
+                    conn,
+                    &media,
+                    &item.work_id,
+                    std::path::Path::new(&item.path),
+                    item.role,
+                    item.rename,
+                )?;
+            }
         }
 
         // A month (v0.153): each work renamed, its fields merged, its texts

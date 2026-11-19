@@ -661,6 +661,28 @@ fn tools() -> Vec<Value> {
             &["works"],
         ),
         tool(
+            "propose_media",
+            "Propose files you made beside kilna - takes from a music generator, pictures \
+             from an image one, a rendered video - each for a work and as what (v0.156). One \
+             proposal into the chat named after you; applied by the person, each file is \
+             checked, moved into its work's folder (made if it is not there yet) under a name \
+             of the work's, and given its role: `final_audio` and `video` become the work's \
+             finished file where the kind's rule takes such a file, `final_cover` its cover, \
+             `candidate_cover` a picture beside the cover to choose from, `candidate_audio` a \
+             take kept in its folder's `candidates`, `asset` a file that only lies in its \
+             folder. A path must be a whole path to a file on this machine; a file of the \
+             wrong kind for its role refuses the whole proposal. Nothing moves until the \
+             person applies it.",
+            json!({
+                "items": {
+                    "type": "array",
+                    "description": "Each: {work (id or exact title), path (whole), role: candidate_audio | final_audio | candidate_cover | final_cover | video | asset, rename_to_work?: true}",
+                    "items": { "type": "object" },
+                },
+            }),
+            &["items"],
+        ),
+        tool(
             "quotas",
             "The space's rules checked over works (v0.151): the facts of the passport's quotas \
              section, each a machine predicate - a field, a metric, a comparison, the works it \
@@ -2331,6 +2353,75 @@ pub fn run_tool(
                 said.push_str(&format!(" Left out: {}.", left_out.join("; ")));
             }
             Ok(said)
+        }
+
+        "propose_media" => {
+            let raw = args
+                .get("items")
+                .and_then(Value::as_array)
+                .ok_or_else(|| Error::refused("mcp.missingArgument").param("name", "items"))?;
+            let mut items = Vec::new();
+            for one in raw {
+                let one = one
+                    .as_object()
+                    .ok_or_else(|| Error::refused("mcp.missingArgument").param("name", "items"))?;
+                let work = find_work(conn, &profile.id, required(one, "work")?)?;
+                let path = required(one, "path")?.trim().to_owned();
+                let said = required(one, "role")?;
+                let role: crate::actions::media::MediaRole =
+                    serde_json::from_value(Value::String(said.to_owned()))
+                        .map_err(|_| Error::refused("mcp.badMediaRole").param("role", said))?;
+                let file = std::path::Path::new(&path);
+                let name = file
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                if !file.is_absolute() || !file.is_file() {
+                    return Err(Error::refused("media.notAFile").param("path", path));
+                }
+                if !role.fits(&name) {
+                    return Err(Error::refused("media.wrongKind")
+                        .param("name", name)
+                        .param("role", said));
+                }
+                items.push(proposal::MediaItem {
+                    work_id: work.id,
+                    work_title: work.title,
+                    path,
+                    role,
+                    rename: one
+                        .get("rename_to_work")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(true),
+                });
+            }
+            if items.is_empty() {
+                return Err(Error::refused("proposal.nothingTaken"));
+            }
+            let mut body = String::new();
+            for item in &items {
+                body.push_str(&format!(
+                    "- {} -> {} ({})\n",
+                    item.path,
+                    item.work_title,
+                    serde_json::to_value(item.role)?
+                        .as_str()
+                        .unwrap_or_default()
+                ));
+            }
+            let count = items.len();
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                None,
+                Proposal::Media { items },
+                body.trim_end(),
+                None,
+            )?;
+            Ok(format!(
+                "Proposed {count} files to take into their works. They wait in the chat named after you; nothing moves until the person applies it."
+            ))
         }
 
         "quotas" => {
@@ -4295,6 +4386,7 @@ fn deliver(
         (Proposal::Trials { .. }, _) => Record::new("proposal.trials"),
         (Proposal::Cards { .. }, _) => Record::new("proposal.cards"),
         (Proposal::Month { .. }, _) => Record::new("proposal.month"),
+        (Proposal::Media { .. }, _) => Record::new("proposal.media"),
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
@@ -7045,5 +7137,57 @@ mod tests {
                 .data
                 .contains_key("used_in")
         );
+    }
+
+    /// Files an assistant made beside kilna wait as one proposal, and move
+    /// into their works only when it is applied (v0.156).
+    #[test]
+    fn files_are_proposed_and_moved_into_their_works_when_applied() {
+        let (conn, profile_id) = fixtures::workspace();
+        let root = tempfile::tempdir().unwrap();
+        crate::folder::set_root(
+            &conn,
+            &profile_id,
+            Some(&root.path().to_string_lossy()),
+            "2030-01-01T00:00:00.000Z",
+        )
+        .unwrap();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let downloads = tempfile::tempdir().unwrap();
+        let take = downloads.path().join("suno-7f3a.mp3");
+        std::fs::write(&take, b"ID3").unwrap();
+        let path = take.to_string_lossy().into_owned();
+
+        let wrong = run_tool(
+            &conn,
+            &claude(),
+            "propose_media",
+            &args(json!({ "items": [{ "work": "Harbour lights", "path": path, "role": "final_cover" }] })),
+        )
+        .unwrap_err();
+        assert_eq!(wrong.refusal().map(|one| one.code), Some("media.wrongKind"));
+
+        let said = run_tool(
+            &conn,
+            &claude(),
+            "propose_media",
+            &args(json!({ "items": [{ "work": "Harbour lights", "path": path, "role": "final_audio" }] })),
+        )
+        .unwrap();
+        assert!(said.contains("Proposed 1 files"), "{said}");
+        assert!(take.exists(), "nothing moves before it is applied");
+
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats.iter().find(|c| c.work_id.is_none()).unwrap();
+        let proposed = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        crate::actions::proposal::apply(&conn, &proposed.id, Default::default()).unwrap();
+
+        assert!(!take.exists());
+        let moved = work::get(&conn, &song.id).unwrap().unwrap();
+        assert_eq!(moved.file.as_deref(), Some("Harbour lights.mp3"));
     }
 }

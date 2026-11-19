@@ -4,6 +4,7 @@ import { ProposedCommentOrReply } from '@/features/assistant/ProposedCommentOrRe
 import { ProposedCoverIdeas } from '@/features/assistant/ProposedCoverIdeas'
 import { ProposedCards } from '@/features/assistant/ProposedCards'
 import { ProposedMonth } from '@/features/assistant/ProposedMonth'
+import { ProposedMedia } from '@/features/assistant/ProposedMedia'
 import { ProposedTrials } from '@/features/assistant/ProposedTrials'
 import { ProposedDescription } from '@/features/assistant/ProposedDescription'
 import { ProposedNote } from '@/features/assistant/ProposedNote'
@@ -142,6 +143,15 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
     case 'month':
       return (
         <ProposedMonth
+          messageId={messageId}
+          proposal={proposal}
+          applied={applied}
+          dismissed={dismissed}
+        />
+      )
+    case 'media':
+      return (
+        <ProposedMedia
           messageId={messageId}
           proposal={proposal}
           applied={applied}
