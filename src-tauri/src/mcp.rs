@@ -16,7 +16,7 @@
 //! the one inside it. See ADR 0016; the package and the mark a person leaves
 //! on an applied proposal are ADR 0018.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufRead, Write};
 use std::path::Path;
 
@@ -146,11 +146,19 @@ impl Book {
         if !space.reachable {
             return Err(Error::refused("space.unreachable").param("path", space.path.clone()));
         }
-        let others: Vec<String> = registry::list(&self.app, &self.app_dir, None)?
+        let listed: Vec<crate::space::Space> = registry::list(&self.app, &self.app_dir, None)?
             .into_iter()
             .filter(|other| other.id != space.id && other.trashed_at.is_none())
-            .map(|other| other.name)
             .collect();
+        // Where each neighbour keeps its database, for `calendar`'s
+        // `cross_spaces` (v0.151): read only, never opened for writing.
+        let mut neighbours = Vec::new();
+        for other in listed.iter().filter(|other| other.reachable) {
+            if let Ok(folder) = registry::folder(&self.app, &self.app_dir, &other.id) {
+                neighbours.push((other.name.clone(), folder.database()));
+            }
+        }
+        let others: Vec<String> = listed.into_iter().map(|other| other.name).collect();
         if !self.open.contains_key(&space.id) {
             let folder = registry::folder(&self.app, &self.app_dir, &space.id)?;
             let (conn, held_by) = crate::state::open_space(&folder, crate::state::Role::Companion)?;
@@ -175,6 +183,7 @@ impl Book {
             kind: space.kind.unwrap_or_default(),
             read_only_held_by: held_by,
             others,
+            neighbours,
         };
         let conn = self
             .open
@@ -233,6 +242,10 @@ pub struct SpaceInfo {
     pub read_only_held_by: Option<String>,
     /// Every other space, by name: what `space` may name.
     pub others: Vec<String>,
+    /// The other spaces that can be read, each with its database: what
+    /// `calendar`'s `cross_spaces` reads, and nothing else.
+    #[serde(skip)]
+    pub neighbours: Vec<(String, std::path::PathBuf)>,
 }
 
 /// Answers one message, or `None` when it is a notification.
@@ -606,8 +619,18 @@ fn tools() -> Vec<Value> {
              which work, which kind, scheduled for when, released when, the link, whether its \
              date is kept (`slot_pinned_at`); past releases included. `closed`: the time off - \
              spans of days nothing should go out on, `starts_on`..`ends_on` both inside, and \
-             why (`label`). Filter with `from` to start at a day.",
-            json!({ "from": text_arg("Only what is on or after this day, YYYY-MM-DD") }),
+             why (`label`). Filter with `from` to start at a day. `cross_spaces` - `true` for \
+             every other space, or a list of their names - adds `cross_spaces`: on the days this \
+             space puts something out or plans it, what the neighbours put out or plan, in compact \
+             fields only (space, date, title, cover idea, genre, mood) - to keep two channels' \
+             pictures of one day apart without mixing their records.",
+            json!({
+                "from": text_arg("Only what is on or after this day, YYYY-MM-DD"),
+                "cross_spaces": {
+                    "description": "true for every other space, or a list of their names",
+                    "anyOf": [{ "type": "boolean" }, { "type": "array", "items": { "type": "string" } }],
+                },
+            }),
             &[],
         ),
         tool(
@@ -2074,7 +2097,45 @@ pub fn run_tool(
                     "derivative_count": made,
                 }));
             }
-            pretty(&json!({ "releases": releases, "closed": closed, "work_plans": plans }))
+            // The neighbours on the same days (v0.151, FR-20 20.2).
+            let mut days: BTreeSet<String> = releases
+                .iter()
+                .filter_map(|r| r.release.scheduled_at.as_deref())
+                .map(|at| at.get(..10).unwrap_or(at).to_owned())
+                .collect();
+            days.extend(
+                plans
+                    .iter()
+                    .filter_map(|plan| plan["scheduled_at"].as_str().map(str::to_owned)),
+            );
+            let wanted: Option<Vec<String>> = match args.get("cross_spaces") {
+                Some(Value::Bool(true)) => Some(Vec::new()),
+                Some(Value::Array(names)) => Some(
+                    names
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(|name| name.trim().to_owned())
+                        .collect(),
+                ),
+                _ => None,
+            };
+            let mut answer = json!({ "releases": releases, "closed": closed, "work_plans": plans });
+            if let Some(wanted) = wanted {
+                let neighbours = session
+                    .space
+                    .as_ref()
+                    .map(|space| space.neighbours.clone())
+                    .unwrap_or_default();
+                let mut found = Vec::new();
+                for (name, database) in neighbours
+                    .iter()
+                    .filter(|(name, _)| wanted.is_empty() || wanted.contains(name))
+                {
+                    found.extend(neighbour_days(name, database, &days)?);
+                }
+                answer["cross_spaces"] = Value::Array(found);
+            }
+            pretty(&answer)
         }
 
         "quotas" => {
@@ -3821,6 +3882,66 @@ fn read_canon(
             "lives_at_work": c.work_title, "facts": c.facts, "drafts": c.drafts, "open": c.open,
         })).collect::<Vec<_>>(),
     }))
+}
+
+/// What a neighbouring space puts out or plans on `days`, in the compact
+/// fields `calendar`'s `cross_spaces` gives (v0.151, FR-20 20.2): the space,
+/// the day, the title, the cover's idea, the genre and the mood - nothing of
+/// its texts, its canon or its people. Read from its database opened for
+/// reading only; a space that cannot be read says nothing.
+fn neighbour_days(
+    name: &str,
+    database: &std::path::Path,
+    days: &BTreeSet<String>,
+) -> Result<Vec<Value>> {
+    if days.is_empty() {
+        return Ok(Vec::new());
+    }
+    let Ok(conn) = crate::db::open_read_only(database) else {
+        return Ok(Vec::new());
+    };
+    let Some(profile) = profile::active(&conn)? else {
+        return Ok(Vec::new());
+    };
+    let mut dated: Vec<(String, String)> = Vec::new();
+    for entry in release::calendar(&conn, &profile.id)? {
+        if let Some(at) = entry.release.scheduled_at.as_deref() {
+            dated.push((
+                at.get(..10).unwrap_or(at).to_owned(),
+                entry.release.work_id.clone(),
+            ));
+        }
+    }
+    let config = profile::config_for(&conn, &profile.id)?;
+    for plan in crate::work_plan::open(&conn, &profile.id, config.plan_window())? {
+        dated.push((plan.scheduled_at.clone(), plan.work_id.clone()));
+    }
+    let mut out = Vec::new();
+    for (day, work_id) in dated {
+        if !days.contains(&day) {
+            continue;
+        }
+        let Some(work) = work::get(&conn, &work_id)? else {
+            continue;
+        };
+        let text = |key: &str| {
+            work.meta
+                .get(key)
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        };
+        let cover_idea = text("cover_idea")
+            .or_else(|| (!work.cover.idea.trim().is_empty()).then(|| work.cover.idea.clone()));
+        out.push(json!({
+            "space_name": name,
+            "date": day,
+            "title": work.title,
+            "cover_idea": cover_idea,
+            "genre": text("genre"),
+            "mood": text("mood"),
+        }));
+    }
+    Ok(out)
 }
 
 /// What an entry of a section of `shape` carries beside its words, as an
@@ -6511,6 +6632,63 @@ mod tests {
 
     /// An agent checks the space's rules the way the window does (v0.151):
     /// the breach names the rule, the work and what was measured.
+    /// The calendar reads what a neighbouring space puts out on the same
+    /// days, in compact fields only, when asked (v0.151, FR-20 20.2).
+    #[test]
+    fn the_calendar_reads_the_neighbours_on_the_same_days() {
+        let (conn, _) = workspace();
+        let clip = video(&conn);
+        fixtures::release(&conn, &clip, "youtube", Some("2026-10-02"));
+
+        let (other, other_profile, dir) = fixtures::workspace_on_disk();
+        let same_day = fixtures::video(&other, &other_profile, "Lighthouse in fog").id;
+        fixtures::release(&other, &same_day, "youtube", Some("2026-10-02"));
+        let elsewhere = fixtures::video(&other, &other_profile, "Another day").id;
+        fixtures::release(&other, &elsewhere, "youtube", Some("2026-10-09"));
+
+        let session = Session {
+            client: Some("Claude Code".into()),
+            space: Some(SpaceInfo {
+                name: "Here".into(),
+                kind: "music".into(),
+                read_only_held_by: None,
+                others: vec!["There".into()],
+                neighbours: vec![("There".into(), dir.path().join("kilna.db"))],
+            }),
+        };
+        let read = run_tool(
+            &conn,
+            &session,
+            "calendar",
+            &args(json!({ "cross_spaces": true })),
+        )
+        .unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+        let cross = read["cross_spaces"].as_array().unwrap();
+        assert_eq!(cross.len(), 1, "{cross:?}");
+        assert_eq!(cross[0]["space_name"], "There");
+        assert_eq!(cross[0]["date"], "2026-10-02");
+        assert_eq!(cross[0]["title"], "Lighthouse in fog");
+        assert!(cross[0].get("body").is_none());
+
+        // Not asked, not read; a name that is no neighbour reads nothing.
+        let plain: Value =
+            serde_json::from_str(&run_tool(&conn, &session, "calendar", &args(json!({}))).unwrap())
+                .unwrap();
+        assert!(plain.get("cross_spaces").is_none());
+        let named: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &session,
+                "calendar",
+                &args(json!({ "cross_spaces": ["Nowhere"] })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(named["cross_spaces"], json!([]));
+    }
+
     #[test]
     fn an_agent_checks_the_quotas() {
         let (conn, _) = workspace();
