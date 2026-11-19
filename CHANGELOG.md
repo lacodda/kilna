@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.155.0] - 2026-11-19
+
+Plugins in batches. A plugin's batch command runs over the works ticked in
+the catalogue or over a whole collection, one to four at a time, keeping each
+answer as it comes back, with its progress, a stop and a report work by
+work. The catalogue's Media chips - ready for a video, no audio, no cover,
+ready to go out - pick the works a batch is for. A plugin may now offer
+several results to choose from and keep only the one picked, say what a run
+spent of its service's allowance, and mark a setting secret so it is kept on
+this machine and never in the space or its exports.
+
+### Bug Fixes
+- Name the batch's progress bar as the bar asks
+- What the live run of batches and secrets turned up
+- Ready to go out means its video is made, as the spec says
+- A track lying in the work's folder counts as its audio
+- Regenerate the types whose comments changed
+
+### Features
+- Candidates to pick from, the quota spent, secrets off the space
+- Run a batch command over many works at once
+- Media chips for choosing a batch
+
 ## [0.154.0] - 2026-11-19
 
 Channels moving in. A channel kept by a previous system - its README, its
