@@ -17,11 +17,14 @@ import { cn } from '@/lib/utils'
  *
  * `selectable`, because the registry copies grant nothing of their own and a
  * version is someone's writing: it has to be copyable wherever it shows.
+ *
+ * The size is the one Settings names for the editor, and a sung text takes
+ * the face named there (v0.163) - a style prompt stays monospace.
  */
-export function textMetrics(markdown: boolean): string {
+export function textMetrics(markdown: boolean, sung = false): string {
   return cn(
-    'selectable px-5.5 py-4 text-base',
-    markdown ? 'leading-relaxed' : 'font-mono leading-[1.75]',
+    'selectable px-5.5 py-4 editor-size',
+    markdown ? 'leading-relaxed' : sung ? 'editor-font leading-[1.75]' : 'font-mono leading-[1.75]',
   )
 }
 

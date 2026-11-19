@@ -31,6 +31,8 @@ interface Props {
   kept: boolean
   /** Whether this role's bodies read as markdown, which is what a preview is for. */
   markdown: boolean
+  /** Whether they are sung, and so set in the editor's chosen face (v0.163). */
+  sung?: boolean
   /** The version the draft was copied from, standing beside it; null while
    *  it loads, absent for a version written from nothing. */
   source?: { label: string; body: string } | null
@@ -63,12 +65,13 @@ export function VersionEditor({
   saving,
   kept,
   markdown,
+  sung = false,
   source,
 }: Props) {
   const { t } = useTranslation()
   const [preview, setPreview] = useState(false)
   const area = useRef<HTMLTextAreaElement>(null)
-  const metrics = textMetrics(markdown)
+  const metrics = textMetrics(markdown, sung)
   const diff = useLineDiff(source?.body ?? null, draft)
 
   // Coming back from preview should put the cursor back in the text, not leave

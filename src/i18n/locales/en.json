@@ -3107,7 +3107,10 @@
       "show": "Show what differs ({{count}})"
     },
     "density": "Density",
-    "densityHelp": "How tightly rows, fields and buttons sit, everywhere in the window."
+    "densityHelp": "How tightly rows, fields and buttons sit, everywhere in the window.",
+    "editorSize": "Size of a version’s text",
+    "editorFont": "Face of a sung text",
+    "editorFontHelp": "A style prompt and other texts that are not sung stay monospace: their spacing is what gets pasted."
   },
   "skills": {
     "title": "Skills",
@@ -6025,5 +6028,13 @@
     "compact": "Compact",
     "regular": "Regular",
     "comfortable": "Comfortable"
+  },
+  "editorSizeName": {
+    "regular": "Regular",
+    "large": "Large"
+  },
+  "editorFontName": {
+    "mono": "Monospace",
+    "sans": "Proportional"
   }
 }

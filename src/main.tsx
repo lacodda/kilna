@@ -8,6 +8,7 @@ import { Providers } from '@/app/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { initTheme } from '@/lib/theme'
 import { initDensity } from '@/lib/density'
+import { initEditorText } from '@/lib/editorText'
 import { initLanguage } from '@/lib/language'
 import { queryClient } from '@/lib/query/client'
 import '@/i18n'
@@ -17,6 +18,7 @@ import '@/styles.css'
 // never flashes the wrong colour or visibly changes language a moment in.
 initTheme()
 initDensity()
+initEditorText()
 initLanguage()
 
 // The bar the engine draws takes no width, which no stylesheet can ask for. The

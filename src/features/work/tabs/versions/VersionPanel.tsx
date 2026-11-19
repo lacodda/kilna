@@ -563,6 +563,7 @@ export function VersionPanel({ workId }: Props) {
       saving={form.saving}
       kept={form.draft.trim() !== '' && !form.fromSkeleton}
       markdown={roles.find((r) => r.key === lane)?.body === 'markdown'}
+      sung={roles.find((r) => r.key === lane)?.sung === true}
       source={
         form.derivedFrom === null
           ? undefined

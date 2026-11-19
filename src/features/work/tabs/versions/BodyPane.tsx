@@ -139,7 +139,7 @@ export function BodyPane({
   onStage,
 }: Props) {
   const { t } = useTranslation()
-  const metrics = textMetrics(markdown)
+  const metrics = textMetrics(markdown, sung)
 
   // What is on the left right now: the text being typed, or the body as it
   // is on disk. The comparison and the check are read off this, so both

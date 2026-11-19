@@ -333,3 +333,28 @@ textarea,
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
+
+/*
+ * A version's text in the editor (v0.163, Settings > General): its size, and
+ * the face a sung text is set in. Custom properties outside the theme, so an
+ * attribute on <html> reaches the text and the mirror its marks are drawn on
+ * together. A style prompt keeps `font-mono` and never reads the face.
+ */
+:root {
+  --editor-size: var(--text-base);
+  --editor-font: var(--font-mono);
+}
+:root[data-editor-size='large'] {
+  --editor-size: var(--text-lg);
+}
+:root[data-editor-font='sans'] {
+  --editor-font: var(--font-sans);
+}
+
+@utility editor-size {
+  font-size: var(--editor-size);
+}
+
+@utility editor-font {
+  font-family: var(--editor-font);
+}

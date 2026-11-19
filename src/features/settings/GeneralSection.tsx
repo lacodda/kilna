@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { LANGUAGES, useLanguage } from '@/lib/language'
 import { THEMES, useTheme } from '@/lib/theme'
 import { DENSITIES, useDensity } from '@/lib/density'
+import { EDITOR_FONTS, EDITOR_SIZES, useEditorText } from '@/lib/editorText'
 import { FieldGroup } from '@/components/ui/field'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Select } from '@/components/AppSelect'
@@ -23,6 +24,7 @@ export function GeneralSection() {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
   const { density, setDensity } = useDensity()
+  const editor = useEditorText()
   const { language, setLanguage } = useLanguage()
 
   return (
@@ -57,6 +59,34 @@ export function GeneralSection() {
           {DENSITIES.map((entry) => (
             <Segment key={entry} value={entry}>
               {t(`densityName.${entry}`)}
+            </Segment>
+          ))}
+        </SegmentedControl>
+      </FieldGroup>
+      {/* A version's text (v0.163): its size, and the face of a sung text -
+          a style prompt stays monospace, its spacing is what is pasted. */}
+      <FieldGroup label={t('settings.editorSize')}>
+        <SegmentedControl
+          aria-label={t('settings.editorSize')}
+          value={editor.size}
+          onValueChange={(next) => editor.setSize(next as typeof editor.size)}
+        >
+          {EDITOR_SIZES.map((entry) => (
+            <Segment key={entry} value={entry}>
+              {t(`editorSizeName.${entry}`)}
+            </Segment>
+          ))}
+        </SegmentedControl>
+      </FieldGroup>
+      <FieldGroup label={t('settings.editorFont')} help={t('settings.editorFontHelp')}>
+        <SegmentedControl
+          aria-label={t('settings.editorFont')}
+          value={editor.font}
+          onValueChange={(next) => editor.setFont(next as typeof editor.font)}
+        >
+          {EDITOR_FONTS.map((entry) => (
+            <Segment key={entry} value={entry}>
+              {t(`editorFontName.${entry}`)}
             </Segment>
           ))}
         </SegmentedControl>
