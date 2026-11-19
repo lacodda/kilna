@@ -7,6 +7,8 @@ fn a_header_is_read_in_english_and_in_russian() {
     assert_eq!(column_of("Название видео"), Some("title"));
     assert_eq!(column_of("Impressions click-through rate (%)"), Some("ctr"));
     assert_eq!(column_of("Impressions"), Some("impressions"));
+    assert_eq!(column_of("Отметки Нравится"), Some("likes"));
+    assert_eq!(column_of("Отметки \"Нравится\""), Some("likes"));
     assert_eq!(
         column_of("Средний процент просмотра (%)"),
         Some("avg_view_pct")

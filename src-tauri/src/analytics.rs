@@ -68,6 +68,11 @@ fn column_of(header: &str) -> Option<&'static str> {
     if header.contains("click-through") || header.starts_with("ctr") {
         return Some("ctr");
     }
+    // «Отметки "Нравится"»: its quotes come through or not, as the file
+    // quoted the cell.
+    if header.contains("нравится") {
+        return Some("likes");
+    }
     COLUMNS
         .iter()
         .find(|(_, starts)| starts.iter().any(|start| header.starts_with(start)))
