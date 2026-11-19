@@ -74,7 +74,7 @@ export interface CatalogueFilter {
 
 /** A column the table can be ordered by. */
 export type SortColumn =
-  'title' | 'stage' | 'total' | 'status' | 'versions' | 'release' | 'created' | 'updated'
+  'title' | 'stage' | 'total' | 'status' | 'versions' | 'release' | 'views' | 'created' | 'updated'
 export type SortDirection = 'asc' | 'desc'
 
 export interface Sort {
@@ -722,6 +722,9 @@ function valueOf(row: CatalogueRow, column: SortColumn): string | number | null 
     case 'release':
       // Nothing booked is absent, not far off: it sorts last either way.
       return row.next_release?.scheduled_at ?? null
+    // Not yet read from YouTube Studio is absent, not none (v0.160).
+    case 'views':
+      return row.views ?? null
     case 'created':
       return row.created_at
     case 'updated':
@@ -792,6 +795,7 @@ const COLUMNS: SortColumn[] = [
   'status',
   'versions',
   'release',
+  'views',
   'created',
   'updated',
 ]
@@ -925,6 +929,7 @@ export type ColumnId =
   | 'total'
   | 'versions'
   | 'release'
+  | 'views'
   | 'collection'
   | 'tags'
   | 'derived'
@@ -943,6 +948,7 @@ export const ALL_COLUMNS: ColumnId[] = [
   'total',
   'versions',
   'release',
+  'views',
   'collection',
   'tags',
   'derived',

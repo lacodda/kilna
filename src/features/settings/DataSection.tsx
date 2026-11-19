@@ -12,6 +12,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MediaFolderField } from '@/features/settings/MediaFolderField'
 import { IntakeDialog } from '@/features/intake/IntakeDialog'
+import { AnalyticsImportDialog } from '@/features/releases/AnalyticsImportDialog'
 import { ExamineField, HistoryField, KeptBackups, StorageField } from '@/features/settings/Upkeep'
 
 /** What a finished gesture says, and where it can be seen when it left something on disk. */
@@ -34,6 +35,19 @@ export function DataSection() {
   const client = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [bringing, setBringing] = useState(false)
+  // A YouTube Studio export being read, while its dialog is open (v0.160).
+  const [numbers, setNumbers] = useState<string | null>(null)
+  const chooseNumbers = async () => {
+    try {
+      const chosen = await open({
+        title: t('analytics.chooseTitle'),
+        filters: [{ name: 'CSV', extensions: ['csv'] }],
+      })
+      if (typeof chosen === 'string') setNumbers(chosen)
+    } catch (cause) {
+      say.failed(cause)
+    }
+  }
 
   // The path never changes while the app runs, so it is asked for once.
   const path = useQuery({ ...queries.workspacePath(), staleTime: Infinity })
@@ -153,6 +167,11 @@ export function DataSection() {
             {t('data.importAction')}
           </Button>
         </FieldGroup>
+        <FieldGroup label={t('analytics.field')} help={t('analytics.fieldHint')}>
+          <Button className="self-start" onClick={() => void chooseNumbers()}>
+            {t('analytics.choose')}
+          </Button>
+        </FieldGroup>
       </section>
 
       <section className="flex flex-col gap-4">
@@ -202,6 +221,9 @@ export function DataSection() {
 
       {busy && <p className="text-sm text-dim">{t('data.working')}</p>}
       <IntakeDialog open={bringing} onOpenChange={setBringing} />
+      {numbers !== null && (
+        <AnalyticsImportDialog path={numbers} onClose={() => setNumbers(null)} />
+      )}
     </div>
   )
 }

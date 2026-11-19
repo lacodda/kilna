@@ -494,6 +494,22 @@ Each release is one step:
   is marked out with it; one booked for later keeps the link and goes out on
   its day. **Skip this one** goes on without a link.
 
+## How a release did
+
+YouTube Studio's Advanced mode exports a table of every video - views,
+impressions, click-through, how much of it was watched, likes, subscribers.
+Since v0.160 **Settings → Data → Numbers from YouTube Studio** reads that CSV
+(in English or in Russian, as Studio wrote it) and matches each row to its
+release: by the video's id in the release's link, else by its exact title.
+It shows what it found - and the rows that match no release - before
+anything is kept; **Keep the numbers** writes them all as one step, and one
+undo takes them back.
+
+The numbers then stand under the release on the work's card, with the day
+they were read, and the catalogue has a **Views** column (off until chosen in
+**Columns**) to sort by. Read the export again next month and the numbers are
+replaced by the newer ones.
+
 ## Time off
 
 Some days nothing should go out on: a holiday, a fortnight away, the week of

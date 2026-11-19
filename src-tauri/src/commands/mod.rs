@@ -9,6 +9,7 @@
 //! its own copy of the gesture's ceremony (ADR 0040).
 
 pub mod activity;
+pub mod analytics;
 pub mod assets;
 pub mod assistant;
 pub mod boards;

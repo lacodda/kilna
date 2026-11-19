@@ -894,7 +894,8 @@
       "vibe": "Настроение",
       "collection": "Коллекция",
       "tags": "Теги",
-      "derived": "Производные"
+      "derived": "Производные",
+      "views": "Просмотры"
     },
     "releaseHint": "{{kind}}, {{date}}",
     "groupBy": "Группировать",
@@ -4258,6 +4259,10 @@
     },
     "studio": {
       "notAVideoLink": "«{{url}}» - не ссылка на видео YouTube."
+    },
+    "analytics": {
+      "empty": "В файле нет таблицы.",
+      "noVideoColumn": "В таблице нет столбца видео - ни id (Контент), ни названия."
     }
   },
   "proposalBody": {
@@ -6370,5 +6375,37 @@
     "done_few": "Готово: сохранены {{count}} ссылки.",
     "done_many": "Готово: сохранено {{count}} ссылок.",
     "done_other": "Готово: сохранено {{count}} ссылки."
+  },
+  "analytics": {
+    "field": "Цифры из YouTube Studio",
+    "fieldHint": "Таблица, которую YouTube Studio выгружает в расширенном режиме, в CSV: просмотры, CTR и досмотры каждого видео - на его выпуск.",
+    "choose": "Прочитать выгрузку…",
+    "chooseTitle": "Выгрузка YouTube Studio",
+    "title": "Цифры из YouTube Studio",
+    "summary": "Найдено среди выпусков: {{matched}} из {{total}} видео.",
+    "line": "Строка {{line}}",
+    "unmatched": "нет выпуска",
+    "by": {
+      "id": "→ {{work}}, по ссылке",
+      "title": "→ {{work}}, по названию"
+    },
+    "keepFailed": "Не удалось сохранить цифры.",
+    "ctr": "CTR {{value}}%",
+    "watched": "досмотр {{value}}%",
+    "likes": "лайков: {{n}}",
+    "subscribers": "+{{n}} подписчиков",
+    "readAt": "прочитано {{day}}",
+    "views_one": "{{n}} просмотр",
+    "views_few": "{{n}} просмотра",
+    "views_many": "{{n}} просмотров",
+    "views_other": "{{n}} просмотра",
+    "keep_one": "Сохранить цифры {{count}} выпуска",
+    "keep_few": "Сохранить цифры {{count}} выпусков",
+    "keep_many": "Сохранить цифры {{count}} выпусков",
+    "keep_other": "Сохранить цифры {{count}} выпуска",
+    "kept_one": "Цифры сохранены у {{count}} выпуска.",
+    "kept_few": "Цифры сохранены у {{count}} выпусков.",
+    "kept_many": "Цифры сохранены у {{count}} выпусков.",
+    "kept_other": "Цифры сохранены у {{count}} выпуска."
   }
 }

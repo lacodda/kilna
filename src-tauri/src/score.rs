@@ -112,6 +112,11 @@ pub struct ScoredWork {
     /// row's next release is its audio's or its clip's (v0.86, ADR 0047).
     /// Empty for a work that goes out through doors of its own.
     pub publications: Vec<String>,
+    /// How many times its release was watched, as YouTube Studio's export
+    /// said when it was last read (v0.160).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub views: Option<f64>,
 }
 
 /// The score that speaks for a work, as a subquery returning one `work_score.id`.
@@ -406,6 +411,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             stage: crate::profile::config::normalize_stage(row.get(18)?),
             vibe: None,
             publications: Vec::new(),
+            views: None,
         })
     })?;
 
@@ -415,6 +421,23 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
     let mut vibes = crate::work::shown_vibes(conn, profile_id)?;
     for row in &mut rows {
         row.vibe = vibes.remove(&row.work_id);
+    }
+    // What each release was watched, as the last export read said (v0.160).
+    {
+        let mut statement = conn.prepare(
+            "SELECT r.work_id, json_extract(r.meta, '$.analytics.views')
+               FROM release r JOIN work w ON w.id = r.work_id
+              WHERE w.profile_id = ?1
+                AND json_extract(r.meta, '$.analytics.views') IS NOT NULL",
+        )?;
+        let watched: std::collections::HashMap<String, f64> = statement
+            .query_map(params![profile_id], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        for row in &mut rows {
+            row.views = watched.get(&row.work_id).copied();
+        }
     }
     // A work with no door speaks through what was made from it: its counts
     // are theirs, as its status is (`work::status::speaking_for`).

@@ -1243,3 +1243,23 @@ describe('the columns of v0.140', () => {
     ])
   })
 })
+
+describe('the views column', () => {
+  it('sorts by views, a release never read last either way (v0.160)', () => {
+    const rows = [
+      row({ work_id: 'quiet', views: 80 }),
+      row({ work_id: 'unread' }),
+      row({ work_id: 'loud', views: 1200 }),
+    ]
+    expect(sortRows(rows, { column: 'views', direction: 'desc' }).map((r) => r.work_id)).toEqual([
+      'loud',
+      'quiet',
+      'unread',
+    ])
+    expect(sortRows(rows, { column: 'views', direction: 'asc' }).map((r) => r.work_id)).toEqual([
+      'quiet',
+      'loud',
+      'unread',
+    ])
+  })
+})

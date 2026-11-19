@@ -263,7 +263,7 @@ impl Columns {
 }
 
 /// The file's non-empty rows, each with its line, split into cells.
-fn rows_of(csv: &str) -> Vec<(u32, Vec<String>)> {
+pub(crate) fn rows_of(csv: &str) -> Vec<(u32, Vec<String>)> {
     let text = csv.trim_start_matches('\u{feff}');
     let first = text.lines().next().unwrap_or("");
     let separator = if first.contains(';') && !first.contains(',') {

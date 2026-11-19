@@ -810,7 +810,8 @@
       "vibe": "Vibe",
       "collection": "Collection",
       "tags": "Tags",
-      "derived": "Made from it"
+      "derived": "Made from it",
+      "views": "Views"
     },
     "releaseHint": "{{kind}} on {{date}}",
     "groupBy": "Group by",
@@ -4003,6 +4004,10 @@
     },
     "studio": {
       "notAVideoLink": "“{{url}}” is not a link to a video on YouTube."
+    },
+    "analytics": {
+      "empty": "The file holds no table.",
+      "noVideoColumn": "The table names no video - neither its id (Content) nor its title."
     }
   },
   "proposalBody": {
@@ -5951,5 +5956,31 @@
     "linkFailed": "The link could not be kept.",
     "done_one": "Done: {{count}} link kept.",
     "done_other": "Done: {{count}} links kept."
+  },
+  "analytics": {
+    "field": "Numbers from YouTube Studio",
+    "fieldHint": "The table YouTube Studio exports in Advanced mode, as CSV: each video’s views, click-through and how much was watched, kept on its release.",
+    "choose": "Read an export…",
+    "chooseTitle": "YouTube Studio’s export",
+    "title": "Numbers from YouTube Studio",
+    "summary": "{{matched}} of {{total}} videos found among the releases.",
+    "line": "Line {{line}}",
+    "unmatched": "no release",
+    "by": {
+      "id": "→ {{work}}, by its link",
+      "title": "→ {{work}}, by its title"
+    },
+    "keepFailed": "The numbers could not be kept.",
+    "ctr": "CTR {{value}}%",
+    "watched": "{{value}}% watched",
+    "likes": "{{n}} likes",
+    "subscribers": "+{{n}} subscribers",
+    "readAt": "read {{day}}",
+    "views_one": "{{n}} view",
+    "views_other": "{{n}} views",
+    "keep_one": "Keep the numbers of {{count}} release",
+    "keep_other": "Keep the numbers of {{count}} releases",
+    "kept_one": "Numbers kept on {{count}} release.",
+    "kept_other": "Numbers kept on {{count}} releases."
   }
 }

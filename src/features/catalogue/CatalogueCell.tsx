@@ -184,6 +184,13 @@ export function CatalogueCell({
     case 'release':
       return <ReleaseCell row={row} />
 
+    case 'views':
+      return (
+        <TableCell numeric className={cn('font-mono', row.views === undefined && 'text-faint')}>
+          {row.views === undefined ? '—' : formatNumber(row.views, 0)}
+        </TableCell>
+      )
+
     case 'collection':
       return <CollectionCell row={row} />
 

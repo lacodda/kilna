@@ -19,6 +19,7 @@
 //! it is its own transaction, and inside another action's unit it becomes
 //! part of that one - which is how a whole package lands in one piece.
 
+pub mod analytics;
 pub mod asset;
 pub mod board;
 pub mod canon;

@@ -33,6 +33,7 @@ import { ReleaseDetails } from '@/features/work/tabs/releases/ReleaseDetails'
 import { releaseFieldId } from '@/features/work/tabs/releases/ReleaseFields'
 import { ReleaseReadiness } from '@/features/work/tabs/releases/ReleaseReadiness'
 import { useReleaseMeta } from '@/features/work/tabs/releases/releaseMeta'
+import { ReleaseNumbers } from '@/features/releases/ReleaseNumbers'
 
 /**
  * A publication's release, whole, where the publication is read (v0.90): the
@@ -267,6 +268,8 @@ function PlannedRelease({ release }: { release: ScheduledRelease }) {
           }}
         />
       )}
+      {/* How it did, as YouTube Studio's export said (v0.160). */}
+      <ReleaseNumbers meta={release.meta} />
       <ReleaseDetails release={release} refreshed={refreshed} />
 
       <MarkReleasedDialog

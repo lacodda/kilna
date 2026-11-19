@@ -74,6 +74,15 @@ export const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
     width: 'w-36',
     naturalWidth: 144,
   },
+  // How many times its release was watched (v0.160): from YouTube Studio's
+  // export, off until asked for.
+  views: {
+    label: 'catalogue.column.views',
+    sort: 'views',
+    align: 'right',
+    width: 'w-20',
+    naturalWidth: 80,
+  },
   collection: {
     label: 'catalogue.column.collection',
     sort: null,

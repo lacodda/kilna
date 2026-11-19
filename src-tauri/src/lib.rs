@@ -1,5 +1,6 @@
 pub mod actions;
 pub mod activity;
+pub mod analytics;
 pub mod asset;
 pub mod assistant;
 pub mod board;
@@ -659,6 +660,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::matcher::take_media_batch,
             commands::studio::studio_pack,
             commands::studio::studio_link,
+            commands::analytics::read_analytics,
+            commands::analytics::keep_analytics,
             commands::works::works_media,
             commands::plugins::build_sources,
         ])

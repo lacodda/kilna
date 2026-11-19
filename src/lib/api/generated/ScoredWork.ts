@@ -83,4 +83,9 @@ vibe?: ShownVibe,
  * row's next release is its audio's or its clip's (v0.86, ADR 0047).
  * Empty for a work that goes out through doors of its own.
  */
-publications: Array<string>, };
+publications: Array<string>, 
+/**
+ * How many times its release was watched, as YouTube Studio's export
+ * said when it was last read (v0.160).
+ */
+views?: number, };
