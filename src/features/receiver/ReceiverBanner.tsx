@@ -29,21 +29,31 @@ export function ReceiverBanner() {
   const [found, setFound] = useState<ReceiverFound | null>(null)
 
   useEffect(() => {
+    // A listener arrives after a promise: one that arrives once the bar has
+    // gone - React mounts it twice in development - is let go at once, or
+    // every file would be said twice.
     const stops: (() => void)[] = []
+    let gone = false
+    const keep = (stop: () => void) => {
+      if (gone) stop()
+      else stops.push(stop)
+    }
     void onReceiverFound((arrived) => {
       void client.invalidateQueries({ queryKey: keys.armedReceiver })
       if (arrived.taken !== null) {
         say.ok(t('receiver.taken', { name: arrived.name, title: arrived.title }))
-        for (const key of refresh.work) void client.invalidateQueries({ queryKey: key })
+        for (const key of refresh.taken(arrived.work_id))
+          void client.invalidateQueries({ queryKey: key })
         return
       }
       setFound(arrived)
-    }).then((stop) => stops.push(stop))
+    }).then(keep)
     void onReceiverEnded(() => {
       void client.invalidateQueries({ queryKey: keys.armedReceiver })
       say.info(t('receiver.expired'))
-    }).then((stop) => stops.push(stop))
+    }).then(keep)
     return () => {
+      gone = true
       for (const stop of stops) stop()
     }
   }, [client, t])
@@ -56,9 +66,10 @@ export function ReceiverBanner() {
     mutationFn: (arrived: ReceiverFound) =>
       takeReceived(arrived.work_id, arrived.role, arrived.path),
     failure: 'receiver.takeFailed',
-    refresh: refresh.work,
     onSuccess: (_, arrived) => {
       say.ok(t('receiver.taken', { name: arrived.name, title: arrived.title }))
+      for (const key of refresh.taken(arrived.work_id))
+        void client.invalidateQueries({ queryKey: key })
       setFound(null)
     },
   })
@@ -74,7 +85,7 @@ export function ReceiverBanner() {
           {t('receiver.arrived', {
             name: found.name,
             title: found.title,
-            what: t(`receiver.role.${found.role}`),
+            what: t(`receiver.what.${found.role}`),
           })}
         </span>
         <span className="ml-auto flex shrink-0 gap-1.5">

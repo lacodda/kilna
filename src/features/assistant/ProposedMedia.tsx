@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { Applied, MediaProposal } from '@/lib/api/types'
-import { keys } from '@/lib/query/keys'
+import { refresh } from '@/lib/query/refresh'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { ProposalCard } from '@/features/assistant/ProposalCard'
 
@@ -26,7 +26,7 @@ export function ProposedMedia({ messageId, proposal, applied, dismissed }: Props
   const apply = useApplyProposal({
     messageId,
     message: t('receiver.proposalApplied', { count }),
-    refresh: [keys.works, keys.catalogue, keys.covers, keys.folders],
+    refresh: proposal.items.flatMap((item) => refresh.taken(item.work_id)),
   })
 
   return (
@@ -49,7 +49,7 @@ export function ProposedMedia({ messageId, proposal, applied, dismissed }: Props
             className="flex flex-wrap items-baseline gap-1.5"
           >
             <b className="font-semibold">{item.work_title}</b>
-            <span className="text-dim">{t(`receiver.role.${item.role}`)}</span>
+            <span className="text-dim">{t(`receiver.what.${item.role}`)}</span>
             <span className="min-w-0 truncate text-faint" title={item.path}>
               {nameOf(item.path)}
             </span>

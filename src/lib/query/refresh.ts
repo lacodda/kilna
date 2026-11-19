@@ -23,6 +23,19 @@ export const refresh = {
     keys.folderFor(workId),
     keys.cuts,
   ],
+  /** A file taken into a work (v0.156): the work and the lists that show
+   *  it, its files and its folder, its finished file, and every cover - a
+   *  picture taken in may be its cover now. */
+  taken: (workId: string): readonly QueryKey[] => [
+    keys.works,
+    keys.catalogue,
+    keys.pictures,
+    keys.work(workId),
+    keys.assetsFor(workId),
+    keys.folderFor(workId),
+    keys.covers,
+    keys.cardCounts(workId),
+  ],
   /** A work made or gone: everything that counts or places works. */
   works: [
     keys.works,

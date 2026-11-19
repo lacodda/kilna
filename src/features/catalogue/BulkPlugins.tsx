@@ -48,13 +48,18 @@ export function BulkPlugins({ workIds, inBar = true }: Props) {
 
   useEffect(() => {
     let stop: (() => void) | undefined
+    let gone = false
     void onPluginBatch((event) => {
       if (event.batch === batch.current)
         setProgress({ done: event.done, total: event.total, failed: event.failed })
     }).then((unlisten) => {
-      stop = unlisten
+      if (gone) unlisten()
+      else stop = unlisten
     })
-    return () => stop?.()
+    return () => {
+      gone = true
+      stop?.()
+    }
   }, [])
 
   const run = useAppMutation({

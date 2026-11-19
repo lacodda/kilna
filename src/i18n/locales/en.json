@@ -5857,6 +5857,14 @@
     "applyAll_one": "Move {{count}} file in",
     "applyAll_other": "Move {{count}} files in",
     "proposalApplied_one": "{{count}} file moved into its work.",
-    "proposalApplied_other": "{{count}} files moved into their works."
+    "proposalApplied_other": "{{count}} files moved into their works.",
+    "what": {
+      "candidate_audio": "a take",
+      "final_audio": "the track",
+      "candidate_cover": "a cover to choose from",
+      "final_cover": "the cover",
+      "video": "the video",
+      "asset": "a file"
+    }
   }
 }

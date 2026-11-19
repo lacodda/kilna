@@ -6260,6 +6260,14 @@
     "proposalApplied_one": "{{count}} файл перенесён в работу.",
     "proposalApplied_few": "{{count}} файла перенесены в работы.",
     "proposalApplied_many": "{{count}} файлов перенесены в работы.",
-    "proposalApplied_other": "{{count}} файла перенесены в работы."
+    "proposalApplied_other": "{{count}} файла перенесены в работы.",
+    "what": {
+      "candidate_audio": "дубль",
+      "final_audio": "трек",
+      "candidate_cover": "вариант обложки",
+      "final_cover": "обложка",
+      "video": "видео",
+      "asset": "файл"
+    }
   }
 }
