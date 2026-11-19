@@ -62,9 +62,10 @@ export function ChannelView({ view, lens, onOpen, onGone }: Props) {
   })
 
   const sections = kind?.sections ?? []
-  // The mark's variants and the dressing's kits (v0.147) are read as a row
-  // across the board; the rest pair up.
-  const wide = (shape: string | undefined) => shape === 'marks' || shape === 'branding'
+  // The mark's variants, the dressing's kits (v0.147) and the quotas' rules
+  // (v0.151) are read as a row across the board; the rest pair up.
+  const wide = (shape: string | undefined) =>
+    shape === 'marks' || shape === 'branding' || shape === 'quotas'
   // The passport's panels on show, empty or not - it is a form to fill - and
   // the templates an automation reads folded under one group (v0.141, FR-18
   // 18.2). A panel turned off in the profile shows only while it holds

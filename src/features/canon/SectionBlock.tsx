@@ -13,7 +13,7 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say as sayLabel } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import { RowMenu } from '@/components/RowMenu'
 import { useDetailed } from '@/features/canon/disclosure'
 import { FactEditor } from '@/features/canon/FactEditor'
@@ -282,19 +282,24 @@ export function SectionBlock({
     const cut = own.length > LONG_SECTION && !all
     inner = (
       <>
+        {/* Chips, not segments: the channel's board lays a bank out in a
+            panel a third of the card wide, and four segments ran past it. */}
         {shape === 'bank' && every.length > 0 && (
-          <SegmentedControl
+          <ChipGroup
             aria-label={t('canon.bank.standing')}
-            value={standing}
-            onValueChange={(next) => setStanding(next as BankState | 'all')}
-            className="mb-1 self-start"
+            value={[standing]}
+            onValueChange={(next) => {
+              const picked = next.at(-1)
+              if (picked !== undefined) setStanding(picked as BankState | 'all')
+            }}
+            className="mb-1 flex-wrap"
           >
             {(['all', 'available', 'cooldown', 'locked'] as const).map((one) => (
-              <Segment key={one} value={one}>
+              <Chip key={one} value={one}>
                 {t(`canon.bank.filter.${one}`)}
-              </Segment>
+              </Chip>
             ))}
-          </SegmentedControl>
+          </ChipGroup>
         )}
         {(cut ? own.slice(0, SHOWN_OF_LONG) : own).map((read) => (
           <FactRow key={read.fact.id} read={read} view={view} shape={shape} lens={lens} />

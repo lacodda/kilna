@@ -164,12 +164,12 @@ describe('the bank', () => {
     expect(within(bank).getByText('Fado')).toBeInTheDocument()
     expect(within(bank).getByText(/^resting until /)).toBeInTheDocument()
 
-    fireEvent.click(within(bank).getByRole('radio', { name: en.canon.bank.filter.cooldown }))
+    fireEvent.click(within(bank).getByRole('button', { name: en.canon.bank.filter.cooldown }))
     expect(within(bank).getByText('Mande')).toBeInTheDocument()
     expect(within(bank).queryByText('Fado')).toBeNull()
     expect(within(bank).queryByText('Gnawa')).toBeNull()
 
-    fireEvent.click(within(bank).getByRole('radio', { name: en.canon.bank.filter.locked }))
+    fireEvent.click(within(bank).getByRole('button', { name: en.canon.bank.filter.locked }))
     expect(within(bank).getByText('Gnawa')).toBeInTheDocument()
     expect(within(bank).queryByText('Mande')).toBeNull()
   })
