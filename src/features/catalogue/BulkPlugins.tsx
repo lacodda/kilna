@@ -162,8 +162,9 @@ export function BulkPlugins({ workIds, inBar = true }: Props) {
               {progress !== null && (
                 <div className="flex flex-col gap-1">
                   <Progress
-                    value={progress.total === 0 ? 0 : (progress.done / progress.total) * 100}
-                    aria-label={t('plugins.batchProgress')}
+                    value={progress.done}
+                    max={Math.max(progress.total, 1)}
+                    label={t('plugins.batchProgress')}
                   />
                   <span className="text-xs text-dim">
                     {t('plugins.batchDone', {
