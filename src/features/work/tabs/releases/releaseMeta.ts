@@ -1,6 +1,7 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { PromptTemplate } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { releaseActionOf, useProfile } from '@/lib/useProfile'
 import { useRunningTasks } from '@/lib/useRunningTasks'
@@ -22,6 +23,8 @@ interface ReleaseMeta {
   action: PromptTemplate | undefined
   /** Whether that action is writing this release's meta right now. */
   writing: (releaseId: string) => boolean
+  /** When the run writing it began, while it does (v0.163). */
+  startedAt: (releaseId: string) => string | undefined
 }
 
 /**
@@ -55,9 +58,18 @@ export function useReleaseMeta(
     onEnded?.(releaseId, emission.event.kind === 'finished')
   })
 
+  // Asked again whenever the running set changes: a run that just began has
+  // a start the last answer did not hold.
+  const times = useQuery({
+    ...queries.activeTaskTimes(),
+    queryKey: [...keys.activeTaskTimes, [...running].sort().join(' ')],
+    enabled: running.size > 0,
+  })
   return {
     action,
     writing: (releaseId) =>
       action !== undefined && running.has(releaseTaskKey(action.key, releaseId)),
+    startedAt: (releaseId) =>
+      action === undefined ? undefined : times.data?.[releaseTaskKey(action.key, releaseId)],
   }
 }

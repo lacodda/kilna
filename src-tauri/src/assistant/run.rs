@@ -126,6 +126,8 @@ struct Live {
     /// this work". Set only for tasks; a typed prompt is never a duplicate of
     /// anything.
     task: Option<String>,
+    /// When it began (v0.163): what a timer beside the task counts from.
+    started_at: String,
 }
 
 /// The runs this process is carrying.
@@ -218,6 +220,7 @@ impl Runs {
                 stop,
                 cancelled: false,
                 task,
+                started_at: crate::time::now(),
             },
         );
         self.watcher.changed();
@@ -246,6 +249,18 @@ impl Runs {
         keys.sort();
         keys.dedup();
         keys
+    }
+
+    /// When each task going right now began, by its key (v0.163).
+    pub fn task_times(&self) -> std::collections::BTreeMap<String, String> {
+        self.live()
+            .values()
+            .filter_map(|live| {
+                live.task
+                    .clone()
+                    .map(|task| (task, live.started_at.clone()))
+            })
+            .collect()
     }
 
     fn remove(&self, run_id: &str) -> bool {

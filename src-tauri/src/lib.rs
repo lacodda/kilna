@@ -666,6 +666,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::diagnostics::diagnostics,
             commands::diagnostics::diagnostics_text,
             commands::diagnostics::check_update,
+            commands::assistant::active_task_times,
             commands::works::works_media,
             commands::plugins::build_sources,
         ])

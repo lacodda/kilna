@@ -1232,6 +1232,13 @@ pub fn active_tasks(state: State<'_, AppState>) -> Vec<String> {
     keys
 }
 
+/// When each task going right now began, by its key (v0.163): a queued one
+/// has not begun and is not named.
+#[tauri::command]
+pub fn active_task_times(state: State<'_, AppState>) -> std::collections::BTreeMap<String, String> {
+    state.runs().task_times()
+}
+
 /// What a batch became: started, queued, and each work passed over with why.
 #[derive(serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]

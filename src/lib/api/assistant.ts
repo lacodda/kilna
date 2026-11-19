@@ -96,6 +96,8 @@ export const previewTask = (workId: string, action: string, about: TaskAbout = {
 export const startTasks = (workIds: readonly string[], action: string) =>
   invoke<StartedBatch>('start_tasks', { workIds, action, today: today() })
 export const activeTasks = () => invoke<string[]>('active_tasks')
+/** When each running task began, by its key (v0.163). */
+export const activeTaskTimes = () => invoke<Record<string, string>>('active_task_times')
 export const taskQueue = () => invoke<TaskQueue>('task_queue')
 /** What runs cost since this window's midnight and its Monday, and the
  *  week's budget (v0.107). */

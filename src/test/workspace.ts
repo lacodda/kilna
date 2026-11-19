@@ -1343,6 +1343,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     active_runs: () => [],
     active_tasks: () => [],
     task_queue: () => ({ running: [], waiting: [] }),
+    active_task_times: () => ({}),
     // How busy the application is, the tray's words, what runs cost (v0.107).
     activity: () => ({ running: 0, queued: 0 }),
     set_tray_words: () => null,

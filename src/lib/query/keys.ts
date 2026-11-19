@@ -268,6 +268,8 @@ export const keys = {
   runs: (chatId: string) => ['runs', chatId] as const,
   activeRuns: ['runs', 'active'] as const,
   activeTasks: ['runs', 'tasks'] as const,
+  /** When each running task began (v0.163), under the runs' prefix. */
+  activeTaskTimes: ['runs', 'times'] as const,
   taskQueue: ['runs', 'queue'] as const,
   /** The armed receiver: which work waits for which file (v0.156). */
   armedReceiver: ['receiver', 'armed'] as const,

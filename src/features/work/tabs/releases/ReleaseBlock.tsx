@@ -34,6 +34,7 @@ import { releaseFieldId } from '@/features/work/tabs/releases/ReleaseFields'
 import { ReleaseReadiness } from '@/features/work/tabs/releases/ReleaseReadiness'
 import { useReleaseMeta } from '@/features/work/tabs/releases/releaseMeta'
 import { ReleaseNumbers } from '@/features/releases/ReleaseNumbers'
+import { Elapsed } from '@/components/Elapsed'
 
 /**
  * A publication's release, whole, where the publication is read (v0.90): the
@@ -228,6 +229,12 @@ function PlannedRelease({ release }: { release: ScheduledRelease }) {
           <span className="flex shrink-0 items-center gap-1 text-xs text-info">
             <LoaderCircle aria-hidden className="size-3 animate-spin" />
             {t('releases.task.writingMeta')}
+            {meta.startedAt(release.id) !== undefined && (
+              <>
+                {' · '}
+                <Elapsed since={meta.startedAt(release.id)!} />
+              </>
+            )}
           </span>
         ) : (
           waiting > 0 && (
