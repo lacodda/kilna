@@ -185,6 +185,20 @@ export function formatMoment(timestamp: string, language = current(), now = new 
     : formatDay(timestamp, language, now)
 }
 
+/** A day as a date field takes it typed, in the window's language (v0.159):
+ *  `1 дек. 2026 г.`, `Dec 1, 2026` - what YouTube Studio's date box reads.
+ *  The day is a calendar day: no zone moves it. */
+export function formatTypedDate(day: string, language = current()): string {
+  const at = new Date(`${day.slice(0, 10)}T00:00:00Z`)
+  if (Number.isNaN(at.getTime())) return day
+  return dates(language, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(at)
+}
+
 /** The time of day of a timestamp, where the window is: "14:12". For a line
  *  under a heading that already says the day. */
 export function formatTime(timestamp: string, language = current()): string {

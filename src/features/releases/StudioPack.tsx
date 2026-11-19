@@ -6,7 +6,7 @@ import { Check, Copy } from 'lucide-react'
 import type { StudioItem } from '@/lib/api/types'
 import { openWorkFolder } from '@/lib/api/folders'
 import { isVideoLink, studioLink, studioPack } from '@/lib/api/studio'
-import { formatWeekday } from '@/lib/format'
+import { formatTypedDate, formatWeekday } from '@/lib/format'
 import { keys } from '@/lib/query/keys'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -123,7 +123,13 @@ function Step({ item, onNext }: { item: StudioItem; onNext: (linked: boolean) =>
     // language the window is in, not ISO.
     ...(item.date === null
       ? []
-      : [{ key: 'date', label: t('studio.date'), value: studioDate(item.date, i18n.language) }]),
+      : [
+          {
+            key: 'date',
+            label: t('studio.date'),
+            value: formatTypedDate(item.date, i18n.language),
+          },
+        ]),
     ...(item.time === null ? [] : [{ key: 'time', label: t('studio.time'), value: item.time }]),
     ...item.fields.map((field) => ({
       key: field.key,
@@ -233,16 +239,4 @@ function Step({ item, onNext }: { item: StudioItem; onNext: (linked: boolean) =>
       </div>
     </div>
   )
-}
-
-/** A day as a date field types it: `1 дек. 2026 г.`, `Dec 1, 2026`. */
-function studioDate(date: string, language: string): string {
-  const at = new Date(`${date}T00:00:00Z`)
-  if (Number.isNaN(at.getTime())) return date
-  return new Intl.DateTimeFormat(language, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(at)
 }
