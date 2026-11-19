@@ -20,7 +20,7 @@ const CUTTER: Plugin = {
   usable: true,
   reason: null,
   enabled: true,
-  settings: { crf: 18 },
+  settings: { crf: 18, token: '••••••' },
   manifest: {
     protocol_version: 1,
     name: 'cut',
@@ -71,6 +71,15 @@ const CUTTER: Plugin = {
         descriptions: {},
         type: 'boolean',
         default: true,
+      },
+      {
+        key: 'token',
+        label: 'API token',
+        labels: {},
+        descriptions: {},
+        type: 'text',
+        default: '',
+        secret: true,
       },
     ],
   },
@@ -205,13 +214,28 @@ describe('the plugins in Settings', () => {
     ])
   })
 
+  it('types a secret unseen and shows of what stands only that it is set', async () => {
+    const { client, main } = await open()
+    const token = within(block(main, CUTTER.executable)).getByLabelText('API token')
+    expect(token).toHaveAttribute('type', 'password')
+    expect(token).toHaveValue('••••••')
+
+    fireEvent.change(token, { target: { value: 'sk-1' } })
+    fireEvent.blur(token)
+    await settled(client)
+    expect(backend.argsOf('set_plugin_setting')).toEqual([
+      { executable: CUTTER.executable, key: 'token', value: 'sk-1' },
+    ])
+  })
+
   it('takes back only a value that was set', async () => {
     const { client, main } = await open()
     const cutter = within(block(main, CUTTER.executable))
 
-    // `crf` was set here; `channel` and `hand` follow the plugin.
+    // `crf` and the secret were set here; `channel` and `hand` follow the
+    // plugin. A secret taken back is forgotten on this machine.
     const back = cutter.getAllByRole('button', { name: en.plugins.backToDefault })
-    expect(back).toHaveLength(1)
+    expect(back).toHaveLength(2)
 
     fireEvent.click(back[0]!)
     await settled(client)

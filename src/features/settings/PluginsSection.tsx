@@ -321,6 +321,7 @@ function SettingControl({
           label={label}
           help={hint}
           stored={typeof value === 'string' ? value : ''}
+          secret={setting.secret === true}
           onSettle={onSettle}
         />
       )
@@ -367,16 +368,19 @@ function NumberSetting({
   )
 }
 
-/** A line of text, saved on leaving or on Enter. */
+/** A line of text, saved on leaving or on Enter. A secret is typed unseen,
+ *  and what stands of it comes as a mask: that it is set, never what. */
 function TextSetting({
   label,
   help,
   stored,
+  secret,
   onSettle,
 }: {
   label: string
   help: ReactNode
   stored: string
+  secret: boolean
   onSettle: (next: string) => void
 }) {
   const [draft, setDraft] = useState(stored)
@@ -387,6 +391,8 @@ function TextSetting({
   return (
     <Field label={label} help={help}>
       <Input
+        type={secret ? 'password' : 'text'}
+        autoComplete={secret ? 'off' : undefined}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={settle}

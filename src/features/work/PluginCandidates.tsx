@@ -40,7 +40,7 @@ export function PluginCandidates({ workId, candidates, onClose }: Props) {
       title={t('plugins.candidatesTitle', { count: candidates.length })}
       size="lg"
     >
-      <ul className="flex flex-col gap-1.5">
+      <ul className="flex flex-col gap-3">
         {candidates.map((candidate, index) => (
           <li
             key={`${candidate.label}:${String(index)}`}
@@ -56,7 +56,9 @@ export function PluginCandidates({ workId, candidates, onClose }: Props) {
                         seconds: formatNumber(candidate.seconds, 0),
                       }),
                   candidate.note,
-                  t('plugins.candidateFiles', { count: candidate.files.length }),
+                  candidate.files.length === 0
+                    ? null
+                    : t('plugins.candidateFiles', { count: candidate.files.length }),
                 ]
                   .filter((part) => part !== null && part !== '')
                   .join(' · ')}

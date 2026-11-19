@@ -84,6 +84,10 @@ interface DialogProps {
    * file attached - so a stray click must not close it. Typing is noticed
    * without this. */
   dirty?: boolean
+  /** The dismissing button when there is nothing to cancel: `'close'` once
+   * the dialog only reports - a batch that has ended - and `'none'` while
+   * it cannot be put away, a batch going on with its own Stop (v0.155). */
+  dismiss?: 'cancel' | 'close' | 'none'
 }
 
 export function Dialog({
@@ -96,6 +100,7 @@ export function Dialog({
   aside,
   size = 'md',
   dirty = false,
+  dismiss = 'cancel',
 }: DialogProps) {
   const { t } = useTranslation()
   const body = useRef<HTMLDivElement>(null)
@@ -138,9 +143,11 @@ export function Dialog({
         )}
 
         <DialogActions start={aside}>
-          <DialogClose ref={cancel} render={<Button />}>
-            {t('dialog.cancel')}
-          </DialogClose>
+          {dismiss !== 'none' && (
+            <DialogClose ref={cancel} render={<Button />}>
+              {dismiss === 'close' ? t('dialog.close') : t('dialog.cancel')}
+            </DialogClose>
+          )}
           {footer}
         </DialogActions>
       </DialogPopup>

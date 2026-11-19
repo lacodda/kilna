@@ -129,6 +129,7 @@ export function BulkPlugins({ workIds, inBar = true }: Props) {
             }
           }}
           title={t('plugins.batchTitle', { label: chosen.label, count: workIds.length })}
+          dismiss={report !== null ? 'close' : run.isPending ? 'none' : 'cancel'}
           footer={
             report === null ? (
               run.isPending ? (
