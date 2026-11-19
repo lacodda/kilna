@@ -251,7 +251,8 @@ error.
 
 The catalogue's **Media** chips - *Ready for a video*, *No audio*, *No cover*,
 *Ready to go out* - pick the works a batch is for: what holds a track and a
-cover and no video yet is what a render makes. They read what is attached to
+cover and no video yet is what a render makes, and what holds its video is
+ready to go out. They read what is attached to
 each work, its chosen cover and its finished file, and count only what has
 not gone out.
 

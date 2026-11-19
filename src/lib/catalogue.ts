@@ -289,13 +289,10 @@ function hasGap(row: ScoredWork, gap: Gap, media: WorkMedia | undefined): boolea
       return media !== undefined && row.released === 0 && !media.audio
     case 'noCover':
       return media !== undefined && row.released === 0 && media.wants_cover && !media.cover
+    // Its video is made (FR-21 21.3: "has the MP4"): what is left is to put
+    // it out.
     case 'readyToPublish':
-      return (
-        media !== undefined &&
-        row.released === 0 &&
-        (media.audio || media.video) &&
-        (media.cover || !media.wants_cover)
-      )
+      return media !== undefined && row.released === 0 && media.video
   }
 }
 

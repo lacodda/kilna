@@ -776,7 +776,7 @@
       "readyForVideo": "A track and its cover, no video yet: what a render makes.",
       "noAudio": "Not out, and no track attached or finished.",
       "noCover": "Not out, goes out under a cover, and has none chosen.",
-      "readyToPublish": "Not out, with its file and its cover: nothing missing to go out."
+      "readyToPublish": "Not out, and its video is made: what is left is to put it out."
     },
     "showing": "{{shown}} of {{total}}",
     "count_one": "{{count}} work",

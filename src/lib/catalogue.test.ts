@@ -295,7 +295,7 @@ describe('gap filters', () => {
     expect(ids('readyForVideo')).toEqual(['to-render'])
     expect(ids('noAudio')).toEqual(['song'])
     expect(ids('noCover')).toEqual(['coverless'])
-    expect(ids('readyToPublish')).toEqual(['to-render', 'rendered'])
+    expect(ids('readyToPublish')).toEqual(['rendered'])
     expect(narrow(rows, { gap: 'noAudio' })).toEqual([])
   })
 
@@ -1108,7 +1108,7 @@ describe('the gap counts', () => {
       readyForVideo: 1,
       noAudio: 1,
       noCover: 1,
-      readyToPublish: 1,
+      readyToPublish: 0,
     })
   })
 
