@@ -119,6 +119,10 @@ pub struct ReceiverEnded {
     pub reason: String,
 }
 
+/// How much earlier than the press a file's stamp may read and still be
+/// counted as arriving after it.
+const SLACK: std::time::Duration = std::time::Duration::from_millis(250);
+
 /// The event a file that arrived is told under.
 pub const FOUND_EVENT: &str = "receiver-found";
 /// The event a receiver that stopped by itself is told under.
@@ -207,7 +211,11 @@ pub fn arrived(
         let Some(moment) = made.into_iter().chain(written).max() else {
             continue;
         };
-        if moment < since {
+        // A file system stamps a file by a coarser clock than the one the
+        // press was read from, and may stamp one written right after it a
+        // few milliseconds before (CI's Linux did): a little slack, far
+        // less than any download made before the press.
+        if moment + SLACK < since {
             continue;
         }
         let length = meta.len();
