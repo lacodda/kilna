@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.160.0] - 2026-11-19
+
+How a release did. YouTube Studio's Advanced-mode export - views,
+impressions, click-through, how much was watched, likes, subscribers - is
+read from Settings → Data in English or in Russian and matched to the
+releases by the video's id in their link, else by the exact title; what it
+found is shown before anything is kept, and one press keeps it all as one
+step. The numbers stand under the release on the work's card with the day
+they were read, and the catalogue has a Views column to sort by.
+
+### Bug Fixes
+- Know the likes column however its quotes came through
+
+### Features
+- Numbers from YouTube Studio's export
+
+### Testing
+- The export is read before it is kept
+
 ## [0.159.0] - 2026-11-19
 
 Putting out by hand. The YouTube API's quota is often gone and a robot in
