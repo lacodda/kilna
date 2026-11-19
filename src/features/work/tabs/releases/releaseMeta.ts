@@ -1,10 +1,10 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { activeTaskTimes } from '@/lib/api/assistant'
+import { useQueryClient } from '@tanstack/react-query'
 import type { PromptTemplate } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { refresh } from '@/lib/query/refresh'
 import { releaseActionOf, useProfile } from '@/lib/useProfile'
 import { useRunningTasks } from '@/lib/useRunningTasks'
+import { useTaskTimes } from '@/lib/useTaskTimes'
 
 /** The key a release's meta task runs under - the backend's `release_key`,
  *  built the same way so the button and the refusal of a second run agree. */
@@ -24,7 +24,7 @@ interface ReleaseMeta {
   /** Whether that action is writing this release's meta right now. */
   writing: (releaseId: string) => boolean
   /** When the run writing it began, while it does (v0.163). */
-  startedAt: (releaseId: string) => string | undefined
+  startedAt: (releaseId: string) => number | null
 }
 
 /**
@@ -58,18 +58,12 @@ export function useReleaseMeta(
     onEnded?.(releaseId, emission.event.kind === 'finished')
   })
 
-  // Asked again whenever the running set changes: a run that just began has
-  // a start the last answer did not hold.
-  const times = useQuery({
-    queryKey: [...keys.activeTaskTimes, [...running].sort().join(' ')],
-    queryFn: activeTaskTimes,
-    enabled: running.size > 0,
-  })
+  const startOf = useTaskTimes(running)
   return {
     action,
     writing: (releaseId) =>
       action !== undefined && running.has(releaseTaskKey(action.key, releaseId)),
     startedAt: (releaseId) =>
-      action === undefined ? undefined : times.data?.[releaseTaskKey(action.key, releaseId)],
+      action === undefined ? null : startOf(releaseTaskKey(action.key, releaseId)),
   }
 }

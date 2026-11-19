@@ -8,6 +8,7 @@ import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useProfile } from '@/lib/useProfile'
 import { useRunningTasks } from '@/lib/useRunningTasks'
+import { useTaskTimes } from '@/lib/useTaskTimes'
 
 // What a board remembers between its tab being left and opened again, for
 // as long as the window lives: how many ideas the last ask on each board was
@@ -76,6 +77,7 @@ export function useCoverIdeas(work: Work): CoverIdeas {
     }
   })
   const writing = key !== null && running.has(key)
+  const startOf = useTaskTimes(running)
 
   // The clock counts from the first moment this window saw the run, which is
   // the moment it was asked for when it was asked for here; it ticks while
@@ -117,7 +119,9 @@ export function useCoverIdeas(work: Work): CoverIdeas {
     action,
     writing,
     coming: asked.get(work.id) ?? (ideasOnMake(config) || 1),
-    since: key === null ? null : (seen.get(key) ?? null),
+    // The run's own start when the backend has said it (v0.163) - a board
+    // opened a minute into a run says a minute - else when it was first seen.
+    since: key === null ? null : (startOf(key) ?? seen.get(key) ?? null),
     fresh: arrived.get(work.id) ?? NONE,
     ask: (request) => start.mutate(request),
     asking: start.isPending,

@@ -9,6 +9,7 @@ import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useProfile } from '@/lib/useProfile'
 import { useRunningTasks } from '@/lib/useRunningTasks'
+import { useTaskTimes } from '@/lib/useTaskTimes'
 
 // What a board remembers between its tab being left and opened again, for as
 // long as the window lives - how many cards the last ask was for, when this
@@ -79,6 +80,12 @@ export function useBoardTask(work: Work, board: Board): BoardTask {
     }
   })
   const writing = keysOf.some((key) => running.has(key))
+  const startOf = useTaskTimes(running)
+  // The earliest start among this board's runs, as the backend keeps it.
+  const begun = keysOf
+    .filter((key) => running.has(key))
+    .map(startOf)
+    .filter((at): at is number => at !== null)
 
   // The clock counts from the first moment this window saw the run; it ticks
   // while the run goes, and forgets the moment when it ends.
@@ -120,7 +127,9 @@ export function useBoardTask(work: Work, board: Board): BoardTask {
     action,
     writing,
     coming: asked.get(slot) ?? CARDS_ON_ASK,
-    since: seen.get(slot) ?? null,
+    // The run's own start when the backend has said it (v0.163), else when
+    // this window first saw it going.
+    since: begun.length > 0 ? Math.min(...begun) : (seen.get(slot) ?? null),
     fresh: arrived.get(slot) ?? NONE,
     ask: (request) => start.mutate(request),
     asking: start.isPending,

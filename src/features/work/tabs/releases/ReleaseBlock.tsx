@@ -229,7 +229,7 @@ function PlannedRelease({ release }: { release: ScheduledRelease }) {
           <span className="flex shrink-0 items-center gap-1 text-xs text-info">
             <LoaderCircle aria-hidden className="size-3 animate-spin" />
             {t('releases.task.writingMeta')}
-            {meta.startedAt(release.id) !== undefined && (
+            {meta.startedAt(release.id) !== null && (
               <>
                 {' · '}
                 <Elapsed since={meta.startedAt(release.id)!} />
