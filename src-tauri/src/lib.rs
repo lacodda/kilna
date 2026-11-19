@@ -39,6 +39,7 @@ pub mod ordinal;
 pub mod origin;
 pub mod packs;
 pub mod parts;
+pub mod period;
 pub mod phrase;
 pub mod plan_import;
 pub mod plugin;
@@ -488,6 +489,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::time_off::list_time_off,
             commands::work_plans::work_plans,
             commands::work_plans::plan_work,
+            commands::work_plans::plan_period,
+            commands::work_plans::lay_out_period,
             commands::work_plans::update_work_plan,
             commands::work_plans::delete_work_plan,
             commands::work_plans::fulfill_work_plan,

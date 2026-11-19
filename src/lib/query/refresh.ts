@@ -72,6 +72,15 @@ export const refresh = {
    *  says which collection a work is in - the catalogue's rows, a card's
    *  header. */
   collection: [keys.collections, keys.catalogue, keys.works] as readonly QueryKey[],
+  /** A period laid out (v0.152): the collections it made, the drafts in
+   *  every list, their slots on the calendar, the guard that reads them. */
+  period: [
+    keys.collections,
+    keys.catalogue,
+    keys.works,
+    keys.calendar,
+    keys.register,
+  ] as readonly QueryKey[],
   /** A note, a phrase or a shelf: every list of them - the phrases and the
    *  shelves are under the notes - and the tags they carry. */
   note: [keys.notes, keys.tags] as readonly QueryKey[],

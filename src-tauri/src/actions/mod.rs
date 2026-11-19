@@ -29,6 +29,7 @@ pub mod focus;
 pub mod idea;
 pub mod link;
 pub mod note;
+pub mod period;
 pub mod plugin;
 pub mod profile;
 pub mod proposal;

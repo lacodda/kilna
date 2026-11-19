@@ -3934,6 +3934,13 @@
       "noDressing": "No kind of root card of this profile keeps kits of a dressing.",
       "noRootCard": "The space has no root card to keep the kits on.",
       "badRules": "The rules file cannot be read: {{error}}"
+    },
+    "period": {
+      "badLength": "A period is laid out from one month to twelve, not {{months}}.",
+      "badMonth": "«{{month}}» is not a month: give it as YYYY-MM.",
+      "badDay": "«{{day}}» is not a day of its month.",
+      "unknownCollectionKind": "The profile has no kind of collection «{{kind}}».",
+      "needsTitle": "The draft for {{day}} needs a title."
     }
   },
   "proposalBody": {
@@ -5032,7 +5039,13 @@
     "dropInto_other": "Put {{count}} works in",
     "pickHint": "The collection this work is in",
     "pickNone": "No collection",
-    "open": "Open “{{title}}”"
+    "open": "Open “{{title}}”",
+    "view": "How the works are shown",
+    "viewList": "List",
+    "viewTable": "Table",
+    "table": "The works of {{title}}",
+    "tableDay": "Day",
+    "tableTitle": "Title"
   },
   "phrases": {
     "known_one": "In the dictionary: {{count}}",
@@ -5692,5 +5705,34 @@
     "titleSpace": "Quotas: the whole space",
     "titleMonth": "Quotas: {{month}}",
     "titleCollection": "Quotas: {{title}}"
+  },
+  "period": {
+    "menu": "Plan a period…",
+    "title": "Plan a period",
+    "description": "The days the rhythm gives, a collection a month and a draft a day planned on it. A day off or a day already taken is passed over. One undo takes it all back.",
+    "length": "How long",
+    "lengths": {
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year"
+    },
+    "from": "From month",
+    "kind": "Kind of draft",
+    "collectionKind": "Collection of a month",
+    "noCollection": "No collection",
+    "badMonth": "Give the month as YYYY-MM.",
+    "closed": "A day off: passed over",
+    "taken": "Taken by «{{title}}»: passed over",
+    "floating": "A floating day for the month's peak",
+    "draftTitle": "{{kind}} · {{day}}",
+    "failed": "The period could not be laid out.",
+    "make_one": "Make {{count}} draft",
+    "make_other": "Make {{count}} drafts",
+    "made_one": "Made {{count}} draft in {{collections}} new collections.",
+    "made_other": "Made {{count}} drafts in {{collections}} new collections.",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "ofTarget_one": "{{count}} of {{target}}",
+    "ofTarget_other": "{{count}} of {{target}}"
   }
 }

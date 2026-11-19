@@ -429,6 +429,29 @@ rhythm says otherwise) - a short two months later closes nothing. From
 days left, today, or days late - and the bell warns once when its time comes
 and once when its day is past.
 
+## Planning a period
+
+A channel plans its year before a track of it exists. **Plan a period…** in
+the calendar's menu (v0.152) lays out a **month**, a **quarter** or a
+**year** from a month you name, by the profile's rhythm: a rhythm of
+weekdays gives each month its grid - Tuesdays, Thursdays and Saturdays, the
+weakest day left out of a month with too many, a floating day added for the
+peak of a month with too few - and a rhythm of spacing walks its days apart.
+Every day is shown before anything is made: a floating day dashed, a day off
+and a day something already stands on struck through and passed over.
+
+**Make** then makes, as one change an undo takes back whole, a collection
+for each month - of the kind you pick, *Music channel* gives *Month pack*,
+meant to hold the rhythm's target; one of that title already there is used -
+and a draft of the kind you pick for each day, at the first stage with
+nothing written, [planned](#planned-slots) on its day. A draft has no folder
+on disk until something of it is kept there. Open a month's collection and
+switch it to **Table** to fill the drafts in one sitting; the music channel's
+skill `channel-plan-period` walks the assistant through the same - the
+month's arc, a tradition from the bank's free items for each draft, the
+neighbouring channels' pictures of the same day kept apart, and the quotas
+checked.
+
 ## Time off
 
 Some days nothing should go out on: a holiday, a fortnight away, the week of

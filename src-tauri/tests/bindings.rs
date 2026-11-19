@@ -309,6 +309,14 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::commands::plugins::PluginReply,
         kilna_lib::build::BuildSources,
         kilna_lib::commands::plugins::PluginProgress,
+        // a period laid out ahead (v0.152)
+        kilna_lib::period::PeriodSlot,
+        kilna_lib::period::PeriodMonth,
+        kilna_lib::period::PeriodPlan,
+        kilna_lib::actions::period::PeriodDraft,
+        kilna_lib::actions::period::PeriodMonthLayout,
+        kilna_lib::actions::period::PeriodLayout,
+        kilna_lib::actions::period::PeriodMade,
         // canon quotas and banks (v0.151)
         kilna_lib::canon::quota::Metric,
         kilna_lib::canon::quota::Scope,

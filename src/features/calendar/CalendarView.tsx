@@ -29,6 +29,7 @@ import { ShiftPreview } from '@/features/calendar/ShiftPreview'
 import { useCalendarActions } from '@/features/calendar/useCalendarActions'
 import { QUEUE, carriedWork, useCalendarDrag } from '@/features/calendar/useCalendarDrag'
 import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
+import { PlanPeriodDialog } from '@/features/calendar/PlanPeriodDialog'
 import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
 import { loadLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
 import {
@@ -114,6 +115,8 @@ export function CalendarView({ onSelect }: Props) {
   const [dialog, setDialog] = useState<CalendarDialog>(null)
   // The month on screen checked against the space's rules (v0.151).
   const [checkingMonth, setCheckingMonth] = useState(false)
+  // A period laid out ahead (v0.152).
+  const [planningPeriod, setPlanningPeriod] = useState(false)
 
   const slots = useQuery(queries.calendar())
   const queued = useQuery(queries.releaseQueue())
@@ -393,6 +396,7 @@ export function CalendarView({ onSelect }: Props) {
             onExportIcs={() => void exportIcs()}
             onImportPlan={() => void importPlan()}
             onCheckQuotas={() => setCheckingMonth(true)}
+            onPlanPeriod={() => setPlanningPeriod(true)}
             pinning={actions.pinPeriod.isPending}
             width={width}
             onWidthChange={(next) => {
@@ -494,6 +498,7 @@ export function CalendarView({ onSelect }: Props) {
         actions={actions}
         onOpenWork={onSelect}
       />
+      {planningPeriod && <PlanPeriodDialog open onOpenChange={setPlanningPeriod} />}
       {checkingMonth && (
         <QuotaReportDialog
           open

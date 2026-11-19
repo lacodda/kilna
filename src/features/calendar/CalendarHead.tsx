@@ -54,6 +54,8 @@ interface Props {
   onImportPlan: () => void
   /** The month on screen checked against the space's rules (v0.151). */
   onCheckQuotas: () => void
+  /** A month, a quarter or a year laid out ahead (v0.152). */
+  onPlanPeriod: () => void
   width: CalendarLayout
   onWidthChange: (width: CalendarLayout) => void
   /** Where a carried release goes back to the queue while the queue is hidden:
@@ -100,6 +102,7 @@ export function CalendarHead({
   onExportIcs,
   onImportPlan,
   onCheckQuotas,
+  onPlanPeriod,
   width,
   onWidthChange,
   drop,
@@ -206,6 +209,7 @@ export function CalendarHead({
                 <MenuItem onClick={onTimeOff}>{t('timeOff.menu')}</MenuItem>
                 <MenuItem onClick={onShift}>{t('shift.menu')}</MenuItem>
                 <MenuItem onClick={onCheckQuotas}>{t('quota.checkMonth')}</MenuItem>
+                <MenuItem onClick={onPlanPeriod}>{t('period.menu')}</MenuItem>
                 <MenuSeparator />
                 <MenuItem disabled={pinning} onClick={() => onPinPeriod(true)}>
                   {t(week ? 'calendar.pinWeek' : 'calendar.pinMonth')}

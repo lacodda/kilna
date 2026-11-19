@@ -81,6 +81,9 @@ export const keys = {
   calendar: ['calendar'] as const,
   /** The open planned slots of works (v0.138). */
   workPlans: ['calendar', 'plans'] as const,
+  /** The days a period would be laid out on (v0.152): under the calendar,
+   *  so a booking or a day off changes them. */
+  periodPlan: (from: string, months: number) => ['calendar', 'period', from, months] as const,
   releaseQueue: ['releaseQueue'] as const,
   /** The days the calendar is closed. Under the calendar's prefix: closing
    *  a day changes what the month draws and what the layout would plan. */

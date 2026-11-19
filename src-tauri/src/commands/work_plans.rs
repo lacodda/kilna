@@ -17,6 +17,29 @@ pub fn work_plans(state: State<'_, AppState>) -> Result<Vec<WorkPlan>> {
     work_plan::open(&conn, &profile_id, config.plan_window())
 }
 
+/// The days of a period by the profile's rhythm, before anything is made
+/// (v0.152, FR-20 20.3).
+#[tauri::command]
+pub fn plan_period(
+    state: State<'_, AppState>,
+    from: String,
+    months: u32,
+) -> Result<crate::period::PeriodPlan> {
+    let conn = state.conn();
+    let profile_id = active(&conn)?;
+    crate::period::plan(&conn, &profile_id, &from, months)
+}
+
+/// A period laid out: its months' collections and its days' drafts, planned
+/// (v0.152).
+#[tauri::command]
+pub fn lay_out_period(
+    state: State<'_, AppState>,
+    layout: actions::period::PeriodLayout,
+) -> Result<actions::period::PeriodMade> {
+    actions::period::apply(&state.conn(), layout)
+}
+
 #[tauri::command]
 pub fn plan_work(state: State<'_, AppState>, plan: NewWorkPlan) -> Result<WorkPlan> {
     actions::work_plan::plan(&state.conn(), plan)
