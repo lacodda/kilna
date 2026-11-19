@@ -173,7 +173,9 @@ impl Placeholder {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Piece {
     Text(String),
-    Value(Placeholder),
+    /// One placeholder, or several between `|` - the first that holds a
+    /// value names the folder (v0.163): `{source_id|title}`.
+    Value(Vec<Placeholder>),
 }
 
 /// A template read into its segments, or what is wrong with it.
@@ -214,12 +216,16 @@ fn parse(template: &str) -> std::result::Result<Vec<Vec<Piece>>, String> {
                 return Err(format!("opens `{{` in `{segment}` and never closes it"));
             };
             let inner = &after[..close];
-            let Some(placeholder) = Placeholder::parse(inner) else {
+            let Some(choices) = inner
+                .split('|')
+                .map(|one| Placeholder::parse(one.trim()))
+                .collect::<Option<Vec<_>>>()
+            else {
                 return Err(format!(
-                    "reads `{{{inner}}}`; a placeholder is `{{title}}`, a field's key, or either after `origin.`"
+                    "reads `{{{inner}}}`; a placeholder is `{{title}}`, a field's key, or either after `origin.` - several between `|` take the first that holds a value"
                 ));
             };
-            pieces.push(Piece::Value(placeholder));
+            pieces.push(Piece::Value(choices));
             rest = &after[close + 1..];
         }
         if rest.contains('}') {
@@ -340,11 +346,21 @@ pub fn resolve(root: &Path, template: &str, work: &Work, origin: &Work) -> Resul
         for piece in pieces {
             match piece {
                 Piece::Text(text) => name.push_str(&text),
-                Piece::Value(placeholder) => {
-                    let about = if placeholder.origin { origin } else { work };
-                    match value_of(about, &placeholder.name) {
+                Piece::Value(choices) => {
+                    // The first that holds a value; none, and the folder waits
+                    // for any of them.
+                    let found = choices.iter().find_map(|placeholder| {
+                        let about = if placeholder.origin { origin } else { work };
+                        value_of(about, &placeholder.name)
+                            .filter(|value| !as_name(value).is_empty())
+                    });
+                    match found {
                         Some(value) => name.push_str(&value),
-                        None => return Ok(Resolved::Unfilled(placeholder.written())),
+                        None => {
+                            let written: Vec<String> =
+                                choices.iter().map(Placeholder::written).collect();
+                            return Ok(Resolved::Unfilled(written.join("|")));
+                        }
                     }
                 }
             }
@@ -1167,6 +1183,35 @@ mod tests {
             resolve(root, "songs/{origin.code}/clip", &clip, &song).unwrap(),
             at(root, &["songs", "h042", "clip"]),
             "the clip looks into its song's folder"
+        );
+    }
+
+    /// Several placeholders between `|` take the first that holds a value
+    /// (v0.163): a work imported with a source id is kept by it, one made
+    /// here by its title.
+    #[test]
+    fn the_first_placeholder_that_holds_a_value_names_the_folder() {
+        let root = Path::new("media-root");
+        let imported = work("Harbour lights", json!({ "source_id": "s0042" }));
+        let made_here = work("Dawn", json!({ "source_id": "" }));
+
+        assert_eq!(
+            resolve(root, "songs/{source_id|title}", &imported, &imported).unwrap(),
+            at(root, &["songs", "s0042"])
+        );
+        assert_eq!(
+            resolve(root, "songs/{source_id | title}", &made_here, &made_here).unwrap(),
+            at(root, &["songs", "Dawn"]),
+            "an empty field gives way to the next"
+        );
+        let nothing = work("", json!({}));
+        assert_eq!(
+            resolve(root, "songs/{source_id|code}", &nothing, &nothing).unwrap(),
+            Resolved::Unfilled("source_id|code".into())
+        );
+        assert!(
+            problem("songs/{source_id|}").is_some(),
+            "an empty choice is no placeholder"
         );
     }
 

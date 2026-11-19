@@ -156,6 +156,10 @@ its files in - found by that name and looked at, never attached or owned (see
 - `{n}` reads the work's number among the works of its kind made from the
   same origin - the 2 of *Tide (short 2)*: `songs/{origin.title}/shorts/{n}`.
   A work made from nothing has none, and its folder says so.
+- Several placeholders between `|` take the first that holds a value
+  (v0.163): `songs/{source_id|title}` keeps a work imported with a source id
+  under it, and one made in kilna under its title. When none holds one, the
+  Files tab names them all.
 - `/` (or `\`) separates the folders. A template is refused when it is a
   place on a disk (`C:/…`, `/…`), steps out with `.` or `..`, has an empty
   step, writes a character no folder may hold, or a placeholder that is none
