@@ -2460,7 +2460,8 @@
       "close": "Close what is open",
       "undo": "Take back the last change",
       "stressVowel": "Mark the stress on the vowel clicked; again takes it off, and е turns to Е, ё and back",
-      "stressCaret": "Mark the stress on the vowel at the caret"
+      "stressCaret": "Mark the stress on the vowel at the caret",
+      "saveProfile": "Save the profile’s changes"
     },
     "typing": "Letter shortcuts stand aside while you are typing; the ones with a modifier keep working — except Ctrl+Z, which belongs to the field you are in.",
     "click": "Click"

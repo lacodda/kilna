@@ -7,7 +7,6 @@ import { mediaDirectory, mediaRoot, workFolder } from '@/lib/api/folders'
 import {
   activeRuns,
   activeTasks,
-  activeTaskTimes,
   assistantSpend,
   assistantSettings,
   assistantStatus,
@@ -429,7 +428,6 @@ export const queries = {
     queryOptions({ queryKey: keys.runs(chatId), queryFn: () => listRuns(chatId) }),
   activeRuns: () => queryOptions({ queryKey: keys.activeRuns, queryFn: activeRuns }),
   activeTasks: () => queryOptions({ queryKey: keys.activeTasks, queryFn: activeTasks }),
-  activeTaskTimes: () => queryOptions({ queryKey: keys.activeTaskTimes, queryFn: activeTaskTimes }),
   taskQueue: () => queryOptions({ queryKey: keys.taskQueue, queryFn: taskQueue }),
   armedReceiver: () => queryOptions({ queryKey: keys.armedReceiver, queryFn: armedReceiver }),
   pluginQuotas: () => queryOptions({ queryKey: keys.pluginQuotas, queryFn: pluginQuotas }),

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { StatusDot } from '@/components/ui/status-dot'
 import type { ProfileDraftState } from '@/features/settings/useProfileDraft'
 import { useProfileProblems } from '@/features/settings/useProfileProblems'
+import { useCommand } from '@/components/ui/commands'
 
 /**
  * "There are unsaved changes", with Save and Discard - at the foot of the
@@ -47,6 +48,21 @@ export function ProfileDraftBar({ draft }: { draft: ProfileDraftState }) {
     },
   })
 
+  // The bar is there only while there is something to save, and so is its
+  // key (v0.163): Ctrl+S anywhere in the window, a field being typed in
+  // included - the editor of the profile's JSON among them.
+  const savable = !save.isPending && problems.length === 0
+  useCommand({
+    id: 'profile.save',
+    label: t('keys.action.saveProfile'),
+    group: t('search.group.action'),
+    keys: 'Mod+S',
+    whileTyping: true,
+    capture: true,
+    enabled: savable,
+    run: () => save.mutate(draft.config),
+  })
+
   // No question before: a discard is taken back from the toast, as a
   // deletion is - one click after the fact rather than one every time.
   const discard = () => {
@@ -78,7 +94,7 @@ export function ProfileDraftBar({ draft }: { draft: ProfileDraftState }) {
       </ActionBarButton>
       <ActionBarButton
         render={<Button variant="primary" size="sm" />}
-        disabled={save.isPending || problems.length > 0}
+        disabled={!savable}
         onClick={() => save.mutate(draft.config)}
       >
         {t('editor.save')}

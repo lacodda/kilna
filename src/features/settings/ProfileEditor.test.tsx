@@ -84,6 +84,20 @@ describe('the whole profile in the editor', () => {
     expect(axes.at(-1)).toEqual({ key: 'pull', label: 'pull', weight: 1, scale: 10, kind: 'scale' })
   })
 
+  it('saves the draft on Ctrl+S, from the box being typed in', async () => {
+    const { client } = await open('Song')
+    const before = workspace.profile.config.work_kinds[0]!.axes!.length
+    const box = keyBox(en.editor.axes)
+    fireEvent.change(box, { target: { value: 'Pull' } })
+    fireEvent.click(screen.getByRole('button', { name: en.editor.addAxis }))
+    expect(bar()).not.toBeNull()
+
+    fireEvent.keyDown(box, { key: 's', code: 'KeyS', ctrlKey: true })
+    await settled(client)
+    const [last] = backend.argsOf('update_profile_config').slice(-1)
+    expect((last!.config as ProfileConfig).work_kinds[0]!.axes).toHaveLength(before + 1)
+  })
+
   it('does not add an entry under a key that is taken or misshapen', async () => {
     await open('Song')
     const taken = workspace.profile.config.work_kinds[0]!.axes![0]!.key
