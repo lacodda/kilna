@@ -6,12 +6,13 @@ import { resetCoachMarks } from '@/components/CoachMark'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, useLanguage } from '@/lib/language'
 import { THEMES, useTheme } from '@/lib/theme'
+import { DENSITIES, useDensity } from '@/lib/density'
 import { FieldGroup } from '@/components/ui/field'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Select } from '@/components/AppSelect'
 
 /**
- * Appearance: the theme and the language.
+ * Appearance: the theme, the density and the language.
  *
  * Both are also cycled from the rail's footer, which is where they were found
  * until now; here they are named in full, as a settings screen names things,
@@ -21,6 +22,7 @@ import { Select } from '@/components/AppSelect'
 export function GeneralSection() {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
+  const { density, setDensity } = useDensity()
   const { language, setLanguage } = useLanguage()
 
   return (
@@ -40,6 +42,21 @@ export function GeneralSection() {
           {THEMES.map((entry) => (
             <Segment key={entry} value={entry}>
               {t(`themeName.${entry}`)}
+            </Segment>
+          ))}
+        </SegmentedControl>
+      </FieldGroup>
+      {/* How tight the rows sit (v0.163): a long catalogue on a laptop
+          wants more of it on screen, a large monitor room to breathe. */}
+      <FieldGroup label={t('settings.density')} help={t('settings.densityHelp')}>
+        <SegmentedControl
+          aria-label={t('settings.density')}
+          value={density}
+          onValueChange={(next) => setDensity(next as typeof density)}
+        >
+          {DENSITIES.map((entry) => (
+            <Segment key={entry} value={entry}>
+              {t(`densityName.${entry}`)}
             </Segment>
           ))}
         </SegmentedControl>

@@ -7,6 +7,7 @@ import App from '@/app/App'
 import { Providers } from '@/app/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { initTheme } from '@/lib/theme'
+import { initDensity } from '@/lib/density'
 import { initLanguage } from '@/lib/language'
 import { queryClient } from '@/lib/query/client'
 import '@/i18n'
@@ -15,6 +16,7 @@ import '@/styles.css'
 // Apply the stored theme and language before the first paint, so the window
 // never flashes the wrong colour or visibly changes language a moment in.
 initTheme()
+initDensity()
 initLanguage()
 
 // The bar the engine draws takes no width, which no stylesheet can ask for. The

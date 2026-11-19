@@ -3105,7 +3105,9 @@
       "waiting_one": "One newer version waits beside your entries",
       "waiting_other": "{{count}} newer versions wait beside your entries",
       "show": "Show what differs ({{count}})"
-    }
+    },
+    "density": "Density",
+    "densityHelp": "How tightly rows, fields and buttons sit, everywhere in the window."
   },
   "skills": {
     "title": "Skills",
@@ -6018,5 +6020,10 @@
     "copied": "The diagnostics are on the clipboard.",
     "copyFailed": "The diagnostics could not be copied.",
     "report": "Open a new issue"
+  },
+  "densityName": {
+    "compact": "Compact",
+    "regular": "Regular",
+    "comfortable": "Comfortable"
   }
 }
