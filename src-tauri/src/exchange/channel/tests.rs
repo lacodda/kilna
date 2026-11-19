@@ -255,3 +255,26 @@ fn a_channel_is_planned_and_applied_once() {
         (0, 0, 0, 0)
     );
 }
+
+/// A month's media folder gives each track the files named after it; a file
+/// no track is named after is a conflict.
+#[test]
+fn a_tracks_files_are_found_by_its_title() {
+    let (conn, profile_id) = channel_space();
+    let dir = folder();
+    let channel = read::read(dir.path()).unwrap();
+    let mut planned = plan(&conn, &profile_id, &channel).unwrap();
+    let media = tempfile::tempdir().unwrap();
+    let month = media.path().join("2027-01").join("DEMO - 2027-01");
+    std::fs::create_dir_all(&month).unwrap();
+    for name in [
+        "Demo Channel – Two Hands (Basque x Broken Beat).mp3",
+        "Demo Channel – Two Hands (Basque x Broken Beat).jpeg",
+        "Demo Channel – Someone Else (Nowhere).mp3",
+    ] {
+        std::fs::write(month.join(name), b"x").unwrap();
+    }
+    super::media(&mut planned, media.path(), "DEMO");
+    assert_eq!(planned.months[0].tracks[0].files.len(), 2);
+    assert_eq!(planned.conflicts.len(), 1, "{:?}", planned.conflicts);
+}

@@ -232,10 +232,14 @@ fn import_channel(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
         .map(std::path::PathBuf::from)
         .ok_or_else(|| kilna_lib::Error::refused("import.noFile"))?;
     let space = values_of(args, "--space").first().map(|name| name.as_str());
+    let media = values_of(args, "--media")
+        .first()
+        .map(std::path::PathBuf::from);
     kilna_lib::exchange::channel::run(
         &app_dir,
         space,
         &dir,
+        media.as_deref(),
         args.iter().any(|arg| arg == "--apply"),
     )
 }

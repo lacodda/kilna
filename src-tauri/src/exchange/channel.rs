@@ -40,6 +40,9 @@ pub struct Track {
     pub suno: Option<String>,
     pub cover: Option<String>,
     pub release: Map<String, Value>,
+    /// The files of its month's media folder named after it: its track,
+    /// its picture.
+    pub files: Vec<String>,
 }
 
 /// A month: its collection and its tracks.
@@ -365,6 +368,43 @@ pub fn plan(conn: &Connection, profile_id: &str, channel: &Channel) -> Result<Pl
     Ok(out)
 }
 
+/// The files of a channel's media named after its tracks: under
+/// `<root>/<YYYY-MM>/<channel> - <YYYY-MM>/`, each file called as its pack
+/// is - `<channel> – <title> (<formula>).<ext>`.
+pub fn media(plan: &mut Plan, root: &Path, channel: &str) {
+    for month in &mut plan.months {
+        let dir = root
+            .join(&month.month)
+            .join(format!("{channel} - {}", month.month));
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        let mut files: Vec<PathBuf> = entries
+            .filter_map(std::result::Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| path.is_file())
+            .collect();
+        files.sort();
+        for file in files {
+            let Some(stem) = file.file_stem().and_then(|stem| stem.to_str()) else {
+                continue;
+            };
+            let title = pack_title(stem).to_lowercase();
+            match month
+                .tracks
+                .iter_mut()
+                .find(|track| track.title.to_lowercase() == title)
+            {
+                Some(track) => track.files.push(file.display().to_string()),
+                None => plan.conflicts.push(format!(
+                    "{}: a file no track of the month is named after",
+                    file.display()
+                )),
+            }
+        }
+    }
+}
+
 /// The cooldown a bank states in its own words: the first `N месяц…` or
 /// `N month…` of its page.
 pub fn cooldown_of(text: &str) -> Option<u64> {
@@ -397,10 +437,17 @@ pub struct Applied {
     pub collections: usize,
     pub works: usize,
     pub releases: usize,
+    pub files: usize,
 }
 
-/// Write the plan into the space, as one unit.
+/// Write the plan into the space, as one unit; the files of the tracks are
+/// copied into `media`, the space's own folder of files.
 pub fn apply(conn: &Connection, plan: &Plan) -> Result<Applied> {
+    apply_with(conn, plan, None)
+}
+
+/// [`apply`], with the space's folder of files when the tracks bring some.
+pub fn apply_with(conn: &Connection, plan: &Plan, media: Option<&Path>) -> Result<Applied> {
     use crate::actions;
     crate::db::unit::atomically(conn, |tx| {
         let profile_id = actions::active_profile_id(tx)?;
@@ -558,6 +605,20 @@ pub fn apply(conn: &Connection, plan: &Plan) -> Result<Applied> {
                         },
                     )?;
                 }
+                if let Some(media) = media {
+                    for file in &track.files {
+                        actions::asset::attach(
+                            tx,
+                            media,
+                            file,
+                            crate::asset::NewAsset {
+                                work_id: Some(work.id.clone()),
+                                ..crate::asset::NewAsset::default()
+                            },
+                        )?;
+                        done.files += 1;
+                    }
+                }
                 if track.release.contains_key("title") {
                     actions::release::create(
                         tx,
@@ -590,7 +651,13 @@ pub fn apply(conn: &Connection, plan: &Plan) -> Result<Applied> {
 /// Read the channel's folder against a space and write the plan and its
 /// report; with `apply_it`, keep a copy of the space and apply. The folder
 /// the report is written to comes back.
-pub fn run(app_dir: &Path, space: Option<&str>, dir: &Path, apply_it: bool) -> Result<PathBuf> {
+pub fn run(
+    app_dir: &Path,
+    space: Option<&str>,
+    dir: &Path,
+    media_root: Option<&Path>,
+    apply_it: bool,
+) -> Result<PathBuf> {
     use crate::space::registry;
     let channel = read::read(dir)?;
     let app = crate::db::open_app(&app_dir.join(crate::db::APP_DATABASE_FILE))?;
@@ -612,11 +679,20 @@ pub fn run(app_dir: &Path, space: Option<&str>, dir: &Path, apply_it: bool) -> R
     planned.cooldown_months = std::fs::read_to_string(dir.join("Банк традиций.md"))
         .ok()
         .and_then(|text| cooldown_of(text.lines().take(8).collect::<Vec<_>>().join("\n").as_str()));
+    if let Some(root) = media_root {
+        let channel_name = dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default()
+            .to_owned();
+        media(&mut planned, root, &channel_name);
+    }
     let moment = crate::time::now().replace([':', '.'], "-");
     let out = app_dir.join("import-channel").join(&moment);
     let applied = if apply_it {
         crate::exchange::backup::write_database(&conn, &out.join("kilna.before-import.db"))?;
-        Some(apply(&conn, &planned)?)
+        let files = crate::state::media_dir_beside(&folder.database())?;
+        Some(apply_with(&conn, &planned, Some(&files))?)
     } else {
         None
     };

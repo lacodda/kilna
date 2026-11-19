@@ -318,8 +318,10 @@ lists name. Each month of the plan becomes a *Month pack* with its arc, and
 each row a track with its tradition, genre, tempo, key, mood, sound design,
 cover idea and artist, planned on its day; a month pack's track of the same
 title gives it its Suno prompt, its cover's scene, its duration and the
-YouTube release it goes out as, booked on its day. A work of the same title
-is never made twice, and what the passport holds is not written again. A
+YouTube release it goes out as, booked on its day. `--media <root>` adds
+the files of `<root>/<YYYY-MM>/<channel> - <YYYY-MM>/` named as a pack is -
+`<channel> – <title> (<formula>).<ext>` - to the track of that title. A work
+of the same title is never made twice, and what the passport holds is not written again. A
 plan and a report first (`import-channel/<time>/import_plan.md`, with the
 conflicts it found), `--apply` to write, a copy of the space kept first.
 
