@@ -15,6 +15,7 @@ import {
   type SortColumn,
 } from '@/lib/catalogue'
 import { queries } from '@/lib/query/queries'
+import { useGrowingWindow } from '@/lib/useGrowingWindow'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import type { Tab } from '@/features/work/tabs'
@@ -185,6 +186,18 @@ export function CatalogueTable({
   // Only what is on screen can be ticked by the header box: filtering something
   // out and then selecting "all" must not reach it.
   const shownIds = rows.map((row) => row.work_id)
+  // A long catalogue is drawn a step at a time as it is scrolled (v0.163):
+  // rows past the window wait for the sentinel after the last drawn one. The
+  // window counts the rows that would be drawn - a folded group's are not.
+  const folds = (key: string | null) => groupBy !== 'none' && collapsed.has(key ?? GROUPLESS)
+  const visibleCount = blocks.reduce((sum, one) => sum + (folds(one.key) ? 0 : one.rows.length), 0)
+  const { shown: windowShown, sentinel } = useGrowingWindow(visibleCount)
+  // How many rows each block may draw, the window shared out in order.
+  const rooms = blocks.reduce<number[]>((out, one, index) => {
+    const used = out.reduce((sum, room, at) => sum + (folds(blocks[at]!.key) ? 0 : room), 0)
+    out[index] = folds(one.key) ? 0 : Math.max(0, Math.min(one.rows.length, windowShown - used))
+    return out
+  }, [])
   const chosen = shownIds.filter((id) => selected.has(id))
   const allChosen = chosen.length > 0 && chosen.length === shownIds.length
 
@@ -360,7 +373,7 @@ export function CatalogueTable({
           )}
 
           {rows.length > 0 &&
-            blocks.map((block) => {
+            blocks.map((block, blockIndex) => {
               const key = block.key ?? GROUPLESS
               const folded = groupBy !== 'none' && collapsed.has(key)
               // A collection's band is a place the carried rows can land, as
@@ -412,7 +425,7 @@ export function CatalogueTable({
                   )}
 
                   {!folded &&
-                    block.rows.map((row) => (
+                    block.rows.slice(0, rooms[blockIndex] ?? 0).map((row) => (
                       <WorkRow
                         key={row.work_id}
                         actions={actionsFor(row)}
@@ -467,6 +480,15 @@ export function CatalogueTable({
                 </TableBody>
               )
             })}
+          {/* Where the next step of rows is fetched from: drawn after the last
+              row while some are still waiting (v0.163). */}
+          {windowShown < visibleCount && (
+            <TableBody>
+              <tr ref={sentinel} aria-hidden>
+                <td colSpan={span} className="h-8" />
+              </tr>
+            </TableBody>
+          )}
         </Table>
       </ScrollArea>
     </Panel>
