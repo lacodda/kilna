@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.151.0] - 2026-11-19
+
+Quotas and a bank. The rules a channel counts by hand - a Suno prompt of 400
+to 500 characters, no more than four tracks of a month in one playlist, at
+least five angles of a cover, no artist's name in a title - are written on
+the passport as rules a machine measures, and one check reads them over a
+work, a collection, a month or the whole space, in the window and for the
+assistant; no number of any channel is written in kilna. A bank keeps the
+themes a channel takes in turn, each resting its months after a use, and
+marks one used when a release of a work naming it goes out. The register of
+repeats now looks for a term in titles, pictures and sound as well as in the
+lyric, with a limit a month and days apart, so a channel of instrumentals is
+guarded too. And the assistant's calendar can see what the other spaces put
+out on the same days.
+
+### Bug Fixes
+- The quota subject keeps its name across the wire
+- A bank's filter wraps in a narrow panel, the quotas take a row
+- The quota's works break a tie of their timestamps by row
+
+### Features
+- Quotas and banks on the passport
+- Look for a term in titles, pictures and sound
+- The calendar reads the neighbours on the same days
+
 ## [0.150.1] - 2026-11-19
 
 Songs in the calendar's pane. A song goes out only as what is made from it,
