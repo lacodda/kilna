@@ -21,7 +21,9 @@ export const toastManager = createToastManager()
  * needs no decision. Anything that needs an answer is a dialog.
  */
 export const say = {
-  ok: (message: string) => toastManager.add({ type: 'success', title: message }),
+  /** Done - and, on a second line, what came with it (v0.163). */
+  ok: (message: string, description?: string) =>
+    toastManager.add({ type: 'success', title: message, description }),
 
   /** A failure, with the sentence derived from whatever was thrown. */
   failed: (cause: unknown) => toastManager.add({ type: 'error', title: humanError(cause) }),

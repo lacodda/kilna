@@ -10,7 +10,7 @@ import { coverActionOf, ideasOnMake } from '@/lib/ideas'
 import { doorsOf, takesAn, wordOf } from '@/lib/overview'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { say, toastManager } from '@/lib/toast'
+import { say } from '@/lib/toast'
 import { labKindsFor, labOf } from '@/lib/trials'
 import {
   hasDoors,
@@ -191,13 +191,11 @@ export function useMakePublication(source: Work): MakePublication {
           : t(started ? 'publications.madeWriting' : 'publications.madeRelease', {
               door: sayLabel(door.label),
             })
-      // A toast with a second line, which the app's `say.ok` does not carry:
-      // what was made is the headline, and what came with it is the line.
-      toastManager.add({
-        type: 'success',
-        title: t('publications.made', { title: made.work.title }),
-        description: ideas > 0 ? `${said} ${t('publications.madeIdeas', { count: ideas })}` : said,
-      })
+      // What was made is the headline, and what came with it is the line.
+      say.ok(
+        t('publications.made', { title: made.work.title }),
+        ideas > 0 ? `${said} ${t('publications.madeIdeas', { count: ideas })}` : said,
+      )
       if (refused !== null) say.warn(t('publications.metaNotStarted'), humanError(refused))
       if (ideasRefused !== null) {
         say.warn(t('publications.ideasNotStarted'), humanError(ideasRefused))
