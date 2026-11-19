@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { activeTaskTimes } from '@/lib/api/assistant'
 import type { PromptTemplate } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
-import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { releaseActionOf, useProfile } from '@/lib/useProfile'
 import { useRunningTasks } from '@/lib/useRunningTasks'
@@ -61,8 +61,8 @@ export function useReleaseMeta(
   // Asked again whenever the running set changes: a run that just began has
   // a start the last answer did not hold.
   const times = useQuery({
-    ...queries.activeTaskTimes(),
     queryKey: [...keys.activeTaskTimes, [...running].sort().join(' ')],
+    queryFn: activeTaskTimes,
     enabled: running.size > 0,
   })
   return {
