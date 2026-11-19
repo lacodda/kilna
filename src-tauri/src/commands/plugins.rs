@@ -42,6 +42,27 @@ fn plugin_directory(state: &AppState) -> std::path::PathBuf {
 pub fn list_plugins(state: State<'_, AppState>) -> Result<Vec<Plugin>> {
     let mut plugins = plugin::discover(&plugin_directory(&state));
     plugin::settings::fill_in(&state.conn(), &mut plugins)?;
+    // A secret set on this machine shows as set, never as itself (v0.155).
+    for one in &mut plugins {
+        let kept = plugin::settings::secrets(state.app_dir(), &one.executable);
+        let Some(manifest) = one.manifest.as_ref() else {
+            continue;
+        };
+        let secret: Vec<String> = manifest
+            .settings
+            .iter()
+            .filter(|setting| setting.secret)
+            .map(|setting| setting.key.clone())
+            .collect();
+        for key in secret {
+            if kept.contains_key(&key) {
+                one.settings
+                    .insert(key, Value::String(plugin::settings::SET_SECRET.into()));
+            } else {
+                one.settings.remove(&key);
+            }
+        }
+    }
     Ok(plugins)
 }
 
@@ -83,6 +104,19 @@ pub fn set_plugin_setting(
                 found.reason.clone().map(Value::from).unwrap_or_default(),
             )
     })?;
+    // A secret is kept on this machine, outside the space (v0.155): what the
+    // database held of it before is let go.
+    if manifest
+        .settings
+        .iter()
+        .any(|setting| setting.key == key && setting.secret)
+    {
+        if value.as_ref().and_then(Value::as_str) == Some(plugin::settings::SET_SECRET) {
+            return Ok(());
+        }
+        plugin::settings::set_secret(state.app_dir(), &executable, &key, value)?;
+        return plugin::settings::set_value(&state.conn(), &executable, manifest, &key, None);
+    }
     plugin::settings::set_value(&state.conn(), &executable, manifest, &key, value)
 }
 
@@ -107,6 +141,10 @@ pub struct PluginReply {
     pub finished: Option<String>,
     /// The message holding the score it proposed, when it proposed one.
     pub proposed_score: Option<String>,
+    /// Results to choose one from (v0.155): kept only when one is picked.
+    pub candidates: Vec<plugin::PluginCandidate>,
+    /// What the run spent of its service's allowance (v0.155).
+    pub quota: Option<plugin::PluginQuota>,
 }
 
 /// Run a plugin command against a release or a work, and keep whatever it
@@ -138,12 +176,15 @@ pub fn run_plugin(
     if !kept.enabled {
         return Err(Error::refused("plugin.turnedOff").param("plugin", executable.as_str()));
     }
-    let settings = found
+    let mut settings = found
         .manifest
         .as_ref()
         .map_or_else(serde_json::Map::new, |manifest| {
             manifest.values(&kept.settings)
         });
+    // The secrets kept on this machine join the settings the plugin is
+    // handed, and only there (v0.155).
+    settings.extend(plugin::settings::secrets(state.app_dir(), &executable));
     let limit = found
         .manifest
         .as_ref()
@@ -214,7 +255,22 @@ pub fn run_plugin(
         files: outcome.files,
         finished,
         proposed_score,
+        candidates: outcome.candidates,
+        quota: outcome.quota,
     })
+}
+
+/// One of the results a command offered, picked (v0.155): its fields merged
+/// into the work's and its files kept as the run's would have been.
+#[tauri::command]
+pub fn keep_plugin_candidate(
+    state: State<'_, AppState>,
+    work_id: String,
+    candidate: plugin::PluginCandidate,
+) -> Result<Option<String>> {
+    let conn = state.conn();
+    actions::plugin::keep(&conn, Target::Work, &work_id, &candidate.meta)?;
+    actions::plugin::keep_files(&conn, &work_id, &candidate.files)
 }
 
 /// What a work's simple video is built from: its picture and its track

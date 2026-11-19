@@ -4,7 +4,7 @@ import { NavLink } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Square } from 'lucide-react'
 import { cancelPlugin, onPluginProgress, runPlugin, type PluginTarget } from '@/lib/api/plugins'
-import type { PluginReply } from '@/lib/api/types'
+import type { PluginCandidate, PluginReply } from '@/lib/api/types'
 import { nameOf } from '@/lib/media'
 import { inLanguage } from '@/lib/pluginWords'
 import { keys } from '@/lib/query/keys'
@@ -14,6 +14,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { PluginCandidates } from '@/features/work/PluginCandidates'
 
 interface Props {
   target: PluginTarget
@@ -56,6 +57,8 @@ export function PluginBar({ target, id }: Props) {
 
   const plugins = useQuery(queries.plugins())
   const [running, setRunning] = useState<Running | null>(null)
+  // The results a run offered to choose from (v0.155).
+  const [offered, setOffered] = useState<PluginCandidate[]>([])
 
   // What a plugin writes about itself while it runs (v0.101): a share and a
   // line, on the run this bar started. Another bar's run is not this one's.
@@ -122,6 +125,19 @@ export function PluginBar({ target, id }: Props) {
         say.ok(t('plugins.madeFiles', { count: reply.files.length }))
       }
       if (reply.proposed_score !== null) say.ok(t('plugins.proposedScore'))
+      // What the service's allowance has left, as the plugin says (v0.155).
+      if (reply.quota !== null) {
+        say.info(
+          reply.quota.left === null
+            ? t('plugins.quotaUsed', { used: reply.quota.used, unit: reply.quota.unit })
+            : t('plugins.quotaLeft', {
+                used: reply.quota.used,
+                left: reply.quota.left,
+                unit: reply.quota.unit,
+              }),
+        )
+      }
+      if (reply.candidates.length > 0 && target === 'work') setOffered(reply.candidates)
     },
   })
 
@@ -163,6 +179,9 @@ export function PluginBar({ target, id }: Props) {
       className="flex min-w-0 flex-wrap items-center gap-1.5"
     >
       <span className="caption">{t('plugins.title')}</span>
+      {offered.length > 0 && (
+        <PluginCandidates workId={id} candidates={offered} onClose={() => setOffered([])} />
+      )}
 
       {running !== null ? (
         <div className="flex min-w-60 flex-1 items-center gap-2">

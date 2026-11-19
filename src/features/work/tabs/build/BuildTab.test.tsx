@@ -41,6 +41,8 @@ beforeEach(() => {
       files: ['C:/media/Song.mp4'],
       finished: null,
       proposed_score: null,
+      candidates: [],
+      quota: null,
     }),
   })
 })

@@ -2039,7 +2039,17 @@
     "settings": "Its settings",
     "backToDefault": "Back to the plugin’s own",
     "saveFailed": "Could not save that for the plugin.",
-    "batch": "for many works at once"
+    "batch": "for many works at once",
+    "quotaUsed": "Spent {{used}} {{unit}}.",
+    "quotaLeft": "Spent {{used}} {{unit}}, {{left}} left.",
+    "candidateKeep": "Keep this one",
+    "candidateKept": "Kept.",
+    "candidateFailed": "The chosen result could not be kept.",
+    "candidateSeconds": "{{seconds}} s",
+    "candidatesTitle_one": "{{count}} result to choose from",
+    "candidatesTitle_other": "{{count}} results to choose from",
+    "candidateFiles_one": "{{count}} file",
+    "candidateFiles_other": "{{count}} files"
   },
   "error": {
     "database": "The workspace database refused that. Nothing was changed.",

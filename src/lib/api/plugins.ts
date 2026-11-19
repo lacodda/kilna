@@ -1,6 +1,13 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import type { BuildSources, JsonValue, Plugin, PluginProgress, PluginReply } from '@/lib/api/types'
+import type {
+  BuildSources,
+  JsonValue,
+  Plugin,
+  PluginCandidate,
+  PluginProgress,
+  PluginReply,
+} from '@/lib/api/types'
 
 // Plugins: programs beside kilna that act on a work.
 
@@ -42,3 +49,7 @@ export const onPluginProgress = (
   handler: (progress: PluginProgress) => void,
 ): Promise<UnlistenFn> =>
   listen<PluginProgress>('plugin-progress', (event) => handler(event.payload))
+
+/** One of the results a command offered, picked and kept (v0.155). */
+export const keepPluginCandidate = (workId: string, candidate: PluginCandidate) =>
+  invoke<string | null>('keep_plugin_candidate', { workId, candidate })

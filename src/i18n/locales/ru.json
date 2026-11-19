@@ -2203,7 +2203,21 @@
     "settings": "Его настройки",
     "backToDefault": "Вернуть как у плагина",
     "saveFailed": "Не удалось сохранить это для плагина.",
-    "batch": "на много работ сразу"
+    "batch": "на много работ сразу",
+    "quotaUsed": "Потрачено {{used}} {{unit}}.",
+    "quotaLeft": "Потрачено {{used}} {{unit}}, осталось {{left}}.",
+    "candidateKeep": "Оставить этот",
+    "candidateKept": "Оставлено.",
+    "candidateFailed": "Не удалось оставить выбранный вариант.",
+    "candidateSeconds": "{{seconds}} с",
+    "candidatesTitle_one": "{{count}} вариант на выбор",
+    "candidatesTitle_few": "{{count}} варианта на выбор",
+    "candidatesTitle_many": "{{count}} вариантов на выбор",
+    "candidatesTitle_other": "{{count}} варианта на выбор",
+    "candidateFiles_one": "{{count}} файл",
+    "candidateFiles_few": "{{count}} файла",
+    "candidateFiles_many": "{{count}} файлов",
+    "candidateFiles_other": "{{count}} файла"
   },
   "error": {
     "database": "База рабочего пространства отклонила действие. Ничего не изменилось.",

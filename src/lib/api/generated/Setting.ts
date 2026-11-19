@@ -22,4 +22,10 @@ descriptions: { [key in string]: string },
  * What the plugin does when nothing is set. The form shows it, so what is
  * on the screen is what a run does.
  */
-default?: JsonValue, } & ({ "type": "text" } | { "type": "number", min?: number, max?: number, step?: number, } | { "type": "boolean" } | { "type": "choice", options: Array<SettingOption>, });
+default?: JsonValue, 
+/**
+ * A key, a token, a password (v0.155, FR-21 21.1): kept in a file of this
+ * machine beside the plugins, never in the space's database nor in what
+ * the space exports, and shown in the window only as set or not.
+ */
+secret?: boolean, } & ({ "type": "text" } | { "type": "number", min?: number, max?: number, step?: number, } | { "type": "boolean" } | { "type": "choice", options: Array<SettingOption>, });

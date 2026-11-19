@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import type { Plugin } from '@/lib/api/types'
 import { Providers } from '@/app/Providers'
@@ -57,7 +57,14 @@ let backend: Backend
 function mount(target: PluginTarget, plugins: Plugin[] = [JUDGE]) {
   backend = mockBackend({
     list_plugins: () => plugins,
-    run_plugin: () => ({ message: null, files: [], finished: null, proposed_score: null }),
+    run_plugin: () => ({
+      message: null,
+      files: [],
+      finished: null,
+      proposed_score: null,
+      candidates: [],
+      quota: null,
+    }),
   })
   return render(
     <Providers client={createQueryClient()}>
@@ -78,6 +85,48 @@ afterEach(async () => {
 })
 
 describe('the plugin bar', () => {
+  it('offers the results a run made to choose from, and keeps only the one picked', async () => {
+    const maker: Plugin = {
+      ...JUDGE,
+      manifest: {
+        ...JUDGE.manifest!,
+        commands: [
+          {
+            key: 'make',
+            label: 'Make takes',
+            labels: {},
+            description: null,
+            descriptions: {},
+            target: 'work',
+          },
+        ],
+      },
+    }
+    mount('work', [maker])
+    backend.answer('run_plugin', () => ({
+      message: null,
+      files: [],
+      finished: null,
+      proposed_score: null,
+      candidates: [
+        { label: 'Take 1', files: ['C:/t1.mp3'], meta: {}, seconds: 181, note: '+4 s' },
+        { label: 'Take 2', files: ['C:/t2.mp3'], meta: {}, seconds: 176, note: null },
+      ],
+      quota: { used: 10, left: 490, unit: 'credits' },
+    }))
+    backend.answer('keep_plugin_candidate', () => 'C:/t2.mp3')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Make takes' }))
+    const dialog = await screen.findByRole('dialog', { name: '2 results to choose from' })
+    const keep = within(dialog).getAllByRole('button', { name: 'Keep this one' })
+    fireEvent.click(keep[1]!)
+    await waitFor(() => expect(backend.argsOf('keep_plugin_candidate')).toHaveLength(1))
+    expect(backend.argsOf('keep_plugin_candidate')[0]).toMatchObject({
+      workId: 'w1',
+      candidate: { label: 'Take 2' },
+    })
+  })
+
   it('offers on a release what is meant for a release, and only that', async () => {
     mount('release')
 

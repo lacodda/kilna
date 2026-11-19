@@ -65,6 +65,49 @@ fn every(conn: &Connection) -> Result<HashMap<String, Kept>> {
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
+/// Where a plugin's secrets are kept on this machine: a file of its own in
+/// the application's folder, never in a space.
+fn secrets_file(app_dir: &std::path::Path, executable: &str) -> std::path::PathBuf {
+    app_dir
+        .join("plugin-secrets")
+        .join(format!("{executable}.json"))
+}
+
+/// A plugin's secrets, by key.
+pub fn secrets(app_dir: &std::path::Path, executable: &str) -> Map<String, Value> {
+    std::fs::read_to_string(secrets_file(app_dir, executable))
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_default()
+}
+
+/// Keep, or forget with nothing, one secret of a plugin (v0.155).
+pub fn set_secret(
+    app_dir: &std::path::Path,
+    executable: &str,
+    key: &str,
+    value: Option<Value>,
+) -> Result<()> {
+    let mut kept = secrets(app_dir, executable);
+    match value {
+        Some(value) => {
+            kept.insert(key.to_owned(), value);
+        }
+        None => {
+            kept.remove(key);
+        }
+    }
+    let file = secrets_file(app_dir, executable);
+    if let Some(dir) = file.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    std::fs::write(file, serde_json::to_string_pretty(&kept)?)?;
+    Ok(())
+}
+
+/// What the window is shown of a secret that is set: that it is, never what.
+pub const SET_SECRET: &str = "••••••";
+
 /// Put what is kept beside what was found on this machine.
 pub fn fill_in(conn: &Connection, plugins: &mut [Plugin]) -> Result<()> {
     let kept = every(conn)?;
@@ -268,5 +311,32 @@ mod tests {
         assert_eq!(plugins[1].settings.get("crf"), Some(&json!(18)));
         assert!(plugins[2].enabled);
         assert!(plugins[2].settings.is_empty());
+    }
+
+    /// A secret is kept in a file of this machine, outside any space, and
+    /// forgotten with nothing (v0.155).
+    #[test]
+    fn a_secret_is_kept_beside_the_plugins_and_forgotten() {
+        let app = tempfile::tempdir().unwrap();
+        set_secret(
+            app.path(),
+            "kilna-plugin-suno",
+            "token",
+            Some(serde_json::json!("abc")),
+        )
+        .unwrap();
+        assert_eq!(
+            secrets(app.path(), "kilna-plugin-suno").get("token"),
+            Some(&serde_json::json!("abc"))
+        );
+        assert!(
+            app.path()
+                .join("plugin-secrets")
+                .join("kilna-plugin-suno.json")
+                .is_file()
+        );
+        set_secret(app.path(), "kilna-plugin-suno", "token", None).unwrap();
+        assert!(secrets(app.path(), "kilna-plugin-suno").is_empty());
+        assert!(secrets(app.path(), "kilna-plugin-other").is_empty());
     }
 }

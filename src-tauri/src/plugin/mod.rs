@@ -239,6 +239,42 @@ pub struct Outcome {
     /// the person to take or not, under the plugin's name.
     #[serde(default)]
     pub score: Option<ProposedMarks>,
+    /// Several results to choose one from (v0.155, FR-21 21.1): the takes a
+    /// generator made, each with its label, its files and what it would
+    /// write. Nothing of them is kept until the person picks one.
+    #[serde(default)]
+    pub candidates: Vec<PluginCandidate>,
+    /// What the run spent of the allowance the plugin's service gives, as
+    /// the plugin says it - shown, never kept in the space.
+    #[serde(default)]
+    pub quota: Option<PluginQuota>,
+}
+
+/// One result of several a command offers to choose from.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(default)]
+pub struct PluginCandidate {
+    pub label: String,
+    /// Whole paths of the files it made.
+    pub files: Vec<String>,
+    /// Fields it would merge into the subject's `meta`.
+    #[ts(type = "Record<string, unknown>")]
+    pub meta: Map<String, Value>,
+    /// How long it plays, when it plays.
+    pub seconds: Option<f64>,
+    /// How far it strays from what was asked - a length off by so many
+    /// seconds - in the plugin's own words.
+    pub note: Option<String>,
+}
+
+/// What a run spent of a service's allowance.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct PluginQuota {
+    pub used: f64,
+    #[serde(default)]
+    pub left: Option<f64>,
+    /// What is counted: credits, generations, minutes.
+    pub unit: String,
 }
 
 /// Marks a plugin proposes along the axes it was handed.
@@ -464,6 +500,8 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>, run: Run<'_>) -> Result<
             files: Vec::new(),
             suggestions: Vec::new(),
             score: None,
+            candidates: Vec::new(),
+            quota: None,
         });
     }
 

@@ -497,6 +497,8 @@ export type TrialsProposal = Extract<Proposal, { kind: 'trials' }>
 export type CardsProposal = Extract<Proposal, { kind: 'cards' }>
 export type MonthProposal = Extract<Proposal, { kind: 'month' }>
 export type { MonthItem } from './generated/MonthItem'
+export type { PluginCandidate } from './generated/PluginCandidate'
+export type { PluginQuota } from './generated/PluginQuota'
 export type { MonthTerm } from './generated/MonthTerm'
 export type { MonthCheck } from './generated/MonthCheck'
 export type { BankTaken } from './generated/BankTaken'

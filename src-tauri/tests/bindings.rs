@@ -309,6 +309,8 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::commands::plugins::PluginReply,
         kilna_lib::build::BuildSources,
         kilna_lib::commands::plugins::PluginProgress,
+        kilna_lib::plugin::PluginCandidate,
+        kilna_lib::plugin::PluginQuota,
         // a period laid out ahead (v0.152)
         kilna_lib::period::PeriodSlot,
         kilna_lib::period::PeriodMonth,

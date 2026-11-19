@@ -131,6 +131,11 @@ pub struct Setting {
     pub default: Option<Value>,
     #[serde(flatten)]
     pub control: Control,
+    /// A key, a token, a password (v0.155, FR-21 21.1): kept in a file of this
+    /// machine beside the plugins, never in the space's database nor in what
+    /// the space exports, and shown in the window only as set or not.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub secret: bool,
 }
 
 impl Setting {
