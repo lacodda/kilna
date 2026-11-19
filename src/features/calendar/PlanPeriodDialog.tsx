@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import type { PeriodMonth, PeriodSlot } from '@/lib/api/types'
 import { layOutPeriod } from '@/lib/api/workPlans'
-import { formatMonth, formatWeekday } from '@/lib/format'
+import { formatDayOfMonth, formatMonth, formatWeekday } from '@/lib/format'
 import { monthOf, shiftMonth, today } from '@/lib/month'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
@@ -176,7 +176,7 @@ export function PlanPeriodDialog({ open, onOpenChange }: Props) {
                             !free(slot) && 'text-faint line-through',
                           )}
                         >
-                          {formatWeekday(slot.date, i18n.language)}
+                          {formatDayOfMonth(slot.date, i18n.language)}
                         </li>
                       ))}
                     </ul>

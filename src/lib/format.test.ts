@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatCost,
   formatDay,
+  formatDayOfMonth,
   formatDelta,
   formatDuration,
   formatMoment,
@@ -55,6 +56,19 @@ describe('a date', () => {
     expect(formatDay('2026-09-01', 'en', NOW)).toBe('Sep 1')
     expect(formatDay('2025-09-01', 'en', NOW)).toBe('Sep 1, 2025')
     expect(formatDay('2026-09-01', 'ru', NOW)).toBe('1 сент.')
+  })
+
+  it('is a weekday and a number under a month that names the rest (v0.152)', () => {
+    // The order is the language's own: a weekday and a number, no month.
+    for (const [language, weekday] of [
+      ['en', 'Tue'],
+      ['ru', 'вт'],
+    ] as const) {
+      const said = formatDayOfMonth('2027-01-05', language)
+      expect(said).toContain(weekday)
+      expect(said.split(/\D+/)).toContain('5')
+      expect(said).not.toMatch(/2027|Jan|янв/)
+    }
   })
 
   it('reads a timestamp by the day it was written where the window is', () => {

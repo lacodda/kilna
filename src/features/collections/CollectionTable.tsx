@@ -153,6 +153,7 @@ function Cell({
         <InlineField
           label={label}
           labelHidden
+          placeholder="—"
           value={typeof stored === 'number' ? stored : null}
           codec={numberCodec}
           onCommit={(value) => onChange(value)}
@@ -163,6 +164,7 @@ function Cell({
         <InlineField
           label={label}
           labelHidden
+          placeholder="—"
           value={typeof stored === 'string' ? stored : null}
           onCommit={(value) => onChange(value === null ? null : value.trim())}
         />

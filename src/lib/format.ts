@@ -157,6 +157,16 @@ export function formatWeekday(value: string, language = current(), now = new Dat
   }).format(day)
 }
 
+/**
+ * A day of a month named above it: "Tue 5", "вт, 5" - the weekday and the
+ * number, where the month and the year are already the heading's.
+ */
+export function formatDayOfMonth(value: string, language = current()): string {
+  const day = dayOf(value)
+  if (Number.isNaN(day.getTime())) return value
+  return dates(language, { weekday: 'short', day: 'numeric' }).format(day)
+}
+
 /** A month and its year, as a calendar names the month it shows. */
 export function formatMonth(year: number, month: number, language = current()): string {
   return dates(language, { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))
