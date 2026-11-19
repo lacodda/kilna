@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.163.0] - 2026-11-19
+
+Lighter and more to taste. A long catalogue is drawn a step at a time as it
+is scrolled, rather than every row before the first can be seen. Settings →
+General chooses the window's density - compact, regular, comfortable - on the
+theme's own sizes, the size of a version's text, and the face a sung text is
+set in; a style prompt stays monospace. A run writing a release's meta counts
+its time, and the idea boards' clocks count from the run's own start. Ctrl+S
+saves the profile's changes; a folder template can take the first of several
+placeholders that holds a value, as `{source_id|title}`; a plugin's path is
+copied with a press, and a long plugin form is folded among several plugins.
+
+### Bug Fixes
+- Ask for run start times with their own query key
+
+### Features
+- A running task says how long it has been going
+- A template takes the first of several placeholders that holds a value
+- Copy a plugin's path, fold a long form among several plugins
+- Ctrl+S saves the profile's changes
+- Idea boards count their clock from the run's own start
+- Choose the window's density - compact, regular, comfortable
+- The editor's text size and the face of a sung text
+
+### Performance
+- Draw a long catalogue a step at a time as it is scrolled
+
+### Refactoring
+- Say.ok carries a second line
+
 ## [0.162.0] - 2026-11-19
 
 Telling of trouble. Settings → About kilna says the version, the system, the
