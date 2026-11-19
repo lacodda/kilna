@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.156.0] - 2026-11-19
+
+Files coming in. A copy button in a month's table copies the prompt and arms
+a receiver: the next track or picture a generator saves in Downloads is that
+work's, and kilna moves it into the work's folder under the work's name - the
+track as its file where the kind's rule takes one, the picture as its cover -
+on a press, or by itself when told to. A bar above every screen says what
+waits and until when. An assistant working beside kilna hands its files over
+the same way: `propose_media` proposes each file with its work and its role,
+and nothing moves until the proposal is applied.
+
+### Bug Fixes
+- What the live run of the receiver turned up
+- Refuse a missing items list with the existing code; give the media proposal its look
+
+### Features
+- An armed receiver moves the next download into its work
+- Propose_media hands files made beside kilna to their works
+
 ## [0.155.0] - 2026-11-19
 
 Plugins in batches. A plugin's batch command runs over the works ticked in
