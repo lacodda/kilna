@@ -6,7 +6,7 @@ use tauri::State;
 use super::active;
 use crate::actions;
 use crate::asset::{Asset, NewAsset};
-use crate::canon::quota::{QuotaReport, Subject};
+use crate::canon::quota::{QuotaReport, QuotaSubject};
 use crate::canon::view::{self, CardFilter, CardSummary, CardView, Dated};
 use crate::canon::{CanonLink, CanonLinkPatch, Fact, FactPatch, NewCanonLink, NewFact};
 use crate::error::Result;
@@ -90,7 +90,7 @@ pub fn update_fact(state: State<'_, AppState>, id: String, patch: FactPatch) -> 
 /// The works of a subject checked against the space's rules (v0.151, FR-20
 /// 20.2): one work, a collection, a month, or the whole space.
 #[tauri::command]
-pub fn check_quotas(state: State<'_, AppState>, subject: Subject) -> Result<QuotaReport> {
+pub fn check_quotas(state: State<'_, AppState>, subject: QuotaSubject) -> Result<QuotaReport> {
     crate::canon::quota::check(&state.conn(), &subject)
 }
 

@@ -420,8 +420,8 @@ fn parse(id: &str, label: &str, data: &Map<String, Value>) -> Result<Rule> {
 /// What is checked: one work, the works of a collection, those of a month,
 /// or - all absent - the whole space.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
-#[ts(optional_fields, rename = "QuotaSubject")]
-pub struct Subject {
+#[ts(optional_fields)]
+pub struct QuotaSubject {
     #[serde(default)]
     pub work_id: Option<String>,
     #[serde(default)]
@@ -503,7 +503,7 @@ pub fn rules(conn: &Connection, profile_id: &str, config: &ProfileConfig) -> Res
 /// is measured by those too, work by work, then by the rules of a period
 /// over its works together and by the rules of the space over all of them.
 /// The whole space is measured by the rules of each work and of the space.
-pub fn check(conn: &Connection, subject: &Subject) -> Result<QuotaReport> {
+pub fn check(conn: &Connection, subject: &QuotaSubject) -> Result<QuotaReport> {
     let profile_id = crate::actions::active_profile_id(conn)?;
     let config = crate::profile::config_for(conn, &profile_id)?;
     let rules: Vec<Rule> = rules(conn, &profile_id, &config)?

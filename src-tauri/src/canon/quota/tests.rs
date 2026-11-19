@@ -3,7 +3,7 @@
 use rusqlite::Connection;
 use serde_json::{Value, json};
 
-use super::{Metric, Subject, check};
+use super::{Metric, QuotaSubject, check};
 use crate::canon::{FactPatch, FactStatus, NewFact, fact};
 use crate::collection::{self, NewCollection};
 use crate::fixtures;
@@ -191,7 +191,7 @@ fn a_rule_of_each_work_names_the_works_that_break_it() {
     )
     .unwrap();
 
-    let report = check(&conn, &Subject::default()).unwrap();
+    let report = check(&conn, &QuotaSubject::default()).unwrap();
     assert_eq!(report.rules, 1);
     assert_eq!(report.works, 2);
     assert_eq!(report.findings.len(), 1, "{:?}", report.findings);
@@ -204,9 +204,9 @@ fn a_rule_of_each_work_names_the_works_that_break_it() {
     // Asked about one work, the rule is asked of it alone.
     let alone = check(
         &conn,
-        &Subject {
+        &QuotaSubject {
             work_id: Some(long.id.clone()),
-            ..Subject::default()
+            ..QuotaSubject::default()
         },
     )
     .unwrap();
@@ -236,7 +236,7 @@ fn forbidden_words_are_found_in_a_texts_role() {
     )
     .unwrap();
 
-    let report = check(&conn, &Subject::default()).unwrap();
+    let report = check(&conn, &QuotaSubject::default()).unwrap();
     assert_eq!(report.findings.len(), 1);
     assert_eq!(report.findings[0].value.as_deref(), Some("NEON"));
     assert_eq!(report.findings[0].metric, Metric::ForbiddenTerms);
@@ -319,9 +319,9 @@ fn a_rule_of_a_period_counts_a_collections_works_together() {
 
     let report = check(
         &conn,
-        &Subject {
+        &QuotaSubject {
             collection_id: Some(album.id.clone()),
-            ..Subject::default()
+            ..QuotaSubject::default()
         },
     )
     .unwrap();
@@ -381,9 +381,9 @@ fn a_month_reads_its_works_and_a_rule_reads_the_works_that_have_its_field() {
 
     let report = check(
         &conn,
-        &Subject {
+        &QuotaSubject {
             month: Some("2026-10".into()),
-            ..Subject::default()
+            ..QuotaSubject::default()
         },
     )
     .unwrap();
@@ -397,9 +397,9 @@ fn a_month_reads_its_works_and_a_rule_reads_the_works_that_have_its_field() {
 
     let refused = check(
         &conn,
-        &Subject {
+        &QuotaSubject {
             month: Some("October".into()),
-            ..Subject::default()
+            ..QuotaSubject::default()
         },
     );
     assert_eq!(

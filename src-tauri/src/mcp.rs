@@ -2154,7 +2154,7 @@ pub fn run_tool(
                 }
                 None => None,
             };
-            let subject = crate::canon::quota::Subject {
+            let subject = crate::canon::quota::QuotaSubject {
                 work_id,
                 collection_id,
                 month: arg(args, "month").map(str::to_owned),

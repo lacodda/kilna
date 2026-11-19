@@ -313,7 +313,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::canon::quota::Metric,
         kilna_lib::canon::quota::Scope,
         kilna_lib::canon::quota::Severity,
-        kilna_lib::canon::quota::Subject,
+        kilna_lib::canon::quota::QuotaSubject,
         kilna_lib::canon::quota::QuotaFinding,
         kilna_lib::canon::quota::QuotaReport,
         kilna_lib::canon::bank::BankUse,
