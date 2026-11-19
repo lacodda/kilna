@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ListChecks, ListFilter, Plus, X } from 'lucide-react'
+import { ListChecks, ListFilter, Plus, Sparkles, X } from 'lucide-react'
+import { createChat, startRun } from '@/lib/api/assistant'
 import { deleteCollection, updateCollection } from '@/lib/api/collections'
 import type { Collection, CollectionPatch, ScoredWork } from '@/lib/api/types'
 import { saveFilter } from '@/lib/catalogue'
@@ -14,7 +15,9 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { stageAt } from '@/lib/stages'
 import { announceDeleted } from '@/lib/trash'
+import { useAssistant } from '@/lib/useAssistant'
 import { useCovers } from '@/lib/useCovers'
+import { keys } from '@/lib/query/keys'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -66,6 +69,28 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
   // The works as a table to fill in (v0.152), and the days they are planned
   // on - a draft's day is its slot's.
   const [asTable, setAsTable] = useState(false)
+  // One task for the whole month (v0.153, FR-20 20.4): a chat of its own,
+  // asked to write every draft in one pass and to answer with one proposal
+  // the checklist reads before anything is written.
+  const assistant = useAssistant()
+  const monthSkill = (config.prompts ?? []).find((one) => one.key === 'channel-plan-period')
+  const writeMonth = useAppMutation({
+    mutationFn: async () => {
+      const chat = await createChat({ title: t('month.chatTitle', { title: collection.title }) })
+      const order = [
+        `Write the drafts of the collection "${collection.title}" (id ${collection.id}) in one pass.`,
+        monthSkill === undefined
+          ? 'Read workspace, the passport with canon, quotas for the collection and register first.'
+          : `Open the skill ${monthSkill.key} with guide and follow its method.`,
+        `Answer with one propose_batch_prompts naming the collection ${collection.id}: a title, the fields and the texts for every work, and the bank items each takes.`,
+      ].join(' ')
+      await startRun(chat.id, order)
+      return chat
+    },
+    failure: 'month.taskFailed',
+    refresh: [keys.allChats, keys.activeTasks],
+    onSuccess: (chat) => assistant.open(chat.id),
+  })
   const plans = useQuery({ ...queries.workPlans(), enabled: asTable })
 
   // The order a drop asked for, until the answer comes back with it: the
@@ -187,6 +212,17 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
             <ListChecks aria-hidden />
             {t('quota.checkCollection')}
           </Button>
+          {order.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={writeMonth.isPending}
+              onClick={() => writeMonth.mutate()}
+            >
+              <Sparkles aria-hidden />
+              {t('month.writeWithAssistant')}
+            </Button>
+          )}
           <span className="ml-auto font-mono text-xs text-faint">
             {t('collections.held', { count: progress.held })}
           </span>

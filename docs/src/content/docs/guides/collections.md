@@ -57,7 +57,9 @@ At the top, the name - click it to rename - and the kind. Under it:
   kind has - a genre, a tradition, a tempo, a mood, what its cover shows -
   each written in place and kept when you leave the cell, an undo a cell.
   A month's drafts from [Plan a period](/kilna/guides/planning-a-release/#planning-a-period)
-  are filled in here.
+  are filled in here. Each row copies the prompt its sound is written from
+  and its cover's prompt in one press (v0.153), and **Copy the month** puts
+  every work's title, prompt and cover on the clipboard at once.
 
 Every change to the order, an addition or a removal is **one step back**:
 the toast offers to undo it, and **Ctrl+Z** does the same. Undoing puts every

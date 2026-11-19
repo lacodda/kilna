@@ -1,13 +1,17 @@
 import { useTranslation } from 'react-i18next'
+import { Copy, Image } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import type { Collection, MetaField, ScoredWork, Work, WorkPlan } from '@/lib/api/types'
-import { updateWork } from '@/lib/api/works'
+import { getWork, updateWork } from '@/lib/api/works'
 import { formatWeekday } from '@/lib/format'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
+import { composedRole, coverText, roleText } from '@/lib/roleText'
+import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Select } from '@/components/AppSelect'
+import { Button } from '@/components/ui/button'
 import { InlineField, numberCodec } from '@/components/ui/inline-field'
 import {
   Table,
@@ -59,30 +63,71 @@ export function CollectionTable({ collection, works, plans }: Props) {
     return left.localeCompare(right)
   })
 
+  // The whole month as one text to paste where the tracks are made: each
+  // work's title, its prompt and its cover (v0.153, FR-20 20.4).
+  const copyMonth = async () => {
+    const parts: string[] = []
+    for (const id of ids) {
+      const work = await getWork(id)
+      if (work === null) continue
+      const role = composedRole(config, work.kind)
+      const sound = role === null ? null : await roleText(id, role)
+      const cover = coverText(work)
+      parts.push(
+        [
+          `## ${work.title}`,
+          sound === null ? null : `${t('collections.copiedSound')}: ${sound}`,
+          cover === null ? null : `${t('collections.copiedCover')}: ${cover}`,
+        ]
+          .filter((part) => part !== null)
+          .join('\n'),
+      )
+    }
+    await copy(parts.join('\n\n'), t('collections.copiedMonth', { count: parts.length }))
+  }
+
   return (
-    <TableScroll className="max-h-none">
-      <Table aria-label={t('collections.table', { title: collection.title })}>
-        <TableHead>
-          <TableRow>
-            <TableHeader>{t('collections.tableDay')}</TableHeader>
-            <TableHeader>{t('collections.tableTitle')}</TableHeader>
-            {columns.map((field) => (
-              <TableHeader key={field.key}>{sayLabel(field.label)}</TableHeader>
+    <div className="flex flex-col gap-1.5">
+      <Button size="xs" variant="ghost" className="self-end" onClick={() => void copyMonth()}>
+        <Copy aria-hidden />
+        {t('collections.copyMonth')}
+      </Button>
+      <TableScroll className="max-h-none">
+        <Table aria-label={t('collections.table', { title: collection.title })}>
+          <TableHead>
+            <TableRow>
+              <TableHeader>{t('collections.tableDay')}</TableHeader>
+              <TableHeader>{t('collections.tableTitle')}</TableHeader>
+              <TableHeader>{t('collections.tableCopy')}</TableHeader>
+              {columns.map((field) => (
+                <TableHeader key={field.key}>{sayLabel(field.label)}</TableHeader>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {ids.map((id) => (
+              <Row key={id} id={id} day={dayOf(id)} columns={columns} />
             ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {ids.map((id) => (
-            <Row key={id} id={id} day={dayOf(id)} columns={columns} />
-          ))}
-        </TableBody>
-      </Table>
-    </TableScroll>
+          </TableBody>
+        </Table>
+      </TableScroll>
+    </div>
   )
 }
 
+/** Put `text` on the clipboard and say so. */
+async function copy(text: string, said: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    say.ok(said)
+  } catch (cause) {
+    say.failed(cause)
+  }
+}
+
 function Row({ id, day, columns }: { id: string; day: string | null; columns: MetaField[] }) {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const { config } = useProfile()
   const work = useQuery(queries.work(id))
   const patch = useAppMutation({
     mutationFn: (change: Parameters<typeof updateWork>[1]) => updateWork(id, change),
@@ -106,6 +151,40 @@ function Row({ id, day, columns }: { id: string; day: string | null; columns: Me
             patch.mutate({ title: title.trim() })
           }}
         />
+      </TableCell>
+      {/* The text a generator is given, a press away (v0.153): the
+          prompt its sound is written out of, and its cover's. */}
+      <TableCell className="whitespace-nowrap">
+        {composedRole(config, data.kind) !== null && (
+          <Button
+            size="icon-xs"
+            variant="icon"
+            aria-label={t('collections.copySound', { title: data.title })}
+            title={t('collections.copySound', { title: data.title })}
+            onClick={() => {
+              const role = composedRole(config, data.kind)
+              if (role === null) return
+              void roleText(id, role).then((text) =>
+                text === null
+                  ? say.warn(t('collections.nothingToCopy'))
+                  : copy(text, t('collections.copied')),
+              )
+            }}
+          >
+            <Copy aria-hidden />
+          </Button>
+        )}
+        {coverText(data) !== null && (
+          <Button
+            size="icon-xs"
+            variant="icon"
+            aria-label={t('collections.copyCover', { title: data.title })}
+            title={t('collections.copyCover', { title: data.title })}
+            onClick={() => void copy(coverText(data) ?? '', t('collections.copied'))}
+          >
+            <Image aria-hidden />
+          </Button>
+        )}
       </TableCell>
       {columns.map((field) => (
         <TableCell key={field.key} className="min-w-36">
