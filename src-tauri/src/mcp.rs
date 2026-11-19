@@ -676,7 +676,7 @@ fn tools() -> Vec<Value> {
             json!({
                 "items": {
                     "type": "array",
-                    "description": "Each: {work (id or exact title), path (whole), role: candidate_audio | final_audio | candidate_cover | final_cover | video | asset, rename_to_work?: true}",
+                    "description": "Each: {work (id or exact title), path (whole), role: candidate_audio | final_audio | candidate_cover | final_cover | video | asset, rename_to_work?: true, reason?: why it is that work's, confidence?: 0..1}",
                     "items": { "type": "object" },
                 },
             }),
@@ -2393,6 +2393,11 @@ pub fn run_tool(
                         .get("rename_to_work")
                         .and_then(Value::as_bool)
                         .unwrap_or(true),
+                    reason: arg(one, "reason").map(str::to_owned),
+                    confidence: one
+                        .get("confidence")
+                        .and_then(Value::as_f64)
+                        .map(|sure| sure.clamp(0.0, 1.0)),
                 });
             }
             if items.is_empty() {
@@ -7189,5 +7194,66 @@ mod tests {
         assert!(!take.exists());
         let moved = work::get(&conn, &song.id).unwrap().unwrap();
         assert_eq!(moved.file.as_deref(), Some("Harbour lights.mp3"));
+    }
+
+    /// Pictures an assistant matched by what they show carry why and how
+    /// sure, and only the ones ticked are taken (v0.157).
+    #[test]
+    fn only_the_ticked_files_of_a_proposal_are_taken() {
+        let (conn, profile_id) = fixtures::workspace();
+        let root = tempfile::tempdir().unwrap();
+        crate::folder::set_root(
+            &conn,
+            &profile_id,
+            Some(&root.path().to_string_lossy()),
+            "2030-01-01T00:00:00.000Z",
+        )
+        .unwrap();
+        fixtures::song(&conn, &profile_id, "Harbour lights");
+        let downloads = tempfile::tempdir().unwrap();
+        let kept = downloads.path().join("a.mp3");
+        let left = downloads.path().join("b.mp3");
+        std::fs::write(&kept, b"ID3").unwrap();
+        std::fs::write(&left, b"ID3").unwrap();
+        run_tool(
+            &conn,
+            &claude(),
+            "propose_media",
+            &args(json!({ "items": [
+                { "work": "Harbour lights", "path": kept.to_string_lossy(), "role": "candidate_audio",
+                  "reason": "the hook it was asked for", "confidence": 1.7 },
+                { "work": "Harbour lights", "path": left.to_string_lossy(), "role": "candidate_audio" },
+            ] })),
+        )
+        .unwrap();
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats.iter().find(|c| c.work_id.is_none()).unwrap();
+        let proposed = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        let crate::assistant::proposal::Proposal::Media { items } =
+            crate::actions::proposal::stored_proposal(&proposed.meta).unwrap()
+        else {
+            panic!("not files")
+        };
+        assert_eq!(
+            items[0].reason.as_deref(),
+            Some("the hook it was asked for")
+        );
+        assert_eq!(items[0].confidence, Some(1.0), "held to 0..1");
+
+        crate::actions::proposal::apply(
+            &conn,
+            &proposed.id,
+            crate::actions::proposal::Overrides {
+                items: Some(vec!["media:0".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(!kept.exists());
+        assert!(left.exists(), "an unticked file stays where it was");
     }
 }

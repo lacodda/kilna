@@ -545,7 +545,15 @@ pub fn check(
         // Files to take (v0.156): every work still there, every file still
         // a file of the kind its role takes.
         Proposal::Media { items } => {
-            for item in items {
+            for (index, item) in items.iter().enumerate() {
+                // A file the person did not tick is not taken, nor checked.
+                if overrides
+                    .items
+                    .as_ref()
+                    .is_some_and(|taken| !taken.iter().any(|one| *one == format!("media:{index}")))
+                {
+                    continue;
+                }
                 if work::get(conn, &item.work_id)?.is_none() {
                     note(Err(Error::not_found("work", &item.work_id)));
                 }
@@ -1076,7 +1084,15 @@ fn keep(
             } else {
                 std::path::PathBuf::new()
             };
-            for item in items {
+            // The files the person ticked (v0.157), every file when unsaid.
+            for (index, item) in items.into_iter().enumerate() {
+                if overrides
+                    .items
+                    .as_ref()
+                    .is_some_and(|taken| !taken.iter().any(|one| *one == format!("media:{index}")))
+                {
+                    continue;
+                }
                 super::media::take(
                     conn,
                     &media,

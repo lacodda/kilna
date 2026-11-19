@@ -374,6 +374,15 @@ pub struct MediaItem {
     /// Given a name of the work's; kept as it is named otherwise.
     #[serde(default = "yes")]
     pub rename: bool,
+    /// Why the file is this work's - what a picture shows that its cover
+    /// prompt asks for (v0.157).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub reason: Option<String>,
+    /// How sure the one who matched it is, from 0 to 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub confidence: Option<f64>,
 }
 
 fn yes() -> bool {

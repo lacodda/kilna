@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Star } from 'lucide-react'
 import {
@@ -18,6 +19,7 @@ import { ColumnPicker } from './ColumnPicker'
 import { GroupMenu } from './GroupMenu'
 import { QueryBox } from './QueryBox'
 import { ViewsMenu } from './ViewsMenu'
+import { BatchMatcher } from '@/features/receiver/BatchMatcher'
 
 interface Props {
   filter: CatalogueFilter
@@ -67,6 +69,8 @@ export function CatalogueToolbar(props: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const { filter } = props
+  // The batch of files being sorted into works, while its dialog is open.
+  const [sorting, setSorting] = useState(false)
 
   return (
     <>
@@ -113,6 +117,11 @@ export function CatalogueToolbar(props: Props) {
           />
           {t('catalogue.starred')}
         </Button>
+        {/* A heap of files from Downloads sorted into the works (v0.157). */}
+        <Button size="sm" variant="ghost" onClick={() => setSorting(true)}>
+          {t('matcher.open')}
+        </Button>
+        {sorting && <BatchMatcher collectionId={null} onClose={() => setSorting(false)} />}
       </div>
 
       <div className="flex w-full flex-wrap items-center gap-1.5">

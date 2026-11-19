@@ -22,6 +22,7 @@ pub mod folders;
 pub mod ideas;
 pub mod journal;
 pub mod links;
+pub mod matcher;
 pub mod notes;
 pub mod packs;
 pub mod plugins;

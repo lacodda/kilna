@@ -477,6 +477,38 @@ own - hands its files over the same way through the
 its role waits as one proposal in its chat, and moves in only when you apply
 it.
 
+## Sorting a heap of files
+
+Several takes and covers downloaded in a row land in Downloads under names
+of the generators' own. Since v0.157 **Sort files…** - in the catalogue's
+toolbar, and under a collection for its works alone - sorts them into their
+works in one go.
+
+Drop the files on the window, or choose them (a folder brings its files).
+kilna matches each without guessing:
+
+- **by the work's id** in its name - the whole id, or its first eight
+  characters;
+- **by the track's tags** - the title a generator wrote into an `.mp3`;
+- **by the title** - the work's title as the name, or the longest title
+  inside it;
+- **by the cover's prompt** - a picture named after the first words of what
+  it was drawn from, the way image generators name their files.
+
+A table shows every file with what it matched and how sure, and lets you
+choose its work and what it becomes: the track, a take to choose from, the
+cover, a cover to choose from, the video, a file - or **Leave where it is**,
+or **To the recycle bin**. The first file of a kind for a work is taken as
+what finishes it, the next ones as ones to choose from; a second download -
+`take (1).mp3` - waits where it is unless you let it go. Nothing moves until
+**Sort into folders**; what goes to the recycle bin is asked once more.
+
+A picture named by a moment alone - `202604112318.png` - matches nothing.
+**Ask the assistant about the pictures** sends those to the assistant, which
+looks at each and answers in a chat of its own (*Pictures of a batch*) with
+a proposal: each picture with its work, a sentence on why, and how sure. Tick
+the ones you agree with and apply it; the rest stay where they were.
+
 ## The player
 
 A work with a sound - attached, or in its folder - gets a player at the top of

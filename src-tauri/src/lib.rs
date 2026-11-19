@@ -31,6 +31,7 @@ pub mod library;
 pub mod lines;
 pub mod link;
 pub mod log;
+pub mod matcher;
 pub mod mcp;
 pub mod minted;
 pub mod month;
@@ -651,6 +652,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::receiver::arm_receiver,
             commands::receiver::disarm_receiver,
             commands::receiver::take_received,
+            commands::matcher::match_media,
+            commands::matcher::media_preview,
+            commands::matcher::take_media_batch,
             commands::works::works_media,
             commands::plugins::build_sources,
         ])

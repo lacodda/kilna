@@ -16,4 +16,13 @@ path: string, role: MediaRole,
 /**
  * Given a name of the work's; kept as it is named otherwise.
  */
-rename: boolean, };
+rename: boolean, 
+/**
+ * Why the file is this work's - what a picture shows that its cover
+ * prompt asks for (v0.157).
+ */
+reason?: string, 
+/**
+ * How sure the one who matched it is, from 0 to 1.
+ */
+confidence?: number, };

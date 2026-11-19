@@ -246,7 +246,7 @@ fn through_an_action(path: &str) -> bool {
 /// Each entry is a promise that replaying the log without its write still
 /// produces the right database, and says why. Anything not on this list that
 /// writes has to hand the write to an action.
-const WRITES_PAST_THE_ACTIONS: [(&str, &str); 20] = [
+const WRITES_PAST_THE_ACTIONS: [(&str, &str); 21] = [
     (
         "create_space",
         "a space is a folder of its own with a database of its own (ADR 0077): making one \
@@ -316,6 +316,10 @@ const WRITES_PAST_THE_ACTIONS: [(&str, &str); 20] = [
     (
         "trash_folder_file",
         "moves a file of the person's folder on disk into the system's recycle bin and          writes no row: the folder is looked at, never recorded (ADR 0057), so the workspace          holds nothing an operation could describe - and what brings the file back is the          recycle bin, not kilna's undo",
+    ),
+    (
+        "take_media_batch",
+        "puts the duplicates of a batch the person let go into the system's recycle bin -          files of Downloads, never rows; what it takes into works goes through          `actions::media::take`, and what brings a let-go file back is the recycle bin          (v0.157)",
     ),
     (
         "open_work_folder",

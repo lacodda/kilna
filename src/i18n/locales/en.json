@@ -3987,7 +3987,8 @@
       "notAFile": "“{{path}}” is not a file kilna can take.",
       "wrongKind": "“{{name}}” is not a file of the kind it was meant to be taken as.",
       "noFolder": "The folder of “{{title}}” is not there to move the file into.",
-      "moveFailed": "“{{name}}” could not be moved: {{cause}}"
+      "moveFailed": "“{{name}}” could not be moved: {{cause}}",
+      "notHanded": "“{{path}}” is not a file of the batch being sorted."
     },
     "receiver": {
       "badMinutes": "A receiver waits from 1 to {{most}} minutes, not {{value}}.",
@@ -5865,6 +5866,50 @@
       "final_cover": "the cover",
       "video": "the video",
       "asset": "a file"
-    }
+    },
+    "takeItem": "Take “{{name}}”"
+  },
+  "matcher": {
+    "title": "Sort files into works",
+    "titleOf": "Sort files into “{{title}}”",
+    "empty": "Drop takes and covers here - a heap from Downloads is fine - or choose them. Nothing moves until you say so.",
+    "choose": "Choose files…",
+    "chooseMore": "Add files…",
+    "chooseTitle": "Files to sort into works",
+    "file": "File",
+    "work": "Work",
+    "fate": "As",
+    "workOf": "The work of “{{name}}”",
+    "fateOf": "What “{{name}}” becomes",
+    "noWork": "— none —",
+    "skip": "Leave where it is",
+    "trash": "To the recycle bin",
+    "unmatched": "Not matched",
+    "duplicate": "a second download",
+    "by": {
+      "id": "by the work’s id",
+      "tag": "by the track’s tags",
+      "title": "by the title",
+      "cover_prompt": "by the cover’s prompt"
+    },
+    "chatTitle": "Pictures of a batch",
+    "trashText": "They go to the system’s recycle bin, where they can be brought back from.",
+    "matchFailed": "The files could not be matched.",
+    "sortFailed": "The files could not be sorted.",
+    "askFailed": "The assistant could not be asked.",
+    "done": "Moved in: {{taken}}. To the recycle bin: {{trashed}}.",
+    "open": "Sort files…",
+    "ambiguous_one": "{{count}} works answer",
+    "ambiguous_other": "{{count}} works answer",
+    "ask_one": "Ask the assistant about {{count}} picture",
+    "ask_other": "Ask the assistant about {{count}} pictures",
+    "asked_one": "Asked about {{count}} picture: its answer comes as a proposal in the chat “Pictures of a batch”.",
+    "asked_other": "Asked about {{count}} pictures: its answer comes as a proposal in the chat “Pictures of a batch”.",
+    "sort_one": "Sort {{count}} file into folders",
+    "sort_other": "Sort {{count}} files into folders",
+    "trashTitle_one": "Let {{count}} file go?",
+    "trashTitle_other": "Let {{count}} files go?",
+    "trashAction_one": "Sort, and let {{count}} go",
+    "trashAction_other": "Sort, and let {{count}} go"
   }
 }

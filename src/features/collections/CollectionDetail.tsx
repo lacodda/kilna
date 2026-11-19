@@ -35,6 +35,7 @@ import { StageDial } from '@/components/StageDial'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { CollectionTable } from './CollectionTable'
 import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
+import { BatchMatcher } from '@/features/receiver/BatchMatcher'
 import { BulkPlugins } from '@/features/catalogue/BulkPlugins'
 import { GoalLine } from './GoalLine'
 import { useCollectionGestures } from './useCollectionGestures'
@@ -67,6 +68,8 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
   // Its works checked against the space's rules (v0.151): a month's pack is
   // where a channel's quotas are kept.
   const [checking, setChecking] = useState(false)
+  // A heap of takes and covers sorted into the collection's works (v0.157).
+  const [sorting, setSorting] = useState(false)
   // The works as a table to fill in (v0.152), and the days they are planned
   // on - a draft's day is its slot's.
   const [asTable, setAsTable] = useState(false)
@@ -226,6 +229,9 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
           )}
           {/* A plugin's batch command over the collection's works (v0.155). */}
           <BulkPlugins workIds={order} inBar={false} />
+          <Button size="sm" variant="ghost" onClick={() => setSorting(true)}>
+            {t('matcher.open')}
+          </Button>
           <span className="ml-auto font-mono text-xs text-faint">
             {t('collections.held', { count: progress.held })}
           </span>
@@ -450,6 +456,13 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
           onOpenChange={setChecking}
           subject={{ collection_id: collection.id }}
           title={t('quota.titleCollection', { title: collection.title })}
+        />
+      )}
+      {sorting && (
+        <BatchMatcher
+          collectionId={collection.id}
+          collectionTitle={collection.title}
+          onClose={() => setSorting(false)}
         />
       )}
     </Pane>
