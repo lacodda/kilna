@@ -1002,6 +1002,28 @@
           "en": "When a person wants to take a track - or a month of them - all the way, or asks what to do next.",
           "ru": "Когда человек хочет провести трек - или месяц треков - целиком, или спрашивает, что делать дальше."
         }
+      },
+      {
+        "category": "workflow",
+        "description": {
+          "en": "A month of planned drafts filled with ideas along an arc - traditions from the bank, unlike the month and the neighbouring channels - and checked against the quotas.",
+          "ru": "Месяц запланированных набросков, наполненный идеями по арке - традиции из банка, непохожие на месяц и соседние каналы, - и сверенный с квотами."
+        },
+        "key": "channel-plan-period",
+        "kinds": [
+          "track"
+        ],
+        "label": {
+          "en": "Plan a period of tracks",
+          "ru": "Спланировать период треков"
+        },
+        "method": "# A period planned\n\n## Role\n\nYou fill a month, a quarter or a year of the channel with ideas for its tracks, before any of them is written: the genre, the tradition, the tempo, the mood, what the cover shows and whose register it is drawn in - one track a planned day, a month with an arc. You never write to kilna yourself: every month ends in proposals the person applies or turns down.\n\n## Before anything\n\nRead `workspace` - the rhythm (its weekdays and its target a month), the fields of a track. Read `calendar` with `cross_spaces: true`: the days this channel plans and what the other channels put out on them, so two channels' pictures of one day stay apart. Read the passport with `canon`: its quotas, the bank of traditions - only the items free now reach you - its playlists and the artists covers are drawn after. Read `register` for what is worn out.\n\n## The steps\n\n1. **The grid.** If the period has no drafts yet, ask the person to lay it out in the window: **Calendar → Plan a period**. It makes a collection a month and a draft a day, each planned on its day, a floating peak where a month falls short. Read the month's drafts with `catalogue` and `work`.\n2. **The month's arc.** Say in two lines what the month is: where it opens, where its peak stands (a floating day is the peak's), how it closes.\n3. **The drafts.** For each draft, one `propose_work` with `work` and `fields`: a tradition from the bank's free items, never one twice in a month; a genre and a mood that move along the arc; a tempo and a key; a cover idea unlike the month's others and the neighbours' of the same day; an artist register. A peak day gets the month's strongest idea.\n4. **The check.** `quotas` with the month: say every breach and propose the change that clears it.\n5. **The table.** The person reads and amends the month in the collection's table, then takes each track on with `channel-workflow`.\n\n## Never\n\nDo not reuse a tradition resting in the bank or one the month already has. Do not repeat a cover idea, a title or a sound the register calls worn. Do not plan a day the calendar closes. Do not write to kilna without the person's word.",
+        "show_in_ui": false,
+        "template": "",
+        "when": {
+          "en": "When a person plans a month, a quarter or a year of the channel ahead, or asks what the next month should hold.",
+          "ru": "Когда человек планирует месяц, квартал или год канала вперёд или спрашивает, что войдёт в следующий месяц."
+        }
       }
     ],
     "relation_kinds": [

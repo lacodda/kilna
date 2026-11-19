@@ -52,6 +52,12 @@ At the top, the name - click it to rename - and the kind. Under it:
 - **Works, in order** - the running order. Drag a row by its grip to move
   it, or focus a row and press **Alt + ↑** / **Alt + ↓**. The **×** at the end
   of a row takes the work out; the work itself stays in the catalogue.
+  **Table** (v0.152) shows the same works as a table to fill in: a row a
+  work with the day it is planned on, its title and every one-line field its
+  kind has - a genre, a tradition, a tempo, a mood, what its cover shows -
+  each written in place and kept when you leave the cell, an undo a cell.
+  A month's drafts from [Plan a period](/kilna/guides/planning-a-release/#planning-a-period)
+  are filled in here.
 
 Every change to the order, an addition or a removal is **one step back**:
 the toast offers to undo it, and **Ctrl+Z** does the same. Undoing puts every

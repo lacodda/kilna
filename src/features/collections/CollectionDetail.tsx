@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ListChecks, ListFilter, Plus, X } from 'lucide-react'
 import { deleteCollection, updateCollection } from '@/lib/api/collections'
 import type { Collection, CollectionPatch, ScoredWork } from '@/lib/api/types'
@@ -9,6 +9,7 @@ import { saveFilter } from '@/lib/catalogue'
 import { moveTo, progressOf, standingOf } from '@/lib/collections'
 import { coverImageFor } from '@/lib/cover'
 import { formatTotal } from '@/lib/format'
+import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { stageAt } from '@/lib/stages'
@@ -28,6 +29,8 @@ import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { RowMenu } from '@/components/RowMenu'
 import { Select } from '@/components/AppSelect'
 import { StageDial } from '@/components/StageDial'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
+import { CollectionTable } from './CollectionTable'
 import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
 import { GoalLine } from './GoalLine'
 import { useCollectionGestures } from './useCollectionGestures'
@@ -60,6 +63,10 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
   // Its works checked against the space's rules (v0.151): a month's pack is
   // where a channel's quotas are kept.
   const [checking, setChecking] = useState(false)
+  // The works as a table to fill in (v0.152), and the days they are planned
+  // on - a draft's day is its slot's.
+  const [asTable, setAsTable] = useState(false)
+  const plans = useQuery({ ...queries.workPlans(), enabled: asTable })
 
   // The order a drop asked for, until the answer comes back with it: the
   // list must not jump back to where the row was for the length of a round
@@ -289,8 +296,29 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
       />
 
       <section className="flex flex-col gap-1.5">
-        <h2 className="caption">{t('collections.works')}</h2>
-        {order.length === 0 ? (
+        <div className="flex items-center gap-2">
+          <h2 className="caption">{t('collections.works')}</h2>
+          {/* The works as a list to order, or as a table to fill in - a
+              month's drafts, a field a column (v0.152). */}
+          {order.length > 0 && (
+            <SegmentedControl
+              aria-label={t('collections.view')}
+              value={asTable ? 'table' : 'list'}
+              onValueChange={(next) => setAsTable(next === 'table')}
+              className="ml-auto"
+            >
+              <Segment value="list">{t('collections.viewList')}</Segment>
+              <Segment value="table">{t('collections.viewTable')}</Segment>
+            </SegmentedControl>
+          )}
+        </div>
+        {order.length > 0 && asTable ? (
+          <CollectionTable
+            collection={{ ...collection, work_ids: order }}
+            works={standing.works}
+            plans={plans.data ?? []}
+          />
+        ) : order.length === 0 ? (
           <EmptyState
             plain
             title={t('collections.emptyTitle')}

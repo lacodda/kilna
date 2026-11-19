@@ -60,6 +60,25 @@ describe('the collections screen', () => {
     ])
   })
 
+  it('fills the works in as a table, a field a column, a cell kept on leaving it', async () => {
+    backend.answer('update_work', ({ id }) => studio().works.find((work) => work.id === id))
+    const { client } = renderApp(`/collections/${IDS.collection}`)
+    await screen.findByRole('listitem', { name: 'Harbour Lights' })
+    await settled(client)
+
+    fireEvent.click(screen.getByRole('radio', { name: en.collections.viewTable }))
+    await settled(client)
+    const key = await screen.findByRole('textbox', { name: 'Key · Paper Lanterns' })
+    expect(key).toHaveValue('A minor')
+    fireEvent.change(key, { target: { value: 'D minor' } })
+    fireEvent.blur(key)
+    await settled(client)
+
+    expect(backend.argsOf('update_work')).toEqual([
+      { id: IDS.song, patch: { meta: { key: 'D minor' } } },
+    ])
+  })
+
   it('takes a work out by writing the list without it', async () => {
     const { client } = renderApp(`/collections/${IDS.collection}`)
     const out = await screen.findByRole('button', {
