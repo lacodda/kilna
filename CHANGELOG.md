@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.159.0] - 2026-11-19
+
+Putting out by hand. The YouTube API's quota is often gone and a robot in
+YouTube Studio gets channels banned, so «YouTube Studio…» - under a
+collection, or for the works ticked in the catalogue - walks the releases
+still to go out that have their video, one step each: the video and cover
+shown in their folder to drag into the browser, every field copied with a
+press and ticked once copied, the day in the window's language and the time
+in the channel's zone - said when summer time changes the offset - and the
+link YouTube gave, checked, which marks the release out on its day or keeps
+it booked before.
+
+### Bug Fixes
+- Say the pack's typed date through lib/format
+
+### Features
+- Put a batch out in YouTube Studio by hand
+
 ## [0.158.0] - 2026-11-19
 
 Generating, the kilna side. A plugin can now offer a command on the Cover
