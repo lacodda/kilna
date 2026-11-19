@@ -440,12 +440,15 @@ export function CalendarView({ onSelect }: Props) {
             <QueuePane
               queued={queued}
               works={works}
+              plans={workPlans.data ?? []}
               source={source}
               onSourceChange={setSource}
               picked={picked}
               onPick={setPicked}
               onClaim={land}
-              claiming={actions.claim.isPending || actions.fillDay.isPending}
+              claiming={
+                actions.claim.isPending || actions.fillDay.isPending || actions.planDay.isPending
+              }
               onLayOut={preview === null ? () => actions.preview.mutate() : undefined}
               layingOut={actions.preview.isPending}
               onGrab={drag.begin}

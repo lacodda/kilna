@@ -563,7 +563,7 @@
     "unpinnedPeriod_other": "{{count}} dates free to move again.",
     "paneSource": "What the pane lists",
     "unplanned": "Works",
-    "unplannedHint": "Works that could go out and have nothing planned. Drag one onto a day, or pick it and give it a date.",
+    "unplannedHint": "Works that could go out and have nothing planned, including those that go out only as what is made from them. Drag one onto a day, or pick it and give it a date: such a work is planned there until what goes out is made.",
     "unplannedEmpty": "Every work that can go out has its release.",
     "unplannedSearch": "Find a work…",
     "missingCover": "a cover",

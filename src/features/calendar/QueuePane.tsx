@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { UseQueryResult } from '@tanstack/react-query'
-import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import type { ScheduledRelease, ScoredWork, WorkPlan } from '@/lib/api/types'
 import { coverImageFor } from '@/lib/cover'
 import { formatNumber } from '@/lib/format'
 import { standsAt } from '@/lib/stages'
@@ -35,6 +35,8 @@ interface Props {
   queued: UseQueryResult<ScheduledRelease[]>
   /** The catalogue's rows, for the works with nothing planned. */
   works: UseQueryResult<ScoredWork[]>
+  /** The works planned on a day: they stand on the calendar already. */
+  plans: readonly WorkPlan[]
   source: PaneSource
   onSourceChange: (source: PaneSource) => void
   /** What is waiting for a date, if anything: a queued release's id, or a
@@ -64,7 +66,8 @@ interface Props {
  * yet, the catalogue as the calendar needs it. A row of either is picked and
  * then given a day, or carried onto one: a queued release takes the day, a
  * work gets a release of its first door dated to it, as the day's `+` books
- * one. The search and the filters are one set for both: they ask the same
+ * one, and a song - which goes out only as what is made from it - is planned
+ * on the day (v0.150.1). The search and the filters are one set for both: they ask the same
  * question, "what is closest to going out", of whichever list is up.
  *
  * Its head - how to find one of a few hundred - and its foot stand; the list
@@ -75,6 +78,7 @@ interface Props {
 export function QueuePane({
   queued,
   works,
+  plans,
   source,
   onSourceChange,
   picked,
@@ -118,7 +122,7 @@ export function QueuePane({
   const shownQueue = (queued.data ?? []).filter((entry) =>
     matches(entry.work_kind, entry.work_stage, entry.work_title),
   )
-  const unplanned = unplannedWorks(works.data ?? [], queued.data ?? [], profile.config)
+  const unplanned = unplannedWorks(works.data ?? [], queued.data ?? [], plans, profile.config)
   const shownWorks = unplanned.filter((work) => matches(work.kind, work.stage, work.title))
 
   // One click plans the whole queue to the profile's rhythm. Without a rhythm

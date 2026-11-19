@@ -429,6 +429,42 @@ describe('days and shifts (v0.96)', () => {
     ])
   })
 
+  it('lists a song with nothing made from it and plans it on the day it is carried to', async () => {
+    backend.answer('plan_work', ({ plan }) => ({
+      id: 'plan-1',
+      note: null,
+      created_at: '2026-09-15T10:00:00Z',
+      updated_at: '2026-09-15T10:00:00Z',
+      ...(plan as { work_id: string; scheduled_at: string }),
+    }))
+    const { client, container } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    fireEvent.click(within(main).getByRole('radio', { name: /^Works/ }))
+    // A song goes out only as what is made from it (v0.150.1): the draft
+    // nothing was made from waits here; the one whose audio is booked, and
+    // the experiment, do not.
+    const row = await within(main).findByText('Harbour Lights')
+    const list = row.closest('ul')!
+    expect(within(list).queryByText('Paper Lanterns')).toBeNull()
+    expect(within(list).queryByText('Breaks under guitars')).toBeNull()
+
+    const day = container.querySelector('[data-day="2026-09-25"]')
+    Object.defineProperty(document, 'elementFromPoint', { value: () => day, configurable: true })
+    fireEvent.pointerDown(row, { button: 0, clientX: 10, clientY: 10 })
+    await act(async () => {
+      fireEvent.pointerMove(window, { clientX: 60, clientY: 60 })
+      fireEvent.pointerUp(window, { clientX: 60, clientY: 60 })
+    })
+    await settled(client)
+
+    // Planned on the day, not booked: nothing goes out as the song itself.
+    expect(backend.argsOf('plan_work')).toEqual([
+      { plan: { work_id: IDS.draft, scheduled_at: '2026-09-25' } },
+    ])
+    expect(backend.argsOf('create_release')).toEqual([])
+  })
+
   it('shows a shift on the month before it books exactly what it showed', async () => {
     const plan = {
       moves: [{ release_id: IDS.audioRelease, from: '2026-09-22', to: '2026-09-29' }],
