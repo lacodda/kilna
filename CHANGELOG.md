@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.150.1] - 2026-11-19
+
+Songs in the calendar's pane. A song goes out only as what is made from it,
+so the pane's list of works with nothing planned left songs out, and a space
+whose every clip, audio and short already waited in the queue showed no
+works at all. A song is listed now until something whole made from it is
+out, booked or waiting; carried onto a day, it is planned there.
+
+### Bug Fixes
+- List songs among the works with nothing planned
+
 ## [0.150.0] - 2026-11-18
 
 A music channel. kilna now ships a profile for a channel that publishes
