@@ -47,6 +47,7 @@ pub mod plugin;
 pub mod profile;
 pub mod publication;
 pub mod readiness;
+pub mod receiver;
 pub mod register;
 pub mod release;
 pub mod release_meta;
@@ -644,6 +645,12 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::plugins::cancel_plugin,
             commands::plugins::keep_plugin_candidate,
             commands::plugins::run_plugin_batch,
+            commands::receiver::receiver_settings,
+            commands::receiver::set_receiver_settings,
+            commands::receiver::armed_receiver,
+            commands::receiver::arm_receiver,
+            commands::receiver::disarm_receiver,
+            commands::receiver::take_received,
             commands::works::works_media,
             commands::plugins::build_sources,
         ])

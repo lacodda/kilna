@@ -2374,7 +2374,8 @@
     "work.markRaisedBatch_other": "“{{mark}}” raised on {{count}} works.",
     "work.markClearedBatch_one": "“{{mark}}” taken off {{count}} work.",
     "work.markClearedBatch_other": "“{{mark}}” taken off {{count}} works.",
-    "proposal.month": "{{client}} proposed the works of a month in one pass."
+    "proposal.month": "{{client}} proposed the works of a month in one pass.",
+    "proposal.media": "{{client}} proposed files to take into works."
   },
   "card": {
     "tab": {
@@ -3629,7 +3630,8 @@
       "unknownLayer": "No layer “{{layer}}”: public, internal or inWorks.",
       "badVibe": "A vibe is an object: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, each a key `workspace` lists under `vibe`.",
       "unknownSkill": "kilna has no skill keyed “{{skill}}”; the skills are {{known}}.",
-      "badTermScope": "A term is looked for in lyrics, title, visual_motif, sound_combo or all - not «{{scope}}»."
+      "badTermScope": "A term is looked for in lyrics, title, visual_motif, sound_combo or all - not «{{scope}}».",
+      "badMediaRole": "A file is taken as candidate_audio, final_audio, candidate_cover, final_cover, video or asset - not “{{role}}”."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -3980,6 +3982,17 @@
       "noReadme": "«{{path}}» has no README.md: it is not a channel's folder.",
       "noPassport": "The space has no passport to bring the channel into.",
       "notAChannelSpace": "«{{space}}» is not a music channel space: make one from the Music channel profile first."
+    },
+    "media": {
+      "notAFile": "“{{path}}” is not a file kilna can take.",
+      "wrongKind": "“{{name}}” is not a file of the kind it was meant to be taken as.",
+      "noFolder": "The folder of “{{title}}” is not there to move the file into.",
+      "moveFailed": "“{{name}}” could not be moved: {{cause}}"
+    },
+    "receiver": {
+      "badMinutes": "A receiver waits from 1 to {{most}} minutes, not {{value}}.",
+      "noFolder": "The folder “{{path}}” is not there to wait in.",
+      "noDownloads": "This system names no Downloads folder; choose the folder in Settings."
     }
   },
   "proposalBody": {
@@ -5086,8 +5099,8 @@
     "tableDay": "Day",
     "tableTitle": "Title",
     "tableCopy": "Copy",
-    "copySound": "Copy the prompt of «{{title}}»",
-    "copyCover": "Copy the cover of «{{title}}»",
+    "copySound": "Copy the prompt of “{{title}}” and wait for its track",
+    "copyCover": "Copy the cover of “{{title}}” and wait for the picture",
     "copyMonth": "Copy the month",
     "copied": "Copied.",
     "copiedSound": "Prompt",
@@ -5804,5 +5817,46 @@
     "registerSaid": "The register: spent words said",
     "restingUntil": "resting until {{month}}",
     "locked": "locked"
+  },
+  "receiver": {
+    "waiting": "Waiting for {{what}} for “{{title}}” in Downloads, until {{until}}.",
+    "arrived": "“{{name}}” arrived: {{what}} for “{{title}}”?",
+    "take": "Move it in",
+    "notThis": "Not this one",
+    "cancel": "Cancel",
+    "taken": "“{{name}}” moved into the folder of “{{title}}”.",
+    "expired": "Nothing arrived in time; the receiver is put down.",
+    "takeFailed": "The file could not be moved in.",
+    "armFailed": "The receiver could not be armed.",
+    "role": {
+      "candidate_audio": "a take",
+      "final_audio": "the track",
+      "candidate_cover": "a cover to choose from",
+      "final_cover": "the cover",
+      "video": "the video",
+      "asset": "a file"
+    },
+    "title": "Waiting for a file",
+    "folder": "Folder to wait in",
+    "folderHint": "Where the generator saves what it makes: a copied prompt waits here for the file that comes next.",
+    "folderTitle": "The folder downloads land in",
+    "systemDownloads": "The system’s Downloads",
+    "chooseFolder": "Choose…",
+    "useDownloads": "Use Downloads",
+    "minutes": "How long to wait",
+    "auto": "Move in without asking",
+    "autoHint": "The file that arrives goes into the work’s folder at once, without a press.",
+    "settingsFailed": "The setting could not be kept.",
+    "minutesValue_one": "{{count}} min",
+    "minutesValue_other": "{{count}} min",
+    "waitAudio": "Wait for its track in Downloads",
+    "waitCover": "Wait for its cover in Downloads",
+    "proposalAppliedMark": "Moved in",
+    "proposed_one": "{{count}} file for the works",
+    "proposed_other": "{{count}} files for the works",
+    "applyAll_one": "Move {{count}} file in",
+    "applyAll_other": "Move {{count}} files in",
+    "proposalApplied_one": "{{count}} file moved into its work.",
+    "proposalApplied_other": "{{count}} files moved into their works."
   }
 }

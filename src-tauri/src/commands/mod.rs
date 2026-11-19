@@ -25,6 +25,7 @@ pub mod links;
 pub mod notes;
 pub mod packs;
 pub mod plugins;
+pub mod receiver;
 pub mod register;
 pub mod releases;
 pub mod scenes;

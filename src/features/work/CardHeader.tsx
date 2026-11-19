@@ -35,6 +35,7 @@ import { Copyable } from '@/components/ui/copyable'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/RowMenu'
+import { useArmReceiver } from '@/features/receiver/useArmReceiver'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StagePicker } from '@/components/StagePicker'
 import { VibePicker } from '@/components/VibePicker'
@@ -362,6 +363,9 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
   // per kind that can be made, so the menu says what can be made rather than
   // opening a dialog to ask; the same gesture as the overview's Make menu.
   const make = useMakePublication(work)
+  // The armed receiver (v0.156): the next file the generator saves in
+  // Downloads is this work's track, or its cover.
+  const arm = useArmReceiver()
 
   // The tick only after the clipboard confirms — the rule from v0.28: telling
   // someone a copy succeeded when it did not is worse than saying nothing.
@@ -430,6 +434,16 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
         { key: 'markdown', label: t('work.saveMarkdown'), onSelect: () => void saveMarkdown() },
         { key: 'markdownCopy', label: t('work.copyMarkdown'), onSelect: () => void copyMarkdown() },
         { key: 'pack', label: t('work.pack'), onSelect: () => void pack() },
+        {
+          key: 'waitAudio',
+          label: t('receiver.waitAudio'),
+          onSelect: () => arm.mutate({ workId: work.id, role: 'final_audio' }),
+        },
+        {
+          key: 'waitCover',
+          label: t('receiver.waitCover'),
+          onSelect: () => arm.mutate({ workId: work.id, role: 'final_cover' }),
+        },
         ...make.kinds.map((kind) => ({
           key: `derive:${kind.key}`,
           label: kind.label,

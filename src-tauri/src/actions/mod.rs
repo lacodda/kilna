@@ -28,6 +28,7 @@ pub mod cut;
 pub mod focus;
 pub mod idea;
 pub mod link;
+pub mod media;
 pub mod note;
 pub mod period;
 pub mod plugin;

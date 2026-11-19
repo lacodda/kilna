@@ -10,6 +10,7 @@ import { AssistantLauncher } from '@/features/assistant/AssistantDrawer'
 import { QueueBanner } from '@/features/assistant/QueueBanner'
 import { WaitingBanner } from '@/features/assistant/WaitingBanner'
 import { HeldBanner } from '@/features/spaces/HeldBanner'
+import { ReceiverBanner } from '@/features/receiver/ReceiverBanner'
 import { NameSpaceDialog } from '@/features/spaces/NameSpaceDialog'
 import { WelcomeDialog } from '@/features/spaces/WelcomeDialog'
 import { CoachMark } from '@/components/CoachMark'
@@ -115,6 +116,7 @@ export default function App() {
               <HeldBanner />
               <WaitingBanner />
               <QueueBanner />
+              <ReceiverBanner />
             </div>
 
             {/* Keyed by the screen so the entry animation replays on

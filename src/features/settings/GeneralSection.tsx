@@ -1,4 +1,5 @@
 import { PackSources } from '@/features/settings/PackSources'
+import { ReceiverSettingsField } from '@/features/settings/ReceiverSettingsField'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { resetCoachMarks } from '@/components/CoachMark'
@@ -55,6 +56,7 @@ export function GeneralSection() {
         />
       </FieldGroup>
       <PackSources />
+      <ReceiverSettingsField />
       <div className="flex flex-col gap-1">
         <h3 className="caption">{t('coach.title')}</h3>
         <div>

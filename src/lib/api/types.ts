@@ -497,12 +497,20 @@ export type CoverIdeasProposal = Extract<Proposal, { kind: 'coverIdeas' }>
 export type TrialsProposal = Extract<Proposal, { kind: 'trials' }>
 export type CardsProposal = Extract<Proposal, { kind: 'cards' }>
 export type MonthProposal = Extract<Proposal, { kind: 'month' }>
+export type MediaProposal = Extract<Proposal, { kind: 'media' }>
+export type { MediaItem } from './generated/MediaItem'
 export type { MonthItem } from './generated/MonthItem'
 export type { PluginCandidate } from './generated/PluginCandidate'
 export type { PluginQuota } from './generated/PluginQuota'
 export type { PluginBatchProgress } from './generated/PluginBatchProgress'
 export type { PluginBatchItem } from './generated/PluginBatchItem'
 export type { PluginBatchReport } from './generated/PluginBatchReport'
+export type { MediaRole } from './generated/MediaRole'
+export type { TakenMedia } from './generated/TakenMedia'
+export type { ArmedReceiver } from './generated/ArmedReceiver'
+export type { ReceiverFound } from './generated/ReceiverFound'
+export type { ReceiverEnded } from './generated/ReceiverEnded'
+export type { ReceiverSettings } from './generated/ReceiverSettings'
 export type { MonthTerm } from './generated/MonthTerm'
 export type { MonthCheck } from './generated/MonthCheck'
 export type { BankTaken } from './generated/BankTaken'

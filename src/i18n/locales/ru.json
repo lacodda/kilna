@@ -2598,7 +2598,8 @@
     "work.markClearedBatch_few": "Метка «{{mark}}» снята с {{count}} работ.",
     "work.markClearedBatch_many": "Метка «{{mark}}» снята с {{count}} работ.",
     "work.markClearedBatch_other": "Метка «{{mark}}» снята с {{count}} работы.",
-    "proposal.month": "{{client}} предложил работы месяца за один проход."
+    "proposal.month": "{{client}} предложил работы месяца за один проход.",
+    "proposal.media": "{{client}} предлагает файлы для работ."
   },
   "card": {
     "tab": {
@@ -3882,7 +3883,8 @@
       "unknownLayer": "Слоя «{{layer}}» нет: public, internal или inWorks.",
       "badVibe": "Настроение - это объект: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, где каждое значение - ключ из `vibe` в ответе `workspace`.",
       "unknownSkill": "В kilna нет навыка с ключом «{{skill}}»; навыки: {{known}}.",
-      "badTermScope": "Термин ищут в lyrics, title, visual_motif, sound_combo или all, а не в «{{scope}}»."
+      "badTermScope": "Термин ищут в lyrics, title, visual_motif, sound_combo или all, а не в «{{scope}}».",
+      "badMediaRole": "Файл берётся как candidate_audio, final_audio, candidate_cover, final_cover, video или asset, а не «{{role}}»."
     },
     "note": {
       "promoteNeedsTitle": "У произведения должно быть название.",
@@ -4233,6 +4235,17 @@
       "noReadme": "В «{{path}}» нет README.md: это не папка канала.",
       "noPassport": "В пространстве нет паспорта, куда принести канал.",
       "notAChannelSpace": "«{{space}}» - не пространство музыкального канала: сначала создайте его из профиля «Музыкальный канал»."
+    },
+    "media": {
+      "notAFile": "«{{path}}» - не файл, который kilna может взять.",
+      "wrongKind": "«{{name}}» - файл не того вида, каким его хотели взять.",
+      "noFolder": "Папки «{{title}}» нет - файл некуда перенести.",
+      "moveFailed": "Не удалось перенести «{{name}}»: {{cause}}"
+    },
+    "receiver": {
+      "badMinutes": "Приёмник ждёт от 1 до {{most}} минут, а не {{value}}.",
+      "noFolder": "Папки «{{path}}» нет - ждать файл негде.",
+      "noDownloads": "Система не называет папку загрузок - выберите папку в Настройках."
     }
   },
   "proposalBody": {
@@ -5411,8 +5424,8 @@
     "tableDay": "День",
     "tableTitle": "Название",
     "tableCopy": "Копировать",
-    "copySound": "Копировать промпт «{{title}}»",
-    "copyCover": "Копировать обложку «{{title}}»",
+    "copySound": "Копировать промпт «{{title}}» и ждать трек",
+    "copyCover": "Копировать обложку «{{title}}» и ждать картинку",
     "copyMonth": "Копировать месяц",
     "copied": "Скопировано.",
     "copiedSound": "Промпт",
@@ -6199,5 +6212,54 @@
     "registerSaid": "Реестр: сказаны истраченные слова",
     "restingUntil": "отдыхает до {{month}}",
     "locked": "заблокирован"
+  },
+  "receiver": {
+    "waiting": "Ждём {{what}} для «{{title}}» в загрузках, до {{until}}.",
+    "arrived": "Пришёл «{{name}}»: это {{what}} для «{{title}}»?",
+    "take": "Перенести",
+    "notThis": "Не тот",
+    "cancel": "Отменить",
+    "taken": "«{{name}}» перенесён в папку «{{title}}».",
+    "expired": "Файл не пришёл вовремя - приёмник снят.",
+    "takeFailed": "Не удалось перенести файл.",
+    "armFailed": "Не удалось взвести приёмник.",
+    "role": {
+      "candidate_audio": "дубль",
+      "final_audio": "трек",
+      "candidate_cover": "вариант обложки",
+      "final_cover": "обложку",
+      "video": "видео",
+      "asset": "файл"
+    },
+    "title": "Ожидание файла",
+    "folder": "Папка ожидания",
+    "folderHint": "Куда генератор сохраняет результат: скопированный промпт ждёт здесь следующий файл.",
+    "folderTitle": "Папка, куда приходят загрузки",
+    "systemDownloads": "Системная папка «Загрузки»",
+    "chooseFolder": "Выбрать…",
+    "useDownloads": "Вернуть «Загрузки»",
+    "minutes": "Сколько ждать",
+    "auto": "Переносить без вопроса",
+    "autoHint": "Пришедший файл сразу уходит в папку работы, без нажатия.",
+    "settingsFailed": "Не удалось сохранить настройку.",
+    "minutesValue_one": "{{count}} мин",
+    "minutesValue_few": "{{count}} мин",
+    "minutesValue_many": "{{count}} мин",
+    "minutesValue_other": "{{count}} мин",
+    "waitAudio": "Ждать трек в загрузках",
+    "waitCover": "Ждать обложку в загрузках",
+    "proposalAppliedMark": "Перенесено",
+    "proposed_one": "{{count}} файл для работ",
+    "proposed_few": "{{count}} файла для работ",
+    "proposed_many": "{{count}} файлов для работ",
+    "proposed_other": "{{count}} файла для работ",
+    "applyAll_one": "Перенести {{count}} файл",
+    "applyAll_few": "Перенести {{count}} файла",
+    "applyAll_many": "Перенести {{count}} файлов",
+    "applyAll_other": "Перенести {{count}} файла",
+    "proposalApplied_one": "{{count}} файл перенесён в работу.",
+    "proposalApplied_few": "{{count}} файла перенесены в работы.",
+    "proposalApplied_many": "{{count}} файлов перенесены в работы.",
+    "proposalApplied_other": "{{count}} файла перенесены в работы."
   }
 }

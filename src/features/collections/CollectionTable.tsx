@@ -11,6 +11,7 @@ import { composedRole, coverText, roleText } from '@/lib/roleText'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Select } from '@/components/AppSelect'
+import { useArmReceiver } from '@/features/receiver/useArmReceiver'
 import { Button } from '@/components/ui/button'
 import { InlineField, numberCodec } from '@/components/ui/inline-field'
 import {
@@ -129,6 +130,7 @@ function Row({ id, day, columns }: { id: string; day: string | null; columns: Me
   const { t, i18n } = useTranslation()
   const { config } = useProfile()
   const work = useQuery(queries.work(id))
+  const arm = useArmReceiver()
   const patch = useAppMutation({
     mutationFn: (change: Parameters<typeof updateWork>[1]) => updateWork(id, change),
     failure: 'toast.workSaveFailed',
@@ -153,7 +155,9 @@ function Row({ id, day, columns }: { id: string; day: string | null; columns: Me
         />
       </TableCell>
       {/* The text a generator is given, a press away (v0.153): the
-          prompt its sound is written out of, and its cover's. */}
+          prompt its sound is written out of, and its cover's. The same press
+          arms the receiver (v0.156): the file the generator saves next in
+          Downloads is this work's track, or its cover. */}
       <TableCell className="whitespace-nowrap">
         {composedRole(config, data.kind) !== null && (
           <Button
@@ -170,6 +174,7 @@ function Row({ id, day, columns }: { id: string; day: string | null; columns: Me
                   return
                 }
                 await copy(text, t('collections.copied'))
+                arm.mutate({ workId: id, role: 'final_audio' })
               })
             }}
           >
@@ -182,7 +187,11 @@ function Row({ id, day, columns }: { id: string; day: string | null; columns: Me
             variant="icon"
             aria-label={t('collections.copyCover', { title: data.title })}
             title={t('collections.copyCover', { title: data.title })}
-            onClick={() => void copy(coverText(data) ?? '', t('collections.copied'))}
+            onClick={() =>
+              void copy(coverText(data) ?? '', t('collections.copied')).then(() =>
+                arm.mutate({ workId: id, role: 'final_cover' }),
+              )
+            }
           >
             <Image aria-hidden />
           </Button>

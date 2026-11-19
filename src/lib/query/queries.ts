@@ -105,6 +105,7 @@ import {
   workTimeline,
   worksMedia,
 } from '@/lib/api/works'
+import { armedReceiver, receiverSettings } from '@/lib/api/receiver'
 import {
   getWorkspace,
   mcpRegistration,
@@ -427,6 +428,9 @@ export const queries = {
   activeRuns: () => queryOptions({ queryKey: keys.activeRuns, queryFn: activeRuns }),
   activeTasks: () => queryOptions({ queryKey: keys.activeTasks, queryFn: activeTasks }),
   taskQueue: () => queryOptions({ queryKey: keys.taskQueue, queryFn: taskQueue }),
+  armedReceiver: () => queryOptions({ queryKey: keys.armedReceiver, queryFn: armedReceiver }),
+  receiverSettings: () =>
+    queryOptions({ queryKey: keys.receiverSettings, queryFn: receiverSettings }),
   activity: () => queryOptions({ queryKey: keys.activity, queryFn: activity }),
   spend: () => queryOptions({ queryKey: keys.spend, queryFn: () => assistantSpend() }),
   waitingChats: () => queryOptions({ queryKey: keys.waitingChats, queryFn: waitingChats }),

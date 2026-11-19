@@ -1350,6 +1350,9 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     check_spend: () => ({ spend: { today: 0, week: 0, budget: null }, crossed: false }),
     set_weekly_budget: ({ budget }) => budget ?? null,
     list_plugins: () => [],
+    // Nothing waits for a file until a test arms the receiver (v0.156).
+    armed_receiver: () => null,
+    receiver_settings: () => ({ folder: null, auto: false, minutes: 15 }),
     // A work's simple video is built from nothing until a test gives it a
     // picture and a track (v0.149).
     build_sources: () => ({ picture: null, looped: false, track: null, track_name: null }),

@@ -445,6 +445,38 @@ the short's own when the rule would not have found it.
 
 See [ADR 0070](https://github.com/lacodda/kilna/blob/main/docs/adr/0070-a-work-is-finished-as-a-file-in-its-folder.md).
 
+## Waiting for a file
+
+A generator in the browser saves what it makes into Downloads under a name
+of its own - `suno-7f3a.mp3`, `202604112318.png`. Since v0.156 kilna can
+wait for that file and put it where it belongs, with no renaming by hand.
+
+- **Arm the receiver.** In a month's table, the copy buttons of a row copy
+  the prompt or the cover *and* arm it: the next track, or picture, that
+  lands in Downloads is that work's. On a work's card, the **⋯** menu has
+  **Wait for its track in Downloads** and **Wait for its cover in Downloads**.
+- **A bar above every screen** says what waits for which work and until
+  when, with **Cancel**. One work waits at a time; arming another puts the
+  first one down. It stops by itself when its time runs out.
+- **When the file arrives** - only a file that arrived after the press, of
+  the kind waited for, once the browser has finished writing it - the bar
+  asks, and **Move it in** moves it into the work's folder: a track named
+  after the work, a cover as `cover` and kept as the work's cover. A track
+  becomes the [finished file](#the-finished-file) where the kind's rule
+  takes such a file; a clip's track lies beside its video and does not
+  replace it.
+
+**Settings → General → Waiting for a file** sets the folder (Downloads unless
+another is chosen), how long a receiver waits, and **Move in without asking**,
+which takes what arrives at once. These belong to this machine, not to the
+space.
+
+An assistant working beside kilna - with a music or an image generator of its
+own - hands its files over the same way through the
+[MCP tool](/kilna/reference/mcp/) `propose_media`: each file with its work and
+its role waits as one proposal in its chat, and moves in only when you apply
+it.
+
 ## The player
 
 A work with a sound - attached, or in its folder - gets a player at the top of

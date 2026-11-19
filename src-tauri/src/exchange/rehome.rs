@@ -605,7 +605,7 @@ pub fn apply(
     let mut emptied: BTreeSet<PathBuf> = BTreeSet::new();
     for one in &plan.moves {
         let (from, to) = (Path::new(&one.from), Path::new(&one.to));
-        match move_file(from, to) {
+        match crate::folder::move_file(from, to) {
             Ok(()) => {
                 moved += 1;
                 if let Some(parent) = from.parent() {
@@ -677,35 +677,6 @@ pub fn apply(
         folders_removed,
         templates_switched,
     })
-}
-
-/// Move one file, never onto another. Across drives - a folder in Downloads
-/// to a media folder on another disk - it is copied, checked by its length,
-/// and only then taken from where it was.
-fn move_file(from: &Path, to: &Path) -> std::result::Result<(), String> {
-    if to.exists() {
-        return Err(format!("{} is already there", to.display()));
-    }
-    if let Some(parent) = to.parent() {
-        std::fs::create_dir_all(parent).map_err(|cause| cause.to_string())?;
-    }
-    if std::fs::rename(from, to).is_ok() {
-        return Ok(());
-    }
-    let mut part = to.as_os_str().to_owned();
-    part.push(".part");
-    let part = PathBuf::from(part);
-    let copied = std::fs::copy(from, &part).map_err(|cause| cause.to_string())?;
-    let meant = std::fs::metadata(from)
-        .map_err(|cause| cause.to_string())?
-        .len();
-    if copied != meant {
-        let _ = std::fs::remove_file(&part);
-        return Err(format!("copied {copied} of {meant} bytes"));
-    }
-    std::fs::rename(&part, to).map_err(|cause| cause.to_string())?;
-    std::fs::remove_file(from)
-        .map_err(|cause| format!("copied, and the original could not be taken away: {cause}"))
 }
 
 /// Write a plan, and what applying it did when it was applied, into `dir`:

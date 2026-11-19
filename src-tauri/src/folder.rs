@@ -250,7 +250,7 @@ pub fn problem(template: &str) -> Option<String> {
 
 /// A character no folder name may hold on Windows, where the rules are the
 /// tightest - a template written on one machine names folders on all of them.
-fn is_forbidden(c: char) -> bool {
+pub(crate) fn is_forbidden(c: char) -> bool {
     matches!(c, '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*') || c.is_control()
 }
 
@@ -606,6 +606,49 @@ fn steps_of(rule: &str) -> std::result::Result<Vec<String>, String> {
         steps.push(step.to_owned());
     }
     Ok(steps)
+}
+
+/// Whether a kind's rule for a finished file names this file of a work's
+/// folder (v0.156): `video/*.mp4` takes `video/take.mp4`, not `take.mp3`.
+pub fn rule_takes(rule: &str, relative: &str) -> bool {
+    let Ok(steps) = steps_of(rule) else {
+        return false;
+    };
+    let parts: Vec<&str> = relative.split('/').collect();
+    parts.len() == steps.len()
+        && steps
+            .iter()
+            .zip(&parts)
+            .all(|(step, part)| step_matches(step, part))
+}
+
+/// Move one file, never onto another. Across drives - a folder in Downloads
+/// to a media folder on another disk - it is copied, checked by its length,
+/// and only then taken from where it was.
+pub fn move_file(from: &Path, to: &Path) -> std::result::Result<(), String> {
+    if to.exists() {
+        return Err(format!("{} is already there", to.display()));
+    }
+    if let Some(parent) = to.parent() {
+        std::fs::create_dir_all(parent).map_err(|cause| cause.to_string())?;
+    }
+    if std::fs::rename(from, to).is_ok() {
+        return Ok(());
+    }
+    let mut part = to.as_os_str().to_owned();
+    part.push(".part");
+    let part = PathBuf::from(part);
+    let copied = std::fs::copy(from, &part).map_err(|cause| cause.to_string())?;
+    let meant = std::fs::metadata(from)
+        .map_err(|cause| cause.to_string())?
+        .len();
+    if copied != meant {
+        let _ = std::fs::remove_file(&part);
+        return Err(format!("copied {copied} of {meant} bytes"));
+    }
+    std::fs::rename(&part, to).map_err(|cause| cause.to_string())?;
+    std::fs::remove_file(from)
+        .map_err(|cause| format!("copied, and the original could not be taken away: {cause}"))
 }
 
 /// What is wrong with a rule for a finished file, for the profile's

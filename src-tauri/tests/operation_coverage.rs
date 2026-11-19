@@ -395,10 +395,11 @@ struct ActionFn<'a> {
 
 fn action_functions(sources: &[Source]) -> Vec<ActionFn<'_>> {
     let mut found = Vec::new();
-    for file in sources
-        .iter()
-        .filter(|file| file.path.starts_with("src-tauri/src/actions/"))
-    {
+    // A module's tests kept in a file of their own (`mod tests;`) are tests,
+    // as a `mod tests { … }` blanked out of its file is.
+    for file in sources.iter().filter(|file| {
+        file.path.starts_with("src-tauri/src/actions/") && !file.path.ends_with("/tests.rs")
+    }) {
         for (at, _) in file.code.match_indices("fn ") {
             let before = file.code[..at].chars().next_back();
             if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
@@ -430,7 +431,7 @@ fn action_functions(sources: &[Source]) -> Vec<ActionFn<'_>> {
 }
 
 /// Actions that write outside a gesture, on purpose, and why.
-const WRITES_OUTSIDE_A_GESTURE: [(&str, &str); 2] = [
+const WRITES_OUTSIDE_A_GESTURE: [(&str, &str); 3] = [
     (
         "undo",
         "an undo records its own operation - `undo.<kind>` - inside `crate::undo::undo`, beside \
@@ -441,6 +442,10 @@ const WRITES_OUTSIDE_A_GESTURE: [(&str, &str); 2] = [
         "what a plugin heard in a video's finished file is a record of that file, kept only \
          while the file stands as it was heard (ADR 0071): a replay has no file to rebuild it \
          from, and listening again rebuilds it",
+    ),
+    (
+        "take",
+        "taking a file into a work (v0.156) moves it on this machine's disk, into a folder          `folder::ensure` makes there - a directory, no row; what it writes to the space goes          through `asset::attach` and `plugin::keep_files`, each a gesture of its own",
     ),
 ];
 

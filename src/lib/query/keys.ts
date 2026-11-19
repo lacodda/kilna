@@ -269,6 +269,10 @@ export const keys = {
   activeRuns: ['runs', 'active'] as const,
   activeTasks: ['runs', 'tasks'] as const,
   taskQueue: ['runs', 'queue'] as const,
+  /** The armed receiver: which work waits for which file (v0.156). */
+  armedReceiver: ['receiver', 'armed'] as const,
+  /** How the receiver works on this machine. */
+  receiverSettings: ['receiver', 'settings'] as const,
   // How busy the application is, and what the runs have cost (v0.107): under
   // 'runs', since a run starting or ending is what moves both.
   activity: ['runs', 'activity'] as const,
