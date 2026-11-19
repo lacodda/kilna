@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.158.0] - 2026-11-19
+
+Generating, the kilna side. A plugin can now offer a command on the Cover
+tab: it is handed the cover's prompt, negative, lettering and aspect ratio,
+and every picture it returns is set beside the cover to choose from - the
+contract for `kilna-plugin-image-*`, whose provider and key the owner
+chooses. What runs say they spent is summed over the month on this machine
+and shown under the plugin in Settings, and a take to choose from says how
+far it strays from the length the work is meant to play. The Suno plugin
+waits for access to the official Suno MCP.
+
+### Features
+- Picture generators on the Cover tab, a month's quota counted
+
 ## [0.157.0] - 2026-11-19
 
 A heap sorted. Takes and covers downloaded in a row are dropped on «Sort
