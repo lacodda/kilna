@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.153.0] - 2026-11-19
+
+A month in one pass. The drafts of a month are written together rather
+than one chat at a time: an agent answers with one proposal - a title, the
+fields and the Suno prompt for every draft, and the tradition each takes
+from the bank - and its card shows what the space's quotas find over the
+month as it would stand, before anything is written. Apply all writes the
+whole month and marks the bank, one undo. From a month's collection the
+assistant is handed the month as one task, and its table copies each
+track's prompt and cover in one press, or the whole month at once.
+
+### Bug Fixes
+- Copying a row's prompt resolves to nothing
+
+### CI
+- Fetch the Linux packages with retries
+
+### Features
+- A month's drafts proposed in one pass
+- Copy a month's prompts and hand the month to the assistant
+- A month's checklist reads the bank and the register too
+
 ## [0.152.0] - 2026-11-19
 
 A period on the grid. A channel plans its year before a track of it exists:
