@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.154.0] - 2026-11-19
+
+Channels moving in. A channel kept by a previous system - its README, its
+register of repeats, its bank of traditions, its plan and its month packs,
+and the files of its months - comes into a space made from the music channel
+profile with one command: the passport filled by the words of its headings,
+the stop-list as terms looked for in pictures, the bank as resting items, the
+months as packs of tracks planned on their days with their prompts, covers,
+releases and files. It writes a plan and a report of what it could not place
+first, and writes nothing until it is told to, keeping a copy of the space
+before it does.
+
+### Features
+- Bring a channel's folder into a music channel space
+- A channel's media come with its tracks
+
 ## [0.153.0] - 2026-11-19
 
 A month in one pass. The drafts of a month are written together rather
