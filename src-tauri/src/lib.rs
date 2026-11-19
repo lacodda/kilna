@@ -18,6 +18,7 @@ pub mod cut;
 pub mod db;
 pub mod demo;
 pub mod device;
+pub mod diagnostics;
 pub mod donor_map;
 pub mod error;
 pub mod exchange;
@@ -662,6 +663,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::studio::studio_link,
             commands::analytics::read_analytics,
             commands::analytics::keep_analytics,
+            commands::diagnostics::diagnostics,
+            commands::diagnostics::diagnostics_text,
+            commands::diagnostics::check_update,
             commands::works::works_media,
             commands::plugins::build_sources,
         ])

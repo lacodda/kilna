@@ -10,6 +10,7 @@ import { Frame, ListDetail, Pane } from '@/components/ui/frame'
 import { AgentsSection } from '@/features/settings/AgentsSection'
 import { AssistantSection } from '@/features/settings/AssistantSection'
 import { CardSection } from '@/features/settings/CardSection'
+import { AboutSection } from '@/features/settings/AboutSection'
 import { DataSection } from '@/features/settings/DataSection'
 import { GeneralSection } from '@/features/settings/GeneralSection'
 import { PluginsSection } from '@/features/settings/PluginsSection'
@@ -34,6 +35,7 @@ export const SECTIONS = [
   'assistant',
   'agents',
   'spaces',
+  'about',
   'profile',
   'skills',
   'plugins',
@@ -48,7 +50,7 @@ export type Section = (typeof SECTIONS)[number]
  * plugins are told, its data - which open with it.
  */
 const GROUPS: { key: 'app' | 'space'; sections: readonly Section[] }[] = [
-  { key: 'app', sections: ['general', 'card', 'assistant', 'agents', 'spaces'] },
+  { key: 'app', sections: ['general', 'card', 'assistant', 'agents', 'spaces', 'about'] },
   { key: 'space', sections: ['profile', 'skills', 'plugins', 'data'] },
 ]
 
@@ -78,6 +80,8 @@ function Body({ section }: { section: Section }) {
       return <AgentsSection />
     case 'spaces':
       return <SpacesSection />
+    case 'about':
+      return <AboutSection />
   }
 }
 

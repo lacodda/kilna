@@ -4,6 +4,7 @@ import { RotateCcw, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import { logWindowError } from '@/lib/api/data'
+import { openExternal } from '@/lib/link'
 
 interface Props {
   children: ReactNode
@@ -13,6 +14,33 @@ interface Props {
 
 interface State {
   error: Error | null
+}
+
+/** The project's issues, a new one written for this crash (v0.162): its
+ *  message and the top of its stack, with any path under a home cut to `~`. */
+export function issueFor(error: Error): string {
+  const home = /([A-Za-z]:)?[\\/](Users|home)[\\/][^\\/\s]+/g
+  const clean = (text: string) => text.replace(home, '~')
+  const stack = clean((error.stack ?? '').split('\n').slice(0, 6).join('\n'))
+  const body = [
+    '**What happened**',
+    '',
+    '<!-- What were you doing when the screen stopped? -->',
+    '',
+    '**The error**',
+    '',
+    '```',
+    clean(error.message),
+    stack,
+    '```',
+    '',
+    '_Settings → About kilna → Copy the diagnostics, and paste them here._',
+  ].join('\n')
+  const query = new URLSearchParams({
+    title: `A screen stopped working: ${clean(error.message).slice(0, 80)}`,
+    body,
+  })
+  return `https://github.com/lacodda/kilna/issues/new?${query.toString()}`
 }
 
 // The recovery panel, split out so it can use hooks the class component cannot.
@@ -38,10 +66,17 @@ function Fallback({ error, onRetry }: { error: Error; onRetry: () => void }) {
           </pre>
         </details>
 
-        <Button variant="primary" onClick={onRetry}>
-          <RotateCcw aria-hidden />
-          {t('crash.retry')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="primary" onClick={onRetry}>
+            <RotateCcw aria-hidden />
+            {t('crash.retry')}
+          </Button>
+          {/* An issue already written: the message and where, nothing of the
+              person's own - they read it before they send it (v0.162). */}
+          <Button variant="ghost" onClick={() => void openExternal(issueFor(error))}>
+            {t('crash.report')}
+          </Button>
+        </div>
       </Panel>
     </div>
   )

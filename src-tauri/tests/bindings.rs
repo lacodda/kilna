@@ -322,6 +322,8 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::matcher::MediaMatch,
         kilna_lib::studio::StudioItem,
         kilna_lib::analytics::AnalyticsRow,
+        kilna_lib::diagnostics::Diagnostics,
+        kilna_lib::diagnostics::UpdateCheck,
         kilna_lib::analytics::AnalyticsImport,
         kilna_lib::studio::StudioSkip,
         kilna_lib::studio::StudioPack,

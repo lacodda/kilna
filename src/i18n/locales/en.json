@@ -2106,7 +2106,8 @@
     "title": "This screen stopped working",
     "body": "The rest of the app is fine. Try again — if it keeps happening, the detail below is worth reporting.",
     "details": "Technical detail",
-    "retry": "Try again"
+    "retry": "Try again",
+    "report": "Report it on GitHub"
   },
   "toast": {
     "statusDriftFailed": "Could not check the statuses",
@@ -2997,7 +2998,8 @@
       "assistant": "Assistant",
       "plugins": "Plugins",
       "spaces": "Spaces",
-      "skills": "Skills"
+      "skills": "Skills",
+      "about": "About kilna"
     },
     "hint": {
       "general": "How the window looks and speaks.",
@@ -3008,7 +3010,8 @@
       "assistant": "Claude Code, the model, runs at once, what a run reads, the budget.",
       "plugins": "What is installed, whether it can run, and its settings.",
       "spaces": "The folders kilna keeps your works in: make, rename, trash.",
-      "skills": "Buttons and methods: what the assistant and agents are asked to do."
+      "skills": "Buttons and methods: what the assistant and agents are asked to do.",
+      "about": "The version, updates, and what to send when something breaks."
     },
     "groups": {
       "app": "Application",
@@ -5993,5 +5996,22 @@
     "context": "What it means:",
     "choose": "Choose the reply to keep",
     "useThis": "Use this one"
+  },
+  "about": {
+    "title": "About kilna",
+    "version": "Version",
+    "noCli": "Claude Code not found",
+    "check": "Check for updates",
+    "latest": "This is the latest version.",
+    "newer": "Version {{version}} is out.",
+    "cannotTell": "The releases could not be read - offline, or the page is down.",
+    "checkFailed": "Updates could not be checked.",
+    "download": "Download {{version}}",
+    "problem": "Something broke?",
+    "problemHint": "Copy the diagnostics - the version, the system, the assistant’s CLI and the log’s last errors, your home folder written ~ - and paste them into a new issue.",
+    "copy": "Copy the diagnostics",
+    "copied": "The diagnostics are on the clipboard.",
+    "copyFailed": "The diagnostics could not be copied.",
+    "report": "Open a new issue"
   }
 }

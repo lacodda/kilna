@@ -18,6 +18,7 @@ pub mod collections;
 pub mod comments;
 pub mod cuts;
 pub mod data;
+pub mod diagnostics;
 pub mod focus;
 pub mod folders;
 pub mod ideas;
