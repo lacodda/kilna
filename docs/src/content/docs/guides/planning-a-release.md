@@ -462,8 +462,10 @@ takes from the bank. The proposal waits in the agent's chat with a
 **checklist**: the space's [quotas](/kilna/guides/the-canon/#quotas-and-banks)
 read over the month as it would stand, before anything is written - a prompt
 too short, a playlist used too often, a title saying a forbidden word - each
-named with the work and the numbers. **Apply all** writes the whole month,
-marks the bank, and one undo takes it back. In a month's
+named with the work and the numbers - and the bank's items it takes while
+they rest or are locked, and the register's spent words its titles, prompts
+and covers say. **Apply all** writes the whole month, marks the bank, keeps
+the terms the agent proposed for the register, and one undo takes it back. In a month's
 [table](/kilna/guides/collections/#an-open-collection) each row then copies
 its prompt and its cover, and **Copy the month** copies them all.
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import type { Applied, MonthProposal, QuotaReport } from '@/lib/api/types'
+import type { Applied, MonthCheck, MonthProposal, QuotaReport } from '@/lib/api/types'
 import { Providers } from '@/app/Providers'
 import { createQueryClient } from '@/lib/query/client'
 import { ProposedMonth } from '@/features/assistant/ProposedMonth'
@@ -43,7 +43,20 @@ beforeEach(() => {
   vi.setSystemTime(new Date(NOW))
   backend = mockBackend({
     ...answersFor(studio()),
-    check_month_proposal: () => REPORT,
+    check_month_proposal: () =>
+      ({
+        quotas: REPORT,
+        bank: [
+          {
+            work_id: IDS.song,
+            title: 'Paper Lanterns',
+            item: 'Gnawa',
+            state: 'locked',
+            until: null,
+          },
+        ],
+        register: [{ work_id: IDS.draft, title: 'Harbour at dusk', word: 'dusk', scope: 'title' }],
+      }) satisfies MonthCheck,
     apply_proposal: ({ messageId }) =>
       ({ message_id: messageId as string, at: NOW, versions: [] }) as unknown as Applied,
   })
@@ -78,6 +91,8 @@ describe('a month proposed in one pass', () => {
     await waitFor(() => expect(backend.argsOf('check_month_proposal')).toHaveLength(1))
     expect(await within(card).findByText('Suno prompt length')).toBeInTheDocument()
     expect(within(card).getByText('12, wants >= 400')).toBeInTheDocument()
+    expect(within(card).getByText('Gnawa')).toBeInTheDocument()
+    expect(within(card).getByText('dusk')).toBeInTheDocument()
 
     fireEvent.click(apply)
     await waitFor(() => expect(backend.argsOf('apply_proposal')).toHaveLength(1))

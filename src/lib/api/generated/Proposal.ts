@@ -5,6 +5,7 @@ import type { CardDropped } from "./CardDropped";
 import type { IdeaDropped } from "./IdeaDropped";
 import type { Marks } from "./Marks";
 import type { MonthItem } from "./MonthItem";
+import type { MonthTerm } from "./MonthTerm";
 import type { Package } from "./Package";
 import type { PackagedBoard } from "./PackagedBoard";
 import type { PackagedCard } from "./PackagedCard";
@@ -146,4 +147,9 @@ collection_id?: string,
 /**
  * The month itself, `YYYY-MM`, when the works are read by their days.
  */
-month?: string, items: Array<MonthItem>, };
+month?: string, items: Array<MonthItem>, 
+/**
+ * Terms the month spends, for the register: a title word, a motif
+ * of a cover, a sound - kept when the month is applied.
+ */
+terms?: Array<MonthTerm>, };

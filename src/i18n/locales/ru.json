@@ -3845,7 +3845,8 @@
       "notesNotArray": "«notes» - это непустой массив заметок.",
       "unknownLayer": "Слоя «{{layer}}» нет: public, internal или inWorks.",
       "badVibe": "Настроение - это объект: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, где каждое значение - ключ из `vibe` в ответе `workspace`.",
-      "unknownSkill": "В kilna нет навыка с ключом «{{skill}}»; навыки: {{known}}."
+      "unknownSkill": "В kilna нет навыка с ключом «{{skill}}»; навыки: {{known}}.",
+      "badTermScope": "Термин ищут в lyrics, title, visual_motif, sound_combo или all, а не в «{{scope}}»."
     },
     "note": {
       "promoteNeedsTitle": "У произведения должно быть название.",
@@ -6152,6 +6153,10 @@
     "breaches_other": "{{count}} нарушения - прочтите перед применением:",
     "chatTitle": "Месяц: {{title}}",
     "writeWithAssistant": "Написать с ассистентом",
-    "taskFailed": "Не удалось передать месяц ассистенту."
+    "taskFailed": "Не удалось передать месяц ассистенту.",
+    "bankTaken": "Банк: взято, пока не свободно",
+    "registerSaid": "Реестр: сказаны истраченные слова",
+    "restingUntil": "отдыхает до {{month}}",
+    "locked": "заблокирован"
   }
 }

@@ -3598,7 +3598,8 @@
       "notesNotArray": "“notes” must be a non-empty array of notes.",
       "unknownLayer": "No layer “{{layer}}”: public, internal or inWorks.",
       "badVibe": "A vibe is an object: `{\"mood\": \"...\", \"character\": \"...\", \"complexity\": \"...\"}`, each a key `workspace` lists under `vibe`.",
-      "unknownSkill": "kilna has no skill keyed “{{skill}}”; the skills are {{known}}."
+      "unknownSkill": "kilna has no skill keyed “{{skill}}”; the skills are {{known}}.",
+      "badTermScope": "A term is looked for in lyrics, title, visual_motif, sound_combo or all - not «{{scope}}»."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -5763,6 +5764,10 @@
     "breaches_other": "{{count}} breaches - read before applying:",
     "chatTitle": "The month: {{title}}",
     "writeWithAssistant": "Write with the assistant",
-    "taskFailed": "The month could not be handed to the assistant."
+    "taskFailed": "The month could not be handed to the assistant.",
+    "bankTaken": "The bank: taken while not free",
+    "registerSaid": "The register: spent words said",
+    "restingUntil": "resting until {{month}}",
+    "locked": "locked"
   }
 }

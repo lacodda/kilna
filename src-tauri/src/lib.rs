@@ -33,6 +33,7 @@ pub mod link;
 pub mod log;
 pub mod mcp;
 pub mod minted;
+pub mod month;
 pub mod note;
 pub mod operation;
 pub mod ordinal;

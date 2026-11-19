@@ -35,7 +35,9 @@ export function ProposedMonth({ messageId, proposal, applied, dismissed }: Props
     message: t('month.applied', { count }),
     refresh: [keys.works, keys.catalogue, keys.collections, keys.canon, keys.calendar],
   })
-  const findings = check.data?.findings ?? []
+  const findings = check.data?.quotas.findings ?? []
+  const taken = check.data?.bank ?? []
+  const said = check.data?.register ?? []
   const breaches = findings.filter((one) => one.severity === 'error').length
 
   return (
@@ -56,10 +58,12 @@ export function ProposedMonth({ messageId, proposal, applied, dismissed }: Props
           <b className="font-semibold">{t('month.checklist')}</b>
           {check.isPending ? (
             <span className="text-faint">{t('month.checking')}</span>
-          ) : check.data === undefined ? null : check.data.rules === 0 ? (
+          ) : check.data === undefined ? null : check.data.quotas.rules === 0 ? (
             <span className="text-faint">{t('quota.noRules')}</span>
           ) : findings.length === 0 ? (
-            <span className="text-good">{t('month.allHold', { rules: check.data.rules })}</span>
+            <span className="text-good">
+              {t('month.allHold', { rules: check.data.quotas.rules })}
+            </span>
           ) : (
             <>
               <span className={breaches > 0 ? 'text-bad' : 'text-warn'}>
@@ -95,6 +99,41 @@ export function ProposedMonth({ messageId, proposal, applied, dismissed }: Props
                         })}
                       </span>
                     )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {taken.length > 0 && (
+            <>
+              <b className="mt-1 font-semibold text-warn">{t('month.bankTaken')}</b>
+              <ul className="flex flex-col gap-0.5">
+                {taken.map((one) => (
+                  <li key={`${one.work_id}:${one.item}`} className="flex flex-wrap gap-1.5">
+                    <span>{one.item}</span>
+                    <span className="text-dim">{one.title}</span>
+                    <span className="text-2xs text-faint">
+                      {one.state === 'locked'
+                        ? t('month.locked')
+                        : t('month.restingUntil', { month: one.until ?? '' })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {said.length > 0 && (
+            <>
+              <b className="mt-1 font-semibold text-warn">{t('month.registerSaid')}</b>
+              <ul className="flex flex-col gap-0.5">
+                {said.map((one) => (
+                  <li
+                    key={`${one.work_id}:${one.word}:${one.scope}`}
+                    className="flex flex-wrap gap-1.5"
+                  >
+                    <span className="rounded-sm bg-soft px-1 font-mono text-2xs">{one.word}</span>
+                    <span className="text-dim">{one.title}</span>
+                    <span className="text-2xs text-faint">{t(`register.scopes.${one.scope}`)}</span>
                   </li>
                 ))}
               </ul>

@@ -18,6 +18,7 @@ import type {
   NewFact,
   NewNote,
   Note,
+  MonthCheck,
   QuotaReport,
   QuotaSubject,
   StartedTask,
@@ -60,7 +61,7 @@ export const deleteFact = (id: string) => invoke<string>('delete_fact', { id })
 export const checkQuotas = (subject: QuotaSubject) =>
   invoke<QuotaReport>('check_quotas', { subject })
 export const checkMonthProposal = (messageId: string) =>
-  invoke<QuotaReport>('check_month_proposal', { messageId })
+  invoke<MonthCheck>('check_month_proposal', { messageId })
 export const markBankItemUsed = (factId: string, workId: string, date: string) =>
   invoke<Fact>('use_bank_item', { factId, workId, date })
 export const relateCards = (link: NewCanonLink) => invoke<CanonLink>('relate_cards', { link })

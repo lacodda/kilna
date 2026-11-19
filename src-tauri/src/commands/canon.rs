@@ -98,7 +98,10 @@ pub fn check_quotas(state: State<'_, AppState>, subject: QuotaSubject) -> Result
 /// stand with it applied (v0.153, FR-20 20.4): the checklist shown before
 /// "Apply all".
 #[tauri::command]
-pub fn check_month_proposal(state: State<'_, AppState>, message_id: String) -> Result<QuotaReport> {
+pub fn check_month_proposal(
+    state: State<'_, AppState>,
+    message_id: String,
+) -> Result<crate::month::MonthCheck> {
     let conn = state.conn();
     let message = crate::assistant::message(&conn, &message_id)?
         .ok_or_else(|| crate::error::Error::not_found("message", &message_id))?;
@@ -106,20 +109,12 @@ pub fn check_month_proposal(state: State<'_, AppState>, message_id: String) -> R
         collection_id,
         month,
         items,
+        ..
     } = actions::proposal::stored_proposal(&message.meta)?
     else {
         return Err(crate::error::Error::refused("proposal.notAMonth"));
     };
-    let proposed: crate::canon::quota::Proposed = items
-        .iter()
-        .map(|item| (item.work_id.clone(), item.proposed()))
-        .collect();
-    let subject = QuotaSubject {
-        work_id: None,
-        collection_id,
-        month,
-    };
-    crate::canon::quota::check_with(&conn, &subject, &proposed)
+    crate::month::check(&conn, collection_id, month, &items)
 }
 
 /// An item of a bank marked used by a work on a day (v0.151).

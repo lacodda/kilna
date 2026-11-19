@@ -1040,7 +1040,24 @@ fn keep(
         // A month (v0.153): each work renamed, its fields merged, its texts
         // kept as the current of their roles, and the bank items it takes
         // marked used on the day it is planned for - all in this one unit.
-        Proposal::Month { items, .. } => {
+        Proposal::Month { items, terms, .. } => {
+            // The register's new terms first: a word already kept is left as
+            // it is.
+            let profile_id = super::active_profile_id(conn)?;
+            for term in terms {
+                if crate::register::find_word(conn, &profile_id, &term.word, None)?.is_some() {
+                    continue;
+                }
+                super::register::create(
+                    conn,
+                    crate::register::NewTerm {
+                        word: term.word,
+                        scope: term.scope,
+                        note: term.note,
+                        ..crate::register::NewTerm::default()
+                    },
+                )?;
+            }
             for item in items {
                 let mut patch = WorkPatch::default();
                 if let Some(title) = item.title.clone().filter(|t| !t.trim().is_empty()) {

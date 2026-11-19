@@ -348,7 +348,25 @@ pub enum Proposal {
         #[ts(optional)]
         month: Option<String>,
         items: Vec<MonthItem>,
+        /// Terms the month spends, for the register: a title word, a motif
+        /// of a cover, a sound - kept when the month is applied.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[ts(optional, as = "Option<Vec<MonthTerm>>")]
+        terms: Vec<MonthTerm>,
     },
+}
+
+/// A term a month's proposal adds to the register.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct MonthTerm {
+    pub word: String,
+    /// Where it is looked for: the lyric unless said.
+    #[serde(default)]
+    #[ts(optional, as = "Option<crate::register::TermScope>")]
+    pub scope: crate::register::TermScope,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub note: Option<String>,
 }
 
 /// One work of a month's proposal.

@@ -497,6 +497,10 @@ export type TrialsProposal = Extract<Proposal, { kind: 'trials' }>
 export type CardsProposal = Extract<Proposal, { kind: 'cards' }>
 export type MonthProposal = Extract<Proposal, { kind: 'month' }>
 export type { MonthItem } from './generated/MonthItem'
+export type { MonthTerm } from './generated/MonthTerm'
+export type { MonthCheck } from './generated/MonthCheck'
+export type { BankTaken } from './generated/BankTaken'
+export type { TermSaid } from './generated/TermSaid'
 export type WordsProposal = Extract<Proposal, { kind: 'words' }>
 export type BricksProposal = Extract<Proposal, { kind: 'bricks' }>
 export type StylesProposal = Extract<Proposal, { kind: 'styles' }>

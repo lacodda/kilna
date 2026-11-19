@@ -327,6 +327,10 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::canon::bank::BankUse,
         kilna_lib::canon::bank::BankState,
         kilna_lib::assistant::proposal::MonthItem,
+        kilna_lib::assistant::proposal::MonthTerm,
+        kilna_lib::month::MonthCheck,
+        kilna_lib::month::BankTaken,
+        kilna_lib::month::TermSaid,
         // error.rs - carried inside `Skipped` and every refusal reason
         kilna_lib::error::Reason,
     };

@@ -652,6 +652,11 @@ fn tools() -> Vec<Value> {
                     "description": "Each: {work (id or exact title), title?, fields?: {key: value}, versions?: [{role, body}], bank?: [item names]}",
                     "items": { "type": "object" },
                 },
+                "register": {
+                    "type": "array",
+                    "description": "Terms the month spends, kept in the register when it is applied: each {word, scope? (lyrics, title, visual_motif, sound_combo, all), note?}",
+                    "items": { "type": "object" },
+                },
             }),
             &["works"],
         ),
@@ -2284,6 +2289,26 @@ pub fn run_tool(
             if items.is_empty() {
                 return Err(Error::refused("proposal.monthEmpty"));
             }
+            let mut terms = Vec::new();
+            for raw in args
+                .get("register")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let raw = raw.as_object().cloned().unwrap_or_default();
+                let word = required(&raw, "word")?.trim().to_owned();
+                let scope = match arg(&raw, "scope") {
+                    None => crate::register::TermScope::Lyrics,
+                    Some(said) => serde_json::from_value(Value::String(said.to_owned()))
+                        .map_err(|_| Error::refused("mcp.badTermScope").param("scope", said))?,
+                };
+                terms.push(proposal::MonthTerm {
+                    word,
+                    scope,
+                    note: arg(&raw, "note").map(str::to_owned),
+                });
+            }
             let count = items.len();
             deliver(
                 conn,
@@ -2294,6 +2319,7 @@ pub fn run_tool(
                     collection_id,
                     month,
                     items,
+                    terms,
                 },
                 body.trim_end(),
                 None,
@@ -6926,6 +6952,17 @@ mod tests {
             .unwrap()
         };
         let mande = fact("bank", "Mande", json!({ "cooldown_months": 6 }));
+        fact("bank", "Gnawa", json!({ "locked": true }));
+        crate::register::create(
+            &conn,
+            &profile_id,
+            crate::register::NewTerm {
+                word: "dawn".into(),
+                scope: crate::register::TermScope::Title,
+                ..crate::register::NewTerm::default()
+            },
+        )
+        .unwrap();
         fact(
             "quotas",
             "Suno prompt length",
@@ -6940,10 +6977,10 @@ mod tests {
             "propose_batch_prompts",
             &args(json!({ "works": [
                 { "work": first.id, "title": "Kora at dawn", "fields": { "tradition": "Mande", "nonsense": 1 },
-                  "versions": [{ "role": "suno_prompt", "body": "kora, balafon" }], "bank": ["mande", "Atlantis"] },
+                  "versions": [{ "role": "suno_prompt", "body": "kora, balafon" }], "bank": ["mande", "Atlantis", "Gnawa"] },
                 { "work": "Draft two", "fields": { "mood": "calm" },
                   "versions": [{ "role": "suno_prompt", "body": "slow strings over a warm sub bass" }] },
-            ] })),
+            ], "register": [{ "word": "sub bass", "scope": "sound_combo" }] })),
         )
         .unwrap();
         assert!(said.contains("Proposed 2 works"), "{said}");
@@ -6956,22 +6993,20 @@ mod tests {
             .unwrap()
             .messages
             .remove(0);
-        // The checklist: the first prompt is too short, as it would stand.
+        // The checklist: the first prompt is too short, as it would stand; a
+        // locked tradition is taken; a spent title word is said.
         let crate::assistant::proposal::Proposal::Month { items, .. } =
             crate::actions::proposal::stored_proposal(&proposed.meta).unwrap()
         else {
             panic!("not a month")
         };
-        let overrides: crate::canon::quota::Proposed = items
-            .iter()
-            .map(|item| (item.work_id.clone(), item.proposed()))
-            .collect();
-        let report = crate::canon::quota::check_with(
-            &conn,
-            &crate::canon::quota::QuotaSubject::default(),
-            &overrides,
-        )
-        .unwrap();
+        let checked = crate::month::check(&conn, None, None, &items).unwrap();
+        assert_eq!(checked.bank.len(), 1, "{:?}", checked.bank);
+        assert_eq!(checked.bank[0].item, "Gnawa");
+        assert_eq!(checked.register.len(), 1, "{:?}", checked.register);
+        assert_eq!(checked.register[0].word, "dawn");
+        assert_eq!(checked.register[0].scope, crate::register::TermScope::Title);
+        let report = checked.quotas;
         let short: Vec<&str> = report
             .findings
             .iter()
@@ -6992,6 +7027,10 @@ mod tests {
         );
         let used = crate::canon::fact::get(&conn, &mande.id).unwrap().unwrap();
         assert_eq!(used.data["used_in"][0]["work_id"], json!(first.id));
+        let kept = crate::register::find_word(&conn, &profile_id, "sub bass", None)
+            .unwrap()
+            .unwrap();
+        assert_eq!(kept.scope, crate::register::TermScope::SoundCombo);
 
         let offer = crate::undo::last(&conn).unwrap().unwrap();
         crate::undo::undo(&conn, &offer.operation_id).unwrap();
