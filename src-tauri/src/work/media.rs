@@ -3,7 +3,7 @@
 //! ready to go out.
 //!
 //! Asked apart from the catalogue and only while one of those filters is
-//! on: a work's finished file is looked for in its folder on disk, and the
+//! on: a work's files are looked for in its folder on disk, and the
 //! catalogue is read far more often than it is narrowed by media.
 
 use std::collections::{BTreeMap, HashSet};
@@ -21,9 +21,9 @@ pub struct WorkMedia {
     pub cover: bool,
     /// Its kind goes out under a cover.
     pub wants_cover: bool,
-    /// It holds a track: an attached file or its finished one that plays.
+    /// It holds a track: a file attached to it or in its folder that plays.
     pub audio: bool,
-    /// It holds a video, attached or finished.
+    /// It holds a video, attached or in its folder.
     pub video: bool,
 }
 
@@ -39,7 +39,8 @@ fn extension(name: &str) -> String {
         .to_lowercase()
 }
 
-/// Every work of a profile, by id, with what it holds.
+/// Every work of a profile, by id, with what it holds: what is attached to
+/// it, its chosen cover, and the files of its folder on disk.
 pub fn of_profile(conn: &Connection, profile_id: &str) -> Result<BTreeMap<String, WorkMedia>> {
     let config = crate::profile::config_for(conn, profile_id)?;
     let covered: HashSet<String> = crate::asset::covers_of(conn, profile_id)?
@@ -62,9 +63,12 @@ pub fn of_profile(conn: &Connection, profile_id: &str) -> Result<BTreeMap<String
     let mut media = BTreeMap::new();
     for work in super::list(conn, profile_id, &super::WorkFilter::default())? {
         let mut kinds = held.remove(&work.id).unwrap_or_default();
-        // The finished file: the one chosen by hand, or the newest the kind's
-        // rule matches in the work's folder.
-        if let Some(path) = crate::folder::finished(conn, &config, &work)?.path {
+        // What lies in the work's folder, the finished file among it: a
+        // track's file is its video, and its audio is a file beside it that
+        // nothing points at.
+        let folder = crate::folder::of_work(conn, &config, &work)?;
+        kinds.extend(folder.files.iter().map(|file| extension(&file.relative)));
+        if let Some(path) = folder.file.path {
             kinds.push(extension(&path));
         }
         media.insert(
@@ -118,5 +122,29 @@ mod tests {
         assert!(!held[&with_track].video);
         assert!(!held[&with_track].cover);
         assert_eq!(held[&bare], WorkMedia::default());
+    }
+
+    /// A track's file is its video; its audio lies beside it in the folder,
+    /// attached to nothing - and holds it all the same.
+    #[test]
+    fn a_track_in_the_work_folder_is_its_audio() {
+        let (conn, profile_id) = crate::fixtures::workspace();
+        let root = tempfile::tempdir().unwrap();
+        crate::folder::set_root(
+            &conn,
+            &profile_id,
+            Some(&root.path().to_string_lossy()),
+            "2030-01-01T00:00:00.000Z",
+        )
+        .unwrap();
+        let work = crate::fixtures::song(&conn, &profile_id, "Harbour lights");
+        let config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        let folder = crate::folder::ensure(&conn, &config, &work).unwrap();
+        let path = std::path::PathBuf::from(folder.path.unwrap());
+        std::fs::write(path.join("harbour.MP3"), b"ID3").unwrap();
+
+        let held = of_profile(&conn, &profile_id).unwrap();
+        assert!(held[&work.id].audio);
+        assert!(!held[&work.id].video);
     }
 }
