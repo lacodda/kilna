@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.162.0] - 2026-11-19
+
+Telling of trouble. Settings → About kilna says the version, the system, the
+WebView and the assistant's CLI, and checks the project's public releases for
+a newer kilna only when asked. «Copy the diagnostics» puts all of that and
+the log's last errors on the clipboard, any path through the home folder
+written ~, ready for a new issue; and a screen that stops working now offers
+an issue already written - its message and the top of its stack, nothing of
+the person's own. No telemetry: nothing leaves the machine by itself.
+
+### Features
+- Report a problem, check for updates
+
 ## [0.161.0] - 2026-11-19
 
 The channel's own voice. A drafted reply now speaks as the space's passport
