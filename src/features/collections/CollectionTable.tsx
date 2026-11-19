@@ -164,11 +164,13 @@ function Row({ id, day, columns }: { id: string; day: string | null; columns: Me
             onClick={() => {
               const role = composedRole(config, data.kind)
               if (role === null) return
-              void roleText(id, role).then((text) =>
-                text === null
-                  ? say.warn(t('collections.nothingToCopy'))
-                  : copy(text, t('collections.copied')),
-              )
+              void roleText(id, role).then(async (text) => {
+                if (text === null) {
+                  say.warn(t('collections.nothingToCopy'))
+                  return
+                }
+                await copy(text, t('collections.copied'))
+              })
             }}
           >
             <Copy aria-hidden />
