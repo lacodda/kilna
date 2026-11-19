@@ -83,6 +83,22 @@ fn main() {
             }
         });
     }
+    // `kilna --import-channel <dir>` brings a channel's folder - its README,
+    // its register of repeats, its bank, its plan and its month packs - into
+    // a space made from the music channel profile (v0.154, FR-20 20.5): a
+    // plan and a report unless `--apply` is said.
+    if args.iter().any(|arg| arg == "--import-channel") {
+        std::process::exit(match import_channel(&args) {
+            Ok(report) => {
+                println!("{}", report.display());
+                0
+            }
+            Err(err) => {
+                eprintln!("kilna --import-channel: {err}");
+                1
+            }
+        });
+    }
     // `kilna --demo-all` makes a demo stand in the application folder (or the
     // one `--workspace` names): a space of every shipped craft with its demo,
     // wiped and made again on the next call. `kilna --seed-demo` fills one
@@ -202,6 +218,24 @@ fn import_songs(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
         space,
         &root,
         images,
+        args.iter().any(|arg| arg == "--apply"),
+    )
+}
+
+fn import_channel(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
+    let app_dir = match workspace_arg(args) {
+        Some(dir) => dir,
+        None => kilna_lib::space::app_dir()?,
+    };
+    let dir = values_of(args, "--import-channel")
+        .first()
+        .map(std::path::PathBuf::from)
+        .ok_or_else(|| kilna_lib::Error::refused("import.noFile"))?;
+    let space = values_of(args, "--space").first().map(|name| name.as_str());
+    kilna_lib::exchange::channel::run(
+        &app_dir,
+        space,
+        &dir,
         args.iter().any(|arg| arg == "--apply"),
     )
 }

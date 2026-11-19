@@ -302,6 +302,27 @@ work instead, and every page of the four folders a note named after its
 folder and file. What the work or the space holds already is passed over. A
 plan and a report first, `--apply` to write, a copy of the space kept first.
 
+`kilna --import-channel <dir> --space <name>` (v0.154) brings a channel's
+folder from a previous system into a space made from the *Music channel*
+profile. The README's `##` sections go to the passport by the words of their
+headings - playlists, the literary register as the voice, artists, what
+covers must not show as bans, the rest as identity slots named after their
+headings - and a section that states a rule is listed in the report to be
+written as a [quota](/kilna/guides/the-canon/#quotas-and-banks): a rule in
+prose is not one a machine can measure. The register of repeats' stop-list
+table becomes terms looked for in pictures, with their rule as the note. The
+bank's reference tables become items of the passport's bank - a region's
+instruments and devices as attributes, its character as the note - resting
+the months the bank's own page says, last used in the month its *taken*
+lists name. Each month of the plan becomes a *Month pack* with its arc, and
+each row a track with its tradition, genre, tempo, key, mood, sound design,
+cover idea and artist, planned on its day; a month pack's track of the same
+title gives it its Suno prompt, its cover's scene, its duration and the
+YouTube release it goes out as, booked on its day. A work of the same title
+is never made twice, and what the passport holds is not written again. A
+plan and a report first (`import-channel/<time>/import_plan.md`, with the
+conflicts it found), `--apply` to write, a copy of the space kept first.
+
 `kilna --convert-notes <rules.json>` (v0.147) turns notes brought in from a
 vault into what kilna keeps them as. Which notes and headings go where is a
 file of rules in your own words - a vault's titles are its owner's - and

@@ -3945,6 +3945,11 @@
       "badDay": "«{{day}}» is not a day of its month.",
       "unknownCollectionKind": "The profile has no kind of collection «{{kind}}».",
       "needsTitle": "The draft for {{day}} needs a title."
+    },
+    "channel": {
+      "noReadme": "«{{path}}» has no README.md: it is not a channel's folder.",
+      "noPassport": "The space has no passport to bring the channel into.",
+      "notAChannelSpace": "«{{space}}» is not a music channel space: make one from the Music channel profile first."
     }
   },
   "proposalBody": {

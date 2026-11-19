@@ -7,6 +7,7 @@
 //! rather than stated. See ADR 0002.
 
 pub mod backup;
+pub mod channel;
 pub mod chat;
 pub mod convert;
 pub mod export;
