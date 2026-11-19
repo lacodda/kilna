@@ -5,9 +5,9 @@ import type { JsonValue } from "./serde_json/JsonValue";
 /**
  * One thing the person can set for a plugin.
  *
- * Not for a secret: settings are kept in the workspace, so they go into every
- * backup and are handed over in the clear. A plugin with a token asks the
- * system's keychain for it.
+ * Settings are kept in the workspace, so they go into every backup and
+ * export - except one marked `secret` (v0.155), which is kept in a file of
+ * this machine beside the plugins and shown in the window only as set.
  */
 export type Setting = { key: string, label: string, 
 /**

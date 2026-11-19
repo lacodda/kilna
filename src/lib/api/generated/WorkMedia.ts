@@ -13,10 +13,10 @@ cover: boolean,
  */
 wants_cover: boolean, 
 /**
- * It holds a track: an attached file or its finished one that plays.
+ * It holds a track: a file attached to it or in its folder that plays.
  */
 audio: boolean, 
 /**
- * It holds a video, attached or finished.
+ * It holds a video, attached or in its folder.
  */
 video: boolean, };
