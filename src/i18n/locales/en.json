@@ -2049,7 +2049,18 @@
     "candidatesTitle_one": "{{count}} result to choose from",
     "candidatesTitle_other": "{{count}} results to choose from",
     "candidateFiles_one": "{{count}} file",
-    "candidateFiles_other": "{{count}} files"
+    "candidateFiles_other": "{{count}} files",
+    "batchMenu": "Plugins…",
+    "batchTitle": "{{label}}: {{count}} works",
+    "batchParallel": "At a time",
+    "batchStop": "Stop",
+    "batchProgress": "How far the batch is",
+    "batchDone": "{{done}} of {{total}} done, {{failed}} failed",
+    "batchFinished": "Done: {{ok}} worked, {{failed}} failed.",
+    "batchStopped": "Stopped: {{ok}} worked, {{failed}} failed, the rest not run.",
+    "batchFailed": "The batch could not run.",
+    "batchRun_one": "Run on {{count}} work",
+    "batchRun_other": "Run on {{count}} works"
   },
   "error": {
     "database": "The workspace database refused that. Nothing was changed.",

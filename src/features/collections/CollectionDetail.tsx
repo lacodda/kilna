@@ -35,6 +35,7 @@ import { StageDial } from '@/components/StageDial'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { CollectionTable } from './CollectionTable'
 import { QuotaReportDialog } from '@/features/canon/QuotaReportDialog'
+import { BulkPlugins } from '@/features/catalogue/BulkPlugins'
 import { GoalLine } from './GoalLine'
 import { useCollectionGestures } from './useCollectionGestures'
 
@@ -223,6 +224,8 @@ export function CollectionDetail({ collection, rows, today, onClose }: Props) {
               {t('month.writeWithAssistant')}
             </Button>
           )}
+          {/* A plugin's batch command over the collection's works (v0.155). */}
+          <BulkPlugins workIds={order} inBar={false} />
           <span className="ml-auto font-mono text-xs text-faint">
             {t('collections.held', { count: progress.held })}
           </span>

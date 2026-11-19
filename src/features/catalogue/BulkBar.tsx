@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import type { Collection } from '@/lib/api/types'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { BulkActions } from '@/features/assistant/BulkActions'
+import { BulkPlugins } from '@/features/catalogue/BulkPlugins'
 import { CollectionMenuItems } from '@/features/collections/CollectionMenuItems'
 import { ActionBar, ActionBarButton } from '@/components/ui/action-bar'
 import { Button } from '@/components/ui/button'
@@ -152,6 +153,7 @@ export function BulkBar({
       </Menu>
 
       <BulkActions workIds={workIds} onStarted={onClear} />
+      <BulkPlugins workIds={workIds} />
 
       <ActionBarButton
         disabled={busy}

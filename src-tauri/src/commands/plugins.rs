@@ -17,6 +17,9 @@ use crate::state::AppState;
 /// The event a running plugin's progress reaches the window by.
 pub const PROGRESS_EVENT: &str = "plugin-progress";
 
+/// The event a batch's progress is reported under (v0.155).
+pub const BATCH_EVENT: &str = "plugin-batch";
+
 /// The runs going on now, by the id the window gave each, with the flag that
 /// stops one. Memory only: a run does not outlive the application - a window
 /// closed while one goes hides instead (v0.107), and the run goes on.
@@ -271,6 +274,180 @@ pub fn keep_plugin_candidate(
     let conn = state.conn();
     actions::plugin::keep(&conn, Target::Work, &work_id, &candidate.meta)?;
     actions::plugin::keep_files(&conn, &work_id, &candidate.files)
+}
+
+/// How far a batch is, as the window hears it (v0.155).
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+pub struct PluginBatchProgress {
+    /// The batch, as the window named it.
+    pub batch: String,
+    pub done: u32,
+    pub total: u32,
+    pub failed: u32,
+    /// The work just finished.
+    pub title: Option<String>,
+}
+
+/// One work of a batch, as it ended.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+pub struct PluginBatchItem {
+    pub id: String,
+    pub title: String,
+    pub ok: bool,
+    /// The plugin's words, or why it failed.
+    pub message: Option<String>,
+    pub files: Vec<String>,
+}
+
+/// What a batch did, work by work.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+pub struct PluginBatchReport {
+    pub items: Vec<PluginBatchItem>,
+    /// Stopped before every work was run.
+    pub cancelled: bool,
+}
+
+/// Run one plugin command over many works at once (v0.155, FR-21 21.3): a
+/// render by a preset for every track of a month. Up to `parallelism` runs
+/// at a time, one to four; what each returns is kept as a single run's is,
+/// work by work, as it comes back; the batch reports its progress as
+/// [`BATCH_EVENT`] under the `batch` id the window gave, and [`cancel_plugin`]
+/// with that id stops what is running and what has not started.
+#[tauri::command(async)]
+#[allow(clippy::too_many_arguments, clippy::needless_pass_by_value)]
+pub fn run_plugin_batch(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    executable: String,
+    command: String,
+    ids: Vec<String>,
+    parallelism: u8,
+    batch: String,
+) -> Result<PluginBatchReport> {
+    let found = plugin::find(&plugin_directory(&state), &executable)
+        .ok_or_else(|| Error::not_found("plugin", executable.clone()))?;
+    if !found.usable {
+        return Err(Error::refused("plugin.unusable")
+            .param("plugin", executable.as_str())
+            .param("reason", found.reason.map(Value::from).unwrap_or_default()));
+    }
+    let kept = plugin::settings::kept(&state.conn(), &executable)?;
+    if !kept.enabled {
+        return Err(Error::refused("plugin.turnedOff").param("plugin", executable.as_str()));
+    }
+    let mut settings = found
+        .manifest
+        .as_ref()
+        .map_or_else(serde_json::Map::new, |manifest| {
+            manifest.values(&kept.settings)
+        });
+    settings.extend(plugin::settings::secrets(state.app_dir(), &executable));
+    let limit = found
+        .manifest
+        .as_ref()
+        .and_then(|manifest| manifest.commands.iter().find(|one| one.key == command))
+        .map_or(plugin::PLUGIN_TIMEOUT, plugin::manifest::Command::allowance);
+
+    // Every subject read first, on this thread: the runs touch no database.
+    let mut jobs = std::collections::VecDeque::new();
+    for id in &ids {
+        let title = crate::work::get(&state.conn(), id)?
+            .map(|work| work.title)
+            .unwrap_or_default();
+        let subject = actions::plugin::subject(&state.conn(), Target::Work, id)?;
+        jobs.push_back((id.clone(), title, subject));
+    }
+    let total = u32::try_from(jobs.len()).unwrap_or(u32::MAX);
+    let queue = Mutex::new(jobs);
+    let cancel = Arc::new(AtomicBool::new(false));
+    if let Ok(mut running) = RUNNING.lock() {
+        running.insert(batch.clone(), cancel.clone());
+    }
+    super::activity::announce(&app);
+
+    let path = std::path::PathBuf::from(&found.path);
+    let mut items = Vec::new();
+    let (mut done, mut failed) = (0u32, 0u32);
+    let (sender, results) = std::sync::mpsc::channel();
+    std::thread::scope(|scope| {
+        for _ in 0..usize::from(parallelism.clamp(1, 4)) {
+            let sender = sender.clone();
+            let (queue, cancel, path, settings, command) =
+                (&queue, &cancel, &path, &settings, &command);
+            scope.spawn(move || {
+                loop {
+                    if cancel.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    let next = queue.lock().ok().and_then(|mut left| left.pop_front());
+                    let Some((id, title, subject)) = next else {
+                        break;
+                    };
+                    let outcome = plugin::invoke(
+                        path,
+                        &plugin::Invocation {
+                            command,
+                            target: Target::Work,
+                            subject,
+                            settings: settings.clone(),
+                        },
+                        plugin::Run {
+                            limit,
+                            cancel,
+                            on_progress: &mut |_| {},
+                        },
+                    );
+                    if sender.send((id, title, outcome)).is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(sender);
+        for (id, title, outcome) in results {
+            done += 1;
+            let kept = outcome.and_then(|outcome| {
+                actions::plugin::keep(&state.conn(), Target::Work, &id, &outcome.meta)?;
+                actions::plugin::keep_files(&state.conn(), &id, &outcome.files)?;
+                Ok(outcome)
+            });
+            match kept {
+                Ok(outcome) => items.push(PluginBatchItem {
+                    id,
+                    title: title.clone(),
+                    ok: true,
+                    message: outcome.message,
+                    files: outcome.files,
+                }),
+                Err(cause) => {
+                    failed += 1;
+                    items.push(PluginBatchItem {
+                        id,
+                        title: title.clone(),
+                        ok: false,
+                        message: Some(cause.to_string()),
+                        files: Vec::new(),
+                    });
+                }
+            }
+            let _ = app.emit(
+                BATCH_EVENT,
+                PluginBatchProgress {
+                    batch: batch.clone(),
+                    done,
+                    total,
+                    failed,
+                    title: Some(title),
+                },
+            );
+        }
+    });
+    let cancelled = cancel.load(Ordering::SeqCst) && done < total;
+    if let Ok(mut running) = RUNNING.lock() {
+        running.remove(&batch);
+    }
+    super::activity::announce(&app);
+    Ok(PluginBatchReport { items, cancelled })
 }
 
 /// What a work's simple video is built from: its picture and its track

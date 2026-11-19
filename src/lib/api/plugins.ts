@@ -4,6 +4,8 @@ import type {
   BuildSources,
   JsonValue,
   Plugin,
+  PluginBatchProgress,
+  PluginBatchReport,
   PluginCandidate,
   PluginProgress,
   PluginReply,
@@ -53,3 +55,19 @@ export const onPluginProgress = (
 /** One of the results a command offered, picked and kept (v0.155). */
 export const keepPluginCandidate = (workId: string, candidate: PluginCandidate) =>
   invoke<string | null>('keep_plugin_candidate', { workId, candidate })
+
+/** One batch command over many works at once (v0.155): up to `parallelism`
+ *  runs at a time, its progress under `batch`, stopped by `cancelPlugin`. */
+export const runPluginBatch = (
+  executable: string,
+  command: string,
+  ids: readonly string[],
+  parallelism: number,
+  batch: string,
+) => invoke<PluginBatchReport>('run_plugin_batch', { executable, command, ids, parallelism, batch })
+
+/** Hear how far every batch is (v0.155). */
+export const onPluginBatch = (
+  handler: (progress: PluginBatchProgress) => void,
+): Promise<UnlistenFn> =>
+  listen<PluginBatchProgress>('plugin-batch', (event) => handler(event.payload))
