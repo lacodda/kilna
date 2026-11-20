@@ -1,6 +1,6 @@
 ---
 title: Files and covers
-description: Attaching files to a work — a cover that shows everywhere, references kept beside it, why a file is copied into the workspace rather than pointed at, the work's folder on disk, and the player on the card.
+description: Attaching files to a work — a cover that shows everywhere, references kept beside it, where a file goes - into the work's folder, or copied into the workspace, the work's folder on disk, and the player on the card.
 ---
 
 A work can carry files: a cover, a reference, a mix, a subtitle track, the
@@ -127,9 +127,25 @@ nothing else does. See
 
 ## Where the file goes
 
-**A file is copied into the workspace**, not pointed at where it lay. The
-copy sits in a `media` directory beside the workspace database, named by an
-id of its own.
+**A work's file goes to the work's folder** when the space has a media folder
+on this machine (v0.164): a file dropped on the Files tab or attached goes to
+`raw/`, a cover's candidate to `candidates/`, the cover to `images/` - the
+folder's own level is for what the work is finished as; in a folder the work
+shares with others, it is named after the work. A file that already lies
+under the media folder is attached where it lies, never copied. Taking a file
+off a work, or emptying the trash, never deletes a file in a work's folder:
+it is yours.
+
+**Otherwise a file is copied into the workspace**, not pointed at where it
+lay - a style's picture, a card's, a work's in a space with no media folder.
+The copy sits in a `media` directory beside the workspace database, named by
+an id of its own.
+
+`kilna --settle-media [--space <name>] [--apply]` settles what a space copied
+before v0.164: each copy of a work's file is pointed at the same bytes when
+they already lie under the media folder - and the copy goes - or else moved
+into the work's folder. A plan and a report first, a copy of the database
+kept before `--apply` writes.
 
 This is the difference between a cover that keeps working and one that
 breaks the day you tidy your downloads folder. It also means the pictures
@@ -325,8 +341,22 @@ YouTube release it goes out as, booked on its day. `--media <root>` adds
 the files of `<root>/<YYYY-MM>/<channel> - <YYYY-MM>/` named as a pack is -
 `<channel> – <title> (<formula>).<ext>` - to the track of that title. A work
 of the same title is never made twice, and what the passport holds is not written again. A
+packed track whose day has passed went out on it, and its release is marked
+so (v0.164). `--root <dir>` (v0.164) makes `<dir>` the space's media folder,
+so the files are attached where they lie rather than copied, and - while the
+track's folder is still the shipped one - files a track into its month's
+folder under it, `Music/{month}/<channel> - {month}`, each file named
+`<Channel> – <title>`. `--archive <list>` brings in what went out before the
+plan: a list of `N. [x] Title (Formula) (DD.MM.YYYY)` lines, each a work
+that went out on its day, its picture, sound and video found by number in
+the folder the list names (`Files: \`<dir>\``) - `Images/`, `WAV/`, `mp3/`,
+`mp4/`, as `NNN - Title (Formula).<ext>` - and named where they lie; an
+archive outside the media folder is refused rather than copied. A
 plan and a report first (`import-channel/<time>/import_plan.md`, with the
 conflicts it found), `--apply` to write, a copy of the space kept first.
+
+Every one of these commands writes to the space `--space` names; with more
+than one space on the machine, `--apply` without it is refused (v0.164).
 
 `kilna --convert-notes <rules.json>` (v0.147) turns notes brought in from a
 vault into what kilna keeps them as. Which notes and headings go where is a

@@ -3927,6 +3927,7 @@
       "busy": "Something is still going in this space ({{count}}): wait for it or stop it, then open the other one.",
       "noDatabase": "The folder {{path}} holds a space's file but no database.",
       "none": "There is no space to open yet: start kilna once.",
+      "nameIt": "Several spaces are here - {{names}}: name the one to write to with --space.",
       "unreachable": "The space at {{path}} cannot be reached: is its drive connected?",
       "historyTooLong": "A history is kept for {{most}} days at most - or for good.",
       "notWelcomed": "This space has been set up already: change it in Settings → Spaces."
@@ -4006,7 +4007,10 @@
     "channel": {
       "noReadme": "«{{path}}» has no README.md: it is not a channel's folder.",
       "noPassport": "The space has no passport to bring the channel into.",
-      "notAChannelSpace": "«{{space}}» is not a music channel space: make one from the Music channel profile first."
+      "notAChannelSpace": "«{{space}}» is not a music channel space: make one from the Music channel profile first.",
+      "archiveUnreadable": "The archive list «{{path}}» could not be read: {{cause}}.",
+      "archiveOutsideRoot": "«{{path}}» is not under the channel's media folder: give it with --root, so the archive's files are named where they lie rather than copied.",
+      "otherRoot": "The space's media folder is «{{path}}» already: change it in Settings, or leave --root out."
     },
     "media": {
       "notAFile": "“{{path}}” is not a file kilna can take.",

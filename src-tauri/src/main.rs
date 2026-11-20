@@ -99,6 +99,22 @@ fn main() {
             }
         });
     }
+    // `kilna --settle-media` settles the files a space kept as copies of its
+    // own (v0.164): each copy of a work's file pointed at the same file
+    // already under the media folder, or moved into the work's folder - a
+    // plan and a report unless `--apply` is said.
+    if args.iter().any(|arg| arg == "--settle-media") {
+        std::process::exit(match settle_media(&args) {
+            Ok(report) => {
+                println!("{}", report.display());
+                0
+            }
+            Err(err) => {
+                eprintln!("kilna --settle-media: {err}");
+                1
+            }
+        });
+    }
     // `kilna --demo-all` makes a demo stand in the application folder (or the
     // one `--workspace` names): a space of every shipped craft with its demo,
     // wiped and made again on the next call. `kilna --seed-demo` fills one
@@ -235,13 +251,35 @@ fn import_channel(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
     let media = values_of(args, "--media")
         .first()
         .map(std::path::PathBuf::from);
+    // Where the channel's files live (v0.164): `--root <dir>` is the media
+    // folder they are named under, `--archive <list>` the list of what went
+    // out before the plan, its files numbered beside it.
+    let root = values_of(args, "--root")
+        .first()
+        .map(std::path::PathBuf::from);
+    let archive = values_of(args, "--archive")
+        .first()
+        .map(std::path::PathBuf::from);
     kilna_lib::exchange::channel::run(
         &app_dir,
         space,
         &dir,
         media.as_deref(),
+        kilna_lib::exchange::channel::Files {
+            root: root.as_deref(),
+            archive: archive.as_deref(),
+        },
         args.iter().any(|arg| arg == "--apply"),
     )
+}
+
+fn settle_media(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {
+    let app_dir = match workspace_arg(args) {
+        Some(dir) => dir,
+        None => kilna_lib::space::app_dir()?,
+    };
+    let space = values_of(args, "--space").first().map(|name| name.as_str());
+    kilna_lib::exchange::settle::run(&app_dir, space, args.iter().any(|arg| arg == "--apply"))
 }
 
 fn rehome(args: &[String]) -> kilna_lib::Result<std::path::PathBuf> {

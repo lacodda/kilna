@@ -1106,10 +1106,7 @@ pub fn run(
     let rules: Rules = serde_json::from_str(&std::fs::read_to_string(rules)?)
         .map_err(|err| Error::refused("convert.badRules").param("error", err.to_string()))?;
     let app = crate::db::open_app(&app_dir.join(crate::db::APP_DATABASE_FILE))?;
-    let found = match space {
-        Some(name) => registry::by_name(&app, app_dir, name)?,
-        None => registry::newest(&app, app_dir)?.ok_or_else(|| Error::refused("space.none"))?,
-    };
+    let found = super::target_space(&app, app_dir, space, apply_it)?;
     let folder = registry::folder(&app, app_dir, &found.id)?;
     let (conn, held_by) = crate::state::open_space(&folder, crate::state::Role::Companion)?;
     if apply_it && held_by.is_some() {

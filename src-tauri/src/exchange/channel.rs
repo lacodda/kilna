@@ -9,6 +9,7 @@
 //! passport by the words of its heading, a table's column by the words of its
 //! header, a track by its title.
 
+pub mod archive;
 pub mod read;
 
 use std::path::{Path, PathBuf};
@@ -78,6 +79,26 @@ pub struct Plan {
     pub months: Vec<Month>,
     /// What could not be placed: a pack track no plan row names, and so on.
     pub conflicts: Vec<String>,
+    /// The tracks of the archive from before the plan, to bring in as works
+    /// that went out on their day (v0.164).
+    pub archive: Vec<archive::ArchiveTrack>,
+    /// Tracks of the archive passed over: a work of that title is here.
+    pub archive_held: usize,
+    /// Where the channel's files are to live, when this run says it.
+    pub setup: Option<Setup>,
+    /// What the channel is called - the space's name - for its releases'
+    /// titles, `<Channel> – <Title> (<Formula>)`.
+    pub channel_name: String,
+}
+
+/// Where a channel's files live (v0.164): its media folder, and what a
+/// track's folder and its files are called under it - a month's folder the
+/// month's tracks share, each file named after its track.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct Setup {
+    pub root: String,
+    pub folder: Option<String>,
+    pub files_named: Option<String>,
 }
 
 /// Which passport section a README section's words go to, by its heading.
@@ -438,6 +459,10 @@ pub struct Applied {
     pub works: usize,
     pub releases: usize,
     pub files: usize,
+    /// Releases marked out on their day: a packed track whose day has passed.
+    pub released: usize,
+    /// Works made from the archive.
+    pub archived: usize,
 }
 
 /// Write the plan into the space, as one unit; the files of the tracks are
@@ -543,6 +568,31 @@ pub fn apply_with(conn: &Connection, plan: &Plan, media: Option<&Path>) -> Resul
             )?;
             done.traditions += 1;
         }
+        // Where the files live comes first: a track's files are attached
+        // where they lie, under the media folder this sets (v0.164).
+        if let Some(setup) = &plan.setup {
+            crate::folder::set_root(
+                tx,
+                &profile_id,
+                Some(setup.root.as_str()),
+                &crate::time::now(),
+            )?;
+            if setup.folder.is_some() || setup.files_named.is_some() {
+                let mut config = crate::profile::config_for(tx, &profile_id)?;
+                for kind in &mut config.work_kinds {
+                    if kind.key == "track" {
+                        if setup.folder.is_some() {
+                            kind.folder.clone_from(&setup.folder);
+                        }
+                        if setup.files_named.is_some() {
+                            kind.files_named.clone_from(&setup.files_named);
+                        }
+                    }
+                }
+                actions::profile::update_config(tx, &profile_id, &config)?;
+            }
+        }
+        let today = crate::time::now().chars().take(10).collect::<String>();
         let collections = crate::collection::list(tx, &profile_id)?;
         for month in &plan.months {
             let gathered = match collections.iter().find(|one| one.title == month.title) {
@@ -568,7 +618,11 @@ pub fn apply_with(conn: &Connection, plan: &Plan, media: Option<&Path>) -> Resul
                 }
             };
             for track in &month.tracks {
-                if track.existing.is_some() {
+                if let Some(existing) = &track.existing {
+                    // Brought in before: what went out since is marked so.
+                    if track.release.contains_key("title") && track.date < today {
+                        done.released += mark_gone_out(tx, existing, &today)?;
+                    }
                     continue;
                 }
                 let work = actions::work::create(
@@ -620,7 +674,7 @@ pub fn apply_with(conn: &Connection, plan: &Plan, media: Option<&Path>) -> Resul
                     }
                 }
                 if track.release.contains_key("title") {
-                    actions::release::create(
+                    let booked = actions::release::create(
                         tx,
                         crate::release::NewRelease {
                             work_id: work.id.clone(),
@@ -632,6 +686,17 @@ pub fn apply_with(conn: &Connection, plan: &Plan, media: Option<&Path>) -> Resul
                         },
                     )?;
                     done.releases += 1;
+                    // A packed track whose day has passed went out on it.
+                    if track.date < today {
+                        actions::release::mark_released(
+                            tx,
+                            &booked.id,
+                            None,
+                            Some(track.date.clone()),
+                            None,
+                        )?;
+                        done.released += 1;
+                    }
                 } else {
                     actions::work_plan::plan(
                         tx,
@@ -644,7 +709,160 @@ pub fn apply_with(conn: &Connection, plan: &Plan, media: Option<&Path>) -> Resul
                 }
             }
         }
+        let channel = plan.channel_name.as_str();
+        for track in &plan.archive {
+            let mut fields = Map::new();
+            if let Some(formula) = &track.formula {
+                match split_formula(formula) {
+                    (Some(tradition), genre) => {
+                        fields.insert("tradition".into(), json!(tradition));
+                        fields.insert("genre".into(), json!(genre));
+                    }
+                    (None, genre) => {
+                        fields.insert("genre".into(), json!(genre));
+                    }
+                }
+            }
+            let work = actions::work::create(
+                tx,
+                crate::work::NewWork {
+                    kind: "track".into(),
+                    title: track.title.clone(),
+                    meta: Some(fields),
+                    ..crate::work::NewWork::default()
+                },
+            )?;
+            done.archived += 1;
+            let heading = match &track.formula {
+                Some(formula) if !channel.is_empty() => {
+                    format!("{channel} – {} ({formula})", track.title)
+                }
+                Some(formula) => format!("{} ({formula})", track.title),
+                None if !channel.is_empty() => format!("{channel} – {}", track.title),
+                None => track.title.clone(),
+            };
+            let booked = actions::release::create(
+                tx,
+                crate::release::NewRelease {
+                    work_id: work.id.clone(),
+                    kind: "youtube".into(),
+                    scheduled_at: Some(track.date.clone()),
+                    meta: Some([("title".to_owned(), json!(heading))].into_iter().collect()),
+                    scheduled_time: None,
+                    time_zone: None,
+                },
+            )?;
+            actions::release::mark_released(tx, &booked.id, None, Some(track.date.clone()), None)?;
+            done.releases += 1;
+            done.released += 1;
+            if let Some(media) = media {
+                for (file, picture) in &track.files {
+                    actions::asset::attach(
+                        tx,
+                        media,
+                        file,
+                        crate::asset::NewAsset {
+                            work_id: Some(work.id.clone()),
+                            kind: picture.then(|| crate::asset::COVER.to_owned()),
+                            ..crate::asset::NewAsset::default()
+                        },
+                    )?;
+                    done.files += 1;
+                }
+            }
+        }
         Ok(done)
+    })
+}
+
+/// A formula as its tradition and genre: `Ossetian x Industrial Techno`,
+/// `India × Electronica`; one with no cross is a genre alone.
+fn split_formula(formula: &str) -> (Option<String>, String) {
+    for cross in [" x ", " X ", " × "] {
+        if let Some((tradition, genre)) = formula.split_once(cross) {
+            return (Some(tradition.trim().to_owned()), genre.trim().to_owned());
+        }
+    }
+    (None, formula.trim().to_owned())
+}
+
+/// Mark out on their day the work's booked releases whose day has passed;
+/// how many were marked.
+fn mark_gone_out(conn: &Connection, work_id: &str, today: &str) -> Result<usize> {
+    let due: Vec<(String, String)> = conn
+        .prepare(
+            "SELECT id, scheduled_at FROM release
+             WHERE work_id = ?1 AND released_at IS NULL AND scheduled_at IS NOT NULL
+               AND substr(scheduled_at, 1, 10) < ?2",
+        )?
+        .query_map(rusqlite::params![work_id, today], |row| {
+            Ok((row.get(0)?, row.get(1)?))
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    for (id, day) in &due {
+        crate::actions::release::mark_released(
+            conn,
+            id,
+            None,
+            Some(day.chars().take(10).collect()),
+            None,
+        )?;
+    }
+    Ok(due.len())
+}
+
+/// Where a channel's files are and are to be, besides its month folders:
+/// the media folder to set, and the archive list to bring in (v0.164).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Files<'a> {
+    /// The media folder the channel's files live under - `C:\YouTube`.
+    pub root: Option<&'a Path>,
+    /// The archive's list, `<Channel> - All Tracks.md`.
+    pub archive: Option<&'a Path>,
+}
+
+/// What setting `root` as the channel's media folder writes: the folder, and
+/// - while the track's folder is still the one the profile ships - a month
+/// folder the month's tracks share under where the month folders are,
+/// `Music/{month}/CN - {month}`, each file named after its track.
+fn setup(
+    conn: &Connection,
+    profile_id: &str,
+    config: &crate::profile::config::ProfileConfig,
+    root: &Path,
+    months: Option<&Path>,
+    abbreviation: &str,
+    channel: &str,
+) -> Result<Setup> {
+    let current = crate::folder::root(conn, profile_id)?;
+    if let Some(current) = current.as_deref()
+        && !crate::folder::same_place(Path::new(current), root)
+        && !Path::new(current).as_os_str().is_empty()
+    {
+        return Err(Error::refused("channel.otherRoot").param("path", current.to_owned()));
+    }
+    let shipped = config
+        .kind("track")
+        .and_then(|kind| kind.folder.as_deref())
+        .is_none_or(|folder| folder == "{kind}s/{id}");
+    let under = months
+        .and_then(|months| months.strip_prefix(root).ok())
+        .map(|rest| {
+            rest.components()
+                .map(|step| step.as_os_str().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+                .join("/")
+        })
+        .unwrap_or_default();
+    let month = if under.is_empty() {
+        format!("{{month}}/{abbreviation} - {{month}}")
+    } else {
+        format!("{under}/{{month}}/{abbreviation} - {{month}}")
+    };
+    Ok(Setup {
+        root: root.to_string_lossy().into_owned(),
+        folder: shipped.then_some(month),
+        files_named: shipped.then(|| format!("{channel} – {{title}}")),
     })
 }
 
@@ -656,15 +874,13 @@ pub fn run(
     space: Option<&str>,
     dir: &Path,
     media_root: Option<&Path>,
+    files: Files<'_>,
     apply_it: bool,
 ) -> Result<PathBuf> {
     use crate::space::registry;
     let channel = read::read(dir)?;
     let app = crate::db::open_app(&app_dir.join(crate::db::APP_DATABASE_FILE))?;
-    let found = match space {
-        Some(name) => registry::by_name(&app, app_dir, name)?,
-        None => registry::newest(&app, app_dir)?.ok_or_else(|| Error::refused("space.none"))?,
-    };
+    let found = super::target_space(&app, app_dir, space, apply_it)?;
     let folder = registry::folder(&app, app_dir, &found.id)?;
     let (conn, held_by) = crate::state::open_space(&folder, crate::state::Role::Companion)?;
     if apply_it && held_by.is_some() {
@@ -679,13 +895,75 @@ pub fn run(
     planned.cooldown_months = std::fs::read_to_string(dir.join("Банк традиций.md"))
         .ok()
         .and_then(|text| cooldown_of(text.lines().take(8).collect::<Vec<_>>().join("\n").as_str()));
+    let abbreviation = dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default()
+        .to_owned();
     if let Some(root) = media_root {
-        let channel_name = dir
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or_default()
-            .to_owned();
-        media(&mut planned, root, &channel_name);
+        media(&mut planned, root, &abbreviation);
+    }
+    planned.channel_name = found.name.clone();
+    planned.setup = files
+        .root
+        .map(|root| {
+            setup(
+                &conn,
+                &profile_id,
+                &config,
+                root,
+                media_root,
+                &abbreviation,
+                &found.name,
+            )
+        })
+        .transpose()?;
+    if let Some(list) = files.archive {
+        let text = std::fs::read_to_string(list).map_err(|cause| {
+            Error::refused("channel.archiveUnreadable")
+                .param("path", list.display().to_string())
+                .param("cause", cause.to_string())
+        })?;
+        let mut tracks = archive::tracks(&text);
+        let folder = archive::folder_named(&text).unwrap_or_else(|| list.with_file_name("_All"));
+        archive::find_files(&mut tracks, &folder);
+        // The files stay where they are: an archive is tens of gigabytes,
+        // and a copy of it in the space's own folder is never what is meant.
+        let root = planned
+            .setup
+            .as_ref()
+            .map(|setup| setup.root.clone())
+            .or(crate::folder::root(&conn, &profile_id)?);
+        let outside = tracks
+            .iter()
+            .flat_map(|track| &track.files)
+            .find(|(file, _)| {
+                !root
+                    .as_deref()
+                    .is_some_and(|root| crate::folder::lies_under(Path::new(file), Path::new(root)))
+            });
+        if let Some((file, _)) = outside {
+            return Err(Error::refused("channel.archiveOutsideRoot").param("path", file.clone()));
+        }
+        let held: std::collections::BTreeSet<String> =
+            crate::work::list(&conn, &profile_id, &crate::work::WorkFilter::default())?
+                .into_iter()
+                .map(|work| work.title.trim().to_lowercase())
+                .chain(
+                    planned
+                        .months
+                        .iter()
+                        .flat_map(|month| &month.tracks)
+                        .map(|track| track.title.trim().to_lowercase()),
+                )
+                .collect();
+        for track in tracks {
+            if held.contains(&track.title.trim().to_lowercase()) {
+                planned.archive_held += 1;
+            } else {
+                planned.archive.push(track);
+            }
+        }
     }
     let moment = crate::time::now().replace([':', '.'], "-");
     let out = app_dir.join("import-channel").join(&moment);
@@ -735,6 +1013,28 @@ fn report(dir: &Path, plan: &Plan, applied: Option<&Applied>) -> Result<()> {
         }
         page.push('\n');
     }
+    if let Some(setup) = &plan.setup {
+        let _ = writeln!(
+            page,
+            "## Where the files live\n\n- media folder: `{}`\n- a track's folder: `{}`\n- its files called: `{}`\n",
+            setup.root,
+            setup.folder.as_deref().unwrap_or("as the profile has it"),
+            setup
+                .files_named
+                .as_deref()
+                .unwrap_or("as the profile has it"),
+        );
+    }
+    if !plan.archive.is_empty() || plan.archive_held > 0 {
+        let files: usize = plan.archive.iter().map(|track| track.files.len()).sum();
+        let _ = writeln!(
+            page,
+            "## Archive\n\n- tracks to bring in: {} ({} files, named where they lie)\n- passed over, a work of that title is here: {}\n",
+            plan.archive.len(),
+            files,
+            plan.archive_held,
+        );
+    }
     if !plan.conflicts.is_empty() {
         page.push_str("## Conflicts\n\n");
         for conflict in &plan.conflicts {
@@ -746,13 +1046,16 @@ fn report(dir: &Path, plan: &Plan, applied: Option<&Applied>) -> Result<()> {
         Some(done) => {
             let _ = writeln!(
                 page,
-                "## Applied\n\nfacts {}, terms {}, bank items {}, collections {}, works {}, releases {}",
+                "## Applied\n\nfacts {}, terms {}, bank items {}, collections {}, works {}, releases {} ({} marked out on their day), archive works {}, files {}",
                 done.facts,
                 done.terms,
                 done.traditions,
                 done.collections,
                 done.works,
-                done.releases
+                done.releases,
+                done.released,
+                done.archived,
+                done.files
             );
         }
         None => page.push_str("Nothing was written: run again with `--apply`.\n"),
