@@ -148,7 +148,7 @@ pub fn plan(conn: &Connection, profile_id: &str, media: &Path) -> Result<Plan> {
     let rows: Vec<Row> = conn
         .prepare(
             "SELECT id, work_id, release_id, kind, path, original_name FROM asset
-             WHERE profile_id = ?1 ORDER BY created_at, id",
+             WHERE profile_id = ?1 ORDER BY created_at, rowid",
         )?
         .query_map(params![profile_id], |row| {
             Ok((
