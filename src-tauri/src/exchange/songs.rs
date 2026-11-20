@@ -11,7 +11,10 @@
 //!
 //! - every section of `info.md` as a note on the work, named after its
 //!   heading; the section named by `--images-heading`, when given, as fresh
-//!   phrases that arose at the work instead;
+//!   phrases that arose at the work instead - one for each item of its list,
+//!   or for the first cell of each row of its table (v0.163.1). A table says
+//!   more than its first column (what an image stands for), so a section
+//!   written as one is also kept as its note;
 //! - every page of `reviews/`, `shorts/`, `audio-release/` and `clip/` as a
 //!   note on the work, named after its folder and file.
 //!
@@ -226,17 +229,8 @@ pub fn plan(
         };
         for (heading, body) in &folder.sections {
             if images.as_deref() == Some(fold(heading).as_str()) && phrase_kind.is_some() {
-                for line in body.lines() {
-                    let Some(item) = ["- ", "* ", "• "]
-                        .iter()
-                        .find_map(|marker| line.trim().strip_prefix(marker))
-                    else {
-                        continue;
-                    };
-                    let words = item.replace("**", "").trim().to_owned();
-                    if words.is_empty() {
-                        continue;
-                    }
+                let (items, tabled) = image_items(body);
+                for words in items {
                     if held_phrases.insert(fold(&words)) {
                         out.phrases.push(PlannedPhrase {
                             origin_work_id: work.id.clone(),
@@ -245,6 +239,9 @@ pub fn plan(
                     } else {
                         out.passed_over += 1;
                     }
+                }
+                if tabled {
+                    note(heading, body, &mut out);
                 }
                 continue;
             }
@@ -255,6 +252,51 @@ pub fn plan(
         }
     }
     Ok(out)
+}
+
+/// The images a section names: each item of its list, and the first cell of
+/// each row of its table - not the header row, not the rule under it. The
+/// flag says the section held a table, whose other columns are not phrases.
+fn image_items(body: &str) -> (Vec<String>, bool) {
+    let clean = |text: &str| text.replace("**", "").trim().to_owned();
+    let lines: Vec<&str> = body.lines().map(str::trim).collect();
+    let is_rule = |line: &str| {
+        line.starts_with('|')
+            && line.chars().all(|one| matches!(one, '|' | '-' | ':' | ' '))
+            && line.contains('-')
+    };
+    let mut items = Vec::new();
+    let mut tabled = false;
+    for (at, line) in lines.iter().enumerate() {
+        if let Some(item) = ["- ", "* ", "• "]
+            .iter()
+            .find_map(|marker| line.strip_prefix(marker))
+        {
+            let words = clean(item);
+            if !words.is_empty() {
+                items.push(words);
+            }
+            continue;
+        }
+        if !line.starts_with('|') || is_rule(line) {
+            continue;
+        }
+        // A header is the row a rule follows.
+        if lines.get(at + 1).is_some_and(|next| is_rule(next)) {
+            continue;
+        }
+        tabled = true;
+        let first = line
+            .trim_matches('|')
+            .split('|')
+            .next()
+            .map(clean)
+            .unwrap_or_default();
+        if !first.is_empty() {
+            items.push(first);
+        }
+    }
+    (items, tabled)
 }
 
 /// What an import made.
@@ -444,5 +486,35 @@ mod tests {
         )
         .unwrap();
         assert_eq!(phrases.len(), 2);
+    }
+
+    #[test]
+    fn images_written_as_a_table_become_phrases_and_the_table_stays_a_note() {
+        let (conn, profile_id) = fixtures::workspace();
+        fixtures::song(&conn, &profile_id, "Until tomorrow");
+        let root = tempfile::tempdir().unwrap();
+        let folder = root.path().join("s0033");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(
+            folder.join("info.md"),
+            "# Until tomorrow\n\n## Images\n\n| Image | Stands for |\n|-------|---------------|\n| Neon lights | City romance |\n| **A cafe before dawn** | Not wanting to part |\n| | nothing named |\n",
+        )
+        .unwrap();
+
+        let folders = read(root.path()).unwrap();
+        let planned = plan(&conn, &profile_id, &folders, Some("images")).unwrap();
+        let bodies: Vec<&str> = planned
+            .phrases
+            .iter()
+            .map(|phrase| phrase.body.as_str())
+            .collect();
+        assert_eq!(bodies, ["Neon lights", "A cafe before dawn"]);
+        let titles: Vec<&str> = planned
+            .notes
+            .iter()
+            .map(|note| note.title.as_str())
+            .collect();
+        assert_eq!(titles, ["Images"], "what the images stand for is kept");
+        assert!(planned.notes[0].body.contains("City romance"));
     }
 }

@@ -298,8 +298,10 @@ and `clip/` - into their works: each folder is matched by `source_id` in a
 work's fields, else by the title its `info.md` opens with; each section of
 `info.md` becomes a note on the work named after its heading, the section
 named by `--images-heading <name>` becomes fresh phrases that arose at the
-work instead, and every page of the four folders a note named after its
-folder and file. What the work or the space holds already is passed over. A
+work instead - one for each item of its list, or for the first cell of each
+row of its table; a section written as a table is kept as its note too, since
+its other columns say what an image stands for - and every page of the four
+folders a note named after its folder and file. What the work or the space holds already is passed over. A
 plan and a report first, `--apply` to write, a copy of the space kept first.
 
 `kilna --import-channel <dir> --space <name>` (v0.154) brings a channel's
