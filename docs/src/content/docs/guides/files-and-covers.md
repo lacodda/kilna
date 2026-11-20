@@ -318,7 +318,8 @@ instruments and devices as attributes, its character as the note - resting
 the months the bank's own page says, last used in the month its *taken*
 lists name. Each month of the plan becomes a *Month pack* with its arc, and
 each row a track with its tradition, genre, tempo, key, mood, sound design,
-cover idea and artist, planned on its day; a month pack's track of the same
+cover idea and artist, planned on its day - an editor's note a cell carries
+in italics, `*(was: ...)*`, is left out of all of them; a month pack's track of the same
 title gives it its Suno prompt, its cover's scene, its duration and the
 YouTube release it goes out as, booked on its day. `--media <root>` adds
 the files of `<root>/<YYYY-MM>/<channel> - <YYYY-MM>/` named as a pack is -

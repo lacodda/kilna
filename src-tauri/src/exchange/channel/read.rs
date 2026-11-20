@@ -353,7 +353,7 @@ fn plan(text: &str) -> Vec<PlannedMonth> {
         let date = format!("{}-{day}", &current.month[..4]);
         let title_raw = row.get(1).cloned().unwrap_or_default();
         let marks = format!("{first} {title_raw}");
-        let title = strip_marks(&title_raw);
+        let title = strip_marks(&without_notes(&title_raw));
         current.tracks.push(PlannedTrack {
             date,
             title,
@@ -362,10 +362,24 @@ fn plan(text: &str) -> Vec<PlannedMonth> {
             cells: columns
                 .iter()
                 .cloned()
-                .zip(row.iter().map(|cell| strip_marks(cell)))
+                .zip(row.iter().map(|cell| strip_marks(&without_notes(cell))))
                 .skip(2)
                 .collect(),
         });
+    }
+    out
+}
+
+/// A cell without the editor's notes it carries in italics, `*(was: ...)*`:
+/// what a row used to say is the plan's history, not a title or a scene
+/// (v0.163.1).
+fn without_notes(text: &str) -> String {
+    let mut out = text.to_owned();
+    while let Some(start) = out.find("*(") {
+        let Some(length) = out[start..].find(")*") else {
+            break;
+        };
+        out.replace_range(start..start + length + 2, " ");
     }
     out
 }

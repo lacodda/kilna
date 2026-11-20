@@ -77,7 +77,7 @@ Arc: the month warms up.
 | Date | Title | Tradition × Genre | BPM·key·mood | Sound | Cover | Artist | Playlists |
 |------|-------|-------------------|--------------|-------|-------|--------|-----------|
 | 01-05 Tue | Two Hands 🎙 | Basque (txalaparta) × Broken Beat 🇪🇺 | 126 · dorian · playful | planks duel | A beach at dusk | Painter One | Night Roads |
-| 01-07 Thu 📌 | Storm Pipes | Breton × Techno | 130 · minor · stormy | bombarde | A lighthouse | Painter Two | Coastlines |
+| 01-07 Thu 📌 | Storm Pipes *(was: Storm Drums - a cliché)* | Breton × Techno | 130 · minor · stormy | bombarde | A lighthouse *(was: a pier)* | Painter Two | Coastlines |
 ";
 
 const PACK: &str = "# 2027-01-05 (Demo Channel – Two Hands (Basque x Broken Beat))
@@ -168,6 +168,14 @@ fn a_channels_folder_is_read_by_its_shapes() {
     assert_eq!(month.tracks[0].title, "Two Hands");
     assert!(month.tracks[0].vocal);
     assert!(month.tracks[1].peak);
+    // An editor's note in italics is the plan's history, not its words.
+    assert_eq!(month.tracks[1].title, "Storm Pipes");
+    let cover = month.tracks[1]
+        .cells
+        .iter()
+        .find(|(column, _)| column == "Cover")
+        .map(|(_, text)| text.as_str());
+    assert_eq!(cover, Some("A lighthouse"));
     assert_eq!(channel.packs.len(), 1);
     assert_eq!(cooldown_of(BANK), Some(3));
 }
