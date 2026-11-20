@@ -125,6 +125,17 @@ fn same_bytes(a: &Path, b: &Path) -> bool {
     }
 }
 
+/// An asset as settling reads it: id, work, release, kind, path and the name
+/// it came with.
+type Row = (
+    String,
+    Option<String>,
+    Option<String>,
+    String,
+    String,
+    Option<String>,
+);
+
 /// What settling the copies in `media` would do.
 pub fn plan(conn: &Connection, profile_id: &str, media: &Path) -> Result<Plan> {
     let config = crate::profile::config_for(conn, profile_id)?;
@@ -134,14 +145,7 @@ pub fn plan(conn: &Connection, profile_id: &str, media: &Path) -> Result<Plan> {
         root: root.clone(),
         ..Plan::default()
     };
-    let rows: Vec<(
-        String,
-        Option<String>,
-        Option<String>,
-        String,
-        String,
-        Option<String>,
-    )> = conn
+    let rows: Vec<Row> = conn
         .prepare(
             "SELECT id, work_id, release_id, kind, path, original_name FROM asset
              WHERE profile_id = ?1 ORDER BY created_at, id",

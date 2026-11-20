@@ -821,10 +821,10 @@ pub struct Files<'a> {
     pub archive: Option<&'a Path>,
 }
 
-/// What setting `root` as the channel's media folder writes: the folder, and
-/// - while the track's folder is still the one the profile ships - a month
-/// folder the month's tracks share under where the month folders are,
-/// `Music/{month}/CN - {month}`, each file named after its track.
+/// What setting `root` as the channel's media folder writes: the folder,
+/// and, while the track's folder is still the one the profile ships, a
+/// month's folder the month's tracks share under where the month folders
+/// are, `Music/{month}/CN - {month}`, each file named after its track.
 fn setup(
     conn: &Connection,
     profile_id: &str,
