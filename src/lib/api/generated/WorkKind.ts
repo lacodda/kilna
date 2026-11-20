@@ -130,6 +130,16 @@ folder?: string | null,
  */
 file?: string | null, 
 /**
+ * What a work's files are called when its folder is shared with other
+ * works - a month's folder of a channel, `Music/{month}/CN - {month}` -
+ * read with the same placeholders as `folder`: `Celestia Nomad –
+ * {title}`. A file is the work's when it is called so, or so with more
+ * after it in brackets; a file attached to it is named so; the Files
+ * tab and the finished file look at nothing else (v0.164). Absent: the
+ * folder is the work's own.
+ */
+files_named?: string | null, 
+/**
  * Whether a work of this kind is an experiment - a board of trials,
  * each tried out somewhere outside, heard, and kept or thrown away -
  * and where what is kept goes (v0.95, ADR 0061). A cover gives a

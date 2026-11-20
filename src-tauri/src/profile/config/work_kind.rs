@@ -120,6 +120,15 @@ pub struct WorkKind {
     /// it is the same document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
+    /// What a work's files are called when its folder is shared with other
+    /// works - a month's folder of a channel, `Music/{month}/CN - {month}` -
+    /// read with the same placeholders as `folder`: `Celestia Nomad –
+    /// {title}`. A file is the work's when it is called so, or so with more
+    /// after it in brackets; a file attached to it is named so; the Files
+    /// tab and the finished file look at nothing else (v0.164). Absent: the
+    /// folder is the work's own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_named: Option<String>,
     /// Whether a work of this kind is an experiment - a board of trials,
     /// each tried out somewhere outside, heard, and kept or thrown away -
     /// and where what is kept goes (v0.95, ADR 0061). A cover gives a
@@ -164,6 +173,7 @@ impl WorkKind {
             made_title: None,
             open_on: None,
             file: None,
+            files_named: None,
             folder: None,
             lab: None,
             conception: None,
@@ -414,6 +424,22 @@ impl WorkKind {
                     .param("place", place.clone())
                     .param("template", template.as_str())
                     .param("problem", problem.to_string()),
+            );
+        }
+        // The name a work's files take in a shared folder is one step of a
+        // template: the same placeholders, no slash (v0.164).
+        if let Some(template) = &self.files_named
+            && let Some(problem) = crate::folder::problem(template).or_else(|| {
+                template
+                    .contains(['/', '\\'])
+                    .then(|| "names a folder; it is what a file is called".to_owned())
+            })
+        {
+            problems.push(
+                Reason::of("problem.folderTemplate")
+                    .param("place", place.clone())
+                    .param("template", template.as_str())
+                    .param("problem", problem),
             );
         }
         // A rule for the finished file names a file inside the work's folder

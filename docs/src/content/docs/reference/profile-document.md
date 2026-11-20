@@ -160,10 +160,20 @@ its files in - found by that name and looked at, never attached or owned (see
   (v0.163): `songs/{source_id|title}` keeps a work imported with a source id
   under it, and one made in kilna under its title. When none holds one, the
   Files tab names them all.
+- `{month}` reads the `YYYY-MM` the work goes out in - its first release,
+  out or booked, else its planned day (v0.164). A work with neither has no
+  month, and its folder waits for one.
 - `/` (or `\`) separates the folders. A template is refused when it is a
   place on a disk (`C:/…`, `/…`), steps out with `.` or `..`, has an empty
   step, writes a character no folder may hold, or a placeholder that is none
   of the above.
+
+A folder several works share - a channel's month, `Music/{month}/CN - {month}`
+- names each work's files after it with `files_named` (v0.164), one step read
+with the same placeholders: `Celestia Nomad – {title}`. A file is the work's
+when it is called so, or so with more after it in brackets - `Celestia Nomad
+– Two Hands (Basque x Broken Beat).mp3`; a file attached to the work takes
+that name; the Files tab and the finished file look at nothing else.
 
 A title or field is made safe for a folder's name: the characters
 `< > : " / \ | ? *` are left out, spaces run together, trailing dots dropped.

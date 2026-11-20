@@ -223,29 +223,48 @@ pub fn attach_minted(
     let original_name = source
         .file_name()
         .map(|name| name.to_string_lossy().into_owned());
-
-    let stored = media_dir.join(stored_name(minted.id(), source));
-    // Never over a file that is already there. The name is the asset's id,
-    // so a collision means this id is taken — by a row being replayed, or by
-    // a mistake — and copying over it would destroy bytes another row points
-    // at. Found by the test that refuses the same id twice.
-    if stored.exists() {
-        return Err(Error::Internal(format!(
-            "the workspace already holds a file for `{}`",
-            minted.id()
-        )));
-    }
-    std::fs::copy(source, &stored).map_err(|cause| {
-        Error::refused("asset.copyFailed")
-            .param("path", source.display().to_string())
-            .param("cause", cause.to_string())
-    })?;
-
     let kind = new
         .kind
+        .clone()
         .map(|kind| kind.trim().to_owned())
         .filter(|kind| !kind.is_empty())
         .unwrap_or_else(|| ATTACHMENT.to_owned());
+
+    // A work's file goes to the work's folder under the media folder, and a
+    // file already under it is named where it lies (v0.164, FR-04 4.3);
+    // what has no folder - a style's picture, a card's, a work of a space
+    // with no media folder - is copied into the space's own `media/`.
+    let (stored, copied) = match placement(conn, profile_id, &new, &kind, source) {
+        Some(Placement::InPlace(path)) => (path, false),
+        Some(Placement::Into(path)) => {
+            std::fs::copy(source, &path).map_err(|cause| {
+                Error::refused("asset.copyFailed")
+                    .param("path", source.display().to_string())
+                    .param("cause", cause.to_string())
+            })?;
+            (path, true)
+        }
+        None => {
+            let stored = media_dir.join(stored_name(minted.id(), source));
+            // Never over a file that is already there. The name is the
+            // asset's id, so a collision means this id is taken — by a row
+            // being replayed, or by a mistake — and copying over it would
+            // destroy bytes another row points at. Found by the test that
+            // refuses the same id twice.
+            if stored.exists() {
+                return Err(Error::Internal(format!(
+                    "the workspace already holds a file for `{}`",
+                    minted.id()
+                )));
+            }
+            std::fs::copy(source, &stored).map_err(|cause| {
+                Error::refused("asset.copyFailed")
+                    .param("path", source.display().to_string())
+                    .param("cause", cause.to_string())
+            })?;
+            (stored, true)
+        }
+    };
     let label = new
         .label
         .map(|label| label.trim().to_owned())
@@ -274,12 +293,83 @@ pub fn attach_minted(
     if let Err(cause) = written {
         // The row is what makes the copy an asset; without it the file is
         // litter, and litter in the workspace's own directory is litter a
-        // backup carries forever.
-        let _ = std::fs::remove_file(&stored);
+        // backup carries forever. A file named where it lay is the
+        // person's, and stays.
+        if copied {
+            let _ = std::fs::remove_file(&stored);
+        }
         return Err(cause.into());
     }
 
     get(conn, minted.id())?.ok_or_else(|| Error::not_found("asset", minted.id()))
+}
+
+/// Where a file attached to a work lands, when it is not the space's own
+/// `media/`.
+enum Placement {
+    /// It already lies under the media folder: named where it is, no copy.
+    InPlace(PathBuf),
+    /// Copied into the work's folder, here - a name nothing else holds.
+    Into(PathBuf),
+}
+
+/// The subfolder of a work's folder a file of this kind goes to (FR-04 4.2):
+/// the folder's own level is for what the work is finished as.
+fn subfolder_for(kind: &str) -> &'static str {
+    match kind {
+        COVER => "images",
+        CANDIDATE => "candidates",
+        _ => "raw",
+    }
+}
+
+/// Where a file attached to a work goes on disk (v0.164): nowhere special
+/// when the space has no media folder, the file belongs to no work, or the
+/// work's folder cannot be named - the space's `media/` then, as before.
+fn placement(
+    conn: &Connection,
+    profile_id: &str,
+    new: &NewAsset,
+    kind: &str,
+    source: &Path,
+) -> Option<Placement> {
+    let work_id = match (&new.work_id, &new.release_id) {
+        (Some(id), _) => id.clone(),
+        (None, Some(release)) => crate::release::get(conn, release).ok()??.work_id,
+        _ => return None,
+    };
+    let root = crate::folder::root(conn, profile_id).ok()??;
+    let root = Path::new(&root);
+    if !root.is_dir() {
+        return None;
+    }
+    if crate::folder::lies_under(source, root) {
+        return Some(Placement::InPlace(source.to_path_buf()));
+    }
+    let work = crate::work::get(conn, &work_id).ok()??;
+    let config = crate::profile::config_for(conn, profile_id).ok()?;
+    let folder = crate::folder::ensure(conn, &config, &work).ok()?;
+    let dir = PathBuf::from(folder.path?);
+    let name = source.file_name()?.to_string_lossy().into_owned();
+    let (dir, name) = match crate::folder::named_prefix(conn, &config, &work) {
+        // A folder many works share names a work's files after it.
+        Some(prefix) => (dir, crate::folder::name_after(&prefix, &name)),
+        None => (dir.join(subfolder_for(kind)), name),
+    };
+    std::fs::create_dir_all(&dir).ok()?;
+    Some(Placement::Into(crate::folder::free_name(&dir, &name)))
+}
+
+/// Whether kilna keeps these bytes itself - a copy in the space's own
+/// `media/` - and so may remove them once nothing names them. A file in a
+/// work's folder, or anywhere else, is the person's: taking a row off it
+/// never touches the disk (v0.164, FR-04 4.3). A space held in memory has no
+/// `media/` of its own; there every file is the test's copy.
+pub fn kept_by_kilna(conn: &Connection, path: &str) -> bool {
+    match crate::state::media_dir_of(conn) {
+        Ok(media) => crate::folder::lies_under(Path::new(path), &media),
+        Err(_) => true,
+    }
 }
 
 /// Take a picture straight from the clipboard.
@@ -567,6 +657,11 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
                 );
                 return;
             }
+        }
+        // Only kilna's own copy goes: a file in a work's folder, or named
+        // where it lay, is the person's (v0.164).
+        if !kept_by_kilna(conn, &asset.path) {
+            return;
         }
         let path = PathBuf::from(&asset.path);
         if let Err(cause) = std::fs::remove_file(&path) {

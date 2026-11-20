@@ -526,11 +526,33 @@ pub fn of_work(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result
     if found.state == FolderState::Found
         && let Some(path) = found.path.as_deref()
     {
-        let (files, truncated) = list(Path::new(path));
+        let named = named_prefix(conn, config, work);
+        let (mut files, truncated) = list(Path::new(path), named.as_deref());
+        // A file attached to the work is drawn among its attachments, with
+        // its role; listed here too it would show twice (v0.164).
+        let attached: Vec<String> = conn
+            .prepare("SELECT path FROM asset WHERE work_id = ?1")?
+            .query_map(rusqlite::params![work.id], |row| row.get(0))?
+            .collect::<rusqlite::Result<_>>()?;
+        files.retain(|file| {
+            !attached
+                .iter()
+                .any(|one| same_place(Path::new(one), Path::new(&file.path)))
+        });
         found.files = files;
         found.truncated = truncated;
     }
     Ok(found)
+}
+
+/// Whether two paths name one place, step by step as [`lies_under`] reads
+/// them.
+pub fn same_place(a: &Path, b: &Path) -> bool {
+    lies_under(a, b.parent().unwrap_or(b))
+        && a.file_name()
+            .map(|name| name.to_string_lossy().to_lowercase())
+            == b.file_name()
+                .map(|name| name.to_string_lossy().to_lowercase())
 }
 
 /// A work's finished file: the one chosen by hand when there is one, else the
@@ -549,14 +571,23 @@ pub fn locate(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<
         .find(|kind| kind.key == work.kind)
         .and_then(|kind| kind.file.clone());
     found.file = match (found.state, found.path.as_deref()) {
-        (FolderState::Found, Some(folder)) => finished_in(Path::new(folder), work, rule),
+        (FolderState::Found, Some(folder)) => {
+            let named = named_prefix(conn, config, work);
+            finished_in(Path::new(folder), work, rule, named.as_deref())
+        }
         _ => FinishedFile::stated(FileState::NoFolder, rule),
     };
     Ok(found)
 }
 
-/// The finished file inside a folder that is there.
-fn finished_in(folder: &Path, work: &Work, rule: Option<String>) -> FinishedFile {
+/// The finished file inside a folder that is there - in a folder shared
+/// with other works, only among the files named after this one.
+fn finished_in(
+    folder: &Path,
+    work: &Work,
+    rule: Option<String>,
+    named: Option<&str>,
+) -> FinishedFile {
     if let Some(chosen) = &work.file {
         let path = chosen
             .split('/')
@@ -576,7 +607,7 @@ fn finished_in(folder: &Path, work: &Work, rule: Option<String>) -> FinishedFile
     let Some(pattern) = rule.as_deref().and_then(|rule| steps_of(rule).ok()) else {
         return FinishedFile::stated(FileState::NoRule, rule);
     };
-    match newest(folder, &pattern) {
+    match newest(folder, &pattern, named) {
         Some((path, relative)) => FinishedFile {
             state: FileState::Found,
             rule,
@@ -703,7 +734,7 @@ fn step_matches(step: &str, name: &str) -> bool {
 
 /// The newest file under `folder` the steps match, and where it is inside the
 /// folder: last changed first, the greater path when two changed at once.
-fn newest(folder: &Path, steps: &[String]) -> Option<(PathBuf, String)> {
+fn newest(folder: &Path, steps: &[String], named: Option<&str>) -> Option<(PathBuf, String)> {
     let mut places = vec![(folder.to_path_buf(), String::new())];
     for (index, step) in steps.iter().enumerate() {
         let last = index + 1 == steps.len();
@@ -715,6 +746,9 @@ fn newest(folder: &Path, steps: &[String]) -> Option<(PathBuf, String)> {
             for entry in entries.flatten() {
                 let name = entry.file_name().to_string_lossy().into_owned();
                 if is_the_systems(&name) || !step_matches(step, &name) {
+                    continue;
+                }
+                if last && named.is_some_and(|prefix| !is_named_after(&name, prefix)) {
                     continue;
                 }
                 let Ok(kind) = entry.file_type() else {
@@ -763,8 +797,142 @@ pub fn inside(path: &str) -> Result<String> {
     Ok(steps.join("/"))
 }
 
+/// The field a folder template reads the month a work goes out in from:
+/// `Music/{month}` (v0.164).
+const MONTH: &str = "month";
+
+/// A work with `month` among its fields, when it has none of its own: the
+/// `YYYY-MM` of its first release - out or booked - else of its planned
+/// day. Without either it has no month, and a template that reads one
+/// waits for it.
+fn with_month(conn: &Connection, work: &Work) -> Work {
+    let mut work = work.clone();
+    if work.meta.contains_key(MONTH) {
+        return work;
+    }
+    let first: Option<String> = conn
+        .query_row(
+            "SELECT MIN(day) FROM (
+                 SELECT COALESCE(released_at, scheduled_at) AS day FROM release WHERE work_id = ?1
+                 UNION ALL
+                 SELECT scheduled_at FROM work_plan WHERE work_id = ?1
+             ) WHERE day IS NOT NULL",
+            rusqlite::params![work.id],
+            |row| row.get(0),
+        )
+        .ok()
+        .flatten();
+    if let Some(day) = first.filter(|day| day.len() >= 7) {
+        work.meta
+            .insert(MONTH.to_owned(), Value::String(day[..7].to_owned()));
+    }
+    work
+}
+
+/// Whether `path` lies under `root`, step by step - the drive and, on
+/// Windows, letters compared without their case, the long-path prefix left
+/// out. A path that climbs with `..` lies nowhere.
+pub fn lies_under(path: &Path, root: &Path) -> bool {
+    fn steps(path: &Path) -> Option<Vec<String>> {
+        let mut out = Vec::new();
+        for part in path.components() {
+            let step = match part {
+                Component::Prefix(prefix) => prefix
+                    .as_os_str()
+                    .to_string_lossy()
+                    .trim_start_matches(r"\\?\")
+                    .to_owned(),
+                Component::Normal(name) => name.to_string_lossy().into_owned(),
+                Component::RootDir | Component::CurDir => continue,
+                Component::ParentDir => return None,
+            };
+            out.push(if cfg!(windows) {
+                step.to_lowercase()
+            } else {
+                step
+            });
+        }
+        Some(out)
+    }
+    match (steps(path), steps(root)) {
+        (Some(path), Some(root)) => {
+            !root.is_empty() && path.len() > root.len() && path[..root.len()] == root[..]
+        }
+        _ => false,
+    }
+}
+
+/// What a work's files are called in a folder it shares with others - the
+/// kind's `files_named` read for this work, as `Celestia Nomad – Two Hands`
+/// (v0.164). Nothing when the kind's works have folders of their own.
+pub fn named_prefix(conn: &Connection, config: &ProfileConfig, work: &Work) -> Option<String> {
+    let template = config
+        .work_kinds
+        .iter()
+        .find(|kind| kind.key == work.kind)?
+        .files_named
+        .clone()?;
+    let origin = crate::publication::origin(conn, config, &work.id).ok()?;
+    let origin = with_month(conn, origin.as_ref().unwrap_or(work));
+    match resolve(Path::new(""), &template, &with_month(conn, work), &origin).ok()? {
+        Resolved::At(path) => path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned()),
+        Resolved::Unfilled(_) => None,
+    }
+}
+
+/// Whether a file of a shared folder is one of the work's: called as it is,
+/// or as it is with more after it in brackets - `<prefix> (Ossetian x
+/// Industrial Techno).mp3`, `<prefix> (2).wav`. Letters compared without
+/// their case.
+pub fn is_named_after(file_name: &str, prefix: &str) -> bool {
+    let stem = Path::new(file_name)
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    let prefix = prefix.to_lowercase();
+    !prefix.is_empty() && (stem == prefix || stem.starts_with(&format!("{prefix} (")))
+}
+
+/// The name a file takes in a shared folder: its own when it is already
+/// named after the work, else the work's with its own extension.
+pub fn name_after(prefix: &str, file_name: &str) -> String {
+    if is_named_after(file_name, prefix) {
+        return file_name.to_owned();
+    }
+    match Path::new(file_name).extension() {
+        Some(extension) => format!("{prefix}.{}", extension.to_string_lossy()),
+        None => prefix.to_owned(),
+    }
+}
+
+/// A place in `dir` for a file called `name` that nothing holds yet: the
+/// name itself, else `<stem> (2).<ext>`, `(3)`... - a file is never written
+/// over.
+pub fn free_name(dir: &Path, name: &str) -> PathBuf {
+    let first = dir.join(name);
+    if !first.exists() {
+        return first;
+    }
+    let path = Path::new(name);
+    let stem = path
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let extension = path
+        .extension()
+        .map(|extension| format!(".{}", extension.to_string_lossy()))
+        .unwrap_or_default();
+    (2..)
+        .map(|n| dir.join(format!("{stem} ({n}){extension}")))
+        .find(|candidate| !candidate.exists())
+        .unwrap_or(first)
+}
+
 /// Where a work's folder is, and whether it is there.
 fn place(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkFolder> {
+    let work = &with_month(conn, work);
     let Some(root) = root(conn, &work.profile_id)? else {
         return Ok(WorkFolder::stated(FolderState::NoRoot));
     };
@@ -787,8 +955,8 @@ fn place(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<WorkF
     };
 
     let origin = crate::publication::origin(conn, config, &work.id)?;
-    let origin = origin.as_ref().unwrap_or(work);
-    match resolve(Path::new(&root), &template, work, origin)? {
+    let origin = with_month(conn, origin.as_ref().unwrap_or(work));
+    match resolve(Path::new(&root), &template, work, &origin)? {
         Resolved::Unfilled(placeholder) => {
             found.state = FolderState::Unfilled;
             found.unfilled = Some(placeholder);
@@ -900,7 +1068,7 @@ pub fn remove_if_empty(folder: &Path) -> bool {
 /// thumbnail cache, its view settings - and so is anything that cannot be
 /// read: a listing is a look, and a look at a folder with one locked
 /// subfolder still shows the rest.
-fn list(folder: &Path) -> (Vec<FolderFile>, bool) {
+fn list(folder: &Path, named: Option<&str>) -> (Vec<FolderFile>, bool) {
     let mut files = Vec::new();
     let mut truncated = false;
     let mut pending = vec![(folder.to_path_buf(), 0usize)];
@@ -924,6 +1092,15 @@ fn list(folder: &Path) -> (Vec<FolderFile>, bool) {
                 continue;
             }
             if !kind.is_file() {
+                continue;
+            }
+            // In a folder shared with other works, only this one's files.
+            if named.is_some_and(|prefix| {
+                !is_named_after(
+                    &path.file_name().unwrap_or_default().to_string_lossy(),
+                    prefix,
+                )
+            }) {
                 continue;
             }
             if files.len() == MOST_FILES {
@@ -1305,7 +1482,7 @@ mod tests {
         std::fs::write(folder.join("Thumbs.db"), b"x").unwrap();
         std::fs::write(folder.join(".cache").join("hidden.bin"), b"x").unwrap();
 
-        let (files, truncated) = list(folder);
+        let (files, truncated) = list(folder, None);
         let names: Vec<&str> = files.iter().map(|f| f.relative.as_str()).collect();
         assert_eq!(names, ["clip/v1/take.mp4", "cover.png"]);
         assert!(!truncated);
@@ -1548,7 +1725,7 @@ mod tests {
         }
 
         let steps = steps_of("*.mp4").unwrap();
-        let (_, relative) = newest(folder, &steps).unwrap();
+        let (_, relative) = newest(folder, &steps, None).unwrap();
         assert_eq!(relative, "final.mp4");
     }
 
@@ -1834,5 +2011,83 @@ mod tests {
             finished(&conn, &config, &clip).unwrap().state,
             FileState::NoRule
         );
+    }
+
+    /// A month's folder the month's works share (v0.164): `{month}` reads
+    /// the work's planned day, the work's files are those named after it,
+    /// and a file is named so when it comes in.
+    #[test]
+    fn a_shared_month_folder_shows_a_work_its_own_files() {
+        let (conn, profile_id, dir) = crate::fixtures::workspace_on_disk();
+        set_root(
+            &conn,
+            &profile_id,
+            Some(&dir.path().to_string_lossy()),
+            "2026-11-20T00:00:00Z",
+        )
+        .unwrap();
+        let mut config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        for kind in &mut config.work_kinds {
+            if kind.key == "song" {
+                kind.folder = Some("Music/{month}/DM - {month}".into());
+                kind.files_named = Some("Demo – {title}".into());
+            }
+        }
+        crate::profile::update_config(&conn, &profile_id, &config).unwrap();
+        let config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        let song = crate::fixtures::song(&conn, &profile_id, "Two Hands");
+        assert_eq!(
+            of_work(&conn, &config, &song).unwrap().state,
+            FolderState::Unfilled,
+            "no month yet"
+        );
+
+        crate::actions::work_plan::plan(
+            &conn,
+            crate::work_plan::NewWorkPlan {
+                work_id: song.id.clone(),
+                scheduled_at: "2026-10-23".into(),
+                note: None,
+            },
+        )
+        .unwrap();
+        let month = dir
+            .path()
+            .join("Music")
+            .join("2026-10")
+            .join("DM - 2026-10");
+        std::fs::create_dir_all(&month).unwrap();
+        for name in [
+            "Demo – Two Hands (Basque x Broken Beat).mp3",
+            "Demo – Two Hands (2).png",
+            "Demo – Two Handsome.mp3",
+            "Demo – Storm Pipes.mp3",
+        ] {
+            std::fs::write(month.join(name), b"x").unwrap();
+        }
+        let found = of_work(&conn, &config, &song).unwrap();
+        assert_eq!(found.state, FolderState::Found);
+        let names: Vec<&str> = found
+            .files
+            .iter()
+            .map(|file| file.relative.as_str())
+            .collect();
+        assert_eq!(
+            names,
+            [
+                "Demo – Two Hands (2).png",
+                "Demo – Two Hands (Basque x Broken Beat).mp3"
+            ]
+        );
+        assert_eq!(
+            named_prefix(&conn, &config, &song).as_deref(),
+            Some("Demo – Two Hands")
+        );
+        assert_eq!(
+            name_after("Demo – Two Hands", "suno-take.mp3"),
+            "Demo – Two Hands.mp3"
+        );
+        assert!(lies_under(&month.join("a.mp3"), dir.path()));
+        assert!(!lies_under(dir.path(), dir.path()));
     }
 }

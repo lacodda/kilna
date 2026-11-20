@@ -161,4 +161,87 @@ mod tests {
         // And taking off what is already gone is no failure.
         detach(&conn, &kept.id).unwrap();
     }
+
+    /// With a media folder, a work's file goes to the work's folder by its
+    /// kind, a file already under the media folder is named where it lies,
+    /// and taking either off - the trash emptied too - never deletes it
+    /// (v0.164, FR-04 4.3).
+    #[test]
+    fn a_works_file_lands_in_its_folder_and_stays_the_persons() {
+        let (conn, profile_id, dir) = fixtures::workspace_on_disk();
+        let media = crate::state::media_dir_of(&conn).unwrap();
+        let root = dir.path().join("library");
+        std::fs::create_dir_all(&root).unwrap();
+        crate::folder::set_root(
+            &conn,
+            &profile_id,
+            Some(&root.to_string_lossy()),
+            "2026-11-20T00:00:00Z",
+        )
+        .unwrap();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let downloads = dir.path().join("downloads");
+        std::fs::create_dir_all(&downloads).unwrap();
+        let take = fixtures::file(&downloads, "take.wav");
+
+        let dropped = attach(
+            &conn,
+            &media,
+            &take.display().to_string(),
+            NewAsset {
+                work_id: Some(song.id.clone()),
+                ..NewAsset::default()
+            },
+        )
+        .unwrap();
+        let landed = Path::new(&dropped.path).to_path_buf();
+        assert!(
+            crate::folder::lies_under(&landed, &root),
+            "{}",
+            dropped.path
+        );
+        assert!(
+            dropped.path.contains("raw") && dropped.path.ends_with("take.wav"),
+            "{}",
+            dropped.path
+        );
+        assert!(take.is_file(), "the original stays where it was");
+
+        let kept = root.join("cover.png");
+        std::fs::write(&kept, b"png").unwrap();
+        let named = attach(
+            &conn,
+            &media,
+            &kept.display().to_string(),
+            NewAsset {
+                work_id: Some(song.id.clone()),
+                kind: Some(crate::asset::COVER.to_owned()),
+                ..NewAsset::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            Path::new(&named.path),
+            kept.as_path(),
+            "named where it lies"
+        );
+
+        for id in [&dropped.id, &named.id] {
+            detach(&conn, id).unwrap();
+            let entry = crate::trash::list(&conn, &profile_id)
+                .unwrap()
+                .into_iter()
+                .find(|entry| entry.entity_id == **id)
+                .expect("the file waits in the trash");
+            crate::actions::trash::purge(&conn, &entry.id).unwrap();
+        }
+        assert!(
+            landed.is_file() && kept.is_file(),
+            "the person's files stay"
+        );
+        assert!(
+            std::fs::read_dir(&media).unwrap().next().is_none(),
+            "nothing was copied into media/"
+        );
+    }
 }

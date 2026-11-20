@@ -1134,6 +1134,11 @@ fn forget_files(conn: &Connection, paths: Vec<String>) {
                     continue;
                 }
             }
+            // Only kilna's own copy goes: a file in a work's folder, or
+            // named where it lay, is the person's (v0.164, FR-04 4.3).
+            if !crate::asset::kept_by_kilna(conn, path) {
+                continue;
+            }
             match std::fs::remove_file(path) {
                 Ok(()) => {}
                 // Already gone is what was wanted.
