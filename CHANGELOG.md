@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.164.0] - 2026-11-20
+
+Files where they belong. A file attached to a work - dropped on its Files
+tab, picked, pasted, made by a generator - now goes to the work's own folder
+under the media folder rather than into a copy inside kilna, and a file that
+already lies under the media folder is attached where it lies. Taking a file
+off a work or emptying the trash never deletes a file in your folders: only
+kilna's own copies go. A folder template reads `{month}`, the month a work
+goes out in, and a kind's `files_named` tells a work's files apart in a
+folder it shares with others - a channel's month. `kilna --settle-media`
+settles what was copied before: pointed at the same file already in your
+folders, or moved into its work's folder. `--import-channel` sets where a
+channel's files live with `--root`, brings in what went out before the plan
+with `--archive`, and marks a packed track's release out once its day has
+passed. A migration with `--apply` now needs `--space` when more than one
+space is on the machine.
+
+### Bug Fixes
+- Break the settle plan's ties by rowid, not by an id
+
+### Features
+- Keep a work's file in its folder and never delete the person's
+- Bring in a channel's archive and settle the space's copies
+
 ## [0.163.1] - 2026-11-20
 
 Two fixes for bringing in what a previous system kept. A song folder's
