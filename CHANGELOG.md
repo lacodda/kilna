@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.163.1] - 2026-11-20
+
+Two fixes for bringing in what a previous system kept. A song folder's
+section `--images-heading` names, written as a table rather than a list, now
+gives a phrase for the first cell of each row, and the table stays a note on
+the work, so what each image stands for is kept. A channel's plan may carry
+an editor's note in italics in a cell - `*(was: ...)*` - and it is now left
+out of the track's title and scene, so the track still finds its month pack
+and its files.
+
+### Bug Fixes
+- Read a song's images section written as a table
+- Leave an editor's italic note out of a channel plan's cells
+
 ## [0.163.0] - 2026-11-19
 
 Lighter and more to taste. A long catalogue is drawn a step at a time as it
