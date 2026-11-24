@@ -24,6 +24,9 @@ commands = [
 [ci]
 provider = "github"
 workflow = "ci.yml"
+# What a tag starts: it builds the bundles and puts the release page out, and
+# the run waits for it before it looks at the page.
+publish = "release.yml"
 
 # What release.yml builds for the three platforms: the run waits for every one
 # of them before it calls the release out.
