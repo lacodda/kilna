@@ -1,0 +1,39 @@
+# How kilna is released, read by furca's release engine: `furca release plan`
+# says what the next release is and what stands in its way, `furca release
+# run` carries it out - bump, changelog, gate, commit, push, green CI, tag,
+# publish - and checks what went out. `lyrn check` reads it too.
+# Reference: https://lacodda.github.io/furca/reference/release/
+
+[project]
+name = "kilna"
+changelog = "CHANGELOG.md"
+# The window and its core carry one version: the frontend's package, the
+# crate, and the bundle Tauri builds.
+manifests = ["package.json", "src-tauri/Cargo.toml", "src-tauri/tauri.conf.json"]
+# ADRs record what happened: the versions they name are history. So are the
+# "Added in" notes of the profile reference, which say when a key appeared.
+as_written = ["docs/adr/", "docs/src/content/docs/reference/profile-document.md"]
+
+[gate]
+# Formatting only: it takes seconds and compiles nothing. The rest of the gate
+# is CI, which the run waits for before the tag.
+commands = [
+    "cargo fmt --manifest-path src-tauri/Cargo.toml --all --check",
+]
+
+[ci]
+provider = "github"
+workflow = "ci.yml"
+
+# What release.yml builds for the three platforms: the run waits for every one
+# of them before it calls the release out.
+[page]
+assets = [
+    "kilna_{version}_x64-setup.exe",
+    "kilna_{version}_x64_en-US.msi",
+    "kilna_{version}_amd64.AppImage",
+    "kilna_{version}_amd64.deb",
+    "kilna-{version}-1.x86_64.rpm",
+    "kilna_{version}_aarch64.dmg",
+    "kilna_{version}_aarch64.app.tar.gz",
+]

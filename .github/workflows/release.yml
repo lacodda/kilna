@@ -20,17 +20,37 @@ jobs:
       release_id: ${{ steps.create.outputs.result }}
     steps:
       - uses: actions/checkout@v7
+      # The release page says what the changelog says about this version, and
+      # ends with the checklist of .github/release-notes.md, ticked once the
+      # release has been through it. The section is cut from CHANGELOG.md as
+      # written, not rendered again from the commits: a release's own words
+      # above its lists are part of it.
+      - name: Write the release notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v heading="## [$version]" '
+            index($0, heading) == 1 { inside = 1; next }
+            inside && /^## \[/ { exit }
+            inside { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "CHANGELOG.md has no section for $version" >&2
+            exit 1
+          fi
+          echo >> release-notes.md
+          cat .github/release-notes.md >> release-notes.md
       - uses: actions/github-script@v9
         id: create
         with:
           script: |
+            const fs = require('fs')
             const tag = context.ref.replace('refs/tags/', '')
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag,
               name: `kilna ${tag}`,
-              body: 'See CHANGELOG.md for what changed.',
+              body: fs.readFileSync('release-notes.md', 'utf8'),
               draft: true,
               prerelease: false,
             })
