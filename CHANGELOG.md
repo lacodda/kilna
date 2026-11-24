@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.164.1] - 2026-11-24
+
+A refactoring release: nothing a user or an agent sees has changed. The MCP
+server was one file of 7259 lines, the largest in the backend and edited 62
+times in six months, with every tool an arm of one function; it is now a
+directory where each tool is a function of its own name, filed by its subject.
+
+| Measured | 0.164.0 | 0.164.1 |
+| --- | --- | --- |
+| The MCP server | 1 file, 7259 lines | 33 files, the largest 1061 (the list of tools) |
+| Code and tests | 4549 and 2710 lines in one file | 18 files of code, 15 of tests by subject |
+| The longest function that runs tools | `run_tool`, 1972 lines | `propose_work`, 281; the 41 functions of the tools have a median of 63 |
+| `run_tool` | 1972 lines, 31 arms | 46 lines: the table of names |
+| Tests of the server | 59 | 63 |
+| Mutations of `text`, `catalogue` and `notes` the tests caught | 1 of 4 | 4 of 4 |
+| 2333 answers of a demo stand over `kilna --mcp`, reads and proposals | - | the same, byte for byte |
+| 1248 answers of real spaces, reads only | - | the same, byte for byte |
+
+### Documentation
+- Say where the parts of the server are
+
+### Refactoring
+- Give the server a directory and its tests a file
+- Keep the list of tools in a module of its own
+- Keep the skills and their prompts in a module of their own
+- Keep what a call is read by and where a proposal goes apart
+- Make each tool a function of its own, filed by its subject
+
+### Testing
+- Pin how text, catalogue and notes are narrowed
+- File the tests by the tool they are about
+- Hold the list of tools and the table that runs them together
+
 ## [0.164.0] - 2026-11-20
 
 Files where they belong. A file attached to a work - dropped on its Files
