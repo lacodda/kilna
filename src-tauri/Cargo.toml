@@ -29,7 +29,7 @@ tauri-build = { version = "2.7", features = [] }
 tauri = { version = "2.12", features = ["protocol-asset", "tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.42", features = ["bundled", "serde_json", "backup"] }
+rusqlite = { version = "0.43", features = ["bundled", "serde_json", "backup"] }
 thiserror = "2"
 time = { version = "0.3.55", features = ["formatting", "macros"] }
 uuid = { version = "1", features = ["v4", "v5"] }
@@ -58,7 +58,7 @@ fst = "0.4"
 # A plugin stopped by hand or at its allowance is stopped with whatever it
 # started - a cutter's ffmpeg would otherwise run on to the end: a job object
 # on Windows, a process group elsewhere.
-process-wrap = { version = "10", default-features = false, features = ["std", "job-object", "creation-flags", "process-group"] }
+process-wrap = { version = "11", default-features = false, features = ["std", "job-object", "creation-flags", "process-group"] }
 # `kilna://<space>/work/<id>` opens a work from anywhere a link is followed;
 # the installer registers the scheme (#15, v0.109).
 tauri-plugin-deep-link = "2.6"
@@ -70,11 +70,11 @@ zip = { version = "9.6.1", default-features = false, features = ["deflate"] }
 # throws it away in the Files tab - never deleted outright (FR-14).
 trash = "5"
 # A track's tags and length, read for matching a batch of files (v0.157).
-lofty = "0.22"
+lofty = "0.25"
 # A registry of style packs is read from a site (v0.131, FR-06), and its
 # manifests are checked against their SHA-256.
-ureq = "2.12"
-sha2 = "0.10"
+ureq = "3.5"
+sha2 = "0.11"
 # A channel's time zone, with its summer time, from the zone database built
 # into the binary rather than the system's (v0.150, FR-20): a release goes
 # out at noon in Asuncion whatever machine planned it.

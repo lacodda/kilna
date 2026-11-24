@@ -575,7 +575,7 @@ fn grouped(command: Command) -> CommandWrap {
     #[cfg(windows)]
     {
         wrapped.wrap(CreationFlags(
-            windows::Win32::System::Threading::CREATE_NO_WINDOW,
+            windows::Win32::System::Threading::CREATE_NO_WINDOW.0,
         ));
         wrapped.wrap(JobObject);
     }

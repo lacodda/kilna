@@ -122,12 +122,14 @@ const RELEASES: &str = "https://api.github.com/repos/lacodda/kilna/releases/late
 /// page that cannot be read, says nothing is known rather than failing.
 pub fn check(current: &str) -> UpdateCheck {
     let answer = ureq::get(RELEASES)
-        .set("User-Agent", "kilna")
-        .set("Accept", "application/vnd.github+json")
-        .timeout(std::time::Duration::from_secs(10))
+        .config()
+        .timeout_global(Some(std::time::Duration::from_secs(10)))
+        .build()
+        .header("User-Agent", "kilna")
+        .header("Accept", "application/vnd.github+json")
         .call()
         .ok()
-        .and_then(|response| response.into_string().ok())
+        .and_then(|mut response| response.body_mut().read_to_string().ok())
         .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok());
     let latest = answer
         .as_ref()

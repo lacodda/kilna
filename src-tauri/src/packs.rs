@@ -187,11 +187,13 @@ fn read(source: &Source, builtin: &Path, relative: &str) -> Result<Vec<u8>> {
                 .trim_end_matches('/');
             let target = format!("{base}/{relative}");
             let response = ureq::get(&target)
-                .timeout(std::time::Duration::from_secs(20))
+                .config()
+                .timeout_global(Some(std::time::Duration::from_secs(20)))
+                .build()
                 .call()
                 .map_err(|e| unreadable(e.to_string()))?;
             let mut bytes = Vec::new();
-            std::io::Read::read_to_end(&mut response.into_reader(), &mut bytes)
+            std::io::Read::read_to_end(&mut response.into_body().into_reader(), &mut bytes)
                 .map_err(|e| unreadable(e.to_string()))?;
             Ok(bytes)
         }
