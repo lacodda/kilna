@@ -95,11 +95,6 @@ pub struct CommentPatch {
 #[ts(optional_fields = nullable)]
 pub struct CommentFilter {
     pub work_id: Option<String>,
-    /// Comments under the works made from this one - a song's clip, its
-    /// audio, its shorts - rather than under the work itself: what a song's
-    /// card sums up, since the audience comments on a publication, never on
-    /// the song (v0.86).
-    pub under: Option<String>,
     pub channel: Option<String>,
     /// One state. Absent means everything that still asks for something or
     /// was answered — every state but `archived`, which is the inbox's own
@@ -172,17 +167,6 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &CommentFilter) -> Resu
     if let Some(work_id) = &filter.work_id {
         values.push(Box::new(work_id.clone()));
         sql.push_str(&format!(" AND work_id = ?{}", values.len()));
-    }
-    if let Some(source) = &filter.under {
-        let made: Vec<String> = crate::link::descendants(conn, source)?
-            .into_iter()
-            .map(|(id, _)| id)
-            .collect();
-        values.push(Box::new(serde_json::to_string(&made)?));
-        sql.push_str(&format!(
-            " AND work_id IN (SELECT value FROM json_each(?{}))",
-            values.len()
-        ));
     }
     if let Some(channel) = &filter.channel {
         values.push(Box::new(channel.clone()));
@@ -726,59 +710,6 @@ mod tests {
             moved.refusal().map(|r| r.code),
             Some("comment.notAPublication")
         );
-    }
-
-    /// A song's card sums up what was said under everything made from it -
-    /// and under what was made from that - and nothing said elsewhere.
-    #[test]
-    fn a_song_reads_the_comments_under_its_publications() {
-        let (conn, profile_id) = fixtures::workspace();
-        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
-        let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
-        let cut = fixtures::work(&conn, &profile_id, "short", "Harbour lights · short 1");
-        let other = fixtures::video(&conn, &profile_id, "Another clip");
-        for (made, source) in [(&clip.id, &song.id), (&cut.id, &clip.id)] {
-            crate::link::create(
-                &conn,
-                &profile_id,
-                crate::link::NewLink {
-                    work_id: made.clone(),
-                    source_id: source.clone(),
-                    role: None,
-                    source_version_id: None,
-                },
-            )
-            .unwrap();
-        }
-        for (work, body) in [
-            (&clip.id, "on the clip"),
-            (&cut.id, "on the short"),
-            (&other.id, "elsewhere"),
-        ] {
-            keep(
-                &conn,
-                &profile_id,
-                NewComment {
-                    work_id: Some(work.clone()),
-                    ..said("main", body)
-                },
-            )
-            .unwrap();
-        }
-
-        let under = list(
-            &conn,
-            &profile_id,
-            &CommentFilter {
-                under: Some(song.id),
-                ..CommentFilter::default()
-            },
-        )
-        .unwrap();
-
-        let mut bodies: Vec<&str> = under.iter().map(|c| c.body.as_str()).collect();
-        bodies.sort_unstable();
-        assert_eq!(bodies, vec!["on the clip", "on the short"]);
     }
 
     #[test]

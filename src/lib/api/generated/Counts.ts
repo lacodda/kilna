@@ -23,10 +23,12 @@ sources: number,
  */
 derived: number, notes: number, 
 /**
- * The work's comments, the archived ones aside, and how many of them
- * still wait for an answer - the part of the counter worth a mark. For
- * a work that never goes out itself, the comments under what was made
- * from it: its Comments tab sums them up (v0.86).
+ * The work's own comments, the archived ones aside, and how many of
+ * them still wait for an answer - the part of the counter worth a mark.
+ * A work that never goes out itself has none: the audience comments on
+ * what was made from it, and each of those says its own on the song's
+ * overview. Until v0.166 they were summed up here for a tab number a
+ * song's card stopped drawing in v0.117.
  */
 comments: number, comments_waiting: number, scenes: number, 
 /**

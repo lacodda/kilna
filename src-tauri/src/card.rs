@@ -32,10 +32,12 @@ pub struct Counts {
     /// What was made from the work.
     pub derived: i64,
     pub notes: i64,
-    /// The work's comments, the archived ones aside, and how many of them
-    /// still wait for an answer - the part of the counter worth a mark. For
-    /// a work that never goes out itself, the comments under what was made
-    /// from it: its Comments tab sums them up (v0.86).
+    /// The work's own comments, the archived ones aside, and how many of
+    /// them still wait for an answer - the part of the counter worth a mark.
+    /// A work that never goes out itself has none: the audience comments on
+    /// what was made from it, and each of those says its own on the song's
+    /// overview. Until v0.166 they were summed up here for a tab number a
+    /// song's card stopped drawing in v0.117.
     pub comments: i64,
     pub comments_waiting: i64,
     pub scenes: i64,
@@ -60,31 +62,14 @@ pub struct Counts {
 /// that asks is already saying the work is gone, and a second error beside
 /// that would say it twice.
 pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
-    // The comments a work's tab lists: its own, or - for a song, which the
-    // audience never meets as the song - those under its publications. The
-    // same works a status is read from.
-    let (heard, brief) = match crate::work::get(conn, work_id)? {
-        Some(work) => {
-            let config = crate::profile::config_for(conn, &work.profile_id)?;
-            (
-                crate::work::status::speaking_for(
-                    conn,
-                    work_id,
-                    config.vocabulary(&work.kind).has_doors(),
-                )?,
-                config
-                    .conception(&work.kind)
-                    .map(|conception| conception.brief.clone()),
-            )
-        }
-        None => (vec![work_id.to_owned()], None),
+    // The conception's brief is not a version the Versions tab lists.
+    let brief = match crate::work::get(conn, work_id)? {
+        Some(work) => crate::profile::config_for(conn, &work.profile_id)?
+            .conception(&work.kind)
+            .map(|conception| conception.brief.clone()),
+        None => None,
     };
-    let (mut comments, mut comments_waiting) = (0, 0);
-    for id in &heard {
-        let (listed, waiting) = crate::comment::count_for_work(conn, id)?;
-        comments += listed;
-        comments_waiting += waiting;
-    }
+    let (comments, comments_waiting) = crate::comment::count_for_work(conn, work_id)?;
     let history = crate::work::timeline::count(conn, work_id)?;
 
     Ok(conn.query_row(
@@ -282,12 +267,9 @@ mod tests {
         assert_eq!(song_counts.derived, 1);
         assert_eq!(song_counts.notes, 1);
         assert_eq!(
-            song_counts.comments, 2,
-            "a song sums up the comments under its clip; the archived one is not listed"
-        );
-        assert_eq!(
-            song_counts.comments_waiting, 1,
-            "the one answered waits no more"
+            (song_counts.comments, song_counts.comments_waiting),
+            (0, 0),
+            "what is said under its clip is the clip's to count"
         );
         assert_eq!(song_counts.scenes, 0);
         assert_eq!(song_counts.history, before + 1);

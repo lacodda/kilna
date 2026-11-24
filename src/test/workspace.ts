@@ -950,18 +950,9 @@ function coverViewOf(studio: Studio, workId: string, format: string | null): Cov
 function countsOf(studio: Studio, workId: string): CardCounts {
   const mine = <T extends { work_id: string | null }>(rows: T[]) =>
     rows.filter((row) => row.work_id === workId).length
-  // A work that never goes out itself - a song - counts the comments under
-  // what was made from it, the way `card::counts` does since v0.86.
-  const kind = studio.works.find((w) => w.id === workId)?.kind
-  const goesOut = studio.profile.config.work_kinds.some(
-    (known) => known.key === kind && (known.release_kinds ?? []).length > 0,
-  )
-  const heard = goesOut
-    ? new Set([workId])
-    : new Set([workId, ...publicationsOf(studio, workId).items.map((item) => item.work_id)])
-  const comments = studio.comments.filter(
-    (c) => c.work_id !== null && heard.has(c.work_id) && c.state !== 'archived',
-  )
+  // A work's own comments, as `card::counts` counts them since v0.166: what
+  // is said under a song's publications is theirs to count.
+  const comments = studio.comments.filter((c) => c.work_id === workId && c.state !== 'archived')
   return {
     versions: mine(studio.versions),
     scores: mine(studio.scores),
@@ -1261,16 +1252,8 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_tags: () => counted(studio.notes.flatMap((n) => n.tags)),
 
     list_comments: ({ filter }) => {
-      const wanted = (filter ?? {}) as { work_id?: string | null; under?: string | null }
-      const made =
-        wanted.under == null
-          ? null
-          : new Set(publicationsOf(studio, wanted.under).items.map((item) => item.work_id))
-      return studio.comments.filter(
-        (c) =>
-          (wanted.work_id == null || c.work_id === wanted.work_id) &&
-          (made === null || (c.work_id !== null && made.has(c.work_id))),
-      )
+      const wanted = (filter ?? {}) as { work_id?: string | null }
+      return studio.comments.filter((c) => wanted.work_id == null || c.work_id === wanted.work_id)
     },
     comment_channels: () => counted(studio.comments.map((c) => c.channel)),
     pending_comment_proposals: () => [],
