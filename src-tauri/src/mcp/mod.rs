@@ -15,6 +15,13 @@
 //! person applies", holds for an assistant outside the window exactly as for
 //! the one inside it. See ADR 0016; the package and the mark a person leaves
 //! on an applied proposal are ADR 0018.
+//!
+//! Where things are: this file is the protocol - the loop, the spaces a
+//! session has opened, the messages; [`schema`] is what a client is told about
+//! each tool; [`tools`] is the tools themselves, one function a tool, filed by
+//! subject, with the table that runs them by name; [`skills`] serves the
+//! profile's skills as the `guide` tool and as prompts; [`call`] is what a
+//! tool reads its call by; [`deliver`] puts a proposal into a chat.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, Write};
@@ -189,8 +196,6 @@ impl Book {
     }
 }
 
-/// A tool called in a space that cannot be served answers the agent with the
-/// reason, as a tool that fails does.
 /// Whether a request is answered from a space - opened by the server loop -
 /// rather than from nothing. Found live in v0.127: the prompts were answered
 /// from nothing and every one failed, while every test, handed a space,
@@ -210,6 +215,8 @@ fn failed_request(request: &Value, err: &Error) -> Option<Value> {
     }))
 }
 
+/// A tool called in a space that cannot be served answers the agent with the
+/// reason, as a tool that fails does.
 fn failed_call(request: &Value, err: &Error) -> Option<Value> {
     let id = request.get("id")?.clone();
     Some(json!({
@@ -218,6 +225,7 @@ fn failed_call(request: &Value, err: &Error) -> Option<Value> {
         "result": { "content": [{ "type": "text", "text": err.to_string() }], "isError": true },
     }))
 }
+
 /// What one connection knows about the client on the other end.
 #[derive(Debug, Default)]
 pub struct Session {
