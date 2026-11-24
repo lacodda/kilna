@@ -89,10 +89,10 @@ press away, each a folder of its own. See
 
 ## Status
 
-v0.109.0, in daily use: the loop from a version to a scored, scheduled and
-released work is closed, with spaces of four crafts kept apart, a canon, a lab of trials, a
-conception to prepare a work on with its research and a library of the works of culture it draws on, shorts cut by a plugin from the stretches it keeps and the parts it hears, the assistant panel, an MCP server and
-plugins, in English and Russian. What landed in each version:
+v0.164.1, in daily use by its author: the loop from a version to a scored,
+scheduled and released work is closed, in English and Russian. Before 1.0 a
+release may change how a workspace is laid out; it carries the workspace
+forward itself. What landed in each version:
 [CHANGELOG](https://github.com/lacodda/kilna/blob/main/CHANGELOG.md).
 
 ## Documentation

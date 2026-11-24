@@ -304,7 +304,7 @@ Every quotation mark in a built prompt is a plain one: *TITLE: the words
 curly quotes around a title - or around a sign the scene names - came out on
 the picture beside the letters. Whoever wrote the part they stood in, the
 title, a brick, the channel's captions or your own words, they reach the
-generator as `"` (since v0.100.2). A cover written by hand keeps its marks as
+generator as `"`. A cover written by hand keeps its marks as
 you typed them.
 
 Copying keeps the prompt on the cover: what the picture was drawn from stays
