@@ -214,7 +214,10 @@ export function studio(): Studio {
     key: music.key,
     name: music.name,
     description: music.description,
-    config: music.config as unknown as ProfileConfig,
+    // A copy, not the fixture itself (v0.166): the fixture is one object for
+    // every test of a file, and a test that set `config.overview` or cut
+    // `work_kinds` on "its own" studio changed it for the tests after it.
+    config: structuredClone(music.config) as unknown as ProfileConfig,
     is_active: true,
     is_builtin: true,
   }
