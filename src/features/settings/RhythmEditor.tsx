@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { TimeField } from '@/components/ui/time-field'
 import { NumberField } from '@/components/ui/number-field'
 
 /** The days of the week, in a week's order. */
@@ -76,18 +77,18 @@ export function RhythmEditor({
           />
           <label className="ml-4 flex items-center gap-2 text-sm">
             {t('editor.rhythmTime')}
-            <Input
+            {/* The line's own time field (v0.166), not the browser's: it
+                reads a time the way it is typed - "9", "930", "9:30" - and
+                tells it once, when the box is left, where the native one
+                saved the rhythm on every digit. */}
+            <TimeField
               className="w-28"
-              type="time"
-              value={rhythm?.default_time ?? ''}
+              value={rhythm?.default_time ?? null}
               disabled={rhythm == null}
               aria-label={t('editor.rhythmTime')}
-              onChange={(event) => {
+              onValueChange={(time) => {
                 if (rhythm == null) return
-                onChange({
-                  ...rhythm,
-                  default_time: event.target.value === '' ? null : event.target.value,
-                })
+                onChange({ ...rhythm, default_time: time })
               }}
             />
           </label>
