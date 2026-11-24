@@ -13,7 +13,15 @@ import { taskKey } from '@/lib/tasks'
 import { say as sayLabel, useProfile, useWorkKind } from '@/lib/useProfile'
 import { actionIconOf } from '@/lib/actionIcon'
 import { Button } from '@/components/ui/button'
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import {
+  Menu,
+  MenuGroup,
+  MenuGroupLabel,
+  MenuItem,
+  MenuPopup,
+  MenuSeparator,
+  MenuTrigger,
+} from '@/components/ui/menu'
 import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
 import { StylePickerDialog } from '@/features/styles/StylePickerDialog'
 import { ComposeDialog } from '@/features/styles/ComposeDialog'
@@ -264,6 +272,25 @@ export function ActionBar({
             </MenuItem>
           )
         })}
+        {/* What an action would send, before it is sent (v0.166). The row of
+            buttons has an eye beside each; behind one button there was no
+            way to look, and the card's own bar is that button. */}
+        <MenuSeparator />
+        <MenuGroup>
+          <MenuGroupLabel>{t('assistant.previewMenu')}</MenuGroupLabel>
+          {actions.map((action) => (
+            <MenuItem
+              key={action.key}
+              title={t('assistant.previewTask', { label: sayLabel(action.label) })}
+              onClick={() => {
+                setPreviewing(action)
+              }}
+            >
+              <Eye aria-hidden className="size-3.5" />
+              {sayLabel(action.label)}
+            </MenuItem>
+          ))}
+        </MenuGroup>
       </MenuPopup>
     </Menu>
   )

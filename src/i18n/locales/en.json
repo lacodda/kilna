@@ -1001,6 +1001,7 @@
     "scenesRevisedMark": "Revised",
     "proposalRefused": "Nothing to apply — the answer’s block could not be read as a proposal: {{why}}",
     "previewTask": "Preview what “{{label}}” sends",
+    "previewMenu": "See what it sends",
     "previewTitle": "{{label}} — what will be sent",
     "previewHint": "Exactly what the run receives: the message with the work filled in, and the method it is briefed with.",
     "previewMessage": "Message",

@@ -173,3 +173,20 @@ describe('the reviews of a work', () => {
     expect(widgetsIn(song.main)).not.toContain(en.overview.reviews)
   })
 })
+
+// v0.166: the card's actions stand behind one button, and what an action
+// would send can be looked at from there too - the row of buttons has an eye
+// beside each, and the menu had none.
+describe("the menu of the card's actions", () => {
+  it('offers a look at what each action sends', async () => {
+    const { main } = await openOverview(IDS.song)
+    fireEvent.click(within(main).getByRole('button', { name: en.assistant.actions }))
+
+    const looks = await screen.findByRole('group', { name: en.assistant.previewMenu })
+    const rows = within(looks).getAllByRole('menuitem')
+    expect(rows.length).toBeGreaterThan(0)
+
+    fireEvent.click(rows[0]!)
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  })
+})
