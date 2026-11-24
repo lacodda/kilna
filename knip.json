@@ -3,5 +3,9 @@
   "entry": ["tools/*.mjs", "src/lib/api/types.ts"],
   "project": ["src/**/*.{ts,tsx,css}", "tools/**/*.mjs"],
   "ignore": ["src/components/ui/**"],
-  "ignoreExportsUsedInFile": { "interface": true, "type": true }
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  },
+  "ignoreBinaries": ["tauri-driver"]
 }
