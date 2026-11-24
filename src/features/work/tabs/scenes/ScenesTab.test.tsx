@@ -271,18 +271,16 @@ describe('a layer', () => {
       { key: 'texture', label: { en: 'Texture' } },
     ]
     workspace.scenes[0]!.layer = 'story'
-    try {
-      await openBoard()
+    await openBoard()
 
-      expect(screen.getByRole('columnheader', { name: en.scenes.layer })).toBeInTheDocument()
-      expect(screen.getByRole('group', { name: en.scenes.layer })).toBeInTheDocument()
-    } finally {
-      // The fixture's profile is shared by every test of the file.
-      delete video.layers
-    }
+    expect(screen.getByRole('columnheader', { name: en.scenes.layer })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: en.scenes.layer })).toBeInTheDocument()
   })
 
   it('has no column while the kind names none', async () => {
+    // On this test's own studio: until v0.166 the profile was one object for
+    // the whole file, and this test passed on what the one above had deleted.
+    delete workspace.profile.config.work_kinds.find((kind) => kind.key === 'video')!.layers
     await openBoard()
 
     expect(screen.queryByRole('columnheader', { name: en.scenes.layer })).toBeNull()
