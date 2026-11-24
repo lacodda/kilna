@@ -11,6 +11,7 @@ import { initDensity } from '@/lib/density'
 import { initEditorText } from '@/lib/editorText'
 import { initLanguage } from '@/lib/language'
 import { queryClient } from '@/lib/query/client'
+import { initSealedRoot } from '@/lib/sealRoot'
 import '@/i18n'
 import '@/styles.css'
 
@@ -20,6 +21,7 @@ initTheme()
 initDensity()
 initEditorText()
 initLanguage()
+initSealedRoot()
 
 // The bar the engine draws takes no width, which no stylesheet can ask for. The
 // flag in tauri.conf.json asks the engine; this measures what it drew and only
