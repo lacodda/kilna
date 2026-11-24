@@ -98,7 +98,13 @@ describe('applies', () => {
     findings: false,
     repeats: false,
     reviews: false,
+    notes: false,
   }
+
+  it('draws a place for the first note on a work that goes out itself', () => {
+    expect(applies('notes', none)).toBe(false)
+    expect(applies('notes', { ...none, notes: true })).toBe(true)
+  })
 
   it('draws only what the work always has when the kind names nothing', () => {
     const drawn = WIDGETS.filter((id) => applies(id, none))

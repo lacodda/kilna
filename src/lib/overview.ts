@@ -48,6 +48,7 @@ export const WIDGETS = [
   'publications',
   'repeats',
   'reviews',
+  'notes',
 ] as const
 
 export type WidgetId = (typeof WIDGETS)[number]
@@ -116,6 +117,7 @@ export const DEFAULT_PLACEMENT: readonly WidgetPlacement[] = (
     ['trend', 's'],
     ['cover', 's'],
     ['reviews', 'm'],
+    ['notes', 'm'],
   ] as const
 ).map(([id, size], position) => ({ id, size, position }))
 
@@ -189,6 +191,10 @@ export interface WidgetFacts {
   repeats: boolean
   /** The work holds a long document - a review, a list of edits (v0.147). */
   reviews: boolean
+  /** The work goes out itself - a clip, an audio release, a short - and so
+   *  is not prepared on a conception: its notes have no tab of their own
+   *  until there is one, and the first is written here (v0.166). */
+  notes: boolean
 }
 
 /**
@@ -224,6 +230,8 @@ export function applies(id: WidgetId, facts: WidgetFacts): boolean {
       return facts.repeats
     case 'reviews':
       return facts.reviews
+    case 'notes':
+      return facts.notes
     case 'cover':
       return facts.cover
     case 'stage':

@@ -16,7 +16,10 @@ an audio release, a short - has no **Conception** tab (since v0.117): it is
 made, not prepared, and an empty tab stood first on every one of them. A work
 of such a kind that already holds a note keeps the tab for it, and a note is
 attached to any work from the [Notes](/kilna/guides/notes/) screen, where
-**Attach to a work** picks it - the tab then appears on its card. Which kinds are prepared, and on which boards, is
+**Attach to a work** picks it - the tab then appears on its card. The first
+note of a clip, an audio release or a short is also written on its own card:
+the **Notes** widget of its Overview is a line to write and, under it, the
+notes it already holds. Which kinds are prepared, and on which boards, is
 the profile's ([`conception`](/kilna/reference/profile-document/#conception)).
 
 ## The brief

@@ -31,6 +31,7 @@ import { LinksWidget } from '@/features/work/tabs/overview/LinksWidget'
 import { PublicationsWidget } from '@/features/work/tabs/overview/PublicationsWidget'
 import { RecentWidget } from '@/features/work/tabs/overview/RecentWidget'
 import { RepeatsWidget } from '@/features/work/tabs/overview/RepeatsWidget'
+import { NotesWidget } from '@/features/work/tabs/overview/NotesWidget'
 import {
   documentKindsOf,
   documentsOf,
@@ -78,6 +79,7 @@ const WIDGET_BODIES: Readonly<Record<WidgetId, (drawn: Drawn) => ReactNode>> = {
   publications: ({ work }) => <PublicationsWidget work={work} />,
   repeats: ({ work }) => <RepeatsWidget work={work} />,
   reviews: ({ work }) => <ReviewsWidget work={work} />,
+  notes: ({ work }) => <NotesWidget work={work} />,
 }
 
 /**
@@ -139,6 +141,7 @@ export function OverviewTab({ work }: Props) {
     findings: standing.length > 0,
     repeats: (repeats.data?.findings.length ?? 0) > 0,
     reviews: documentsOf(attached.data ?? [], documentKindsOf(profile.config)).length > 0,
+    notes: hasDoors(profile.config, work.kind),
   }
   const widgets = board.widgets.filter((widget) => applies(widget.id, facts))
 

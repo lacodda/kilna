@@ -3327,7 +3327,13 @@
       "no-link": "It went out a few days ago, and no link is kept for it.",
       "unmarked": "Its day has passed and it is not marked out: mark it, or give it another day."
     },
-    "reviews": "Reviews and documents"
+    "reviews": "Reviews and documents",
+    "notes": "Notes",
+    "noteAdd": "Add a note",
+    "notePlaceholder": "A note about this work…",
+    "noteAddFailed": "Could not keep the note",
+    "notesMore_one": "{{count}} more note",
+    "notesMore_other": "{{count}} more notes"
   },
   "pick": {
     "placeholder": "Find a work by name…",

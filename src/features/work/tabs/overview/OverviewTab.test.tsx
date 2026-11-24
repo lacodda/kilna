@@ -190,3 +190,32 @@ describe("the menu of the card's actions", () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
   })
 })
+
+// v0.166: a work that goes out itself has no conception to hold its notes,
+// and the first one is written on its overview.
+describe('the notes of a work that goes out', () => {
+  it('are written on its own card, attached to it', async () => {
+    const made: unknown[] = []
+    const { main } = await openOverview(IDS.video)
+    mockBackend({
+      ...answersFor(workspace),
+      create_note: ({ note }) => {
+        made.push(note)
+        return { ...workspace.notes[0]!, id: 'n-new', ...(note as object) }
+      },
+    })
+    const widget = within(main).getByRole('group', { name: en.overview.notes })
+    const box = within(widget).getByRole('textbox', { name: en.overview.noteAdd })
+    fireEvent.change(box, { target: { value: 'Cut the second chorus shorter.' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(made).toEqual([{ body: 'Cut the second chorus shorter.', work_id: IDS.video }])
+    })
+  })
+
+  it('are not offered on a song, which is prepared on its conception', async () => {
+    const { main } = await openOverview(IDS.song)
+    expect(widgetsIn(main)).not.toContain(en.overview.notes)
+  })
+})
