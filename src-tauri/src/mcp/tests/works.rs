@@ -88,8 +88,8 @@ fn the_catalogue_is_narrowed_by_title_kind_and_status() {
         .unwrap()
         .to_owned();
 
-    assert_eq!(ids(json!({ "kind": "song" })), [song.clone()]);
-    assert_eq!(ids(json!({ "kind": "video" })), [clip.clone()]);
+    assert_eq!(ids(json!({ "kind": "song" })), [song.as_str()]);
+    assert_eq!(ids(json!({ "kind": "video" })), [clip.as_str()]);
     assert_eq!(ids(json!({ "query": "THE CLIP" })), [clip]);
     assert!(ids(json!({ "kind": "song", "status": status })).contains(&song));
     assert!(ids(json!({ "status": "no-such-status" })).is_empty());

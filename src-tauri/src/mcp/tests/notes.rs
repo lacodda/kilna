@@ -32,8 +32,8 @@ fn notes_are_narrowed_by_the_state_they_stand_in() {
             .collect()
     };
 
-    assert_eq!(ids(json!({ "state": "fresh" })), [fresh.clone()]);
-    assert_eq!(ids(json!({ "state": "parked" })), [parked.clone()]);
+    assert_eq!(ids(json!({ "state": "fresh" })), [fresh.as_str()]);
+    assert_eq!(ids(json!({ "state": "parked" })), [parked.as_str()]);
     let both = ids(json!({}));
     assert!(both.contains(&fresh) && both.contains(&parked), "{both:?}");
 
