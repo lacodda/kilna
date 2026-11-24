@@ -1,18 +1,14 @@
 import { useTranslation } from 'react-i18next'
-import { useQueryClient } from '@tanstack/react-query'
 import type { Work } from '@/lib/api/types'
-import { numberWorks, unpinStatus } from '@/lib/api/works'
+import { numberWorks } from '@/lib/api/works'
 import { fieldsOf } from '@/lib/overview'
 import { keys } from '@/lib/query/keys'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { fieldsFor, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { fieldsFor, labelOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { FieldGroup } from '@/components/ui/field'
 import { SaveState, useSaveStatus } from '@/components/ui/save-state'
-import { Select } from '@/components/AppSelect'
 import { WorkFields } from '@/features/work/tabs/overview/WorkFields'
 import { useLook, Widget } from '@/features/work/tabs/overview/Widget'
 import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
@@ -23,10 +19,9 @@ import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
  * description of them (`WorkFields`).
  *
  * This is what the overview was until v0.82, a form, folded into one widget
- * of the board. The title is renamed in the card's header. The status and the
- * kind stand first here because the header only reads them, and a status
- * chosen by hand - pinned, so the automation steps over the work - and the
- * way back from that were only ever set on this tab.
+ * of the board. The title is renamed in the card's header, and the status
+ * and the kind are picked from their chips there (v0.166): they stood first
+ * here while the header only read them.
  *
  * The paragraphs are the hook widget's (`fieldsOf`): a premise in a grid cell
  * was a column of two-word lines. The fields are the work's kind's
@@ -74,23 +69,6 @@ export function FieldsWidget({ work }: { work: Work }) {
               'grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] items-start gap-x-3 gap-y-2',
         )}
       >
-        <StatusField work={work} onChange={(status) => patch.mutate({ status })} />
-        {/* A group naming the picker rather than a Field: kilna's Select
-            takes `onChange` with the value, and a Field would hand it the
-            input's own `onChange`, which reads an event. */}
-        <FieldGroup label={t('work.kind')}>
-          <Select
-            aria-label={t('work.kind')}
-            className="h-control-sm w-full text-xs"
-            value={work.kind}
-            onChange={(kind) => patch.mutate({ kind })}
-            options={profile.config.work_kinds.map((kind) => ({
-              value: kind.key,
-              label: sayLabel(kind.label),
-            }))}
-          />
-        </FieldGroup>
-
         <WorkFields
           fields={short}
           meta={work.meta}
@@ -101,59 +79,5 @@ export function FieldsWidget({ work }: { work: Work }) {
         />
       </div>
     </Widget>
-  )
-}
-
-/**
- * Where the work stands, and whose word that is. Picking a status pins it -
- * the automation then steps over this work entirely - and the only way back
- * is to say so, under the box.
- */
-function StatusField({ work, onChange }: { work: Work; onChange: (status: string) => void }) {
-  const { t } = useTranslation()
-  const client = useQueryClient()
-  const profile = useProfile()
-  const vocabulary = vocabularyOf(profile.config, work.kind)
-  const pinned = work.status_pinned_at != null
-
-  const unpin = useAppMutation({
-    mutationFn: () => unpinStatus(work.id),
-    failure: 'toast.workSaveFailed',
-    refresh: refresh.work,
-    onSuccess: (updated) => {
-      client.setQueryData(keys.work(work.id), updated)
-    },
-  })
-
-  return (
-    // The sentence that explains the status rides on the hover: a cell of the
-    // grid has room for the box and one short line, and the line is the way
-    // back when there is one.
-    <div
-      className="flex min-w-0 flex-col gap-0.5"
-      title={pinned ? t('work.statusPinned') : t('work.statusDerived')}
-    >
-      <FieldGroup label={t('work.status')}>
-        <Select
-          aria-label={t('work.status')}
-          className="h-control-sm w-full text-xs"
-          value={work.status}
-          onChange={onChange}
-          options={vocabulary.statuses.map((s) => ({ value: s.key, label: sayLabel(s.label) }))}
-        />
-      </FieldGroup>
-      {pinned && (
-        <span className="text-xs">
-          <Button
-            variant="link"
-            onClick={() => unpin.mutate()}
-            disabled={unpin.isPending}
-            title={t('work.unpinStatusHint')}
-          >
-            {t('work.unpinStatus')}
-          </Button>
-        </span>
-      )}
-    </div>
   )
 }

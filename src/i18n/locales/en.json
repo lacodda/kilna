@@ -41,6 +41,8 @@
     "statusPinned": "Set by hand — the automation leaves it alone.",
     "unpinStatus": "Follow the facts",
     "unpinStatusHint": "Hand the status back to the automation and work it out now.",
+    "kindIs": "Kind: {{kind}}",
+    "statusIs": "Status: {{status}}",
     "kind": "Kind",
     "delete": "Delete",
     "yes": "Yes",

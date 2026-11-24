@@ -17,7 +17,6 @@ import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceEdited } from '@/lib/edited'
-import { badgeVariantOf } from '@/lib/markIcon'
 import { wordOf } from '@/lib/overview'
 import { say } from '@/lib/toast'
 import {
@@ -40,6 +39,7 @@ import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StagePicker } from '@/components/StagePicker'
 import { VibePicker } from '@/components/VibePicker'
 import { CollectionPicker } from '@/features/collections/CollectionPicker'
+import { KindPicker, StatusPicker } from '@/features/work/StandingPickers'
 import { WorkPlayer } from '@/features/work/player'
 import { TabBar } from '@/features/work/TabBar'
 import type { Tab, TabCount } from '@/features/work/tabs'
@@ -120,10 +120,11 @@ export function CardHeader({ work, tabs, counts, onDelete }: Props) {
 
 /**
  * What the work is and where it stands: its kind, its status, the verdict of
- * its last score, and the collection it belongs to. The first three are chips
- * that say rather than chips that do - each is changed where it is decided:
- * the status by what happens to the work, the verdict on the Score tab. The
- * collection is decided here as well, so its chip is a picker (v0.92).
+ * its last score, and the collection it belongs to. The verdict is a chip
+ * that says rather than does - it is changed on the Score tab. The kind, the
+ * status and the collection are decided here as much as anywhere, so their
+ * chips are pickers (the collection's since v0.92, the other two since
+ * v0.166, when the fields widget stopped repeating them).
  */
 function Standing({ work }: { work: Work }) {
   const { t, i18n } = useTranslation()
@@ -157,14 +158,14 @@ function Standing({ work }: { work: Work }) {
 
   return (
     <>
-      <Chip>{labelOf(profile.config.work_kinds, work.kind)}</Chip>
+      <KindPicker work={work} />
       {choicesOf(profile.config, work).map(({ field, option }) => (
         <Chip key={field.key}>
           {t('work.choice', { field: sayLabel(field.label), value: option })}
         </Chip>
       ))}
-      <Chip
-        variant={badgeVariantOf(status?.colour)}
+      <StatusPicker
+        work={work}
         title={
           standsOn === null
             ? undefined
@@ -181,7 +182,7 @@ function Standing({ work }: { work: Work }) {
               kind: wordOf(labelOf(profile.config.work_kinds, standsOn.kind), i18n.language),
               day: formatDay(standsOn.day),
             })}
-      </Chip>
+      </StatusPicker>
 
       {/* The guard's mark beside where the work stands (ADR 0054): a song
           its own, a publication its song's - a clip repeats what its song

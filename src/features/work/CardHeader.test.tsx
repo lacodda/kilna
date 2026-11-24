@@ -203,3 +203,35 @@ describe('where a work stands, said in its header', () => {
     expect(await within(audio).findByRole('img', { name })).toBeInTheDocument()
   })
 })
+
+// v0.166: what a work is and where it stands are picked from their chips,
+// where they are read - the fields widget no longer repeats them.
+describe('the chips that pick', () => {
+  it('change the status from its chip, and the kind from its own', async () => {
+    const header = await openCard(IDS.song)
+
+    fireEvent.click(within(header).getByRole('button', { name: /^Status: / }))
+    const statuses = await screen.findByRole('group', { name: new RegExp(`^${en.work.status}`) })
+    const other = within(statuses)
+      .getAllByRole('menuitem')
+      .find((row) => !row.textContent.includes('Scheduled'))!
+    fireEvent.click(other)
+    await waitFor(() => {
+      expect(written.some((patch) => typeof patch.status === 'string')).toBe(true)
+    })
+
+    fireEvent.click(within(header).getByRole('button', { name: /^Kind: / }))
+    const kinds = await screen.findByRole('group', { name: en.work.kind })
+    fireEvent.click(within(kinds).getByRole('menuitem', { name: 'Video' }))
+    await waitFor(() => {
+      expect(written).toContainEqual({ kind: 'video' })
+    })
+  })
+
+  it('leave no second box for either on the overview', async () => {
+    await openCard(IDS.song)
+    const main = screen.getByRole('main')
+    expect(within(main).queryByRole('combobox', { name: en.work.status })).toBeNull()
+    expect(within(main).queryByRole('combobox', { name: en.work.kind })).toBeNull()
+  })
+})
