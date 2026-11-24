@@ -6000,6 +6000,123 @@ mod tests {
         assert!(text.contains("nowhere"), "{text}");
     }
 
+    /// `text` reads a version by its id only when it is the named work's: a
+    /// version of another work is refused, never handed over under the wrong
+    /// title - and a role the kind lacks is refused by name.
+    #[test]
+    fn a_version_is_read_by_id_only_from_its_own_work() {
+        let (conn, work_id) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let other = fixtures::song(&conn, &profile_id, "Night ferry").id;
+        let first = fixtures::version(&conn, &work_id, "lyrics", "an older text");
+        let foreign = fixtures::version(&conn, &other, "lyrics", "somebody else's text");
+
+        let own = read(
+            &conn,
+            "text",
+            json!({ "work": work_id, "version": first.id }),
+        );
+        assert_eq!(own["version"], json!(first.id));
+        assert_eq!(own["body"], "an older text");
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "text",
+            &args(json!({ "work": work_id, "version": foreign.id })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().unwrap().code, "mcp.versionOtherWork");
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "text",
+            &args(json!({ "work": work_id, "role": "sonnet" })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().unwrap().code, "mcp.unknownVersionRole");
+    }
+
+    /// The catalogue is narrowed by a substring of the title, by kind and by
+    /// status, each leaving only the works that match.
+    #[test]
+    fn the_catalogue_is_narrowed_by_title_kind_and_status() {
+        let (conn, song) = workspace();
+        let clip = video(&conn);
+        let ids = |with: Value| -> Vec<String> {
+            read(&conn, "catalogue", with)["works"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|work| work["id"].as_str().unwrap().to_owned())
+                .collect()
+        };
+        let all = read(&conn, "catalogue", json!({}));
+        assert_eq!(all["total"], 2);
+        let status = all["works"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|work| work["id"] == json!(song))
+            .unwrap()["status"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+
+        assert_eq!(ids(json!({ "kind": "song" })), [song.clone()]);
+        assert_eq!(ids(json!({ "kind": "video" })), [clip.clone()]);
+        assert_eq!(ids(json!({ "query": "THE CLIP" })), [clip]);
+        assert!(ids(json!({ "kind": "song", "status": status })).contains(&song));
+        assert!(ids(json!({ "status": "no-such-status" })).is_empty());
+        assert!(ids(json!({ "kind": "no-such-kind" })).is_empty());
+    }
+
+    /// `notes` narrowed by a state gives only the notes standing in it, and a
+    /// word that is no state is refused rather than read as "all".
+    #[test]
+    fn notes_are_narrowed_by_the_state_they_stand_in() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let note = |body: &str, state: Option<note::NoteState>| {
+            note::create(
+                &conn,
+                &profile_id,
+                note::NewNote {
+                    body: body.into(),
+                    state,
+                    ..note::NewNote::default()
+                },
+            )
+            .unwrap()
+            .id
+        };
+        let fresh = note("a thought still fresh", None);
+        let parked = note("a thought put aside", note::NoteState::from_word("parked"));
+        let ids = |with: Value| -> Vec<String> {
+            read(&conn, "notes", with)["notes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|note| note["id"].as_str().unwrap().to_owned())
+                .collect()
+        };
+
+        assert_eq!(ids(json!({ "state": "fresh" })), [fresh.clone()]);
+        assert_eq!(ids(json!({ "state": "parked" })), [parked.clone()]);
+        let both = ids(json!({}));
+        assert!(both.contains(&fresh) && both.contains(&parked), "{both:?}");
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "notes",
+            &args(json!({ "state": "somewhere" })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().unwrap().code, "mcp.unknownNoteState");
+    }
+
     #[test]
     fn a_proposed_version_is_a_message_in_the_clients_chat_not_a_version() {
         let (conn, work_id) = workspace();
