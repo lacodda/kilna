@@ -229,6 +229,11 @@ interface BoxProps {
   onSave: (value: string) => void
 }
 
+/** How many lines of a long text stand before it is unfolded. */
+const FOLDED_ROWS = 5
+/** And how long a text of fewer lines is before it wraps past them. */
+const FOLDED_LETTERS = 400
+
 /**
  * One field's box.
  *
@@ -246,6 +251,14 @@ function ReleaseFieldBox({ id, field, proposed, onSave }: BoxProps) {
     setSyncedTo(field.value)
     setDraft(field.value)
   }
+
+  // A long text keeps to a few lines until it is asked for whole (v0.166,
+  // FR-19 19.5): a description of thirty lines pushed the tags, the pinned
+  // comment and the next release off the screen, on a block read far more
+  // often than it is written. Short ones are never folded - there is nothing
+  // to hide, and a link that unfolds nothing is furniture.
+  const long = draft.split('\n').length > FOLDED_ROWS || draft.length > FOLDED_LETTERS
+  const [folded, setFolded] = useState(true)
 
   const excess = over(field, draft)
   const counter =
@@ -311,7 +324,16 @@ function ReleaseFieldBox({ id, field, proposed, onSave }: BoxProps) {
       {field.type === 'line' || field.type === 'tags' ? (
         <Input {...shared} />
       ) : (
-        <Textarea {...shared} autoResize maxRows={12} rows={3} />
+        <>
+          <Textarea {...shared} autoResize maxRows={folded ? FOLDED_ROWS : 12} rows={3} />
+          {long && (
+            <span className="text-xs">
+              <Button variant="link" aria-expanded={!folded} onClick={() => setFolded(!folded)}>
+                {folded ? t('releases.meta.unfold') : t('releases.meta.fold')}
+              </Button>
+            </span>
+          )}
+        </>
       )}
 
       {proposed !== null && (

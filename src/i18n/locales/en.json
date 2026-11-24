@@ -642,6 +642,8 @@
       "keepMine": "Keep what is written",
       "proposed": "From the work",
       "previewSame": "The work would write exactly what is here already.",
+      "unfold": "Show it all",
+      "fold": "Fold",
       "empty": "not written"
     },
     "files": {

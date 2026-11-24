@@ -256,3 +256,24 @@ describe('the release block', () => {
     expect(place).toBeDisabled()
   })
 })
+
+// v0.166, FR-19 19.5: a long description keeps to a few lines until it is
+// asked for whole; a short one is left alone.
+describe('a long text of a release', () => {
+  it('offers to unfold only when there is something folded', async () => {
+    const { main } = await opened()
+    const box = within(main).getByRole('textbox', { name: 'Description' })
+    expect(within(main).queryByRole('button', { name: en.releases.meta.unfold })).toBeNull()
+
+    fireEvent.change(box, {
+      target: { value: Array.from({ length: 12 }, () => 'A line.').join('\n') },
+    })
+    const unfold = await within(main).findByRole('button', { name: en.releases.meta.unfold })
+    expect(unfold).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(unfold)
+    expect(within(main).getByRole('button', { name: en.releases.meta.fold })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+  })
+})
