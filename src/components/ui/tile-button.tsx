@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, HTMLAttributes, Ref } from 'react'
 import { useRender } from '@base-ui/react/use-render'
 import { cn } from 'dowel-ui'
 
@@ -27,6 +27,15 @@ import { cn } from 'dowel-ui'
  * opens what it shows is where the reader is, not a value being submitted. A
  * tile that toggles passes `aria-pressed`, and one in a listbox passes
  * `aria-selected`; either one replaces `aria-current` rather than joining it.
+ *
+ * **An action over the picture stands beside the tile, not in it.** A cross
+ * that takes a reference away, a menu of what to do with a frame: a button
+ * inside the tile's button is a control nothing can press on its own, and a
+ * press on it presses the tile too. So the two stand together on a `Tile`, and
+ * `TileAction` takes a corner of it - shown while the tile is under the
+ * pointer or holds the focus, always where there is no pointer to hover, and
+ * on a ground of its own, because a bare glyph over a picture is lost in it.
+ * kilna drew that corner three ways, each with its own ground or none.
  */
 
 export interface TileButtonProps extends HTMLAttributes<HTMLElement> {
@@ -66,6 +75,85 @@ export function TileButton({ selected = false, render, disabled, className, ...p
           // border, following its corners.
           'after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:ring-1 after:ring-inset after:ring-accent',
         ],
+        className,
+      ),
+      ...props,
+    },
+  })
+}
+
+export interface TileProps extends HTMLAttributes<HTMLElement> {
+  /** The element to draw the tile's ground as - `render={<li />}` in a list
+   * of tiles. Without it the ground is a `<div>`. */
+  render?: useRender.RenderProp
+}
+
+/** What a tile and its actions stand on together: a box the actions take
+ * their corners of, and the group whose hover and focus show them. A column,
+ * so a TileButton inside stretches to it - when a tile has actions, size the
+ * Tile rather than the button. */
+export function Tile({ render, className, ...props }: TileProps) {
+  return useRender({
+    render,
+    defaultTagName: 'div',
+    props: {
+      className: cn('group/tile relative flex min-w-0 flex-col', className),
+      ...props,
+    },
+  })
+}
+
+/* The four corners, inset by the same step, so an action never sits on the
+ * tile's border or under its rounded corner. Logical sides: the start is the
+ * left in a left-to-right page and the right in a right-to-left one. */
+const corners = {
+  'top-end': 'top-1.5 end-1.5',
+  'top-start': 'top-1.5 start-1.5',
+  'bottom-end': 'bottom-1.5 end-1.5',
+  'bottom-start': 'bottom-1.5 start-1.5',
+} as const
+
+export interface TileActionProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** What it does - "Remove the reference", "Frame actions". Its accessible
+   * name and the word under the pointer, because it carries an icon and no
+   * words. Required, and without a default, so the product can translate it. */
+  label: string
+  /** Which corner of the Tile it takes. */
+  corner?: keyof typeof corners
+  /** The element to draw it as - a menu's trigger, most often:
+   * `render={<MenuTrigger />}`. It stays shown while the menu is open. */
+  render?: useRender.RenderProp
+  /** React 19 passes `ref` as a plain prop; declared so a caller can reach the
+   * element. With `render` it reaches whatever was rendered. */
+  ref?: Ref<HTMLButtonElement>
+}
+
+/** An icon button over a tile's picture, in a corner of its `Tile`. */
+export function TileAction({ label, corner = 'top-end', render, ref, type, className, ...props }: TileActionProps) {
+  return useRender({
+    render,
+    ref,
+    defaultTagName: 'button',
+    props: {
+      // A type nobody gave is passed to nothing a `render` draws: a menu's
+      // trigger sets its own, and `undefined` would overwrite it.
+      ...(render === undefined ? { type: type ?? 'button' } : type === undefined ? {} : { type }),
+      'aria-label': label,
+      title: label,
+      className: cn(
+        'absolute grid size-6 cursor-pointer place-items-center rounded-md border border-line bg-raise text-dim shadow-lift',
+        '[&_svg:not([class*=size-])]:size-3.5',
+        'transition-[opacity,color] not-disabled:hover:text-text',
+        corners[corner],
+        // Hidden at rest, so a strip of tiles is a strip of pictures. Shown by
+        // the tile's hover and by focus anywhere in it - a reader tabbing to
+        // the tile learns there is more on it - and kept while a menu it opens
+        // is open. Where there is no hover, a finger would never find it, so
+        // there it is always shown.
+        'opacity-0 group-hover/tile:opacity-100 group-focus-within/tile:opacity-100',
+        'data-[popup-open]:opacity-100 pointer-coarse:opacity-100',
+        'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+        'disabled:cursor-not-allowed disabled:*:opacity-50',
         className,
       ),
       ...props,

@@ -28,6 +28,39 @@ import { cn } from 'dowel-ui'
  * so it carries an icon and no words.
  */
 
+/*
+ * Why a copy failed, for a product that says so in its own words.
+ *
+ * `onCopy(false)` used to be all a product heard, and the two failures want
+ * different sentences: a page served over plain HTTP has no clipboard at all,
+ * and no retry will give it one; a clipboard that is there and refused - a
+ * permission, a document that lost the focus - may well work on the next
+ * press. The error is passed along as it came, for a log.
+ */
+export interface CopyFailure {
+  /** `unavailable`: there is no clipboard to write to - an insecure context,
+   * or a browser without the API. `refused`: there is one, and it said no. */
+  reason: 'unavailable' | 'refused'
+  /** What the browser threw, when it threw something. */
+  error?: unknown
+}
+
+/** Put text on the clipboard, and say why not when it does not go. Shared by
+ * CopyButton and Copyable, so the two name a failure the same way. */
+export async function copyText(value: string): Promise<CopyFailure | null> {
+  // Read defensively: outside a secure context `navigator.clipboard` is not
+  // there at all, and calling into it would throw a TypeError that says
+  // nothing about why.
+  const clipboard = typeof navigator === 'undefined' ? undefined : navigator.clipboard
+  if (clipboard?.writeText === undefined) return { reason: 'unavailable' }
+  try {
+    await clipboard.writeText(value)
+    return null
+  } catch (error) {
+    return { reason: 'refused', error }
+  }
+}
+
 export interface CopyButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onCopy'> {
   /** What lands on the clipboard. */
   value: string
@@ -40,8 +73,8 @@ export interface CopyButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
    * reason. */
   copiedLabel: string
   /** Told what happened, for a product that wants its own toast. `false` means
-   * the clipboard refused. */
-  onCopy?: (ok: boolean) => void
+   * the copy did not happen, and `failure` says why. */
+  onCopy?: (ok: boolean, failure?: CopyFailure) => void
 }
 
 export function CopyButton({
@@ -60,15 +93,15 @@ export function CopyButton({
   useEffect(() => () => clearTimeout(timer.current), [])
 
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      onCopy?.(true)
-      clearTimeout(timer.current)
-      timer.current = setTimeout(() => setCopied(false), 1600)
-    } catch {
-      onCopy?.(false)
+    const failure = await copyText(value)
+    if (failure !== null) {
+      onCopy?.(false, failure)
+      return
     }
+    setCopied(true)
+    onCopy?.(true)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setCopied(false), 1600)
   }, [value, onCopy])
 
   return (
@@ -79,12 +112,22 @@ export function CopyButton({
         aria-label={copied ? copiedLabel : label}
         className={cn(
           'shrink-0 rounded-sm p-1 text-faint transition-colors target-min',
-          'hover:bg-soft hover:text-text',
+          'not-disabled:hover:bg-soft not-disabled:hover:text-text',
+          /* Disabled - nothing to copy yet - is the icon at half strength and
+           * no hover. The fade is on the icon rather than the button, because
+           * the button's own opacity is what reveals it. */
+          'disabled:cursor-not-allowed disabled:*:opacity-50',
           /* `group-hover` rather than a hover of its own: the button is in the
            * corner of a block, and it has to appear when the pointer is
            * anywhere over that block rather than only once it has found the
-           * button. The container carries `group`. */
-          'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+           * button. The container carries `group`.
+           *
+           * Or `group/copy`, and then only that container reveals it. A block
+           * of code inside an answer that is itself a `group` - kilna's
+           * assistant, where hovering the answer shows its own actions -
+           * showed every copy button in it at once; a named group answers for
+           * its own buttons, and any `group` around it no longer does. */
+          'opacity-0 group-hover/copy:opacity-100 group-hover:not-in-[[class~="group/copy"]]:opacity-100 focus-visible:opacity-100',
           'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
           copied && 'text-good opacity-100',
           className,

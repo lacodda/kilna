@@ -127,7 +127,7 @@ export function NumberField({
           'flex h-control items-stretch overflow-hidden p-0',
           // The group carries the field's clothes, so the focus ring belongs
           // to the whole control rather than to the bare input inside it.
-          'focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-accent',
+          'focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-accent',
         )}
       >
         {!hideStepper && (

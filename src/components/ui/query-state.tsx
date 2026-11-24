@@ -86,6 +86,11 @@ interface QueryStateOwnProps {
    * panel or a widget that already has one. The empty screen is the
    * caller's, and says for itself whether it is plain. */
   plain?: boolean
+  /** On the wrapper, in every state. The wrapper is a box of its own, so a
+   * screen laid out as a column of `min-h-0 flex-1` parts loses its height
+   * chain there unless the wrapper is one of them: `className="flex min-h-0
+   * flex-1 flex-col"` carries it through to whatever is shown. */
+  className?: string
   children: ReactNode
 }
 
@@ -100,6 +105,7 @@ export function QueryState({
   plain = false,
   onRetry,
   retryLabel,
+  className,
   children,
 }: QueryStateProps) {
   /* `aria-busy` on the wrapper, in every state.
@@ -107,8 +113,16 @@ export function QueryState({
    * This is what tells a screen reader that the region is working, and it is
    * why the Skeletons themselves are `aria-hidden`: the fact belongs to the
    * region, said once, rather than to a dozen empty boxes announced as
-   * content. */
-  const wrap = (content: ReactNode) => <div aria-busy={pending || undefined}>{content}</div>
+   * content.
+   *
+   * One wrapper for all four states, with the caller's classes on it: kilna
+   * held a screen's height chain through it with `*:` classes on a parent,
+   * because the wrapper took none. */
+  const wrap = (content: ReactNode) => (
+    <div aria-busy={pending || undefined} className={className}>
+      {content}
+    </div>
+  )
 
   // Pending first: a refetch that still holds data should not blank the screen
   // it is refreshing, and the caller decides that by passing `pending` only

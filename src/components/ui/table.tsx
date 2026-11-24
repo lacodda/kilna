@@ -186,7 +186,12 @@ export interface TableSortButtonProps
  *
  * The arrow is `aria-hidden`, because `aria-sort` on the cell already says
  * which way the column points - a reader would otherwise hear the direction
- * twice, once as a word and once as a character nobody meant to publish. */
+ * twice, once as a word and once as a character nobody meant to publish.
+ *
+ * It wears the case of the heading it stands in. A browser sets a button's
+ * `text-transform` to `none` whatever is around it, so in VirtualGrid's
+ * uppercase caption the sorted columns came out in title case beside the
+ * plain ones - "Name Items SHARE On disk" in midda. */
 export function TableSortButton({
   column,
   sort,
@@ -206,7 +211,7 @@ export function TableSortButton({
         // `min-w-0`, and the words truncate: a column dragged narrower than
         // its heading shows the start of the name and keeps the arrow, rather
         // than pushing a funnel beside it out of the cell.
-        'group/sort -mx-1 inline-flex min-w-0 cursor-pointer items-center gap-1 rounded-sm px-1',
+        'group/sort -mx-1 inline-flex min-w-0 cursor-pointer items-center gap-1 rounded-sm px-1 [text-transform:inherit]',
         'transition-colors hover:text-text',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         active && 'text-text',

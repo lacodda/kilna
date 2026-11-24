@@ -134,7 +134,7 @@ export function ComboboxChips({
       className={cn(
         fieldClasses,
         'flex min-h-9 flex-wrap items-center gap-1 py-1',
-        'focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-accent',
+        'focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-accent',
         className,
       )}
       {...props}

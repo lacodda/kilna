@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 import { Checkbox as Base } from '@base-ui/react/checkbox'
 import { CheckboxGroup as BaseGroup } from '@base-ui/react/checkbox-group'
 import { cn } from 'dowel-ui'
@@ -22,6 +22,11 @@ import { cn } from 'dowel-ui'
  * `indeterminate` is a real state, not a third value: it says "some of the
  * things below are checked", and clicking still means check-all. A tri-state
  * value would make every caller handle a case that does not exist.
+ *
+ * The box stands on the first line of its words, not in the middle of them. A
+ * label that wraps to two lines - a setting with its explanation - drew the
+ * box between the lines, beside nothing, and the eye read it as belonging to
+ * whichever line it was nearer.
  */
 
 export interface CheckboxProps {
@@ -54,12 +59,18 @@ export interface CheckboxProps {
   value?: string
   /** The accessible name, for a checkbox with no `children`. */
   'aria-label'?: string
+  /** The press itself, before the box changes - for what `onCheckedChange`
+   * cannot say, such as whether Shift was held: a list that checks a range
+   * from the last box pressed to this one. Called once per press, whether it
+   * landed on the box or on the words. */
+  onClick?: (event: MouseEvent<HTMLElement>) => void
   className?: string
 }
 
 export function Checkbox({
   children,
   indeterminate = false,
+  onClick,
   className,
   ...props
 }: CheckboxProps) {
@@ -80,6 +91,10 @@ export function Checkbox({
         // classes land on it.
         children === undefined && className,
       )}
+      // With words, the press is heard on the label instead: Base UI forwards
+      // a press on the box to its hidden input and stops that copy from
+      // climbing, so the label hears each press once, as it happened.
+      onClick={children === undefined ? onClick : undefined}
       {...props}
     >
       {/* Both marks are rendered and the state picks one, rather than the
@@ -114,13 +129,18 @@ export function Checkbox({
 
   return (
     <label
+      onClick={onClick}
       className={cn(
-        'flex cursor-pointer items-center gap-2 text-sm text-text',
+        'flex cursor-pointer items-start gap-2 text-sm text-text',
         'has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50',
         className,
       )}
     >
-      {box}
+      {/* A first line's height, with the box in its middle: the box stands on
+        * the first line of the words however many lines they wrap to, and on
+        * a single line it is centred as before. `lh` is the label's own line,
+        * so a caller's `text-base` moves the box with it. */}
+      <span className="flex h-lh shrink-0 items-center">{box}</span>
       {children}
     </label>
   )

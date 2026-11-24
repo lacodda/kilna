@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type HTMLAttributes } from 'react'
 import { cn } from 'dowel-ui'
+import { copyText, type CopyFailure } from './copy-button'
 
 /*
  * Copyable.
@@ -21,6 +22,7 @@ import { cn } from 'dowel-ui'
  * The clipboard can refuse - it needs a secure context and, in some browsers,
  * a permission. A refusal is reported rather than swallowed, because a button
  * that looks like it worked and did not is worse than one that says it failed.
+ * The write is CopyButton's `copyText`, so the two name a failure the same way.
  */
 export interface CopyableProps extends Omit<HTMLAttributes<HTMLButtonElement>, 'onCopy'> {
   /** What lands on the clipboard. Defaults to the visible text. */
@@ -35,8 +37,9 @@ export interface CopyableProps extends Omit<HTMLAttributes<HTMLButtonElement>, '
   /** What is announced after a successful copy. Required for the same
    * reason. */
   copiedLabel: string
-  /** Told what happened, for a product that wants its own toast. */
-  onCopy?: (ok: boolean) => void
+  /** Told what happened, for a product that wants its own toast. `false` means
+   * the copy did not happen, and `failure` says why. */
+  onCopy?: (ok: boolean, failure?: CopyFailure) => void
 }
 
 export function Copyable({
@@ -62,16 +65,16 @@ export function Copyable({
   useEffect(() => () => clearTimeout(timer.current), [])
 
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(value ?? children)
-      setCopied(true)
-      onCopy?.(true)
-      clearTimeout(timer.current)
-      timer.current = setTimeout(() => setCopied(false), 1600)
-    } catch {
+    const failure = await copyText(value ?? children)
+    if (failure !== null) {
       // No secure context, or permission refused. Say so rather than pretend.
-      onCopy?.(false)
+      onCopy?.(false, failure)
+      return
     }
+    setCopied(true)
+    onCopy?.(true)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setCopied(false), 1600)
   }, [value, children, onCopy])
 
   return (

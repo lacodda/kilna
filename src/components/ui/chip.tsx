@@ -201,6 +201,10 @@ export function Chip(props: ChipProps) {
         <button
           type="button"
           aria-label={removeLabel}
+          // The cross is a picture of a word, so the word is shown under the
+          // pointer too, as the filter funnel's is: a reader who sees only an
+          // x is asked to guess what it takes away.
+          title={removeLabel}
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
             // A chip is often inside something else that is also clickable.
             event.stopPropagation()
@@ -241,6 +245,12 @@ export interface ChipGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, 'de
   onValueChange?: (value: string[]) => void
   /** Several on at once - filters - rather than one at a time - a kind. */
   multiple?: boolean
+  /** At least one stays on: a press on the last chip that is on does
+   * nothing. For a choice that always has an answer - a kind, a view - where
+   * letting go of the last chip leaves a screen with no answer to draw. Give
+   * it a `value` or `defaultValue` to start from; it keeps a chip on, it does
+   * not pick one. */
+  required?: boolean
   /** Disables every chip in the group. */
   disabled?: boolean
   children: ReactNode
@@ -253,13 +263,33 @@ export interface ChipGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, 'de
  * the arrows walk the chips - a filter bar of eight kinds is not eight Tab
  * presses long - and `multiple` decides whether pressing one lets go of the
  * others. The chips inside are ordinary Chips with a `value`.
+ *
+ * `required` is said here once rather than in every handler: kilna guarded
+ * "always one" in five callbacks, each by putting the value back after the
+ * group had let it go. The change is refused before it is made, so a group
+ * that keeps its own state keeps the chip too.
  */
-export function ChipGroup({ value, defaultValue, onValueChange, multiple = false, className, children, ...props }: ChipGroupProps) {
+export function ChipGroup({
+  value,
+  defaultValue,
+  onValueChange,
+  multiple = false,
+  required = false,
+  className,
+  children,
+  ...props
+}: ChipGroupProps) {
   return (
     <ToggleGroup
       value={value}
       defaultValue={defaultValue}
-      onValueChange={onValueChange ? (next) => onValueChange(next as string[]) : undefined}
+      onValueChange={(next, details) => {
+        if (required && next.length === 0) {
+          details.cancel()
+          return
+        }
+        onValueChange?.(next as string[])
+      }}
       multiple={multiple}
       className={cn('flex flex-wrap items-center gap-1.5', className)}
       {...props}

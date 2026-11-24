@@ -86,7 +86,7 @@ export function PasswordField({
       className={cn(
         fieldClasses,
         'flex h-control items-stretch overflow-hidden p-0',
-        'focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-accent',
+        'focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-accent',
         className,
       )}
     >

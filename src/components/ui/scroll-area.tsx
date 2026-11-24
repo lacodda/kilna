@@ -161,13 +161,19 @@ export function ScrollArea({
           * nothing ever overflows sideways. */}
         <Base.Content style={contentStyle[orientation]}>{children}</Base.Content>
       </Base.Viewport>
+      {/* `data-base-ui-swipe-ignore`: a drawer that is swiped shut takes a
+        * press anywhere inside it as the start of a swipe and captures the
+        * pointer, so the thumb of a scrolling body in a Drawer could not be
+        * dragged with a mouse. kilna marked its drawer's popup to get it
+        * back; the bar says it for itself, so every drawer with a ScrollArea
+        * in it scrolls by its thumb. */}
       {orientation === 'horizontal' ? null : (
-        <Base.Scrollbar orientation="vertical" className={scrollbar}>
+        <Base.Scrollbar orientation="vertical" className={scrollbar} data-base-ui-swipe-ignore="">
           <Base.Thumb className={thumb} />
         </Base.Scrollbar>
       )}
       {orientation === 'vertical' ? null : (
-        <Base.Scrollbar orientation="horizontal" className={scrollbar}>
+        <Base.Scrollbar orientation="horizontal" className={scrollbar} data-base-ui-swipe-ignore="">
           <Base.Thumb className={thumb} />
         </Base.Scrollbar>
       )}
