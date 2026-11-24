@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
+import { groupSince } from '@/lib/dashboard'
 import { formatMoment } from '@/lib/format'
 import { queries } from '@/lib/query/queries'
 import { useProfile } from '@/lib/useProfile'
@@ -65,11 +66,15 @@ export function SinceWidget() {
           if (unread.length === 0) {
             return <p className="text-sm text-faint">{t('dashboard.sinceNothing')}</p>
           }
-          const more = unread.length - SINCE_LIMIT
+          // One line for each kind of thing that happened (v0.166): six
+          // lines hold six kinds, not one kind six times.
+          const groups = groupSince(unread)
+          const shown = groups.slice(0, SINCE_LIMIT)
+          const more = unread.length - shown.reduce((count, group) => count + 1 + group.alike, 0)
           return (
             <>
               <ul className="flex flex-col">
-                {unread.slice(0, SINCE_LIMIT).map((entry) => (
+                {shown.map(({ newest: entry, alike }) => (
                   <li
                     key={entry.id}
                     className="flex min-w-0 items-baseline gap-2 border-b border-line py-1.5 text-sm first:pt-0 last:border-b-0"
@@ -80,6 +85,11 @@ export function SinceWidget() {
                     >
                       {sentence(entry, t, profile.config)}
                     </span>
+                    {alike > 0 && (
+                      <span className="shrink-0 text-xs text-dim">
+                        {t('dashboard.sinceAlike', { count: alike })}
+                      </span>
+                    )}
                     <time
                       dateTime={entry.created_at}
                       className="shrink-0 font-mono text-xs text-faint"

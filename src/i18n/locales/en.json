@@ -380,6 +380,8 @@
     "sinceNothing": "Nothing new since the history was last marked seen.",
     "sinceMore_one": "{{count}} more in the history",
     "sinceMore_other": "{{count}} more in the history",
+    "sinceAlike_one": "and {{count}} more like it",
+    "sinceAlike_other": "and {{count}} more like it",
     "week": "Next 7 days",
     "weekCount_one": "{{count}} release",
     "weekCount_other": "{{count}} releases",

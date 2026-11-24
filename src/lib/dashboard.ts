@@ -323,3 +323,33 @@ export function subjectOf(key: string): TaskSubject {
   }
   return { action, workId: second }
 }
+
+/** Lines of the history that say the same kind of thing, read as one. */
+export interface SinceGroup<Entry> {
+  /** The newest of them: the line the group is read by. */
+  newest: Entry
+  /** How many more of the same action came before it. */
+  alike: number
+}
+
+/**
+ * What happened since the last visit, one line for each kind of thing.
+ *
+ * The history is written a line at a time, and a morning's work is a dozen
+ * lines of three kinds: six lines of the widget went to "a version was
+ * written" five times over while a release that slipped stayed below the
+ * fold. Lines of one action are read as their newest, with how many more
+ * there were; the order is the newest's, so what happened last is still
+ * first.
+ */
+export function groupSince<Entry extends { action: string }>(
+  entries: readonly Entry[],
+): SinceGroup<Entry>[] {
+  const groups = new Map<string, SinceGroup<Entry>>()
+  for (const entry of entries) {
+    const group = groups.get(entry.action)
+    if (group === undefined) groups.set(entry.action, { newest: entry, alike: 0 })
+    else group.alike += 1
+  }
+  return [...groups.values()]
+}

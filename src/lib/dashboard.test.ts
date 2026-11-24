@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ProfileConfig, Readiness, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import {
+  groupSince,
   NEAREST_LIMIT,
   SCHEDULE_LIMIT,
   aside,
@@ -370,5 +371,30 @@ describe('subjectOf', () => {
     expect(subjectOf('release-meta:release:r1')).toEqual({ action: 'release-meta', workId: null })
     // A board's task is about its publication, named third.
     expect(subjectOf('cover-ideas:cover:w1')).toEqual({ action: 'cover-ideas', workId: 'w1' })
+  })
+})
+
+describe('groupSince', () => {
+  it('reads lines of one action as their newest, in the order they came', () => {
+    const line = (id: string, action: string) => ({ id, action })
+    expect(
+      groupSince([
+        line('5', 'version.created'),
+        line('4', 'release.slipped'),
+        line('3', 'version.created'),
+        line('2', 'version.created'),
+        line('1', 'release.slipped'),
+      ]),
+    ).toEqual([
+      { newest: line('5', 'version.created'), alike: 2 },
+      { newest: line('4', 'release.slipped'), alike: 1 },
+    ])
+  })
+
+  it('leaves a line that stands alone as it is', () => {
+    expect(groupSince([{ action: 'score.added' }])).toEqual([
+      { newest: { action: 'score.added' }, alike: 0 },
+    ])
+    expect(groupSince([])).toEqual([])
   })
 })
