@@ -2,6 +2,38 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.166.0] - 2026-11-24
+
+### Bug Fixes
+- Say what waits in the queue once, in the banner
+- Give a slot's own buttons the size of the dialog's
+- Take the reorder grip off the stage list, whose order is the dial's
+- Bind a typed tag and a typed topic as the text they are
+- Put the page back when a popup anchored off the window scrolls it
+- Send a change once when a second field is left before the first save lands
+
+### CI
+- Name the workflow a tag starts, so the run waits for the release page
+
+### Documentation
+- Say where a status is set since its chip picks it
+
+### Features
+- Read what happened since the last visit one line per kind of thing
+- Type the rhythm's time into the line's time field
+- Look at what an action sends from the menu of actions too
+- Pick a work's kind and status from their chips in the header
+- Open a version already in edit, from its row and from the overview
+- Fold a long text of a release to a few lines until it is asked for whole
+- Write the first note of a clip, an audio release or a short on its own card
+
+### Refactoring
+- Count a work's own comments, and drop the filter nothing asked for
+
+### Testing
+- Hand each test's studio a profile of its own
+- Let each layer test set the profile it reads
+
 ## [0.165.0] - 2026-11-24
 
 ### Build
