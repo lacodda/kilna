@@ -29,14 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # webkit2gtk-driver is the WebDriver of the window's own engine, which
+      # webkitgtk-webdriver is the WebDriver of the window's own engine, which
       # tauri-driver speaks through; xvfb is the screen the window opens on.
       # Inter stands in for the system font the window asks for, which a
       # runner has none of.
       - name: Install Linux build deps (webkit2gtk for Tauri), the driver and a screen
         run: |
           sudo apt-get -o Acquire::Retries=5 update
-          sudo apt-get -o Acquire::Retries=5 install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb fonts-inter
+          sudo apt-get -o Acquire::Retries=5 install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkitgtk-webdriver xvfb fonts-inter
           mkdir -p ~/.config/gtk-3.0
           printf '[Settings]\ngtk-font-name=Inter 10\n' > ~/.config/gtk-3.0/settings.ini
       - uses: pnpm/action-setup@v6
