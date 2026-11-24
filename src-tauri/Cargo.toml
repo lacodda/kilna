@@ -5,6 +5,7 @@ description = "A desktop workbench for content makers — from raw idea to shipp
 authors = ["Kirill Lakhtachev <lahtachev@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/lacodda/kilna"
+homepage = "https://lacodda.github.io/kilna/"
 edition = "2024"
 rust-version = "1.90"
 # Presentation rasters are for the README and the release page, not for anyone

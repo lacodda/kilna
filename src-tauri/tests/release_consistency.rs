@@ -140,7 +140,7 @@ fn the_brand_assets_match_their_masters() {
 /// thing it checks actually happened: `src-tauri/icons/` was generated once by
 /// the Tauri template and never regenerated, so v0.28 through v0.32 shipped the
 /// pre-identity orange tile in the taskbar while every other surface carried the
-/// approved mark. Both are written by `docs/export-assets.mjs` now; if this
+/// approved mark. Both are drawn by `lyrn assets` now; if this
 /// fails, run it.
 #[test]
 fn the_application_icon_matches_the_brand_icon() {
@@ -152,7 +152,7 @@ fn the_application_icon_matches_the_brand_icon() {
     assert_eq!(
         ours, brand,
         "src-tauri/icons/icon.ico has fallen behind assets/icon.ico — \
-         re-run docs/export-assets.mjs"
+         run `lyrn assets`"
     );
 }
 
@@ -185,7 +185,7 @@ fn the_largest_icon_image_comes_first() {
     assert_eq!(
         widths, descending,
         "icon.ico must list its images largest first — the window icon is \
-         taken from the first entry. Re-run docs/export-assets.mjs"
+         taken from the first entry. Run `lyrn assets`"
     );
 }
 
@@ -235,4 +235,225 @@ fn the_declared_msrv_is_a_real_number() {
         parts.len() >= 2 && parts.iter().all(|p| p.parse::<u32>().is_ok()),
         "`{declared}` is not a version number"
     );
+}
+
+/// Where the documentation site says it lives, read from the places that say it.
+struct DocsAddress<'a> {
+    /// `site` in `docs/astro.config.mjs`.
+    site: Option<&'a str>,
+    /// `base` there, when it has one.
+    base: Option<&'a str>,
+    /// The domain in `docs/public/CNAME`, when the file exists.
+    cname: Option<&'a str>,
+    /// Every absolute path the config writes by hand, such as an icon's `href`.
+    paths: Vec<&'a str>,
+    /// `homepage` of each manifest, with the manifest's name.
+    homepages: Vec<(&'a str, Option<String>)>,
+}
+
+/// The value of `key: '...'` in a JavaScript object, the first one written.
+fn js_string<'a>(source: &'a str, key: &str) -> Option<&'a str> {
+    source.lines().find_map(|line| {
+        let rest = line.trim().strip_prefix(key)?.strip_prefix(':')?.trim();
+        let quote = rest.chars().next().filter(|c| matches!(c, '\'' | '"'))?;
+        rest[1..].split(quote).next()
+    })
+}
+
+/// Every `href: '/...'` of the config: a path from the domain's root, which
+/// Astro does not put the base in front of.
+fn rooted_paths(source: &str) -> Vec<&str> {
+    source
+        .split("href: '")
+        .skip(1)
+        .filter_map(|rest| rest.split('\'').next())
+        .filter(|href| href.starts_with('/'))
+        .collect()
+}
+
+/// What is wrong with the address, or nothing.
+///
+/// There are two ways to live on GitHub Pages and no third. With a domain of
+/// its own the site is the domain and has no base; without one it is a project
+/// site, `https://<owner>.github.io` with the repository as its base. A mix of
+/// the two builds, deploys and answers 200 with every stylesheet a 404.
+fn docs_address_problems(address: &DocsAddress, owner: &str, repo: &str) -> Vec<String> {
+    let mut problems = Vec::new();
+    let Some(site) = address.site else {
+        return vec!["docs/astro.config.mjs names no `site`".to_owned()];
+    };
+    let under_repo = format!("/{repo}/");
+
+    let (root, prefix) = match address.cname {
+        Some(domain) => {
+            let expected = format!("https://{domain}");
+            if site != expected {
+                problems.push(format!(
+                    "docs/public/CNAME says `{domain}`, so `site` is `{expected}`, not `{site}`"
+                ));
+            }
+            if let Some(base) = address.base {
+                problems.push(format!(
+                    "a site on its own domain has no `base`, and the config has `{base}`"
+                ));
+            }
+            (format!("{expected}/"), "/".to_owned())
+        }
+        None => {
+            let expected = format!("https://{owner}.github.io");
+            let base = format!("/{repo}");
+            if site != expected {
+                problems.push(format!(
+                    "without docs/public/CNAME the site is `{expected}`, not `{site}`"
+                ));
+            }
+            if address.base != Some(base.as_str()) {
+                problems.push(format!(
+                    "a project site needs `base: '{base}'`, and the config has {:?}",
+                    address.base
+                ));
+            }
+            (format!("{expected}{base}/"), under_repo.clone())
+        }
+    };
+
+    for path in &address.paths {
+        // On a domain of its own every path starts with `/`, so what gives a
+        // left-behind one away is the repository's name in front of it.
+        let left_behind = address.cname.is_some() && path.starts_with(&under_repo);
+        if !path.starts_with(&prefix) || left_behind {
+            problems.push(format!(
+                "`{path}` in the config does not start where the site does, at `{prefix}`"
+            ));
+        }
+    }
+
+    for (manifest, homepage) in &address.homepages {
+        if homepage.as_deref() != Some(root.as_str()) {
+            problems.push(format!(
+                "{manifest} has homepage {homepage:?}, and the site is `{root}`"
+            ));
+        }
+    }
+    problems
+}
+
+/// `homepage` of a JSON or TOML manifest: the first line that sets it.
+fn homepage(source: &str) -> Option<String> {
+    source.lines().find_map(|line| {
+        let line = line.trim();
+        let rest = line
+            .strip_prefix("\"homepage\"")
+            .or_else(|| line.strip_prefix("homepage"))?;
+        let value = rest.trim_start_matches([':', '=', ' ']);
+        Some(value.trim_matches(['"', ',']).to_owned())
+    })
+}
+
+/// The documentation site agrees with itself about where it lives.
+///
+/// The site's address is written in four places - `site` and `base` of the
+/// Astro config, the paths the config writes by hand, `docs/public/CNAME` and
+/// the manifests' `homepage` - and a move to a domain of its own changes all of
+/// them. A sibling project moved half of them and served a bare page for a
+/// month, with every gate green.
+#[test]
+fn the_docs_site_agrees_with_itself_about_where_it_lives() {
+    let config = read("docs/astro.config.mjs");
+    let cname = std::fs::read_to_string(repo_root().join("docs/public/CNAME")).ok();
+    let package = read("package.json");
+    let manifest = read("src-tauri/Cargo.toml");
+
+    let address = DocsAddress {
+        site: js_string(&config, "site"),
+        base: js_string(&config, "base"),
+        cname: cname.as_deref().map(str::trim).filter(|c| !c.is_empty()),
+        paths: rooted_paths(&config),
+        homepages: vec![
+            ("package.json", homepage(&package)),
+            ("src-tauri/Cargo.toml", homepage(&manifest)),
+        ],
+    };
+
+    let problems = docs_address_problems(&address, "lacodda", "kilna");
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+/// The gate above is only worth having if each half-made move fails it.
+#[test]
+fn a_half_moved_docs_site_is_refused() {
+    fn home(url: &str) -> Vec<(&'static str, Option<String>)> {
+        vec![("package.json", Some(url.to_owned()))]
+    }
+    fn project() -> DocsAddress<'static> {
+        DocsAddress {
+            site: Some("https://lacodda.github.io"),
+            base: Some("/kilna"),
+            cname: None,
+            paths: vec!["/kilna/apple-touch-icon.png"],
+            homepages: home("https://lacodda.github.io/kilna/"),
+        }
+    }
+    fn domain() -> DocsAddress<'static> {
+        DocsAddress {
+            site: Some("https://kilna.example"),
+            base: None,
+            cname: Some("kilna.example"),
+            paths: vec!["/apple-touch-icon.png"],
+            homepages: home("https://kilna.example/"),
+        }
+    }
+    fn refused(address: DocsAddress) -> bool {
+        !docs_address_problems(&address, "lacodda", "kilna").is_empty()
+    }
+
+    assert!(!refused(project()), "a project site is one of the two ways");
+    assert!(!refused(domain()), "a domain of its own is the other");
+
+    // Each of these is one place moved and the rest left behind.
+    let moved = [
+        DocsAddress {
+            cname: Some("kilna.example"),
+            ..project()
+        },
+        DocsAddress {
+            base: None,
+            ..project()
+        },
+        DocsAddress {
+            site: Some("https://kilna.example"),
+            ..project()
+        },
+        DocsAddress {
+            paths: vec!["/apple-touch-icon.png"],
+            ..project()
+        },
+        DocsAddress {
+            homepages: home("https://kilna.example/"),
+            ..project()
+        },
+        DocsAddress {
+            homepages: vec![("package.json", None)],
+            ..project()
+        },
+        DocsAddress {
+            site: None,
+            ..project()
+        },
+        DocsAddress {
+            base: Some("/kilna"),
+            ..domain()
+        },
+        DocsAddress {
+            cname: None,
+            ..domain()
+        },
+        DocsAddress {
+            paths: vec!["/kilna/apple-touch-icon.png"],
+            ..domain()
+        },
+    ];
+    for (index, address) in moved.into_iter().enumerate() {
+        assert!(refused(address), "half-made move {index} passed");
+    }
 }
