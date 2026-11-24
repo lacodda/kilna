@@ -158,11 +158,24 @@ fn main() {
 }
 
 /// The directory `--workspace <dir>` names, when it does.
+///
+/// `--workspace=<dir>` says the same in one word, for a caller that does not
+/// keep arguments in the order they were given: a WebDriver hands a window
+/// its arguments as a set of switches, and a flag parted from its value there
+/// names nothing.
 fn workspace_arg(args: &[String]) -> Option<std::path::PathBuf> {
-    args.iter()
-        .position(|arg| arg == "--workspace")
-        .and_then(|at| args.get(at + 1))
-        .map(std::path::PathBuf::from)
+    workspace_in(args).map(std::path::PathBuf::from)
+}
+
+fn workspace_in(args: &[String]) -> Option<&str> {
+    args.iter().enumerate().find_map(|(at, arg)| {
+        if arg == "--workspace" {
+            args.get(at + 1).map(String::as_str)
+        } else {
+            arg.strip_prefix("--workspace=")
+                .filter(|dir| !dir.is_empty())
+        }
+    })
 }
 
 /// Every value given after `flag`, one for each time it is said.
@@ -324,4 +337,30 @@ fn serve_mcp(args: &[String]) -> kilna_lib::Result<()> {
     };
     kilna_lib::log::init(&app_dir, kilna_lib::log::MCP_FILE);
     kilna_lib::mcp::serve(&app_dir)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::workspace_in;
+
+    fn said(args: &[&str]) -> Vec<String> {
+        args.iter().map(|arg| (*arg).to_owned()).collect()
+    }
+
+    #[test]
+    fn a_workspace_is_named_in_two_words_or_in_one() {
+        assert_eq!(
+            workspace_in(&said(&["--mcp", "--workspace", "stand"])),
+            Some("stand")
+        );
+        assert_eq!(
+            workspace_in(&said(&["--workspace=stand", "--mcp"])),
+            Some("stand")
+        );
+        assert_eq!(workspace_in(&said(&["--mcp"])), None);
+        // A flag with nothing after it names no folder, and neither does an
+        // empty one: both fall back to the application's own.
+        assert_eq!(workspace_in(&said(&["--workspace"])), None);
+        assert_eq!(workspace_in(&said(&["--workspace="])), None);
+    }
 }
