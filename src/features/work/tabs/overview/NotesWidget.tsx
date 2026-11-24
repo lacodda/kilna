@@ -18,7 +18,7 @@ import { Widget } from '@/features/work/tabs/overview/Widget'
 const NOTES_SHOWN = 4
 
 /** The notes about a work that are not its documents, the newest first. */
-export function plainNotesOf(notes: readonly Note[], documents: readonly string[]): Note[] {
+function plainNotesOf(notes: readonly Note[], documents: readonly string[]): Note[] {
   return notes
     .filter((note) => !documents.includes(note.kind))
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
