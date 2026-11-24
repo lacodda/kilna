@@ -117,3 +117,24 @@ fn the_registration_command_quotes_the_executable() {
     );
     assert!(command.ends_with("\" --mcp"), "{command}");
 }
+
+/// Every tool a client is told about is one the server runs, and a name it
+/// was never told is refused as unknown: the list and the table of functions
+/// are two places, and nothing else holds them together.
+#[test]
+fn every_listed_tool_is_run_and_no_other() {
+    let (conn, _) = workspace();
+    let unknown = |name: &str| {
+        run_tool(&conn, &claude(), name, &Map::new())
+            .err()
+            .and_then(|err| err.refusal().map(|refusal| refusal.code.to_string()))
+            .is_some_and(|code| code == "mcp.unknownTool")
+    };
+    let listed = tools();
+    assert!(listed.len() > 20, "the list went somewhere else");
+    for tool in listed {
+        let name = tool["name"].as_str().unwrap();
+        assert!(!unknown(name), "`{name}` is listed and not run");
+    }
+    assert!(unknown("propose_nothing"));
+}
