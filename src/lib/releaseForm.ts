@@ -86,6 +86,38 @@ export function changesOf(release: Release, draft: ReleaseDraft): ReleaseChanges
   return { patch: touched ? patch : null, pin }
 }
 
+/**
+ * The release as it will stand once `changes` are saved.
+ *
+ * A form that saves as it goes asks what changed against the release it was
+ * handed, and the release it was handed is the one from before the save that
+ * is still on its way: a day picked and then a link left, before the first
+ * save came back, sent the day a second time (found in v0.80). What was asked
+ * for is laid over what is held, and the next question is asked of that.
+ *
+ * The pin is only whether there is one - the moment it was set is the
+ * backend's to say, and nothing here reads it as a time.
+ */
+export function afterChanges<R extends Release>(release: R, changes: ReleaseChanges): R {
+  const pinned =
+    changes.pin === null ? release.slot_pinned_at : changes.pin ? PINNED_MEANWHILE : null
+  const patch = changes.patch ?? {}
+  return {
+    ...release,
+    kind: patch.kind ?? release.kind,
+    // `undefined` is "not asked", `null` is "asked to be empty".
+    scheduled_at: patch.scheduled_at === undefined ? release.scheduled_at : patch.scheduled_at,
+    scheduled_time:
+      patch.scheduled_time === undefined ? release.scheduled_time : patch.scheduled_time,
+    time_zone: patch.time_zone === undefined ? release.time_zone : patch.time_zone,
+    url: patch.url === undefined ? release.url : patch.url,
+    slot_pinned_at: pinned,
+  }
+}
+
+/** A pin asked for and not yet answered: there is one, and no moment to say. */
+const PINNED_MEANWHILE = 'pending'
+
 /** Whether two drafts say the same thing about a release. */
 export function sameDraft(a: ReleaseDraft, b: ReleaseDraft): boolean {
   return (

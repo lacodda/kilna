@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { saveRelease } from '@/lib/api/releases'
 import type { ScheduledRelease } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { changesOf, type ReleaseChanges, type ReleaseDraft } from '@/lib/releaseForm'
+import { afterChanges, changesOf, type ReleaseChanges, type ReleaseDraft } from '@/lib/releaseForm'
 import { ReleaseForm, useReleaseDraft } from '@/components/ReleaseForm'
 import { PluginBar } from '@/features/work/PluginBar'
 import { ReleaseAssets } from '@/features/work/tabs/releases/ReleaseAssets'
@@ -36,16 +37,30 @@ export function ReleaseDetails({ release, refreshed }: Props) {
   const client = useQueryClient()
   const [draft, setDraft] = useReleaseDraft(release)
 
+  // The release as it will stand once what was asked for is saved (v0.166):
+  // a second field left before the first save came back was compared with
+  // the release from before it, and sent the first change again. A newer
+  // release from the backend, or a save that failed, starts over from it.
+  const [held, setHeld] = useState(release)
+  const [seen, setSeen] = useState(release)
+  if (seen !== release) {
+    setSeen(release)
+    setHeld(release)
+  }
+
   const save = useAppMutation({
     mutationFn: (changes: ReleaseChanges) => saveRelease(release.id, changes),
     failure: 'toast.releaseSaveFailed',
+    onError: () => setHeld(release),
     onSuccess: () =>
       announceEdited({ client, message: t('toast.releaseEdited'), refresh: refreshed }),
   })
 
   const settle = (next: ReleaseDraft) => {
-    const changes = changesOf(release, next)
-    if (changes !== null) save.mutate(changes)
+    const changes = changesOf(held, next)
+    if (changes === null) return
+    setHeld(afterChanges(held, changes))
+    save.mutate(changes)
   }
 
   return (

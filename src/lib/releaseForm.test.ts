@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Release } from '@/lib/api/types'
-import { changesOf, draftOf, rebase, sameDraft } from '@/lib/releaseForm'
+import { afterChanges, changesOf, draftOf, rebase, sameDraft } from '@/lib/releaseForm'
 
 function release(fields: Partial<Release> = {}): Release {
   return {
@@ -123,6 +123,36 @@ describe('changesOf, the hour and its zone', () => {
     expect(changesOf(timed, { ...draftOf(timed), time: '12:00' })?.patch).toEqual({
       scheduled_time: '12:00',
     })
+  })
+})
+
+describe('afterChanges', () => {
+  it('asks for nothing twice: a day sent is not sent again with the link', () => {
+    // A day picked, then a link left before the first save came back.
+    const held = release({ scheduled_at: null })
+    const picked = { ...draftOf(held), date: '2026-10-09' }
+    const first = changesOf(held, picked)!
+    expect(first.patch).toEqual({ scheduled_at: '2026-10-09' })
+
+    const typed = { ...picked, url: 'https://example.test/v' }
+    // Against the release as it was handed, the day goes out again...
+    expect(changesOf(held, typed)!.patch).toEqual({
+      scheduled_at: '2026-10-09',
+      url: 'https://example.test/v',
+    })
+    // ...and against what was asked for already, only the link does.
+    expect(changesOf(afterChanges(held, first), typed)!.patch).toEqual({
+      url: 'https://example.test/v',
+    })
+  })
+
+  it('holds a date asked to be emptied as empty, and a pin asked for as there', () => {
+    const held = release({ scheduled_at: '2026-10-02' })
+    expect(afterChanges(held, { patch: { scheduled_at: null }, pin: null }).scheduled_at).toBeNull()
+    const pinned = afterChanges(held, { patch: null, pin: true })
+    expect(pinned.slot_pinned_at).not.toBeNull()
+    expect(changesOf(pinned, { ...draftOf(held), pinned: true })).toBeNull()
+    expect(afterChanges(pinned, { patch: null, pin: false }).slot_pinned_at).toBeNull()
   })
 })
 
