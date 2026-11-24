@@ -119,8 +119,14 @@ export function TagBar({ work }: { work: Work }) {
           // Filtered here, against the tags already on the work as well as the
           // query, so the list never offers a word that is already a chip.
           filter={null}
-          value={draft}
-          onValueChange={(next) => setDraft(typeof next === 'string' ? next : '')}
+          // What is typed is the tag, bound as the text it is (v0.166): bound as
+          // the list's picked value alone, typing reached the box and never this
+          // component - the shape ChannelField found out in a test.
+          inputValue={draft}
+          onInputValueChange={setDraft}
+          onValueChange={(next) => {
+            if (typeof next === 'string') setDraft(next)
+          }}
           open={open}
           onOpenChange={(next) => {
             setOpen(next)

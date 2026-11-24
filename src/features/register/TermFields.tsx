@@ -194,8 +194,13 @@ export function TopicField({
     <Combobox
       items={suggestions}
       filter={null}
-      value={value}
-      onValueChange={(next) => onChange(typeof next === 'string' ? next : '')}
+      // What is typed is the topic, bound as the text it is (v0.166); a
+      // topic picked from the list becomes what is typed.
+      inputValue={value}
+      onInputValueChange={onChange}
+      onValueChange={(next) => {
+        if (typeof next === 'string') onChange(next)
+      }}
       open={open && suggestions.length > 0}
       onOpenChange={setOpen}
     >
