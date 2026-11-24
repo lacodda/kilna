@@ -145,10 +145,11 @@ A picture gets there three ways, whichever is nearest:
   several open and none of them focused, kilna asks you to click into one
   first rather than guess.
 
-The file is copied into the workspace the same way any other is (see
-[Files and covers](/kilna/guides/files-and-covers/)), so a frame travels with
-a backup of the workspace and keeps working when the original is tidied
-away.
+The file goes where any other file of the work does (see
+[where the file goes](/kilna/guides/files-and-covers/#where-the-file-goes)):
+into the work's own folder when the space has a media folder on this machine,
+and into the workspace as a copy when it has none. Either way the frame keeps
+working when the place it came from is tidied away.
 
 **Choosing one.** The tick on a frame says the video is cut from that one.
 A scene has at most one chosen frame — choosing a second moves the mark
