@@ -16,7 +16,11 @@ interface Props {
 }
 
 /**
- * What the assistant is doing right now, and how much is waiting its turn.
+ * What the assistant is doing right now.
+ *
+ * How much is waiting its turn is the queue banner's to say, above every
+ * screen and this one too, with the button that drops it: said here as well
+ * it was one count read twice (v0.166).
  *
  * The queue rather than `activeTasks`: that list folds the waiting into the
  * running, which is the right answer for a button ("already asked for?") and
@@ -35,7 +39,7 @@ export function RunningWidget({ works, onSelect }: Props) {
   return (
     <Widget title={t('dashboard.running')} scroll={t('dashboard.running')}>
       <Loaded query={queue} plain skeleton={<Skeleton className="h-4 w-full" />}>
-        {({ running, waiting }) => (
+        {({ running }) => (
           <>
             {running.length === 0 ? (
               <p className="text-sm text-faint">{t('dashboard.idle')}</p>
@@ -45,11 +49,6 @@ export function RunningWidget({ works, onSelect }: Props) {
                   <Task key={key} taskKey={key} works={works} onSelect={onSelect} />
                 ))}
               </ul>
-            )}
-            {waiting.length > 0 && (
-              <p className="text-xs text-faint">
-                {t('assistant.queueWaiting', { count: waiting.length })}
-              </p>
             )}
           </>
         )}

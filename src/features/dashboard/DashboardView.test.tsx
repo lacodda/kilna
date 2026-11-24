@@ -83,7 +83,7 @@ describe('the dashboard', () => {
     ])
   })
 
-  it('shows what the assistant is running, on which work, and what waits', async () => {
+  it('shows what the assistant is running and on which work, and says what waits once', async () => {
     backend.answer('task_queue', () => ({
       running: [`score:${IDS.draft}`],
       waiting: [`score:${IDS.video}`],
@@ -94,9 +94,11 @@ describe('the dashboard', () => {
     const running = await vi.waitFor(() => widget(en.dashboard.running))
     expect(within(running).getByText(/Harbour Lights/)).toBeTruthy()
     expect(within(running).getByRole('progressbar')).toBeTruthy()
-    expect(
-      within(running).getByText(en.assistant.queueWaiting_one.replace('{{count}}', '1')),
-    ).toBeTruthy()
+    // The count is the queue banner's, above the screen: the widget under it
+    // does not say it a second time.
+    const waiting = en.assistant.queueWaiting_one.replace('{{count}}', '1')
+    expect(within(running).queryByText(waiting)).toBeNull()
+    expect(screen.getAllByText(waiting)).toHaveLength(1)
   })
 })
 
