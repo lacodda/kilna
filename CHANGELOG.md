@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.165.0] - 2026-11-24
+
+### Build
+- Draw the mark's rasters with lyrn assets
+- Name tauri-driver as a program installed beside the package
+
+### CI
+- Let furca run the release, and end its notes with a checklist
+- Install the WebDriver under the name the runner's Ubuntu gives it
+- Hand the window Inter by the names it asks for a font
+
+### Documentation
+- Say the status in four lines and drop a stale version from the cover guide
+- Say where a frame's file goes since files have a place of their own
+
+### Features
+- Read --workspace=<dir> as --workspace <dir>
+- Build the site from the build it documents
+
+### Testing
+- Hold the docs site to one address
+
 ## [0.164.1] - 2026-11-24
 
 A refactoring release: nothing a user or an agent sees has changed. The MCP
