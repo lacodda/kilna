@@ -34,6 +34,10 @@ interface KeyedListProps<T extends Keyed> {
   addLabel?: string
   /** Whether rows can be taken out. */
   removable?: boolean
+  /** Whether rows can be moved. Not where the order is not the profile's to
+   *  say - the stops of the dial stand by their place on it - and a grip
+   *  there moved a row that the next reading put back (v0.166). */
+  movable?: boolean
   /** What the cross of a row says, by the row's key. */
   removeLabel?: (key: string) => string
   /** Keys taken elsewhere, which a new entry may not repeat. */
@@ -64,6 +68,7 @@ export function KeyedList<T extends Keyed>({
   make,
   addLabel,
   removable = true,
+  movable = true,
   removeLabel,
   taken = [],
   problems,
@@ -106,8 +111,8 @@ export function KeyedList<T extends Keyed>({
           return (
             <li
               key={entry.key}
-              {...reorder.rowProps(entry.key)}
-              title={t('editor.moveHint')}
+              {...(movable ? reorder.rowProps(entry.key) : {})}
+              title={movable ? t('editor.moveHint') : undefined}
               className={cn(
                 'flex flex-col gap-1.5',
                 boxed && 'rounded-xl border border-line p-3',
@@ -115,10 +120,12 @@ export function KeyedList<T extends Keyed>({
               )}
             >
               <div className="flex items-center gap-2">
-                <ReorderGrip
-                  {...reorder.gripProps(entry.key)}
-                  title={t('editor.move', { key: entry.key })}
-                />
+                {movable && (
+                  <ReorderGrip
+                    {...reorder.gripProps(entry.key)}
+                    title={t('editor.move', { key: entry.key })}
+                  />
+                )}
                 <code
                   className="w-28 shrink-0 truncate font-mono text-xs text-dim"
                   title={entry.key}

@@ -103,6 +103,7 @@ export function CraftEditor({
         entries={stagesOf(config)}
         onChange={(stages) => patch({ stages })}
         removable={false}
+        movable={false}
       >
         {(stage, set) => (
           <>
