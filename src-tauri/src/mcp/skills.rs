@@ -4,7 +4,9 @@
 use rusqlite::Connection;
 use serde_json::{Value, json};
 
-use super::{Failure, INVALID_PARAMS, active, find_work};
+use super::call::{Call, active, arg, find_work, pretty};
+use super::{Failure, INVALID_PARAMS};
+use crate::error::{Error, Result};
 
 /// The skills of a profile as an agent picks among them: what each is, when
 /// to reach for it, what it is for and about, and what it answers with -
@@ -206,4 +208,35 @@ pub(super) fn get_prompt(conn: &Connection, params: &Value) -> std::result::Resu
         "description": prompt.label.as_str(),
         "messages": [{ "role": "user", "content": { "type": "text", "text": text } }],
     }))
+}
+
+/// `guide`: the catalogue of skills, or one skill whole with the live
+/// context of the space.
+pub(super) fn guide(call: &Call) -> Result<String> {
+    let Call { config, args, .. } = *call;
+    let kind = arg(args, "kind");
+    let scope = arg(args, "scope");
+    match arg(args, "skill") {
+        None => pretty(&json!({ "guides": guides(config, kind, scope) })),
+        Some(key) => {
+            let skill = config
+                .prompts
+                .iter()
+                .find(|p| p.key == key)
+                .ok_or_else(|| {
+                    Error::refused("mcp.unknownSkill")
+                        .param("skill", key)
+                        .param(
+                            "known",
+                            config
+                                .prompts
+                                .iter()
+                                .map(|p| p.key.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        )
+                })?;
+            pretty(&skill_document(config, skill, kind))
+        }
+    }
 }

@@ -6,7 +6,7 @@
 
 use serde_json::{Map, Value, json};
 
-use super::MOST;
+use super::call::MOST;
 use crate::profile::config::SectionShape;
 
 /// One entry of the tool list, with the shape of its arguments.

@@ -4,9 +4,21 @@
 use rusqlite::Connection;
 use serde_json::{Map, Value, json};
 
+use super::Session;
 use crate::error::{Error, Result};
 use crate::profile;
+use crate::profile::config::ProfileConfig;
 use crate::work::{self, WorkFilter};
+
+/// One call of a tool: the space it is answered from, who asks, the craft's
+/// vocabulary there and the arguments given.
+pub(super) struct Call<'a> {
+    pub(super) conn: &'a Connection,
+    pub(super) session: &'a Session,
+    pub(super) profile: &'a profile::Profile,
+    pub(super) config: &'a ProfileConfig,
+    pub(super) args: &'a Map<String, Value>,
+}
 
 /// The most a page may hold, whatever is asked.
 pub(super) const MOST: usize = 500;
