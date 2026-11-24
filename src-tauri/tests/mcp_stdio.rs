@@ -1,6 +1,6 @@
 //! `kilna --mcp` as a client sees it: the real binary, a pipe each way.
 //!
-//! The unit tests in `mcp.rs` cover what the tools answer; this covers the
+//! The unit tests in `mcp/tests.rs` cover what the tools answer; this covers the
 //! part they cannot — that the executable takes the flag, opens a workspace
 //! of its own, speaks one JSON line per message on stdout and nothing else,
 //! and stops when the pipe closes. Those are the failures a client actually
