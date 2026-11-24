@@ -140,19 +140,19 @@ export function ReleaseEditor({
               offered while it has not gone out; that it went out, and where,
               once it has; and the way to the work always - until v0.117 a
               released slot with no link recorded had no foot at all, and no
-              way from the calendar to its card. */}
+              way from the calendar to its card. Its buttons are the size of
+              the dialog's own Cancel and Save (v0.166): smaller, they read as
+              a lesser kind of action, and marking a release out is not one. */}
           <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
             {release.status !== 'released' && (
               <>
                 <Button
-                  size="sm"
                   disabled={save.isPending}
                   onClick={() => thenDo((entry) => onMarkReleased(entry.id))}
                 >
                   {t('calendar.markReleased')}
                 </Button>
                 <Button
-                  size="sm"
                   disabled={save.isPending}
                   onClick={() => thenDo((entry) => onUnschedule(entry.id))}
                 >
@@ -178,7 +178,6 @@ export function ReleaseEditor({
               </span>
             )}
             <Button
-              size="sm"
               className="ml-auto"
               disabled={save.isPending}
               onClick={() => thenDo((entry) => onOpenWork(entry.work_id))}

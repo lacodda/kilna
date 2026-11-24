@@ -100,7 +100,6 @@ export function WorkPlanEditor({
           {ownDoor ? (
             <Button
               variant="primary"
-              size="sm"
               disabled={fulfill.isPending}
               onClick={() => fulfill.mutate({ id: plan.id, kind: null })}
             >
@@ -111,7 +110,6 @@ export function WorkPlanEditor({
               <Button
                 key={kind.key}
                 variant="primary"
-                size="sm"
                 disabled={fulfill.isPending}
                 onClick={() => fulfill.mutate({ id: plan.id, kind: kind.key })}
               >
@@ -121,11 +119,8 @@ export function WorkPlanEditor({
           )}
         </div>
         <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-          <Button size="sm" onClick={() => onOpenWork(plan.work_id)}>
-            {t('workPlan.openWork')}
-          </Button>
+          <Button onClick={() => onOpenWork(plan.work_id)}>{t('workPlan.openWork')}</Button>
           <Button
-            size="sm"
             variant="danger"
             disabled={remove.isPending}
             onClick={() => remove.mutate(plan.id)}
