@@ -1,9 +1,15 @@
 name: Docs
 
+# The site is built from the build it documents: the application is built
+# here, its window is opened on a demo stand and photographed for every
+# picture docs/screens.json lists, the transcripts the pages mark are taken
+# again from `kilna --mcp`, and only then is the site built. So the run
+# starts on every push, not only one that touches docs/ - a screen changes
+# when the code does. A picture that can no longer be taken stops the run,
+# and the site stays as it was.
 on:
   push:
     branches: [main]
-    paths: ['docs/**']
   workflow_dispatch:
 
 permissions:
@@ -15,11 +21,24 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # webkit2gtk-driver is the WebDriver of the window's own engine, which
+      # tauri-driver speaks through; xvfb is the screen the window opens on.
+      # Inter stands in for the system font the window asks for, which a
+      # runner has none of.
+      - name: Install Linux build deps (webkit2gtk for Tauri), the driver and a screen
+        run: |
+          sudo apt-get -o Acquire::Retries=5 update
+          sudo apt-get -o Acquire::Retries=5 install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb fonts-inter
+          mkdir -p ~/.config/gtk-3.0
+          printf '[Settings]\ngtk-font-name=Inter 10\n' > ~/.config/gtk-3.0/settings.ini
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -27,7 +46,35 @@ jobs:
           # The newest 22: Astro asks for a patch the runner's cached one may lack.
           check-latest: true
           cache: pnpm
-          cache-dependency-path: docs/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            docs/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          # tauri-driver, installed below, is kept with the build's cache.
+          cache-bin: true
+      - run: pnpm install --frozen-lockfile
+      - name: Build the application
+        run: pnpm tauri build --no-bundle
+      - name: Install tauri-driver
+        run: command -v tauri-driver || cargo install tauri-driver --locked
+      # Twice the pixels, as a screen people read the site on has: the window
+      # is 1440 by 900 and the picture 2880 by 1800.
+      - name: Take the screens
+        env:
+          GDK_SCALE: 2
+        run: xvfb-run --auto-servernum --server-args="-screen 0 3200x2000x24" node tools/screens.mjs --app src-tauri/target/release/kilna
+      - name: Take the transcripts
+        run: node tools/transcripts.mjs --app src-tauri/target/release/kilna
+      # What the window looked like when a picture could not be taken.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: screens
+          path: docs/public/screens
+          if-no-files-found: ignore
       - name: Install
         run: pnpm install --frozen-lockfile
         working-directory: docs

@@ -175,6 +175,150 @@ style prompt, the premise, the marks — and **Create the work** under it.
 One click, and the song is on the catalogue with its lyrics current, its
 premise on the overview, its score in the history judged by *Claude Code*.
 
+## What the answers look like
+
+The two sessions above are told in short. These are the answers themselves,
+word for word, taken from this build on the [demo stand](/kilna/guides/spaces/)
+each time the site is built - so they are what the version you are reading
+about says, not what an earlier one did.
+
+`catalogue` - the works, here the first two songs:
+
+<!-- transcript: mcp catalogue {"kind":"song","limit":2} -->
+```json
+{
+  "has_more": true,
+  "limit": 2,
+  "offset": 0,
+  "total": 5,
+  "works": [
+    {
+      "id": "db21bd54-274b-4ee0-82e7-bc40b22ba5e9",
+      "kind": "song",
+      "released": 0,
+      "repeats": null,
+      "scheduled": 2,
+      "scored_at": "2026-11-24T22:06:16.688Z",
+      "stage": 100,
+      "stale": true,
+      "status": "scheduled",
+      "tier": "picture",
+      "tier_pinned": false,
+      "title": "Paper Lanterns",
+      "total": 70.0,
+      "updated_at": "2026-11-24T22:06:17.284Z",
+      "vibe": null
+    },
+    {
+      "id": "b6c1d38d-f83c-4d18-bc87-73039a6452c1",
+      "kind": "song",
+      "released": 0,
+      "repeats": null,
+      "scheduled": 0,
+      "scored_at": null,
+      "stage": 0,
+      "stale": false,
+      "status": "draft",
+      "tier": null,
+      "tier_pinned": false,
+      "title": "A song about the lift",
+      "total": null,
+      "updated_at": "2026-11-24T22:06:17.024Z",
+      "vibe": null
+    }
+  ]
+}
+```
+
+`work` - one of them, whole:
+
+<!-- transcript: mcp work {"work":"Paper Lanterns"} lines=48 -->
+```json
+{
+  "cover": null,
+  "created_at": "2026-11-24T22:06:16.581Z",
+  "derived": [
+    {
+      "kind": "audio",
+      "role": "donor",
+      "status": "scheduled",
+      "title": "Paper Lanterns (audio)",
+      "work": "a0ea1c73-cf87-4542-b23f-97a35c4f9462"
+    },
+    {
+      "kind": "video",
+      "role": "donor",
+      "status": "scheduled",
+      "title": "Paper Lanterns (video)",
+      "work": "3d0f5f94-89a1-4af3-8021-67ed21494a75"
+    }
+  ],
+  "frame": null,
+  "id": "db21bd54-274b-4ee0-82e7-bc40b22ba5e9",
+  "kind": "song",
+  "latest_score": {
+    "axes": {
+      "emotion": 7.0,
+      "hook": 7.0,
+      "lyrics": 7.0,
+      "originality": 7.0,
+      "production": 7.0,
+      "visual": 7.0
+    },
+    "id": "bd4cd981-0ace-4808-865b-5ffa68829470",
+    "note": "A demo score: every axis a little above the middle.",
+    "rater": null,
+    "revision": 2,
+    "scored_at": "2026-11-24T22:06:16.688Z",
+    "tier": "picture",
+    "total": 70.0,
+    "version_id": "c661dc5d-1947-4d68-8cdd-645a8d4411ab",
+    "work_id": "db21bd54-274b-4ee0-82e7-bc40b22ba5e9"
+  },
+  "marks": [],
+  "meta": {},
+  "notes": 0,
+  "publications": {
+    "basis": {
+      "day": "2026-11-27",
+      "kind": "video",
+… 88 more lines
+```
+
+`scores` - how it was judged, snapshot by snapshot:
+
+<!-- transcript: mcp scores {"work":"Paper Lanterns"} lines=36 -->
+```json
+[
+  {
+    "id": "bd4cd981-0ace-4808-865b-5ffa68829470",
+    "work_id": "db21bd54-274b-4ee0-82e7-bc40b22ba5e9",
+    "version_id": "c661dc5d-1947-4d68-8cdd-645a8d4411ab",
+    "axes": {
+      "emotion": 7.0,
+      "hook": 7.0,
+      "lyrics": 7.0,
+      "originality": 7.0,
+      "production": 7.0,
+      "visual": 7.0
+    },
+    "total": 70.0,
+    "tier": "picture",
+    "note": "A demo score: every axis a little above the middle.",
+    "rater": null,
+    "scored_at": "2026-11-24T22:06:16.688Z",
+    "revision": 2
+  }
+]
+```
+
+And a proposal: nothing is written, and the answer says where it waits.
+
+<!-- transcript: mcp propose_note {"title":"A line for the bridge","body":"The harbour keeps its lights on for no one in particular."} -->
+```text
+Proposed a note; it waits in the chat named after you.
+```
+
 ## A video from a song, end to end
 
 The storyboard of a video is rows the agent can propose like anything

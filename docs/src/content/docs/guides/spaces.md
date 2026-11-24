@@ -158,6 +158,23 @@ window, **Settings → Spaces** offers **Fill with a demo** on the open space.
 The demo speaks the window's language: Russian when the window is in Russian,
 English otherwise.
 
+What it says as it makes one - taken, like the pictures on this site, from the
+build the site documents:
+
+<!-- transcript: demo -->
+```console
+$ kilna --demo-all --workspace demo
+Demo - Studio: 7 works, 4 notes, 2 releases
+Demo - Novel: 3 works, 3 notes, 1 releases
+Demo - Podcast: 3 works, 3 notes, 1 releases
+Demo - Blog: 3 works, 2 notes, 1 releases
+Demo - Poetry: 3 works, 2 notes, 1 releases
+Demo - Newsletter: 3 works, 2 notes, 1 releases
+Demo - Music Channel: 5 works, 4 notes, 1 releases
+```
+
+`--workspace=<dir>` says the same in one word.
+
 ## From one database to spaces
 
 Until v0.109 one database held every profile, and the picker at the foot of

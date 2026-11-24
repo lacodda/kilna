@@ -3,6 +3,8 @@ title: The catalogue
 description: The one list of everything you are making — sorting, filters that find unfinished work, and acting on several works at once.
 ---
 
+![The catalogue of a demo space: every work in one table with its kind, status, score and tier](/kilna/screens/catalogue.png)
+
 The catalogue is every work there is: find one here, open one here. There is
 no second list. Adding one is the **New** button in the title bar, which
 reaches from any screen.

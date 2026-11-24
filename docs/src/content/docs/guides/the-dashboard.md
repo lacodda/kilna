@@ -3,6 +3,8 @@ title: The dashboard
 description: Where kilna opens — what needs a decision, what goes out this week, and what is closest to being worth releasing.
 ---
 
+![The dashboard of a demo space: what needs a decision, the releases of the next seven days, works nobody has scored yet, and what happened since the last visit](/kilna/screens/dashboard.png)
+
 The dashboard is the first screen, and it asks one question: **what needs you
 right now?** Not what exists — the [catalogue](/kilna/guides/the-catalogue/)
 answers that — but what is waiting.

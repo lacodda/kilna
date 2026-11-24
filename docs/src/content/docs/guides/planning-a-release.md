@@ -3,6 +3,8 @@ title: Planning a release
 description: Queue, slots and the auto-layout — how a release gets a date, how a month is read at a glance, and how one click paces the whole queue to your rhythm.
 ---
 
+![The calendar in its month view: two releases booked on their days, and the queue of works waiting for a date beside it](/kilna/screens/calendar.png)
+
 A **release** is a plan to ship a specific work through some place — YouTube,
 the streaming services, a newsletter send, a feed — on some date, or with no
 date yet at all. Creating a release doesn't schedule it; scheduling is a

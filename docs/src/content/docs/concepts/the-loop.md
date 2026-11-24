@@ -3,6 +3,8 @@ title: The loop
 description: Work, versions, score, calendar slot, shipped — why kilna models the cycle once instead of once per craft.
 ---
 
+![A work's card on its Overview tab: the publications made from the song, its score by axis, its stage and the current lyrics](/kilna/screens/work.png)
+
 ```text
 work  →  versions  →  score  →  calendar slot  →  shipped
 ```

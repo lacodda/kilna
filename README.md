@@ -8,7 +8,7 @@
   <a href="https://github.com/lacodda/kilna/blob/main/LICENSE"><img src="https://img.shields.io/github/license/lacodda/kilna?style=flat-square" alt="License"></a>
 </p>
 
-<p align="center"><img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="The kilna catalogue with the search palette open over it: one box finding a work by title and two drafts by a line inside them, with the assistant's floating button in the corner" width="1200"></p>
+<p align="center"><img src="https://lacodda.github.io/kilna/screens/search.png" alt="The search palette open over the catalogue: one box finding three works by title and two drafts by a line inside them" width="1200"></p>
 
 ## Why
 

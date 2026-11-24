@@ -10,11 +10,12 @@
     "dev": "vite",
     "build": "pnpm locales && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "prettier --check . --log-level warn && eslint . && tsc --noEmit && knip --no-progress && pnpm locales && pnpm tokens && pnpm registry && pnpm test",
+    "lint": "prettier --check . --log-level warn && eslint . && tsc --noEmit && knip --no-progress && pnpm locales && pnpm tokens && pnpm registry && pnpm pictures && pnpm test",
     "format": "prettier --write .",
     "locales": "node tools/check-locales.mjs",
     "tokens": "node tools/check-tokens.mjs",
     "registry": "node tools/check-registry.mjs",
+    "pictures": "node tools/screens.mjs --check && node tools/transcripts.mjs --check",
     "snippets": "dowel snippets --write",
     "tauri": "tauri",
     "test": "vitest run"

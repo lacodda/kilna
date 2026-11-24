@@ -66,6 +66,25 @@ directory on first run. Schema changes are versioned migrations in
 Full documentation: [lacodda.github.io/kilna](https://lacodda.github.io/kilna).
 Architecture decisions live in [docs/adr](https://github.com/lacodda/kilna/tree/main/docs/adr).
 
+The site's pictures and transcripts are not kept in the repository: the Docs
+workflow builds the application and takes them from it
+([ADR 0089](https://github.com/lacodda/kilna/blob/main/docs/adr/0089-the-site-is-built-from-the-build-it-documents.md)).
+To show a new screen, add it to `docs/screens.json` - a name, the words that
+describe it, the steps that bring the window to it - and show it on a page as
+`![the same words](/kilna/screens/<name>.png)`; to show what the program says,
+put `<!-- transcript: mcp <tool> {arguments} -->` above a fenced block.
+`pnpm pictures` holds the list and the pages to each other. To take them
+yourself, from a build of your own:
+
+```sh
+cargo install tauri-driver --locked
+node tools/screens.mjs --app src-tauri/target/release/kilna
+node tools/transcripts.mjs --app src-tauri/target/release/kilna
+```
+
+On Windows the driver also needs the Edge WebDriver of your WebView2's
+version, named with `--native-driver <path to msedgedriver.exe>`.
+
 ## Commits
 
 English, [Conventional Commits](https://www.conventionalcommits.org/), no

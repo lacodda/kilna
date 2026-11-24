@@ -1,0 +1,126 @@
+{
+  "size": {
+    "width": 1440,
+    "height": 900
+  },
+  "storage": {
+    "kilna.language": "en",
+    "kilna.theme": "dark"
+  },
+  "screens": [
+    {
+      "name": "dashboard",
+      "alt": "The dashboard of a demo space: what needs a decision, the releases of the next seven days, works nobody has scored yet, and what happened since the last visit",
+      "steps": [
+        {
+          "open": "/dashboard"
+        },
+        {
+          "wait": "Needs a decision"
+        }
+      ]
+    },
+    {
+      "name": "catalogue",
+      "alt": "The catalogue of a demo space: every work in one table with its kind, status, score and tier",
+      "steps": [
+        {
+          "open": "/catalogue"
+        },
+        {
+          "wait": "Paper Lanterns"
+        }
+      ]
+    },
+    {
+      "name": "work",
+      "alt": "A work's card on its Overview tab: the publications made from the song, its score by axis, its stage and the current lyrics",
+      "steps": [
+        {
+          "open": "/catalogue"
+        },
+        {
+          "click": "Paper Lanterns"
+        },
+        {
+          "wait": "Publications"
+        }
+      ]
+    },
+    {
+      "name": "versions",
+      "alt": "The Versions tab of a work: the lyrics in two revisions, the current one open beside the list",
+      "steps": [
+        {
+          "open": "/catalogue"
+        },
+        {
+          "click": "Paper Lanterns"
+        },
+        {
+          "click": {
+            "text": "Versions",
+            "in": "a[href*=\"/works/\"]"
+          }
+        },
+        {
+          "gone": "Publications"
+        }
+      ]
+    },
+    {
+      "name": "score",
+      "alt": "The Score tab of a work: a value on every axis of the profile, the total they add up to and the tier it earns",
+      "steps": [
+        {
+          "open": "/catalogue"
+        },
+        {
+          "click": "Paper Lanterns"
+        },
+        {
+          "click": {
+            "text": "Score",
+            "in": "a[href*=\"/works/\"]"
+          }
+        },
+        {
+          "gone": "Publications"
+        }
+      ]
+    },
+    {
+      "name": "calendar",
+      "alt": "The calendar in its month view: two releases booked on their days, and the queue of works waiting for a date beside it",
+      "steps": [
+        {
+          "open": "/calendar"
+        },
+        {
+          "wait": "Month"
+        }
+      ]
+    },
+    {
+      "name": "search",
+      "alt": "The search palette open over the catalogue: one box finding three works by title and two drafts by a line inside them",
+      "steps": [
+        {
+          "open": "/catalogue"
+        },
+        {
+          "wait": "Paper Lanterns"
+        },
+        {
+          "keys": "Control+k"
+        },
+        {
+          "type": "lantern"
+        },
+        {
+          "wait": "Drafts"
+        }
+      ]
+    }
+  ]
+}

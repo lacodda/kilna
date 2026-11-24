@@ -3,6 +3,8 @@ title: Finding things
 description: One box that searches works, drafts, notes and assistant replies — what it looks in, how it ranks, and why it works in Russian too.
 ---
 
+![The search palette open over the catalogue: one box finding three works by title and two drafts by a line inside them](/kilna/screens/search.png)
+
 `Ctrl+K` from anywhere opens the search box. So does the field in the top bar,
 if your hands are on the mouse.
 

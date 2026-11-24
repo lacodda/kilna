@@ -3,6 +3,8 @@ title: Scoring a work
 description: A walkthrough of scoring a work, seeing the total and tier, and watching a revision move the score.
 ---
 
+![The Score tab of a work: a value on every axis of the profile, the total they add up to and the tier it earns](/kilna/screens/score.png)
+
 This walks through scoring a single work on the **Music** profile. The same
 steps apply on any profile — only the axis names change.
 

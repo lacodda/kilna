@@ -3,6 +3,8 @@ title: Writing a version
 description: The editor — click into the text and it is the next revision, one version per sitting, the tree of which version was written from which, what each row of the list says, a skeleton to start from, and comparing two drafts side by side.
 ---
 
+![The Versions tab of a work: the lyrics in two revisions, the current one open beside the list](/kilna/screens/versions.png)
+
 Every draft of a work is kept whole. Nothing is stored as a diff — so going
 back to what you wrote three weeks ago is opening it, not reconstructing it.
 
