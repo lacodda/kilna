@@ -1,8 +1,23 @@
 //! What the tools answer and what a proposal leaves behind, called as a
 //! client calls them: `run_tool` and `handle` against a workspace in memory.
 
-use super::*;
-use crate::fixtures;
+use rusqlite::Connection;
+use serde_json::{Map, Value, json};
+
+use super::call::MOST;
+use super::deliver::UNNAMED_CLIENT;
+use super::schema::tools;
+use super::{
+    INVALID_PARAMS, METHOD_NOT_FOUND, PROTOCOL_VERSION, Session, SpaceInfo, handle, reads_a_space,
+    registration_command, run_tool,
+};
+use crate::assistant::apply;
+use crate::assistant::proposal::Proposal;
+use crate::note::{self, NoteFilter};
+use crate::speech::Speech;
+use crate::work::version;
+use crate::work::{self, WorkFilter};
+use crate::{assistant, fixtures, profile, scene, score};
 
 /// [`fixtures::workspace`], with a song and its lyrics already on it - most
 /// tests here read the transcript or the board against a work in hand.

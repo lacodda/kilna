@@ -26,31 +26,30 @@ use serde_json::{Map, Value, json};
 use crate::assistant::apply;
 use crate::assistant::proposal::{self, BoardChange, PackagedNote, PackagedVersion, Proposal};
 use crate::error::{Error, Result};
-use crate::journal::{self, Record};
 use crate::link;
 use crate::note::{self, NoteFilter};
 use crate::profile::config::SectionShape;
 use crate::scene;
 use crate::speech::Speech;
+use crate::work;
 use crate::work::version;
-use crate::work::{self, WorkFilter};
-use crate::{assistant, profile, release, score, search};
+use crate::{profile, release, score, search};
 
+mod call;
+mod deliver;
 mod schema;
 mod skills;
 #[cfg(test)]
 mod tests;
 
+use call::{MOST, Page, active, arg, find_work, length_of, pretty, required};
+use deliver::deliver;
 use schema::{section_schema, tools};
 use skills::{get_prompt, guides, list_prompts, skill_document};
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
 const METHOD_NOT_FOUND: i64 = -32601;
 const INVALID_PARAMS: i64 = -32602;
-
-/// How the chat a proposal lands in is named when the client did not say
-/// who it is.
-const UNNAMED_CLIENT: &str = "An agent";
 
 /// Serves the spaces of the application at `app_dir` on stdin/stdout until
 /// the client closes the stream.
@@ -356,63 +355,6 @@ fn initialize() -> Value {
     })
 }
 
-/// The most a page may hold, whatever is asked.
-const MOST: usize = 500;
-
-/// The part of a long reading an agent asked for (FR-08 8.4).
-///
-/// The heavy tools gave everything at once: a record of two thousand words,
-/// a bank of fifteen hundred notes with their bodies, into a context that
-/// holds a few hundred thousand tokens for the whole conversation. A page
-/// says how many there are and whether more follow, so an agent can walk the
-/// list, read it short first, and take one entry whole.
-struct Page {
-    limit: usize,
-    offset: usize,
-    summary: bool,
-}
-
-impl Page {
-    fn of(args: &Map<String, Value>, default: usize) -> Self {
-        let number = |key: &str| {
-            args.get(key)
-                .and_then(Value::as_u64)
-                .and_then(|n| usize::try_from(n).ok())
-        };
-        Self {
-            limit: number("limit").unwrap_or(default).clamp(1, MOST),
-            offset: number("offset").unwrap_or(0),
-            summary: args
-                .get("summary")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-        }
-    }
-
-    /// This page of `items` under `key`, with how many there are in all and
-    /// whether more follow.
-    fn cut(&self, key: &str, items: Vec<Value>) -> Map<String, Value> {
-        let total = items.len();
-        let shown: Vec<Value> = items
-            .into_iter()
-            .skip(self.offset)
-            .take(self.limit)
-            .collect();
-        let mut out = Map::new();
-        out.insert("total".into(), json!(total));
-        out.insert("limit".into(), json!(self.limit));
-        out.insert("offset".into(), json!(self.offset));
-        out.insert("has_more".into(), json!(self.offset + shown.len() < total));
-        out.insert(key.to_owned(), Value::Array(shown));
-        out
-    }
-}
-
-/// How long a text is, as a summary says it: in characters.
-fn length_of(text: &str) -> usize {
-    text.chars().count()
-}
-
 fn call_tool(
     conn: &Connection,
     session: &Session,
@@ -436,50 +378,6 @@ fn call_tool(
             json!({ "content": [{ "type": "text", "text": err.to_string() }], "isError": true })
         }
     })
-}
-
-/// The active profile, or the sentence an agent can act on.
-fn active(conn: &Connection) -> Result<profile::Profile> {
-    profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))
-}
-
-fn arg<'a>(args: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
-    args.get(key)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-}
-
-fn required<'a>(args: &'a Map<String, Value>, key: &str) -> Result<&'a str> {
-    arg(args, key).ok_or_else(|| Error::refused("mcp.missingArg").param("key", key))
-}
-
-/// The work an argument names: by id first, then by exact title within the
-/// active profile. A title shared by two works is refused rather than
-/// guessed, with the ids to choose from.
-fn find_work(conn: &Connection, profile_id: &str, named: &str) -> Result<work::Work> {
-    if let Some(found) = work::get(conn, named)? {
-        return Ok(found);
-    }
-    let same_title: Vec<work::Work> = work::list(conn, profile_id, &WorkFilter::default())?
-        .into_iter()
-        .filter(|w| w.title == named)
-        .collect();
-    match same_title.len() {
-        0 => Err(Error::refused("mcp.unknownWork").param("named", named)),
-        1 => Ok(same_title.into_iter().next().expect("one")),
-        _ => Err(Error::refused("mcp.ambiguousTitle")
-            .param("count", same_title.len())
-            .param("named", named)
-            .param(
-                "ids",
-                same_title
-                    .iter()
-                    .map(|w| w.id.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            )),
-    }
 }
 
 /// The bricks an agent named for a composed text, by id or exact name - a
@@ -604,10 +502,6 @@ fn read_styles(
         })
         .collect();
     pretty(&out)
-}
-
-fn pretty(value: &impl serde::Serialize) -> Result<String> {
-    Ok(serde_json::to_string_pretty(value)?)
 }
 
 pub fn run_tool(
@@ -3090,95 +2984,6 @@ fn neighbour_days(
         }));
     }
     Ok(out)
-}
-
-/// Put a proposal where a person will see it: an assistant message in the
-/// chat named after the client, on the work when there is one.
-///
-/// The chat is the client's, one per work, so a week of proposals from one
-/// agent reads as one conversation rather than twenty chats named
-/// "Proposal". The message body is the proposed text itself for a version —
-/// that is what *insert as version* keeps, verbatim — and the reasoning goes
-/// beside it in `meta.note`. A line in the journal says it arrived, so the
-/// bell in the corner counts it.
-fn deliver(
-    conn: &Connection,
-    profile_id: &str,
-    session: &Session,
-    work: Option<&work::Work>,
-    proposal: Proposal,
-    body: &str,
-    note: Option<&str>,
-) -> Result<assistant::Message> {
-    // Comments are read and answered inside the window, from where a
-    // screenshot was pasted or a comment was opened; no tool proposes them,
-    // and the sentence below has no line for one.
-    if matches!(
-        proposal,
-        Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }
-    ) {
-        return Err(Error::refused("mcp.commentsNotProposable"));
-    }
-    let client = session
-        .client
-        .clone()
-        .unwrap_or_else(|| UNNAMED_CLIENT.to_owned());
-    let work_id = work.map(|w| w.id.as_str());
-    let message = apply::into_chat(conn, profile_id, &client, work_id, &proposal, body, note)?;
-
-    // Literal keys, one per sentence in the locale: the journal gate reads
-    // them out of the source. A note on nothing has no title to name, and a
-    // sentence with an empty quotation in it reads as a bug, so it gets a
-    // sentence of its own. A work that does not exist yet has no row to file
-    // the line under; the title it would have is the one thing to name. The
-    // arms stay close under the `let`: the gate finds a bound record by it.
-    let record = match (&proposal, work) {
-        (Proposal::Version { .. }, _) => Record::new("proposal.version"),
-        (Proposal::Score { .. }, _) => Record::new("proposal.score"),
-        (Proposal::Note { .. }, Some(_)) => Record::new("proposal.note"),
-        (Proposal::Note { .. }, None) => Record::new("proposal.freeNote"),
-        (Proposal::Notes { .. }, Some(_)) => Record::new("proposal.notes"),
-        (Proposal::Notes { .. }, None) => Record::new("proposal.freeNotes"),
-        (Proposal::Work { .. }, Some(_)) => Record::new("proposal.package"),
-        (Proposal::Scenes { .. }, _) => Record::new("proposal.scenes"),
-        (Proposal::Release { .. }, _) => Record::new("proposal.release"),
-        (Proposal::CoverIdeas { .. }, _) => Record::new("proposal.coverIdeas"),
-        (Proposal::Trials { .. }, _) => Record::new("proposal.trials"),
-        (Proposal::Cards { .. }, _) => Record::new("proposal.cards"),
-        (Proposal::Month { .. }, _) => Record::new("proposal.month"),
-        (Proposal::Media { .. }, _) => Record::new("proposal.media"),
-        (Proposal::Work { title, .. }, None) => {
-            Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
-        }
-        (Proposal::Words { .. }, _) => Record::new("proposal.words"),
-        (Proposal::Styles { .. }, _) => Record::new("proposal.styles"),
-        (Proposal::Canon { .. }, Some(_)) => Record::new("proposal.canon"),
-        (Proposal::Canon { .. }, None) => Record::new("proposal.freeCanon"),
-        // Refused at the top of this function.
-        (Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }, _) => {
-            return Err(Error::refused("mcp.commentsNotProposable"));
-        }
-        // A card's description alone is the action on the card, which knows
-        // the facts it answers to; an agent proposes one inside a package for
-        // the canon (`propose_canon` descriptions), read with the card.
-        (Proposal::CardPrompt { .. } | Proposal::CardNote { .. }, _) => {
-            return Err(Error::refused("mcp.cardPromptNotProposable"));
-        }
-        // Bricks are proposed by the dictionary's own "Explain", which read
-        // the phrases against it; no tool sends a package of them.
-        (Proposal::Bricks { .. }, _) => {
-            return Err(Error::refused("mcp.bricksNotProposable"));
-        }
-    };
-    let mut record = record.param("client", client);
-    if let Some(w) = work {
-        record = record
-            .param("title", w.title.clone())
-            .about("work", w.id.clone());
-    }
-    journal::record(conn, profile_id, record);
-
-    Ok(message)
 }
 
 /// What a package holds, in one clause for the agent's answer.
