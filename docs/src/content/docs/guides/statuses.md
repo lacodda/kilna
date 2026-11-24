@@ -26,7 +26,8 @@ nothing to do with the song.
 
 ## When you set it yourself
 
-Pick a status from the list on a work's **Overview** tab and it stays there.
+Press the status chip in the header of a work's card, pick a status from its
+list, and it stays there.
 The automation stops touching that work entirely — not for that status, for
 any of them.
 
@@ -34,10 +35,11 @@ That is the point. A work you shelved is shelved even though it has a score
 and two planned releases; nothing in the data says "abandoned", so nothing
 can derive it. The same goes for any judgement the facts cannot see.
 
-The line under the field says which of the two is in charge: *Follows what has
+The head of that list says which of the two is in charge: *Follows what has
 happened* while the automation owns it, *Set by hand — the automation leaves it
-alone* once you do. **Follow the facts**, beside that second one, hands it back
-and works the status out immediately.
+alone* once you do. **Follow the facts**, the last row of the list then, hands
+it back and works the status out immediately. The chip beside it, the work's
+kind, is picked the same way.
 
 ## Which word means what
 
