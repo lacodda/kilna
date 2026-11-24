@@ -82,6 +82,23 @@ describe('the Versions tab', () => {
     expect(screen.getByText('[Chorus]')).toBeInTheDocument()
   })
 
+  it('opens a version already in edit when the address asks for it', async () => {
+    // v0.166: the overview's "Edit" leads here with `&edit=1`; before it the
+    // link opened the version and left Edit to be pressed a second time.
+    const { client } = renderApp(`/works/${IDS.song}/versions?version=${IDS.lyrics}&edit=1`)
+    await settled(client)
+    expect(await screen.findByRole('textbox', { name: en.versions.edit })).toBeInTheDocument()
+  })
+
+  it('opens a version in edit from its row, in one step', async () => {
+    const { main } = await openVersions()
+    expect(editBox()).toBeNull()
+    // The menu at the end of a version's row.
+    fireEvent.click(main.querySelector('li button[aria-haspopup="menu"]')!)
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.versions.editThis }))
+    expect(await screen.findByRole('textbox', { name: en.versions.edit })).toBeInTheDocument()
+  })
+
   it('writes when E is pressed on the text, on any keyboard layout', async () => {
     const { header } = await openVersions()
     // The key's place, not its letter: on a Cyrillic layout it types `у`.

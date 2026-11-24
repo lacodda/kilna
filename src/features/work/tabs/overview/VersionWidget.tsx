@@ -194,8 +194,10 @@ function VersionActions({
         {t('overview.copy')}
       </Button>
       {/* A row already ends in the way to the tab, which is the same place. */}
+      {/* Straight into edit (v0.166): the button says Edit, and opening
+          the version to press Edit again was the same word twice. */}
       {presentation === 'card' && (
-        <Button size="xs" render={<Link to={open} />}>
+        <Button size="xs" render={<Link to={`${open}&edit=1`} />}>
           {t('overview.edit')}
         </Button>
       )}

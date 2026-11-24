@@ -100,7 +100,13 @@ export function VersionPanel({ workId }: Props) {
       setSelectedId(null)
     }
   }
-  const [reading, setReading] = useState<Reading>('view')
+  // `&edit=1` beside a version opens it already in edit (v0.166): the
+  // overview's "Edit" opened the version and left the second press to the
+  // reader. Read once, as the comparison is: what the address asked for on
+  // arrival, not a mode it holds the panel in.
+  const [reading, setReading] = useState<Reading>(() =>
+    params.get('edit') === '1' && asked !== null ? 'edit' : 'view',
+  )
   const [staged, setStaged] = useState<'text' | 'comment' | null>(null)
   // Whether the commentary on the open revision stands beside it. On by
   // default - reading a review away from its text is reading half of it -
@@ -390,6 +396,11 @@ export function VersionPanel({ workId }: Props) {
             scores={scores}
             openId={openId}
             comparedId={againstId}
+            onEdit={(id) => {
+              show(id)
+              form.close()
+              setReading('edit')
+            }}
             onOpen={(id) => {
               show(id)
               // Opening a version is reading it, whatever the last one was

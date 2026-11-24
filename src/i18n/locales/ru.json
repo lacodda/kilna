@@ -134,6 +134,7 @@
     "diffRemoved_many": "{{count}} строк убрано",
     "diffRemoved_other": "{{count}} строки убрано",
     "deriveFrom": "Новая версия из {{name}}",
+    "editThis": "Открыть в правке",
     "restoreDraft": "Вернуть черновик",
     "compareWith": "Сравнить с {{name}}",
     "compareMenu": "Сравнить с…",

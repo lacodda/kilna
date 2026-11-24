@@ -33,6 +33,9 @@ interface Props {
   /** Which version the open one is being compared against, if any. */
   comparedId: string | null
   onOpen: (id: string) => void
+  /** Open a version already in edit - one step where opening it and then
+   *  pressing Edit were two (v0.166). */
+  onEdit: (id: string) => void
   onCompare: (id: string) => void
   /** Make a version the work's current text; absent for a lane whose
    *  versions cannot be - a style prompt, a review (v0.99). */
@@ -68,6 +71,7 @@ export function VersionList({
   openId,
   comparedId,
   onOpen,
+  onEdit,
   onCompare,
   onMakeCurrent,
   onMakeMain,
@@ -286,6 +290,11 @@ export function VersionList({
             <RowMenu
               label={nameOf(version)}
               actions={[
+                {
+                  key: 'edit',
+                  label: t('versions.editThis'),
+                  onSelect: () => onEdit(version.id),
+                },
                 // A scored version never changes - revising it means starting
                 // the next revision from it, which then remembers it as its
                 // parent (ADR 0002, ADR 0055).

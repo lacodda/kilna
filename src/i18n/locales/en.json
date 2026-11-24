@@ -129,6 +129,7 @@
     "diffRemoved_one": "{{count}} line out",
     "diffRemoved_other": "{{count}} lines out",
     "deriveFrom": "New version from {{name}}",
+    "editThis": "Open in edit",
     "restoreDraft": "Bring the draft back",
     "compareWith": "Compare with {{name}}",
     "compareMenu": "Compare with…",
