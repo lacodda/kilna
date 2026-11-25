@@ -347,7 +347,7 @@ function ReleaseFieldBox({ id, field, proposed, onSave }: BoxProps) {
           </span>
           <p className="selectable text-sm whitespace-pre-wrap">
             {proposed === '' ? (
-              <span className="text-faint">{t('releases.meta.empty')}</span>
+              <span className="text-dim">{t('releases.meta.empty')}</span>
             ) : (
               proposed
             )}

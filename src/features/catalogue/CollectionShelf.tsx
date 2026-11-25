@@ -53,7 +53,7 @@ export function CollectionShelf({ collections, count, over, target }: Props) {
           className={place(collection.id)}
         >
           <span className="min-w-0 truncate">{collection.title}</span>
-          <span className="font-mono text-xs text-faint tabular-nums">
+          <span className="font-mono text-xs text-dim tabular-nums">
             {collection.work_ids.length}
           </span>
         </span>

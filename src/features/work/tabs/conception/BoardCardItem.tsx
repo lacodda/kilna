@@ -112,7 +112,7 @@ export function BoardCardItem({
       className={cn(
         'flex flex-col gap-1.5 rounded-lg border bg-raise px-2.5 pt-2 pb-2',
         starred ? 'border-accent' : 'border-line',
-        rejected && 'opacity-55',
+        rejected && 'set-aside',
         carried && 'opacity-35',
       )}
     >

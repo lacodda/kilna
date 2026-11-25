@@ -158,13 +158,13 @@ export function TimeOffDialog({ open, onOpenChange, start, spans, slots, onShift
         className={cn(
           'flex items-center gap-2 rounded-md px-2 py-1.5',
           editing === span.id && 'bg-accent-soft',
-          span.ends_on < now && 'opacity-60',
+          span.ends_on < now && 'set-aside',
         )}
       >
-        <CalendarOff aria-hidden className="size-4 shrink-0 text-faint" />
+        <CalendarOff aria-hidden className="size-4 shrink-0 text-dim" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{span.label}</p>
-          <p className="font-mono text-xs text-faint tabular-nums">
+          <p className="font-mono text-xs text-dim tabular-nums">
             {spanText(span, (day) => formatDay(day))}
             {' · '}
             {t('timeOff.days', { count: spanLength(span) })}

@@ -228,12 +228,12 @@ export function FactRow({ read, view, shape, lens }: Props) {
       className={cn(
         'grid items-start gap-2.5 rounded-md px-2 py-1.5 transition-opacity hover:bg-soft/50',
         detailed ? 'grid-cols-[24px_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]',
-        !seenThrough(read.lenses, lens) && 'opacity-25',
+        !seenThrough(read.lenses, lens) && 'set-aside',
         fact.status === 'draft' && 'bg-info-soft/60',
         // A kit of the look before the rebranding stands back (v0.147).
-        shape === 'branding' && fact.data.archived === true && 'opacity-60',
+        shape === 'branding' && fact.data.archived === true && 'set-aside',
         // A rule kept but not checked stands back too (v0.151).
-        shape === 'quotas' && fact.data.active === false && 'opacity-60',
+        shape === 'quotas' && fact.data.active === false && 'set-aside',
       )}
     >
       <LayerMark layer={fact.layer} />

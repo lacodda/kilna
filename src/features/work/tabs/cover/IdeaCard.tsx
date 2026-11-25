@@ -78,7 +78,7 @@ export function IdeaCard({
       className={cn(
         'relative flex flex-col gap-1.5 rounded-lg border border-line bg-raise px-2.5 pt-2 pb-2.5',
         starred && 'border-accent ring-1 ring-accent',
-        rejected && 'opacity-45',
+        rejected && 'set-aside',
       )}
     >
       <div className="flex min-w-0 items-center gap-1.5">

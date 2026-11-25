@@ -244,6 +244,57 @@ describe('every component', () => {
       )
     expect(offenders).toEqual([])
   })
+
+  it('draws what is read in an ink, never in opacity', () => {
+    // The line's rule of contrast (dowel, ADR 0010): an ink on a ground is a
+    // promised pair, and a row faded to 60% is no pair at all - it measured
+    // under 3:1 in the light theme. What is set aside and still read says
+    // `set-aside` and takes the quietest promised ink (v0.167). Opacity stays
+    // for what is not read: something being dragged, a mark that is only a
+    // picture, a control that appears on hover (0 and 100).
+    expect(read('src/styles.css')).toMatch(/@utility set-aside \{\s*color: var\(--color-faint\)/)
+
+    const fades = /(?<![\w-])opacity-(?!0\b|100\b)\d+/
+    const notRead = /drag|carr|aria-hidden/
+    // A mark that is a picture of a state, with no words in it.
+    const pictures = [
+      // A vibe taken from the song, drawn quieter than a work's own.
+      'src/components/VibePicker.tsx',
+      // The swatch of a row that cannot be restored.
+      'src/features/trash/TrashView.tsx',
+    ]
+    const offenders = components()
+      .filter(({ path }) => !pictures.includes(path))
+      .flatMap(({ path, text }) =>
+        text
+          .split('\n')
+          .map((line, index) => ({ line, index }))
+          .filter(({ line }) => fades.test(line) && !notRead.test(line))
+          .map(({ index }) => `${path}:${index + 1}`),
+      )
+    expect(offenders).toEqual([])
+  })
+
+  it('never puts the faint ink on a tinted fill', () => {
+    // `faint` is promised on the neutral grounds only; on a tint - a status's
+    // soft fill, the accent's - the quiet ink is `dim` (dowel, ADR 0010).
+    const faint = /(?<![\w:-])text-faint\b/
+    const tint = /(?<![\w:-])bg-(?:accent|good|warn|bad|info)(?:-soft)?\b(?!\/)/
+    const offenders = components().flatMap(({ path, text }) =>
+      text
+        .split('\n')
+        .map((line, index) => ({ line, index }))
+        // One list of classes at a time: a line may hold two, either side
+        // of a choice - the tint on one, the faint ink on the other.
+        .filter(({ line }) =>
+          (line.match(/'[^']*'|"[^"]*"|`[^`]*`/g) ?? []).some(
+            (classes) => faint.test(classes) && tint.test(classes),
+          ),
+        )
+        .map(({ index }) => `${path}:${index + 1}`),
+    )
+    expect(offenders).toEqual([])
+  })
 })
 
 /**

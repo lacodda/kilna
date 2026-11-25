@@ -58,7 +58,7 @@ export function LayoutPreview({ placements, problems = [], onCancel, onBook, boo
           <ul className="mt-1 flex flex-col gap-0.5">
             {problems.map((problem) => (
               <li key={problem.line} className="flex min-w-0 gap-2">
-                <span className="w-10 shrink-0 font-mono text-faint">{problem.line}</span>
+                <span className="w-10 shrink-0 font-mono text-dim">{problem.line}</span>
                 <span className="min-w-0 truncate font-mono">{problem.text}</span>
                 <span className="shrink-0">{t(REASONS[problem.reason])}</span>
               </li>

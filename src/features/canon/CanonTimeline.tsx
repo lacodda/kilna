@@ -55,7 +55,7 @@ export function CanonTimeline({
                       key={one.fact.id}
                       className={cn(
                         'grid grid-cols-[24px_minmax(0,1fr)] items-start gap-2.5 rounded-md px-2 py-1 hover:bg-soft/50',
-                        !seenThrough(one.lenses, lens) && 'opacity-25',
+                        !seenThrough(one.lenses, lens) && 'set-aside',
                       )}
                     >
                       <LayerMark layer={one.fact.layer} />

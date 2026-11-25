@@ -128,7 +128,7 @@ export function Shortlist({ board, cover }: Props) {
                     <b className="min-w-0 flex-1 truncate text-sm font-semibold text-text">
                       {name}
                     </b>
-                    <span className="shrink-0 text-2xs text-faint">
+                    <span className="shrink-0 text-2xs text-dim">
                       {t(`ideas.source.${idea.source}`)}
                     </span>
                   </span>

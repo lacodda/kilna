@@ -130,7 +130,7 @@ export function HeroPick({ hero, state, disabled, onChange }: Props) {
                   <span className="min-w-0 flex-1 truncate text-sm text-text">
                     {card.title ?? t('cover.hero.untitled')}
                   </span>
-                  <span className="shrink-0 text-2xs text-faint">
+                  <span className="shrink-0 text-2xs text-dim">
                     {sayLabel(cardKindOf(config, card.kind)?.label ?? card.kind)}
                   </span>
                   {card.layer !== 'public' && (

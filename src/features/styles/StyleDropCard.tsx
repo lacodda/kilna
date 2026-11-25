@@ -48,9 +48,9 @@ export function StyleDropCard({ onPaths, busy }: Props) {
           over && 'border-accent bg-accent-soft',
         )}
       >
-        <ImagePlus aria-hidden className="size-5 text-faint" />
+        <ImagePlus aria-hidden className="size-5 text-dim" />
         <span className="caption">{t('styles.new')}</span>
-        <span className="text-sm text-faint">
+        <span className="text-sm text-dim">
           {over ? t('styles.dropToMake') : t('styles.dropHint')}
         </span>
       </TileButton>

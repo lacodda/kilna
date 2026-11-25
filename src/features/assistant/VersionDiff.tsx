@@ -61,7 +61,7 @@ export function VersionDiff({ against, body, role }: Props) {
               change.kind === 'removed' && change.text !== '' && 'line-through',
             )}
           >
-            <span aria-hidden className="mr-2 inline-block w-2 text-faint select-none">
+            <span aria-hidden className="mr-2 inline-block w-2 text-dim select-none">
               {change.kind === 'added' ? '+' : change.kind === 'removed' ? '−' : ' '}
             </span>
             {change.text === '' ? ' ' : change.text}

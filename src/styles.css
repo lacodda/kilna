@@ -364,6 +364,28 @@ textarea,
   --editor-font: var(--font-sans);
 }
 
+/*
+ * Something set aside and still read: a fact outside the lens, a trial
+ * dropped, a time off that is over (v0.167). It was faded - the row at 60%,
+ * at 25% - and a line faded to 60% measures under 3:1 in the light theme: the
+ * line's rule is that what is read is drawn in an ink, never in opacity. So
+ * the words take the quietest ink that is still promised on a neutral
+ * ground, whatever ink they named for themselves; what carries a fill keeps
+ * its own pair, and a picture - which is looked at, not read - is the one
+ * thing that fades.
+ */
+@utility set-aside {
+  color: var(--color-faint);
+
+  & :not([class*='bg-']) {
+    color: var(--color-faint);
+  }
+
+  & :is(img, video) {
+    opacity: 0.6;
+  }
+}
+
 @utility editor-size {
   font-size: var(--editor-size);
 }

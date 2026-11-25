@@ -97,7 +97,7 @@ export function VibePicker({
           'cursor-pointer rounded-md transition-colors hover:bg-soft',
           compact ? 'p-0.5' : 'flex size-7 items-center justify-center',
           // Nothing said yet: a quiet way in, not a mark.
-          resolved === null && 'text-faint opacity-50 hover:opacity-100 focus-visible:opacity-100',
+          resolved === null && 'text-faint hover:text-text focus-visible:text-text',
           className,
         )}
       >

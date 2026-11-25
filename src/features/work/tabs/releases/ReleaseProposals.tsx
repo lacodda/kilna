@@ -91,7 +91,7 @@ function ProposalPanel({
             ? t('releases.proposals.byAssistant')
             : t('releases.proposals.byClient', { client: proposal.client })}
         </span>
-        <span className="text-xs text-faint">{formatStamp(proposal.created_at)}</span>
+        <span className="text-xs text-dim">{formatStamp(proposal.created_at)}</span>
         <Button
           size="xs"
           variant="link"
@@ -118,10 +118,10 @@ function ProposalPanel({
               {/* What is there now, dim, above what would take its place:
                   the two are read against each other, top to bottom. */}
               <dl className="grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-1 text-sm">
-                <dt className="pt-0.5 text-2xs text-faint">{t('releases.proposals.now')}</dt>
+                <dt className="pt-0.5 text-2xs text-dim">{t('releases.proposals.now')}</dt>
                 <dd className="selectable text-dim whitespace-pre-wrap">
                   {field.current.trim() === '' ? (
-                    <span className="text-faint">{t('releases.meta.empty')}</span>
+                    <span className="text-dim">{t('releases.meta.empty')}</span>
                   ) : (
                     field.current
                   )}
@@ -131,7 +131,7 @@ function ProposalPanel({
                 </dt>
                 <dd className="selectable whitespace-pre-wrap">
                   {field.proposed.trim() === '' ? (
-                    <span className="text-faint">{t('releases.meta.empty')}</span>
+                    <span className="text-dim">{t('releases.meta.empty')}</span>
                   ) : (
                     field.proposed
                   )}

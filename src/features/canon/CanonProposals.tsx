@@ -54,7 +54,7 @@ function ProposalBox({ proposal }: { proposal: CanonProposal }) {
     <section className="flex flex-col gap-1.5 rounded-lg border border-info bg-info-soft px-2.5 py-2 text-xs">
       <b className="font-semibold">{t('canon.assistantProposes')}</b>
       <span className="text-dim">{counts}</span>
-      {proposal.chat_title !== null && <span className="text-faint">{proposal.chat_title}</span>}
+      {proposal.chat_title !== null && <span className="text-dim">{proposal.chat_title}</span>}
       <div className="flex flex-wrap gap-1.5">
         <Button size="xs" variant="soft" onClick={() => setReviewing(true)}>
           {t('canon.review')}

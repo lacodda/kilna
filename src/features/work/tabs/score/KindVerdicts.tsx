@@ -47,7 +47,7 @@ export function KindVerdicts({ workId }: Props) {
             title={row.reweighed ? t('score.byKindReweighed') : t('score.byKindSame')}
             className={cn(
               'flex items-baseline gap-1.5 rounded-lg border border-line px-2 py-1 text-xs',
-              !row.reweighed && 'opacity-60',
+              !row.reweighed && 'set-aside',
             )}
           >
             <span className="text-dim">{labelOf(releaseKinds, row.kind)}</span>

@@ -117,7 +117,7 @@ export function ShippedOffers({
                             >
                               <span
                                 aria-hidden
-                                className="mr-2 inline-block w-2 text-faint select-none"
+                                className="mr-2 inline-block w-2 text-dim select-none"
                               >
                                 {line.kind === 'added' ? '+' : line.kind === 'removed' ? '−' : ' '}
                               </span>

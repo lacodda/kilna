@@ -126,7 +126,7 @@ export function ReleaseLine({ slot, date, now, dragging, onGrab, onOpen, carried
           {/* The hour, where the line is wide enough to say it before the
               title - a week's day on a wide window, the agenda's rows. */}
           {slot.scheduled_time !== null && (
-            <span className="hidden font-mono text-2xs font-normal tabular-nums opacity-80 @min-[10rem]:inline">
+            <span className="hidden font-mono text-2xs font-normal tabular-nums @min-[10rem]:inline">
               {slot.scheduled_time}
             </span>
           )}

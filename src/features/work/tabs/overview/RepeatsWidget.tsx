@@ -105,7 +105,7 @@ function FindingRow({
       data-level={finding.level}
       className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line py-1.5 first:pt-0 last:border-b-0 last:pb-0"
     >
-      <span className={cn('flex min-w-0 flex-1 basis-48 flex-col', finding.kept && 'opacity-60')}>
+      <span className={cn('flex min-w-0 flex-1 basis-48 flex-col', finding.kept && 'set-aside')}>
         <span className="flex min-w-0 items-center gap-1.5 text-sm">
           {/* The level as a dot named in words, so the hue is the emphasis
               and not the message. */}

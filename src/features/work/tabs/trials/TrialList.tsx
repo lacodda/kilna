@@ -79,7 +79,7 @@ function TrialRow({
     <RowButton
       selected={selected}
       onClick={onSelect}
-      className={cn(trial.verdict === 'drop' && 'opacity-60')}
+      className={cn(trial.verdict === 'drop' && 'set-aside')}
       start={
         <span className="flex items-center gap-0.5">
           {child && <CornerDownRight aria-hidden className="size-3 text-faint" />}

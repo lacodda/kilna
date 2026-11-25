@@ -171,7 +171,7 @@ export function SectionBlock({
             key={relation.link.id}
             className={cn(
               'flex items-start gap-2.5 rounded-md px-2 py-1.5 hover:bg-soft/50',
-              !seenThrough(relation.lenses, lens) && 'opacity-25',
+              !seenThrough(relation.lenses, lens) && 'set-aside',
             )}
           >
             <LayerMark layer={relation.link.layer} />

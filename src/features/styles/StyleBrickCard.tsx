@@ -98,7 +98,7 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, house = false, o
       <TileButton
         selected={open}
         onClick={onOpen}
-        className={cn('w-full rounded-lg bg-raise', brick.status === 'dropped' && 'opacity-55')}
+        className={cn('w-full rounded-lg bg-raise', brick.status === 'dropped' && 'set-aside')}
       >
         <BrickFace brick={brick} type={type} />
 

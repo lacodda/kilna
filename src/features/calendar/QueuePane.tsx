@@ -179,19 +179,19 @@ export function QueuePane({
             >
               <Segment value="queue">
                 {t('calendar.queue')}
-                <span className="ml-1 font-mono text-xs text-faint tabular-nums">
+                <span className="ml-1 font-mono text-xs text-dim tabular-nums">
                   {queued.data?.length ?? 0}
                 </span>
               </Segment>
               <Segment value="works">
                 {t('calendar.unplanned')}
-                <span className="ml-1 font-mono text-xs text-faint tabular-nums">
+                <span className="ml-1 font-mono text-xs text-dim tabular-nums">
                   {unplanned.length}
                 </span>
               </Segment>
             </SegmentedControl>
             <div className="flex items-center gap-2">
-              <p className="min-w-0 flex-1 text-xs text-faint">
+              <p className="min-w-0 flex-1 text-xs text-dim">
                 {source === 'queue' ? t('calendar.queueHint') : t('calendar.unplannedHint')}
               </p>
               {canLayOut && (
