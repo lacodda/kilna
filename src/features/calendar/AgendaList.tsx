@@ -200,7 +200,7 @@ export function AgendaList({
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-raise">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ring-in rounded-lg border border-line bg-raise">
       <Scroll
         label={t('agenda.label')}
         className="min-h-0 flex-1"

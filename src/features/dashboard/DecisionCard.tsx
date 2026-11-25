@@ -53,7 +53,7 @@ export function DecisionCard({ decision, onSelect, onDismiss, dismissing = false
   })()
 
   return (
-    <Panel className="group relative flex min-w-0 flex-col overflow-hidden">
+    <Panel className="group relative flex min-w-0 flex-col overflow-hidden ring-in">
       <span
         aria-hidden
         className="block h-10 shrink-0"

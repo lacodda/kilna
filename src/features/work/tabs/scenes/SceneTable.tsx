@@ -80,7 +80,10 @@ export function SceneTable({ shots, layers, about, none, children }: Props) {
   return (
     // Compact, as the mockup's board is: a row of fields at the height of a
     // row of text, so a laptop shows a dozen scenes rather than eight.
-    <Panel data-density="compact" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+    <Panel
+      data-density="compact"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ring-in"
+    >
       <ScrollArea label={t('card.tab.scenes')} className="flex-1" viewportRef={pane}>
         <Table>
           {/* On the panel's ground, which is what the rows slide under, and

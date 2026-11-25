@@ -17,7 +17,7 @@ export function MonthSkeleton() {
   return (
     <div
       aria-hidden
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-raise"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ring-in rounded-lg border border-line bg-raise"
     >
       <div className="grid shrink-0 grid-cols-7 border-b border-line">
         {Array.from({ length: 7 }, (_, day) => (

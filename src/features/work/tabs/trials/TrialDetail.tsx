@@ -386,7 +386,7 @@ function TrialText({
         })
 
   return (
-    <div className="selectable flex flex-col overflow-hidden rounded-md border border-line bg-bg">
+    <div className="selectable flex flex-col overflow-hidden ring-in rounded-md border border-line bg-bg">
       <MarkedTextarea
         aria-label={t('trials.body')}
         placeholder={t('trials.bodyPlaceholder')}

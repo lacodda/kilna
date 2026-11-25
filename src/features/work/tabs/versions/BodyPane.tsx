@@ -394,7 +394,7 @@ export function BodyPane({
       // A container, so the bar can say its words at the width it is given
       // rather than at the window's: beside a review the pane is half as wide,
       // and the named buttons fold to their marks there (`@max-2xl`).
-      className="@container flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-raise"
+      className="@container flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ring-in rounded-lg border border-line bg-raise"
     >
       {/* Who and when take what the buttons leave, down to a floor; below it
           the buttons wrap under them, flush right, rather than being cut off

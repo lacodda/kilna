@@ -118,7 +118,7 @@ function Preview({ version, lines }: { version: VersionSummary; lines: number })
   if (presentation === 'card') {
     const { text: opening, more } = previewOf(text, lines)
     return (
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden ring-in">
         {/* Selectable: a line of the text is copied from here as often as the
             whole of it is, and a click that ends a selection does not carry
             the person off to the Versions tab (`Widget`). */}

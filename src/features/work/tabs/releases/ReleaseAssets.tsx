@@ -97,7 +97,7 @@ export function ReleaseAssets({ release }: Props) {
               return (
                 <li
                   key={asset.id}
-                  className="flex flex-col overflow-hidden rounded-md border border-line bg-raise"
+                  className="flex flex-col overflow-hidden ring-in rounded-md border border-line bg-raise"
                 >
                   <div className="flex h-20 items-center justify-center bg-soft">
                     <MediaPreview

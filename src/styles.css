@@ -137,6 +137,19 @@ textarea,
 }
 
 /*
+ * And so is the ring of anything inside a region that cuts its outside off
+ * and leaves no room (v0.167, FR-19 19.1): a panel clipped to its rounded
+ * corners, a pane that hands its height to what scrolls in it. A `Scroll`
+ * pads its content by the ring's width; a region that is only clipped has
+ * nothing to pad with - a row against its edge fills it on purpose - so it
+ * says `ring-in`, and what it holds is ringed inside its own box. Unlayered
+ * and in `:where`, for the reasons the field's rule gives.
+ */
+:where(.ring-in) :focus-visible {
+  outline-offset: -2px;
+}
+
+/*
  * The focus ring for whatever does not draw its own - in the base layer, so a
  * primitive's own focus style (a field's border, an input that draws none
  * inside a palette) wins over it. Unlayered, this rule outranked every

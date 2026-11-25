@@ -185,7 +185,7 @@ function EntryTile({
       render={
         <li
           className={cn(
-            'group relative overflow-hidden rounded-md border border-line bg-raise',
+            'group relative overflow-hidden ring-in rounded-md border border-line bg-raise',
             playing === entry.path && PLAYING,
           )}
         />

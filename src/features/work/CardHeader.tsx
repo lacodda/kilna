@@ -74,7 +74,7 @@ export function CardHeader({ work, tabs, counts, onDelete }: Props) {
   const cover = useCovers().get(work.id)
 
   return (
-    <header className="shrink-0 overflow-hidden rounded-t-xl border border-b-0 border-line bg-raise">
+    <header className="shrink-0 overflow-hidden ring-in rounded-t-xl border border-b-0 border-line bg-raise">
       {/* The cover: what tells one card from another at a glance, before a
           word is read. The way back sits on it because that is the one place
           on the card that carries nothing else. */}

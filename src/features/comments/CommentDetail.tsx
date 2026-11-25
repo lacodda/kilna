@@ -165,7 +165,7 @@ export function CommentDetail({
   const busy = drafting || draft.isPending
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-raise">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden ring-in rounded-lg border border-line bg-raise">
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <Input
           value={author}

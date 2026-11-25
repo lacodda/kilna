@@ -267,7 +267,7 @@ export function CatalogueTable({
   const span = columns.length + 2
 
   return (
-    <Panel className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+    <Panel className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ring-in">
       <ScrollArea label={t('nav.catalogue')} className="flex-1">
         {/* `min-width`, never `width`, once columns have been sized by hand.
             A table given an explicit width WIDER than the box it scrolls in

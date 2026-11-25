@@ -34,7 +34,7 @@ export function CardPicture({
   return (
     <figure
       className={cn(
-        'group relative shrink-0 overflow-hidden bg-soft',
+        'group relative shrink-0 overflow-hidden ring-in bg-soft',
         small ? 'size-12 rounded-md' : 'aspect-square rounded-lg',
         chosen && 'ring-2 ring-accent',
       )}

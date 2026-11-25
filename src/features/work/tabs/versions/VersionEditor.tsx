@@ -81,7 +81,7 @@ export function VersionEditor({
   }, [preview])
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-raise">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ring-in rounded-lg border border-line bg-raise">
       <div className="flex shrink-0 items-center gap-2 border-b border-line px-2.5 py-1.5">
         <span className="shrink-0 font-mono text-xs text-faint">
           {t('versions.new')} · {roleLabel}

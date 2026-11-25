@@ -75,7 +75,7 @@ export function BoardLayout({ layout, widgets, render }: Props) {
       // One document: a line per widget in a single panel, captions down the
       // left, divided by hairlines rather than boxed one by one.
       return (
-        <Panel data-layout="sheet" className="overflow-hidden">
+        <Panel data-layout="sheet" className="overflow-hidden ring-in">
           {widgets.map((widget) => draw(widget, 'line'))}
         </Panel>
       )

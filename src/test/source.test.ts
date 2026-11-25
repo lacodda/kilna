@@ -205,6 +205,45 @@ describe('every component', () => {
     expect(scroll).toMatch(/className=\{cn\(!bound && SAFE, contentClassName\)\}/)
     expect(read('src/components/AppDialog.tsx')).toMatch(/DIALOG_STACK = '[^']*\bpy-1\.5\b[^']*'/)
   })
+
+  it('rings what a clipped region holds inside its box, where the region has no room', () => {
+    // The third case of the rule above (v0.167): a region that is only
+    // clipped - a panel cut to its rounded corners, a pane that hands its
+    // height to what scrolls in it - is no `Scroll` and pads nothing, and a
+    // row lying against its edge lost a side of its ring. Such a region says
+    // `ring-in`, and the stylesheet draws the rings of what it holds inside
+    // their own boxes. A region with padding of its own has the room; one
+    // that clips a picture, a bar or a line of text holds nothing to ring.
+    const ringIn = rules(entryStylesheet()).filter(({ selectors }) =>
+      selectors.some((one) => /\.ring-in\)? :focus-visible/.test(one)),
+    )
+    expect(
+      ringIn.some(({ body }) => /outline-offset:\s*-2px/.test(body)),
+      'the rule `ring-in` stands for',
+    ).toBe(true)
+
+    const roomy =
+      /whitespace-nowrap|(?<![\w-])aspect-|(?<![\w-])size-|(?<![\w-])h-\d|(?<![\w-])p[xytblr]?-(?!0\b)[\d.]+/
+    // The frame every screen is drawn in: each screen pads itself.
+    const frames = ['src/app/App.tsx']
+    const offenders = components()
+      .filter(({ path }) => !frames.includes(path))
+      .flatMap(({ path, text }) =>
+        text
+          .split('\n')
+          .map((line, index) => ({ line, index }))
+          .filter(
+            ({ line }) =>
+              /\boverflow-hidden\b/.test(line) &&
+              !/^\s*(\/\/|\{\/\*|\*)/.test(line) &&
+              !line.includes('`overflow-hidden`') &&
+              !line.includes('ring-in') &&
+              !roomy.test(line),
+          )
+          .map(({ index }) => `${path}:${index + 1}`),
+      )
+    expect(offenders).toEqual([])
+  })
 })
 
 /**

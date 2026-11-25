@@ -143,7 +143,7 @@ export function SceneRow({
               onClick={() => onViewFrame(chosen)}
               title={chosen.original_name ?? t('scenes.openFrame')}
               aria-label={t('scenes.openFrame')}
-              className="overflow-hidden"
+              className="overflow-hidden ring-in"
             >
               <img src={fileSrc(chosen.path)} alt="" className="size-7 object-contain" />
             </Button>

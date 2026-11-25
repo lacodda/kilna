@@ -202,7 +202,7 @@ function Picture({ entry }: { entry: FileEntry }) {
         ref={frame}
         className={cn(
           'flex min-h-0 flex-1 rounded-md bg-bg',
-          zoom === null ? 'items-center justify-center overflow-hidden' : 'overflow-auto',
+          zoom === null ? 'items-center justify-center overflow-hidden ring-in' : 'overflow-auto',
         )}
         onWheel={(event) => {
           if (!event.ctrlKey) return

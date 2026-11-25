@@ -147,7 +147,7 @@ function LinkPanel({
   return (
     // `overflow-hidden`: a row's hover tint stops at the panel's rounded
     // corners rather than bulging past them.
-    <Panel className="shrink-0 overflow-hidden">
+    <Panel className="shrink-0 overflow-hidden ring-in">
       <div className="border-b border-line px-3.25 py-2.5">
         <SectionLabel>{title}</SectionLabel>
       </div>

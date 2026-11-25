@@ -213,7 +213,7 @@ function Summary({
             </SectionLabel>
             {/* `overflow-hidden`: the rows' hover tint stops at the panel's
                 rounded corners rather than bulging past them. */}
-            <Panel className="divide-y divide-line overflow-hidden">
+            <Panel className="divide-y divide-line overflow-hidden ring-in">
               {summary.week.map((entry) => (
                 <WeekRow key={entry.release.id} entry={entry} onSelect={onSelect} />
               ))}
