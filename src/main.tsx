@@ -7,6 +7,7 @@ import App from '@/app/App'
 import { Providers } from '@/app/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { initTheme } from '@/lib/theme'
+import { initContrast } from '@/lib/contrast'
 import { initDensity } from '@/lib/density'
 import { initEditorText } from '@/lib/editorText'
 import { initLanguage } from '@/lib/language'
@@ -19,6 +20,7 @@ import '@/styles.css'
 // never flashes the wrong colour or visibly changes language a moment in.
 initTheme()
 initDensity()
+initContrast()
 initEditorText()
 initLanguage()
 initSealedRoot()

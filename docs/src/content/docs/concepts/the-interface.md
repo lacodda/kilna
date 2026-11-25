@@ -105,6 +105,15 @@ through *system*, *light* and *dark*; the choice is remembered across
 launches and applies before the first paint, so the window never flashes the
 wrong color.
 
+## Contrast
+
+A reader who asks their system for more contrast gets it: the quiet inks are
+drawn darker and the hairlines become boundaries, in both themes. **Settings ›
+General › Contrast** pins it on or off for this window whatever the system
+says, and *System* hands the answer back. What is set aside - a trial dropped,
+a fact outside the lens - is drawn in a quieter ink, never faded, so it stays
+readable either way.
+
 ## Language
 
 kilna speaks English and Russian. The footer button cycles through

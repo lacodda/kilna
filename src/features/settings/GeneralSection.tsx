@@ -6,6 +6,7 @@ import { resetCoachMarks } from '@/components/CoachMark'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, useLanguage } from '@/lib/language'
 import { THEMES, useTheme } from '@/lib/theme'
+import { CONTRASTS, useContrast } from '@/lib/contrast'
 import { DENSITIES, useDensity } from '@/lib/density'
 import { EDITOR_FONTS, EDITOR_SIZES, useEditorText } from '@/lib/editorText'
 import { FieldGroup } from '@/components/ui/field'
@@ -24,6 +25,7 @@ export function GeneralSection() {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
   const { density, setDensity } = useDensity()
+  const { contrast, setContrast } = useContrast()
   const editor = useEditorText()
   const { language, setLanguage } = useLanguage()
 
@@ -59,6 +61,22 @@ export function GeneralSection() {
           {DENSITIES.map((entry) => (
             <Segment key={entry} value={entry}>
               {t(`densityName.${entry}`)}
+            </Segment>
+          ))}
+        </SegmentedControl>
+      </FieldGroup>
+      {/* More contrast (v0.167): the theme's own mode, which follows the
+          system - offered here as well, for a reader whose system has no
+          such switch or who wants it for this window alone. */}
+      <FieldGroup label={t('settings.contrast')} help={t('settings.contrastHelp')}>
+        <SegmentedControl
+          aria-label={t('settings.contrast')}
+          value={contrast}
+          onValueChange={(next) => setContrast(next as typeof contrast)}
+        >
+          {CONTRASTS.map((entry) => (
+            <Segment key={entry} value={entry}>
+              {t(`contrastName.${entry}`)}
             </Segment>
           ))}
         </SegmentedControl>

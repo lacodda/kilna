@@ -3116,6 +3116,8 @@
     },
     "density": "Density",
     "densityHelp": "How tightly rows, fields and buttons sit, everywhere in the window.",
+    "contrast": "Contrast",
+    "contrastHelp": "More contrast draws the quiet inks darker and the hairlines as boundaries. System follows what the machine asks for.",
     "editorSize": "Size of a version’s text",
     "editorFont": "Face of a sung text",
     "editorFontHelp": "A style prompt and other texts that are not sung stay monospace: their spacing is what gets pasted."
@@ -6041,6 +6043,11 @@
     "copied": "The diagnostics are on the clipboard.",
     "copyFailed": "The diagnostics could not be copied.",
     "report": "Open a new issue"
+  },
+  "contrastName": {
+    "system": "System",
+    "more": "More",
+    "normal": "Normal"
   },
   "densityName": {
     "compact": "Compact",
