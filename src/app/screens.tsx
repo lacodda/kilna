@@ -59,6 +59,13 @@ export interface ScreenSpec {
   jump?: string
   /** Development builds only. */
   dev?: boolean
+  /**
+   * The screen draws a first-level heading of its own - a work's title, the
+   * calendar's month. Every other screen is named by the frame it is drawn
+   * in (v0.167): a reader who moves by headings had none to land on, on
+   * eleven screens of thirteen.
+   */
+  headed?: boolean
   render: (open: OpenWork) => ReactNode
 }
 
@@ -101,6 +108,7 @@ export const SCREENS: readonly ScreenSpec[] = [
     key: 'works',
     path: '/works/:workId?/:tab?',
     nav: 'nav.catalogue',
+    headed: true,
     render: () => <WorksScreen />,
   },
   {
@@ -111,6 +119,7 @@ export const SCREENS: readonly ScreenSpec[] = [
     nav: 'nav.calendar',
     rail: { group: 'work', icon: Calendar },
     jump: 'k',
+    headed: true,
     render: (open) => <CalendarView onSelect={open} />,
   },
   {

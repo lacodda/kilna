@@ -24,7 +24,7 @@ import { Splash } from '@/shell/Splash'
 import { Titlebar } from '@/shell/Titlebar'
 import { Panel } from '@/components/ui/panel'
 import { AppShell, Screen } from '@/components/ui/app-shell'
-import { drawn } from '@/app/screens'
+import { drawn, screenAt } from '@/app/screens'
 
 export default function App() {
   const { t } = useTranslation()
@@ -134,6 +134,16 @@ export default function App() {
               data-screen-area
               className="screen-in flex min-h-0 flex-1 flex-col overflow-hidden"
             >
+              {/* The screen's name as its heading, for a reader who moves
+                  by headings: it is written in the title bar, which is no
+                  part of the page, and a screen that draws a heading of its
+                  own - a work's title, the month - says so (v0.167). Named
+                  rather than worded: the word is on the screen already, in
+                  the title bar and the rail, and a third copy of it is a
+                  third thing to find for whoever looks for the word. */}
+              {!screenAt(location.pathname).headed && (
+                <h1 className="sr-only" aria-label={t(screenAt(location.pathname).nav)} />
+              )}
               {/* Resetting on the place means a crash does not outlive the
                   route, or the work, that caused it. */}
               <ErrorBoundary resetKey={place}>

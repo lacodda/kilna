@@ -55,6 +55,9 @@ async function open(path: string, shows: string) {
   expect(screen.queryByText(en.crash.title), `${path} fell over`).toBeNull()
   expect(complaints, `${path} complained to the console`).toEqual([])
   expect(skippedHeadings(container), `${path} skips a level of heading`).toEqual([])
+  // One first-level heading, the screen's name or its own (v0.167): a reader
+  // who moves by headings lands on it, and two would be two pages in one.
+  expect(container.querySelectorAll('h1').length, `${path} has one first heading`).toBe(1)
   return { area, screen: keepsTheWindow(container, path) }
 }
 
