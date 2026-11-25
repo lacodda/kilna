@@ -59,11 +59,13 @@ async function keeper() {
   return { client, main }
 }
 
-/** Whether the row of the fact reading `words` is drawn dimmed. */
+/** Whether the row of the fact reading `words` is set aside: drawn in the
+ *  quiet ink, which is what dimming is since v0.167 - never an opacity. */
 function dimmed(main: HTMLElement, words: string): boolean {
   const row = within(main).getByText(words, { exact: false }).closest('.grid')
   expect(row, `no row for ${words}`).not.toBeNull()
-  return row!.classList.contains('opacity-25')
+  expect([...row!.classList].filter((name) => name.startsWith('opacity-'))).toEqual([])
+  return row!.classList.contains('set-aside')
 }
 
 describe('a card of the canon', () => {
