@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.167.0] - 2026-11-25
+
+### Bug Fixes
+- Ring what a clipped region holds inside its box
+- Draw what is read in a promised ink, never in opacity
+- Give every screen a first-level heading
+- Still what an element draws before and after itself when less motion is asked for
+
+### Features
+- Pin more contrast on or off for the window
+
+### Performance
+- Draw the notes, the register and the trash a step at a time
+
+### Testing
+- Read what is set aside by its ink, not by an opacity
+
 ## [0.166.0] - 2026-11-24
 
 ### Bug Fixes
