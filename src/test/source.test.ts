@@ -77,6 +77,17 @@ function components(): Component[] {
 }
 
 describe('the document', () => {
+  it('stills everything for a reader who asked for less motion', () => {
+    // An element and what it draws before and after itself: a rule on `*`
+    // alone leaves a shimmer or a caret drawn in a pseudo-element moving.
+    const css = read('src/styles.css')
+    const block = /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ''
+    expect(block).toMatch(/\*,\s*\*::before,\s*\*::after \{/)
+    for (const stilled of ['transition: none', 'animation: none', 'scroll-behavior: auto']) {
+      expect(block).toContain(stilled)
+    }
+  })
+
   it('is sealed: html, body and the root never scroll', () => {
     // `height: 100%` without it left the page scrollable both ways, and a
     // two-finger swipe slid the shell sideways until the sidebar left the

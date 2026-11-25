@@ -162,10 +162,20 @@ textarea,
   }
 }
 
+/*
+ * A reader who asked for less motion gets none that is decoration: nothing
+ * slides, fades or eases. What an element draws before and after itself is
+ * held to it too (v0.167) - a rule on `*` alone left a shimmer and a caret
+ * drawn there moving - and a list sent to a row jumps there rather than
+ * gliding.
+ */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     transition: none !important;
     animation: none !important;
+    scroll-behavior: auto !important;
   }
 }
 
