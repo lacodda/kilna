@@ -15,6 +15,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { plainNoteKindsOf } from '@/lib/canon'
 import { labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { useDebounced } from '@/lib/useDebounced'
+import { useGrowingWindow } from '@/lib/useGrowingWindow'
 import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
@@ -129,6 +130,10 @@ export function NotesView() {
   })
 
   const rows = notes.data ?? []
+  // A long list is drawn a step at a time (v0.167), as the catalogue is: a
+  // space with thousands of rows laid every one of them out before the first
+  // could be read. The rest come as the list is scrolled toward them.
+  const { shown, sentinel } = useGrowingWindow(rows.length)
   const selected: Note | undefined =
     rows.find((note) => note.id === noteId) ??
     (everything.data ?? []).find((note) => note.id === noteId)
@@ -282,7 +287,7 @@ export function NotesView() {
               >
                 {() => (
                   <ul className="flex flex-col gap-0.5">
-                    {rows.map((note) => (
+                    {rows.slice(0, shown).map((note) => (
                       <li key={note.id}>
                         <NoteRow
                           note={note}
@@ -296,6 +301,7 @@ export function NotesView() {
                         />
                       </li>
                     ))}
+                    {shown < rows.length && <li ref={sentinel} aria-hidden className="h-8" />}
                   </ul>
                 )}
               </Loaded>

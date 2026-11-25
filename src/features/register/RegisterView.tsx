@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { useGrowingWindow } from '@/lib/useGrowingWindow'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, TextSearch } from 'lucide-react'
 import type { RegisterEntry, TermKind } from '@/lib/api/types'
@@ -67,6 +68,10 @@ export function RegisterView() {
       )
       .sort((a, b) => b.uses - a.uses || a.word.localeCompare(b.word))
   }, [all, facet, kind, text])
+  // A long list is drawn a step at a time (v0.167), as the catalogue is: a
+  // space with thousands of rows laid every one of them out before the first
+  // could be read. The rest come as the list is scrolled toward them.
+  const { shown, sentinel } = useGrowingWindow(rows.length)
 
   const open = (id: string | null) => void navigate(id === null ? '/register' : `/register/${id}`)
   const selected = all.find((entry) => entry.id === termId)
@@ -133,7 +138,7 @@ export function RegisterView() {
             >
               {() => (
                 <ul className="flex flex-col gap-0.5">
-                  {rows.map((entry) => (
+                  {rows.slice(0, shown).map((entry) => (
                     <li key={entry.id}>
                       <RowButton
                         selected={entry.id === termId}
@@ -162,6 +167,7 @@ export function RegisterView() {
                       </RowButton>
                     </li>
                   ))}
+                  {shown < rows.length && <li ref={sentinel} aria-hidden className="h-8" />}
                 </ul>
               )}
             </Loaded>

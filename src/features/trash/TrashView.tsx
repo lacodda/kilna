@@ -9,6 +9,7 @@ import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useCovers } from '@/lib/useCovers'
+import { useGrowingWindow } from '@/lib/useGrowingWindow'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -178,6 +179,8 @@ export function TrashView() {
   const [purging, setPurging] = useState<Deletion | null>(null)
 
   const entries = useQuery(queries.deletions())
+  // Drawn a step at a time, as every long list is (v0.167).
+  const { shown, sentinel } = useGrowingWindow(entries.data?.length ?? 0)
 
   const restore = useAppMutation({
     mutationFn: restoreDeletion,
@@ -274,7 +277,7 @@ export function TrashView() {
                 </tr>
               </TableHead>
               <TableBody>
-                {data.map((entry) => (
+                {data.slice(0, shown).map((entry) => (
                   <Row
                     key={entry.id}
                     entry={entry}
@@ -284,6 +287,11 @@ export function TrashView() {
                     onPurge={() => setPurging(entry)}
                   />
                 ))}
+                {shown < data.length && (
+                  <tr ref={sentinel} aria-hidden>
+                    <td colSpan={4} className="h-8" />
+                  </tr>
+                )}
               </TableBody>
             </Table>
           </Pane>
