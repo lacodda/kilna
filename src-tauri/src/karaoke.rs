@@ -128,8 +128,8 @@ fn matching_blocks(a: &[char], b: &[char]) -> Vec<(usize, usize, usize)> {
     let mut touched_now: Vec<usize> = Vec::new();
     let mut longest = |alo: usize, ahi: usize, blo: usize, bhi: usize| {
         let (mut best_i, mut best_j, mut best) = (alo, blo, 0usize);
-        for i in alo..ahi {
-            if let Some(found) = places.get(&a[i]) {
+        for (i, word) in a.iter().enumerate().take(ahi).skip(alo) {
+            if let Some(found) = places.get(word) {
                 for &j in found {
                     if j < blo {
                         continue;
@@ -177,6 +177,9 @@ fn matching_blocks(a: &[char], b: &[char]) -> Vec<(usize, usize, usize)> {
     blocks
 }
 
+/// A word of the text and the span it was heard in, when it was heard.
+type Spanned = (String, Option<(f64, f64)>);
+
 /// Every word of `lines` with when it is sung, by what `heard` heard.
 pub fn timed(lines: &[Vec<String>], heard: &[Heard]) -> Vec<Vec<Timed>> {
     // Each letter the alignment heard, with its share of its token's time.
@@ -217,7 +220,7 @@ pub fn timed(lines: &[Vec<String>], heard: &[Heard]) -> Vec<Vec<Timed>> {
             found[key.0] += 1;
         }
     }
-    let mut out: Vec<Vec<(String, Option<(f64, f64)>)>> = lines
+    let mut out: Vec<Vec<Spanned>> = lines
         .iter()
         .enumerate()
         .map(|(li, words)| {
