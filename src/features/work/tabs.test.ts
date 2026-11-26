@@ -30,6 +30,7 @@ function facts(
       cover: false,
       frame: false,
       folder: false,
+      excerpt: false,
       lab: false,
       conception: false,
       ...names,

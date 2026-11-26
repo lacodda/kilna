@@ -76,6 +76,9 @@ export interface CardFacts {
     /** A conception: a brief, an idea and boards the work is prepared on
         (v0.99, ADR 0065). */
     conception: boolean
+    /** A part of a longer work: a short, built under the space's short
+        style (v0.168). */
+    excerpt: boolean
   }
   /** What the work holds, whatever its kind says now. */
   holds: {
@@ -125,8 +128,10 @@ const RULES: Readonly<Record<Tab, Rule>> = {
   // a frame on a kind without one (`work.noFrame`).
   frame: ({ names }) => names.frame,
   // A simple video is built for a work that goes out itself, by the plugin
-  // that renders one (v0.149, FR-15).
-  build: ({ names, renderer }) => names.doors && renderer === true,
+  // that renders one (v0.149, FR-15). A short is built under the space's
+  // short style (v0.168), and its tab is there whatever is installed: it is
+  // where the short says what it lacks, the builder among it.
+  build: ({ names, renderer }) => names.doors && (names.excerpt || renderer === true),
   cuts: ({ holds }) => holds.splice,
   score: ({ names, holds }) => names.axes || holds.scores,
   // A work's files are its cover, what its releases go out with, and what
@@ -260,6 +265,7 @@ function namesOf(config: ProfileConfig, kind: string): CardFacts['names'] {
     folder: (config.work_kinds.find((entry) => entry.key === kind)?.folder ?? null) !== null,
     lab: (config.work_kinds.find((entry) => entry.key === kind)?.lab ?? null) !== null,
     conception: conceptionOf(config, kind) !== undefined,
+    excerpt: config.work_kinds.find((entry) => entry.key === kind)?.excerpt === true,
   }
 }
 

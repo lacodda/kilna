@@ -18,6 +18,7 @@ import type { PackagedTrial } from "./PackagedTrial";
 import type { PackagedVersion } from "./PackagedVersion";
 import type { ProposedNote } from "./ProposedNote";
 import type { ReplyVariant } from "./ReplyVariant";
+import type { ShortStyle } from "./ShortStyle";
 import type { StylesPackage } from "./StylesPackage";
 import type { TrialDropped } from "./TrialDropped";
 import type { Vibe } from "./Vibe";
@@ -124,7 +125,11 @@ context?: string,
 /**
  * The commenter's language, as the answer named it.
  */
-language?: string, } | { "kind": "description", style_id: string, } | { "kind": "canon", package: Package, } | { "kind": "words", package: WordsPackage, } | { "kind": "styles", package: StylesPackage, } | { "kind": "bricks", package: BricksPackage, } | { "kind": "cardPrompt", note_id: string, basis?: string | null, } | { "kind": "cardNote", note_id: string, } | { "kind": "release", release_id: string, fields: { [key in string]: JsonValue }, 
+language?: string, } | { "kind": "description", style_id: string, } | { "kind": "canon", package: Package, } | { "kind": "words", package: WordsPackage, } | { "kind": "styles", package: StylesPackage, } | { "kind": "bricks", package: BricksPackage, } | { "kind": "short", style?: ShortStyle, 
+/**
+ * The short whose variant is proposed, with the variant's key.
+ */
+work_id?: string | null, variant?: string | null, } | { "kind": "cardPrompt", note_id: string, basis?: string | null, } | { "kind": "cardNote", note_id: string, } | { "kind": "release", release_id: string, fields: { [key in string]: JsonValue }, 
 /**
  * Keys the answer named that the release kind does not have, shown
  * rather than dropped silently.

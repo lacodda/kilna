@@ -38,6 +38,8 @@ import { CutFromThis } from '@/features/work/tabs/cuts/CutFromThis'
 import { CutTrack } from '@/features/work/tabs/cuts/CutTrack'
 import { PartsLane, PartsList } from '@/features/work/tabs/cuts/Parts'
 import { PluginBar } from '@/features/work/PluginBar'
+import { useProfile } from '@/lib/useProfile'
+import { useShortLayers } from '@/features/shorts/useShortLayers'
 
 interface Props {
   work: Work
@@ -519,6 +521,11 @@ function Label({
  * can be pointed at - and the same thing the plugin reads.
  */
 function ShotList({ work, spliced }: { work: Work; spliced: number }) {
+  // A short is built under the space's short style: its layers are laid
+  // before any command of the Cuts target runs (v0.168).
+  const excerpt =
+    useProfile().config.work_kinds.find((kind) => kind.key === work.kind)?.excerpt === true
+  const stage = useShortLayers(work.id)
   const { t } = useTranslation()
   const shots = useQuery(queries.shots(work.id))
   const folder = useQuery(queries.folder(work.id))
@@ -559,7 +566,7 @@ function ShotList({ work, spliced }: { work: Work; spliced: number }) {
             </span>
           </p>
         )}
-        <PluginBar target="cuts" id={work.id} />
+        <PluginBar target="cuts" id={work.id} before={excerpt ? stage : undefined} />
       </div>
       <Button
         size="sm"

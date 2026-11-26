@@ -114,6 +114,9 @@ pub(super) fn workspace(call: &Call) -> Result<String> {
         "boards": config.boards,
         // The three lines a work's feel is said along (FR-02).
         "vibe": config.vibe(),
+        // What the space's shorts look like (v0.168): the blocks of the
+        // style and its variants, without their pictures.
+        "short_style": super::shorts::style_sheet(call)?,
         // The skills of the profile, without their methods: what
         // `guide` opens one by one (FR-17).
         "guides": guides(config, None, None),

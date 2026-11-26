@@ -60,6 +60,8 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.video, 'comments', 'The shot on the bridge is beautiful.'],
   [IDS.video, 'assistant', 'Paper Lanterns (clip)'],
   [IDS.video, 'history', 'Paper Lanterns (clip)'],
+  // The frame the short wears and what it lacks (v0.168).
+  [IDS.short, 'build', en.shorts.madeOf],
   [IDS.short, 'cuts', 'Paper Lanterns (clip)'],
   // An experiment's board, empty (v0.95): where to start.
   [IDS.lab, 'trials', en.trials.emptyBoard],

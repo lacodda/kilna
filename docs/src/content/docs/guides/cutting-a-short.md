@@ -1,21 +1,21 @@
 ---
 title: Cutting a short
-description: Install the cutting plugin, write the channel's words, and cut a short into its own folder from the Cuts tab - with the progress, the stop, and the check of its length.
+description: Install the plugin that builds a short, and build one into its own folder from its Build tab - with the progress, the stop, and the check of its length.
 ---
 
-kilna keeps where in a video a short is taken from, and never opens the video
-itself. The cutting is done by a plugin,
-[kilna-plugin-cut](https://github.com/lacodda/kilna-plugin-cut): **Cut the
-short** on a short's Cuts tab, and a new vertical file lies in the short's
-folder, where kilna finds it as the short's
+kilna keeps where in a video a short is taken from and what the channel's
+shorts look like, and never opens the video itself. The building is done by a
+plugin, [kilna-plugin-cut](https://github.com/lacodda/kilna-plugin-cut):
+**Build the short** on a short's Build tab, and a new vertical file lies in
+the short's folder, where kilna finds it as the short's
 [finished file](/kilna/guides/files-and-covers/#the-finished-file).
 
-## Before the first cut
+## Before the first build
 
 1. **ffmpeg on the PATH.** The plugin runs `ffmpeg` and `ffprobe`. Without
    them it stands in the plugin list with the reason instead of a button. On
    Windows, `winget install Gyan.FFmpeg` puts both on the PATH.
-2. **The plugin.** In PowerShell:
+2. **The plugin**, version 0.4 or later. In PowerShell:
 
    ```powershell
    irm https://raw.githubusercontent.com/lacodda/kilna-plugin-cut/main/tools/install.ps1 | iex
@@ -27,49 +27,51 @@ folder, where kilna finds it as the short's
    curl -fsSL https://raw.githubusercontent.com/lacodda/kilna-plugin-cut/main/tools/install.sh | sh
    ```
 
-   It lands in the `plugins` folder beside your workspace, with an example
-   `kilna-plugin-cut.json` next to it. The next time kilna lists its plugins -
-   a short's Cuts tab opened half a minute later, or kilna started again -
-   the button is there.
-3. **The channel's words.** Open **Settings → Plugins**. The plugin stands there
-   with what it can set: your channel's name, the call at the bottom, the
-   pointing hand, the colour of the words, the fonts, the quality. Each shows what
-   a cut does now and saves as you leave it. The plugin's README lists
-   [them all](https://github.com/lacodda/kilna-plugin-cut#settings), with the
-   `kilna-plugin-cut.json` beside it that sets the values they start from.
-   The words are the plugin's, not the workspace's: a channel renamed is one
-   line in this file, and the shorts already cut keep the name they went out
-   with.
+   It lands in the `plugins` folder beside your workspace. The next time kilna
+   lists its plugins - a short's card opened half a minute later, or kilna
+   started again - the button is there.
+3. **The look.** What a short looks like is not the plugin's: it is the
+   space's [short style](/kilna/guides/the-short-style/), built in
+   **Settings → Shorts**. **Settings → Plugins** holds only where the file
+   goes inside the short's folder and how well it is encoded.
 4. **Folders.** The short needs a folder of its own, and the video it is cut
    from a finished file: a media folder in **Settings → Data**, a folder for
    each kind - Studio ships `{kind}s/{id}`, a folder per work - and
-   a rule for the finished file. The cut list says which of these is missing,
-   stretch by stretch.
+   a rule for the finished file. The Build tab says which of these is missing.
 
-## Cutting
+## Building
 
-On the short's **Cuts** tab, under the cut list, press **Cut the short**. The
-button becomes a bar - how far the cut has got and what it is doing - with
-**Stop** beside it, which ends the cut at once.
+On the short's **Build** tab press **Build the short**. The window draws the
+still layers of the frame - the ground and its blots, the stamp, the sign,
+the header - and hands them to the plugin with the look and the words. The
+button becomes a bar - how far the build has got and what it is doing - with
+**Stop** beside it, which ends it at once.
 
-The stretches are cut in the order the list splices them and joined in one
-pass:
+The stretches are spliced in the order the cut list has them and laid out in
+one pass:
 
-- the stretch's picture, full width, over a darkened blur of itself;
-- the channel's name and the song's title above, the title lettered to fit;
-- the call below, with a pointing hand;
-- the short's cover for half a second at the end - the one on its Cover tab,
-  or else the newest picture in its folder's `covers`.
+- the picture, 16:9, pushing in slowly, with grain, a vignette and a tear of
+  colour where the sound hits;
+- the ground, whose blots drift and are thrown sideways on a hit;
+- a strip that fills as the short plays, and the sound as a wave or as bars;
+- the words of the song, lit as they are sung - when
+  [timings lie beside the song](/kilna/guides/the-short-style/#the-words);
+- the stamp, the sign moving with the loudness;
+- the short's cover at the end - the one on its Cover tab, or else the newest
+  picture in its folder's `covers`.
 
-The file goes into the short's folder as the next `v{k}.mp4` under `video`:
-the cut before it stays, and a cut stopped halfway leaves nothing kilna would
-take for the short's file. When the cut is done kilna names the file, and the
-cut list shows it with how long it runs beside how long the stretches add up
-to - the cover's half second is the whole difference when all is well.
+Every block is the style's to turn off. The file goes into the short's folder
+as the next `v{k}.mp4` under `video`: the build before it stays, and one
+stopped halfway leaves nothing kilna would take for the short's file. When it
+is done the tab plays it, and the cut list on the Cuts tab shows it with how
+long it runs beside how long the stretches add up to - the cover's second is
+the whole difference when all is well.
+
+The same command stands on the Cuts tab under the cut list, and does the same.
 
 ## Finding the parts first
 
-The plugin's second command, **Find the parts**, listens instead of cutting:
+The plugin's second command, **Find the parts**, listens instead of building:
 where each video the short is made from changes into its next part, and the
 parts worth a short, each with its reason. kilna draws them on the Cuts tab -
 see [Where to cut from](/kilna/guides/shorts/#where-to-cut-from). It takes a
@@ -78,11 +80,13 @@ again.
 
 ## When something is in the way
 
-The cut list says what stands in the way before you press anything: a video
-with no finished file, no folder for the short, no stretches. A cut that
-fails says why in the plugin's words - a file ffmpeg cannot read, a font that
-is not where the settings say.
+The Build tab says what stands in the way before you press anything: a video
+with no finished file, no folder for the short, no stretches. A build that
+fails says why in the plugin's words - a file ffmpeg cannot read, an ffmpeg
+built without the subtitle filter the words need. A plugin older than 0.4 has
+no look to build in and says which kilna it was made for; install it again.
 
-See [Shorts](/kilna/guides/shorts/) for taking the stretches, and
-[Writing a plugin](/kilna/guides/writing-a-plugin/) for everything kilna hands
-a cutter.
+See [Shorts](/kilna/guides/shorts/) for taking the stretches,
+[The short style](/kilna/guides/the-short-style/) for what a short looks
+like, and [Writing a plugin](/kilna/guides/writing-a-plugin/) for everything
+kilna hands a builder.

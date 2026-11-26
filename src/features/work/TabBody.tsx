@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
 import type { Work } from '@/lib/api/types'
+import { useProfile } from '@/lib/useProfile'
 import type { Tab } from '@/features/work/tabs'
 import { AssistantPanel } from '@/features/work/tabs/assistant/AssistantPanel'
 import { CommentsPanel } from '@/features/work/tabs/comments/CommentsPanel'
 import { BuildTab } from '@/features/work/tabs/build/BuildTab'
+import { ShortBuildTab } from '@/features/work/tabs/build/ShortBuildTab'
 import { CoverTab } from '@/features/work/tabs/cover/CoverTab'
 import { CutsTab } from '@/features/work/tabs/cuts/CutsTab'
 import { FilesTab } from '@/features/work/tabs/files/FilesTab'
@@ -42,8 +44,9 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   // prompt, and the still and the loop an audio release plays under.
   cover: ({ work }) => <CoverTab work={work} />,
   frame: ({ work }) => <FrameTab work={work} />,
-  // The simple video, on two tracks, rendered by its plugin (v0.149).
-  build: ({ work }) => <BuildTab work={work} />,
+  // The simple video, on two tracks, rendered by its plugin (v0.149) - or,
+  // for a short, the frame it wears and its build (v0.168).
+  build: ({ work }) => <Build work={work} />,
   cuts: ({ work }) => <CutsTab work={work} />,
   score: ({ workId }) => <ScorePanel workId={workId} />,
   files: ({ work }) => <FilesTab work={work} />,
@@ -59,4 +62,12 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
 /** The one tab that is open. Everything else is not mounted at all. */
 export function TabBody({ tab, ...props }: Props & { tab: Tab }) {
   return BODIES[tab](props)
+}
+
+/** What a work is built as: a short under the space's short style, anything
+ *  else as a simple video. */
+function Build({ work }: { work: Work }) {
+  const excerpt =
+    useProfile().config.work_kinds.find((kind) => kind.key === work.kind)?.excerpt === true
+  return excerpt ? <ShortBuildTab work={work} /> : <BuildTab work={work} />
 }

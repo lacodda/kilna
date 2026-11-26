@@ -51,6 +51,9 @@ export const keys = {
   shotsFor: (workId: string) => ['cuts', 'shots', workId] as const,
   /** Under `cuts`: a stretch taken anywhere changes what a sibling sees as taken. */
   partsFor: (workId: string) => ['cuts', 'parts', workId] as const,
+  /** Under `cuts`: a stretch, a donor's file or a cover changes what a short lacks. */
+  shortFor: (workId: string) => ['cuts', 'short', workId] as const,
+  shortStyleDefault: ['shortStyleDefault'] as const,
   // The frames of a whole board in one key: the storyboard draws every scene
   // together, and a frame arriving changes the row it lands on and the
   // readiness of that row at the same time.

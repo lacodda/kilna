@@ -137,6 +137,7 @@ pub(super) fn tools() -> Vec<Value> {
              boards and the style types. Read the method before doing the work it describes.",
             json!({
                 "skill": text_arg("A skill's key, as the catalogue lists it"),
+                "work": text_arg("With `skill`: a work, by id or exact title - the skill's message written for it, and for a short its stretches, variant and build"),
                 "kind": text_arg("A work kind key: only the skills for it, and its context alone"),
                 "scope": text_arg("What the skill is about: work, scene, selection, style, comment, canon, release, cover, phrases, lab, board"),
             }),
@@ -412,6 +413,35 @@ pub(super) fn tools() -> Vec<Value> {
                 "note": text_arg("One sentence on what was proposed and why, optional"),
             }),
             &["words"],
+        ),
+        tool(
+            "propose_short",
+            "Propose what the space's shorts look like, the variant one short wears, or both - taken \
+             in one click. `style` is laid over the style there (read it in `workspace` under \
+             `short_style`): a block is changed by the keys it names and no others - `accent` and \
+             `second` (#RRGGBB), `header` {on, title_upper, call, font}, `sign` {on, art, blink, size, \
+             pulse, sway}, `ground` {color, pattern: plain|blots|dots|grid|stripes, seed, blots: \
+             [{x, y, size, color: accent|second, shape: splat|drip|spray|smear}], motion}, `stamp` \
+             {on, shape: stamp|plate, text, sub, art, color, angle, x, wear}, `wave` {on, kind: \
+             solid|lines|bars, strip}, `karaoke` {on, font, size}, `effects` {zoom, grain, vignette, \
+             glitch}, `tail` {on, seconds}. `variants` are changed by `key`, added when new, and \
+             taken out by `remove_variants`; a variant names only what it replaces: label, accent, \
+             second, sign_art, sign_blink, ground {pattern, seed, blots}, stamp_angle, stamp_x, wave. \
+             A picture (`art`, `blink`, `sign_art`, `sign_blink`) is the text of an SVG or a data: \
+             address; one read as `<kept: N chars>` stays as it is when sent back or left out. \
+             `work` and `variant` propose the variant a short wears, by the variant's key - without \
+             them a short wears the one the round gives the day it goes out. The frame's layout is \
+             the same for every short and is not proposed. The build is started by the person.",
+            json!({
+                "style": {
+                    "type": "object",
+                    "description": "What changes of the space's short style: blocks by key, `variants`, `remove_variants`",
+                },
+                "work": text_arg("A short, by id or exact title: where the proposal waits, and the one `variant` is for"),
+                "variant": text_arg("The key of the variant `work` is to wear"),
+                "note": text_arg("One sentence on what was proposed and why, optional"),
+            }),
+            &[],
         ),
         tool(
             "propose_style",

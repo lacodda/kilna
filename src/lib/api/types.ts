@@ -399,6 +399,16 @@ export type { Cut } from './generated/Cut'
 export type { NewCut } from './generated/NewCut'
 export type { CutPatch } from './generated/CutPatch'
 export type { Shot } from './generated/Shot'
+// Shorts: the style of the space and a short as it is built (v0.168).
+export type { ShortStyle } from './generated/ShortStyle'
+export type { ShortVariant } from './generated/ShortVariant'
+export type { ShortBlot } from './generated/ShortBlot'
+export type { ShortStamp } from './generated/ShortStamp'
+export type { BlotShape } from './generated/BlotShape'
+export type { GroundPattern } from './generated/GroundPattern'
+export type { WaveKind } from './generated/WaveKind'
+export type { ShortView } from './generated/ShortView'
+export type { Missing } from './generated/Missing'
 export type { DonorParts } from './generated/DonorParts'
 export type { OfferedPart } from './generated/OfferedPart'
 export type { PartSource } from './generated/PartSource'
@@ -532,6 +542,7 @@ export type { TermSaid } from './generated/TermSaid'
 export type WordsProposal = Extract<Proposal, { kind: 'words' }>
 export type BricksProposal = Extract<Proposal, { kind: 'bricks' }>
 export type StylesProposal = Extract<Proposal, { kind: 'styles' }>
+export type ShortProposal = Extract<Proposal, { kind: 'short' }>
 
 // Data in and out.
 export type { ExportReport } from './generated/ExportReport'

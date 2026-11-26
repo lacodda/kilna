@@ -69,3 +69,29 @@ pub fn cut_parts(state: State<'_, AppState>, work_id: String) -> Result<Vec<Dono
     let config = crate::profile::config_for(&conn, &work.profile_id)?;
     crate::parts::for_short(&conn, &config, &work_id)
 }
+
+/// A short on its Build tab (v0.168): the look it wears, what it lacks, its
+/// words and its newest build.
+#[tauri::command]
+pub fn short_view(state: State<'_, AppState>, work_id: String) -> Result<crate::short::ShortView> {
+    crate::short::view(&state.conn(), &work_id)
+}
+
+/// Lay the layers the window drew for a short where its builder is handed
+/// them (v0.168): files of the system's temporary folder, nothing of the
+/// workspace.
+#[tauri::command]
+pub fn stage_short_layers(
+    work_id: String,
+    placed: serde_json::Value,
+    layers: Vec<crate::short::Layer>,
+) -> Result<()> {
+    crate::short::stage(&crate::short::layers_dir(&work_id), &placed, &layers)
+}
+
+/// The style a space's shorts are built in while it has set none (v0.168):
+/// what the constructor opens on.
+#[tauri::command]
+pub fn short_style_default() -> crate::profile::config::ShortStyle {
+    crate::profile::config::ShortStyle::default()
+}

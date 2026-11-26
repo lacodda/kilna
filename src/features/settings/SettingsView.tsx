@@ -17,6 +17,7 @@ import { PluginsSection } from '@/features/settings/PluginsSection'
 import { ProfileDraftBar } from '@/features/settings/ProfileDraftBar'
 import { SkillsSection } from '@/features/settings/SkillsSection'
 import { ProfileSection } from '@/features/settings/ProfileSection'
+import { ShortsSection } from '@/features/settings/ShortsSection'
 import { SpacesSection } from '@/features/settings/SpacesSection'
 import { useProfileDraft } from '@/features/settings/useProfileDraft'
 
@@ -38,6 +39,7 @@ export const SECTIONS = [
   'about',
   'profile',
   'skills',
+  'shorts',
   'plugins',
   'data',
 ] as const
@@ -51,10 +53,14 @@ export type Section = (typeof SECTIONS)[number]
  */
 const GROUPS: { key: 'app' | 'space'; sections: readonly Section[] }[] = [
   { key: 'app', sections: ['general', 'card', 'assistant', 'agents', 'spaces', 'about'] },
-  { key: 'space', sections: ['profile', 'skills', 'plugins', 'data'] },
+  { key: 'space', sections: ['profile', 'skills', 'shorts', 'plugins', 'data'] },
 ]
 
 const DEFAULT_SECTION: Section = 'general'
+
+/** The sections that edit the profile's draft: each shows that it waits, and
+ *  the bar that saves it. */
+const DRAFTED: readonly Section[] = ['profile', 'skills', 'shorts']
 
 function isSection(value: string | undefined): value is Section {
   return value !== undefined && (SECTIONS as readonly string[]).includes(value)
@@ -70,6 +76,8 @@ function Body({ section }: { section: Section }) {
       return <ProfileSection />
     case 'skills':
       return <SkillsSection />
+    case 'shorts':
+      return <ShortsSection />
     case 'assistant':
       return <AssistantSection />
     case 'plugins':
@@ -93,6 +101,7 @@ export function SettingsView() {
   // section, and the bar that saves it stands at the foot of the pane.
   const draft = useProfileDraft()
   const space = useQuery(queries.currentSpace()).data?.space
+  const cutsShorts = useProfile().config.work_kinds.some((kind) => kind.excerpt === true)
 
   if (!isSection(section)) {
     return <Navigate to={`/settings/${DEFAULT_SECTION}`} replace />
@@ -128,30 +137,34 @@ export function SettingsView() {
                     : t(`settings.groups.${group.key}`)
                 }
                 activeId={section}
-                items={group.sections.map((entry) => ({
-                  id: entry,
-                  // Every name in the weight of the mockup's list, not only the
-                  // open one: the tint already says which is open, and a name
-                  // that thickens on selection makes the row beside it look
-                  // like a lesser section.
-                  label: (
-                    <>
-                      <span className="font-semibold text-text">
-                        {t(`settings.section.${entry}`)}
-                      </span>
-                      <WaitingCount entry={entry} />
-                      {(entry === 'profile' || entry === 'skills') && draft.dirty && (
-                        <StatusDot
-                          status="warn"
-                          size="sm"
-                          label={t('settings.unsaved')}
-                          className="ml-1.5 align-middle"
-                        />
-                      )}
-                    </>
-                  ),
-                  description: t(`settings.hint.${entry}`),
-                }))}
+                // A space whose craft cuts no shorts has no style of them to
+                // build: the section is not listed there.
+                items={group.sections
+                  .filter((entry) => entry !== 'shorts' || cutsShorts)
+                  .map((entry) => ({
+                    id: entry,
+                    // Every name in the weight of the mockup's list, not only the
+                    // open one: the tint already says which is open, and a name
+                    // that thickens on selection makes the row beside it look
+                    // like a lesser section.
+                    label: (
+                      <>
+                        <span className="font-semibold text-text">
+                          {t(`settings.section.${entry}`)}
+                        </span>
+                        <WaitingCount entry={entry} />
+                        {DRAFTED.includes(entry) && draft.dirty && (
+                          <StatusDot
+                            status="warn"
+                            size="sm"
+                            label={t('settings.unsaved')}
+                            className="ml-1.5 align-middle"
+                          />
+                        )}
+                      </>
+                    ),
+                    description: t(`settings.hint.${entry}`),
+                  }))}
                 // A link, so the back button walks between sections and one can
                 // be opened by address.
                 render={(item) => <NavLink to={`/settings/${item.id}`} />}
@@ -167,7 +180,7 @@ export function SettingsView() {
             // the foot of the pane, in sight however far down the edit was,
             // and only while there is something to save.
             foot={
-              (section === 'profile' || section === 'skills') && draft.dirty ? (
+              DRAFTED.includes(section) && draft.dirty ? (
                 <ProfileDraftBar draft={draft} />
               ) : undefined
             }

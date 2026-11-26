@@ -470,6 +470,44 @@ pub fn check(
                 overrides.items.as_deref(),
             )?);
         }
+        // The variant is held to the style it will be worn in: the proposed
+        // one when it comes with one, the space's otherwise.
+        Proposal::Short {
+            style,
+            work_id,
+            variant,
+        } => {
+            let known = style
+                .as_deref()
+                .cloned()
+                .unwrap_or_else(|| config.short_style());
+            match (work_id, variant) {
+                (Some(work_id), Some(key)) => match work::get(conn, work_id)? {
+                    None => note(Err(Error::not_found("work", work_id))),
+                    Some(found) => {
+                        if !config.vocabulary(&found.kind).excerpt {
+                            note(Err(Error::refused("short.notAShort")
+                                .param("title", found.title.clone())));
+                        }
+                        if known.variant(key).is_none() {
+                            note(Err(Error::refused("short.unknownVariant")
+                                .param("variant", key.as_str())
+                                .param(
+                                    "known",
+                                    known
+                                        .variants
+                                        .iter()
+                                        .map(|v| v.key.as_str())
+                                        .collect::<Vec<_>>()
+                                        .join(", "),
+                                )));
+                        }
+                    }
+                },
+                (None, None) if style.is_some() => {}
+                _ => note(Err(Error::refused("short.nothingProposed"))),
+            }
+        }
         Proposal::Canon { package } => {
             for problem in
                 super::canon::check_package(conn, config, package, overrides.items.as_deref())?
@@ -952,6 +990,35 @@ fn keep(
         Proposal::Styles { package } => {
             outcome.style_bricks =
                 crate::style_proposal::keep(conn, package, overrides.items.as_deref())?;
+        }
+
+        // The style stands in place of the space's, as one edit of the
+        // profile; the variant is written into the short's fields, as the
+        // picker on its Build tab writes it.
+        Proposal::Short {
+            style,
+            work_id,
+            variant,
+        } => {
+            if let Some(style) = style {
+                let mut next = config.clone();
+                next.shorts = Some(*style);
+                super::profile::update_config(conn, &chat.profile_id, &next)?;
+            }
+            if let (Some(work_id), Some(key)) = (work_id, variant) {
+                let mut fields = Map::new();
+                fields.insert(crate::short::VARIANT_KEY.to_owned(), Value::String(key));
+                super::work::update(
+                    conn,
+                    &work_id,
+                    WorkPatch {
+                        meta: Some(fields),
+                        ..WorkPatch::default()
+                    },
+                )?;
+                outcome.fields.push(crate::short::VARIANT_KEY.to_owned());
+                outcome.work_id = Some(work_id);
+            }
         }
 
         Proposal::CardPrompt { note_id, basis } => {

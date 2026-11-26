@@ -2395,7 +2395,9 @@
     "work.markClearedBatch_one": "“{{mark}}” taken off {{count}} work.",
     "work.markClearedBatch_other": "“{{mark}}” taken off {{count}} works.",
     "proposal.month": "{{client}} proposed the works of a month in one pass.",
-    "proposal.media": "{{client}} proposed files to take into works."
+    "proposal.media": "{{client}} proposed files to take into works.",
+    "proposal.short": "{{client}} proposed how the short “{{title}}” is dressed.",
+    "proposal.shortStyle": "{{client}} proposed a short style for the space."
   },
   "card": {
     "tab": {
@@ -3012,7 +3014,8 @@
       "plugins": "Plugins",
       "spaces": "Spaces",
       "skills": "Skills",
-      "about": "About kilna"
+      "about": "About kilna",
+      "shorts": "Shorts"
     },
     "hint": {
       "general": "How the window looks and speaks.",
@@ -3024,7 +3027,8 @@
       "plugins": "What is installed, whether it can run, and its settings.",
       "spaces": "The folders kilna keeps your works in: make, rename, trash.",
       "skills": "Buttons and methods: what the assistant and agents are asked to do.",
-      "about": "The version, updates, and what to send when something breaks."
+      "about": "The version, updates, and what to send when something breaks.",
+      "shorts": "What a short looks like: the blocks of its frame and its variants."
     },
     "groups": {
       "app": "Application",
@@ -4046,6 +4050,15 @@
     "analytics": {
       "empty": "The file holds no table.",
       "noVideoColumn": "The table names no video - neither its id (Content) nor its title."
+    },
+    "short": {
+      "layerName": "“{{name}}” is no name for a layer of a short: letters, digits, a hyphen and .png.",
+      "timingsUnreadable": "The timings in {{file}} do not read: {{cause}}",
+      "styleUnreadable": "The short style proposed does not read: {{cause}}",
+      "nothingProposed": "Nothing is proposed: name a `style`, or a `work` and the `variant` it is to wear.",
+      "variantNeedsWork": "A variant is proposed for a short: name the `work`.",
+      "notAShort": "“{{title}}” is not cut from another work: only a short wears a variant.",
+      "unknownVariant": "The short style has no variant “{{variant}}”; its variants are: {{known}}."
     }
   },
   "proposalBody": {
@@ -4305,7 +4318,8 @@
     "compositionTypes": "{{in}}: type",
     "moods": "mood",
     "characters": "character",
-    "complexities": "complexity"
+    "complexities": "complexity",
+    "shortVariants": "variant of the short style"
   },
   "batch": {
     "skipped_one": "{{count}} passed over",
@@ -6061,5 +6075,144 @@
   "editorFontName": {
     "mono": "Monospace",
     "sans": "Proportional"
+  },
+  "shorts": {
+    "lead": "What this space's shorts look like. The frame is the same for every short - the header, the stamp, the picture, the wave, the words, the sign - and this is what is drawn in it. Each block has its settings and its switch; a variant lays a few values over the style, so neighbouring days differ.",
+    "on": "On",
+    "px": "px",
+    "frame": "A frame of the short “{{title}}”",
+    "frameFailed": "The frame could not be drawn: {{reason}}",
+    "sampleTitle": "Harbour lights",
+    "sampleWords": "the tide comes in again tonight",
+    "shownStyle": "The style as it is. Choose a variant to see it worn.",
+    "shownVariant": "As the variant “{{name}}” wears it.",
+    "colours": "Colours",
+    "coloursHint": "Two, and everything is drawn in them.",
+    "accent": "The first colour",
+    "second": "The second colour",
+    "pickColour": "Pick {{what}}",
+    "header": "Header",
+    "headerHint": "The song's title and a call, at the top.",
+    "call": "The call",
+    "font": "Font",
+    "titleUpper": "The title in capitals",
+    "sign": "Sign",
+    "signHint": "The channel's mark: it grows with the loudness, sways and blinks.",
+    "signArt": "The sign",
+    "signBlink": "With its eyes shut",
+    "signSize": "Size at rest",
+    "signPulse": "Grows with the sound by",
+    "signSway": "Sways by",
+    "choose": "Choose a file",
+    "replace": "Replace",
+    "remove": "Remove",
+    "chooseArt": "A file for: {{what}}",
+    "artTooLarge": "This picture is too large to keep in the style: a sign or a stamp is an SVG or a small picture.",
+    "artUnreadable": "The file could not be read.",
+    "ground": "Ground",
+    "groundHint": "What is under everything.",
+    "groundColour": "Colour",
+    "groundMotion": "The blots drift, and are thrown where the sound hits",
+    "pattern": "Pattern",
+    "patterns": {
+      "blots": "Ink blots",
+      "dots": "Dots",
+      "grid": "Grid",
+      "stripes": "Stripes",
+      "plain": "The colour alone"
+    },
+    "reshuffle": "Draw anew",
+    "reshuffleHint": "The same places, other ink: another number to draw the pattern from.",
+    "seed": "drawn from {{seed}}",
+    "blotX": "Blot {{n}}: across",
+    "blotY": "Blot {{n}}: down",
+    "blotSize": "Blot {{n}}: size",
+    "blotColour": "Blot {{n}}: colour",
+    "blotShape": "Blot {{n}}: shape",
+    "removeBlot": "Remove blot {{n}}",
+    "addBlot": "Add a blot",
+    "shapes": {
+      "splat": "Splat",
+      "drip": "Drip",
+      "spray": "Spray",
+      "smear": "Smear"
+    },
+    "stamp": "Stamp",
+    "stampHint": "The channel's name, over the picture's top edge.",
+    "stampShape": "Shape",
+    "stampShapes": {
+      "stamp": "A rubber stamp",
+      "plate": "A plate"
+    },
+    "stampText": "The name",
+    "stampSub": "A second line",
+    "stampArt": "A stamp of your own",
+    "stampColour": "Ink",
+    "stampAngle": "Tilt",
+    "stampX": "Its middle, across",
+    "stampWear": "Wear",
+    "wave": "Wave",
+    "waveHint": "The sound, drawn under the picture.",
+    "waveKind": "Drawn as",
+    "waves": {
+      "solid": "A filled wave",
+      "lines": "Two lines",
+      "bars": "Mirrored bars"
+    },
+    "strip": "A strip that fills as the short plays",
+    "karaoke": "Words",
+    "karaokeHint": "The song's words, lit as they are sung. They need timings beside the song.",
+    "karaokeSize": "Size",
+    "effects": "Effects",
+    "effectsHint": "What is done to the picture.",
+    "zoom": "Pushes in by",
+    "grain": "Grain",
+    "vignette": "A vignette",
+    "glitch": "The picture tears where the sound hits",
+    "tail": "The cover at the end",
+    "tailHint": "The short's own cover, standing after the last stretch.",
+    "tailSeconds": "Stands for",
+    "variants": "Variants",
+    "variantsHint": "Each lays its own over the style; a short wears one a day, in turn.",
+    "noVariants": "No variants: every short wears the style as it is.",
+    "addVariant": "Add a variant",
+    "removeVariant": "Remove this variant",
+    "variantKey": "Key",
+    "variantLabel": "Name",
+    "asStyle": "as the style has it",
+    "variant": "Variant",
+    "byCalendar": "By the calendar",
+    "wornByHand": "Wears “{{name}}”, given by hand.",
+    "wornByCalendar": "Wears “{{name}}”, by the day it goes out.",
+    "styleHasNoVariants": "The style has no variants: every short wears it as it is.",
+    "openStyle": "Open the short style",
+    "madeOf": "What it is built from",
+    "lacks": "What the short lacks",
+    "stretches": "Its stretches run {{seconds}} together.",
+    "missing": {
+      "cuts": "No stretch is marked yet: mark one on the Cuts tab.",
+      "source": "“{{title}}”, which a stretch is cut from, has no finished file.",
+      "folder": "The short has no folder on disk: set the media folder in Settings.",
+      "cover": "No cover is chosen: the short will be built without its cover at the end."
+    },
+    "words": {
+      "off": "The style shows no words.",
+      "noTimings": "No timings beside the song (*.alignment.json): the short is built without words.",
+      "noText": "The song has no text to take the words from: the short is built without words.",
+      "unreadable": "The timings in {{file}} do not read: the short is built without words.",
+      "found_one": "The words: {{count}} line of the song, timed by {{file}}.",
+      "found_other": "The words: {{count}} lines of the song, timed by {{file}}."
+    },
+    "build": "Build the short",
+    "building": "Building the short",
+    "drawing": "Drawing the frame",
+    "noBuilder": "kilna-plugin-cut is not installed or is off: Settings, Plugins.",
+    "built": "The newest build",
+    "builtFile": "The short as built: {{name}}",
+    "proposedStyle": "A short style for the space",
+    "proposedVariant": "A variant for the short",
+    "takeProposal": "Take it",
+    "proposalTaken": "Taken.",
+    "proposalTakenMark": "Taken"
   }
 }

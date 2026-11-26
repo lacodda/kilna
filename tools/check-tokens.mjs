@@ -120,6 +120,9 @@ for (const path of sources(SOURCE)) {
       const cls = word.slice(word.lastIndexOf(':') + 1)
       const prefix = PREFIXES.find((p) => cls.startsWith(p))
       if (prefix === undefined) continue
+      // An attribute of markup written as text - `stroke-width="3"` in an SVG
+      // a picture is drawn from - is not a class at all.
+      if (cls.endsWith('=')) continue
       let token = cls.slice(prefix.length)
       // A border's colour on one side: `border-r-transparent` names
       // `transparent`, as the registry's spinner draws its gap.

@@ -7,6 +7,18 @@ import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio, type Studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
+// The layers of a short are drawn on a canvas, which this window has not got:
+// what is drawn is the layers' own test's to hold, and here only that they
+// are laid before a builder runs.
+vi.mock('@/lib/shorts/layers', () => ({
+  draw: () => Promise.resolve({}),
+  layersOf: () =>
+    Promise.resolve({
+      placed: { ground: 'ground.png' },
+      layers: [{ name: 'ground.png', bytes: [1, 2, 3] }],
+    }),
+}))
+
 /*
  * The Cuts tab: a donor's track with stretches that move by hand, the list
  * under it put in order by a grip, and - on the donor's own card - what was
@@ -285,6 +297,14 @@ describe('a cutter', () => {
 
     fireEvent.click(cut)
     await waitFor(() => expect(backend.argsOf('run_plugin')).toHaveLength(1))
+    // The short's layers were laid before its builder ran (v0.168).
+    expect(backend.argsOf('stage_short_layers')).toEqual([
+      {
+        workId: IDS.short,
+        placed: { ground: 'ground.png' },
+        layers: [{ name: 'ground.png', bytes: [1, 2, 3] }],
+      },
+    ])
     const sent = backend.argsOf('run_plugin')[0]!
     expect(sent).toMatchObject({
       executable: 'kilna-plugin-cut',

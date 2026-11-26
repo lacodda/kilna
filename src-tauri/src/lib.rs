@@ -27,6 +27,7 @@ pub mod fixtures;
 pub mod focus;
 pub mod folder;
 pub mod journal;
+pub mod karaoke;
 pub mod lab;
 pub mod layout;
 pub mod library;
@@ -63,6 +64,7 @@ pub mod scene_note;
 pub mod score;
 pub mod search;
 pub mod shelf;
+pub mod short;
 pub mod space;
 pub mod speech;
 pub mod state;
@@ -543,6 +545,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::cuts::delete_cut,
             commands::cuts::cut_shot_list,
             commands::cuts::cut_parts,
+            commands::cuts::short_view,
+            commands::cuts::stage_short_layers,
+            commands::cuts::short_style_default,
             commands::assets::attach_asset,
             commands::assets::list_work_assets,
             commands::assets::list_release_assets,

@@ -285,6 +285,19 @@ pub enum Proposal {
     Bricks {
         package: crate::phrase::proposal::BricksPackage,
     },
+    /// What the space's shorts look like - the style whole, to stand in
+    /// place of the one there - or the variant one short is to wear, or both
+    /// (v0.168): an agent's `propose_short`.
+    Short {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, as = "Option<crate::profile::config::ShortStyle>")]
+        style: Option<Box<crate::profile::config::ShortStyle>>,
+        /// The short whose variant is proposed, with the variant's key.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        work_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        variant: Option<String>,
+    },
     /// The description a picture generator is given for a card; the text is
     /// the message body. `basis` is the fingerprint of the facts it was
     /// written against, so facts changed while it was written show it stale.
@@ -2257,6 +2270,7 @@ mod instruction_tests {
             cover_ideas: None,
             guard: None,
             boards: Vec::new(),
+            shorts: None,
             compose: Vec::new(),
             prompts: Vec::new(),
             rhythm: None,

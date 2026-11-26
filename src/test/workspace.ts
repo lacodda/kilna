@@ -11,6 +11,8 @@ import type {
   Comment,
   Cut,
   Deletion,
+  ShortStyle,
+  ShortView,
   Derived,
   Cover,
   CoverView,
@@ -1153,6 +1155,9 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_cuts_from: ({ sourceId }) => studio.cuts.filter((c) => c.source_id === sourceId),
     cut_shot_list: () => [],
     cut_parts: () => [],
+    short_view: () => shortView(),
+    short_style_default: () => shortStyle(),
+    stage_short_layers: () => null,
     list_work_assets: () => noAssets,
     // No media folder is set in this studio, so every work's folder says so.
     // A test that wants files lays a folder over this answer.
@@ -1419,4 +1424,62 @@ export function simpleVideoPlugin(): Plugin {
     enabled: true,
     settings: { fade_out: 6 },
   } as unknown as Plugin
+}
+
+/** kilna's own short style (v0.168), as the backend gives it to a space that
+ *  set none: what the constructor opens on. */
+function shortStyle(): ShortStyle {
+  return {
+    accent: '#F2C14E',
+    second: '#4ED1F2',
+    header: {
+      on: true,
+      title_upper: true,
+      call: 'the whole song is on the channel',
+      font: 'Arial',
+    },
+    sign: { on: false, art: '', blink: '', size: 310, pulse: 0.24, sway: 5 },
+    ground: {
+      color: '#121114',
+      pattern: 'blots',
+      seed: 1,
+      motion: true,
+      blots: [{ x: 60, y: 340, size: 1250, color: 'accent', shape: 'splat' }],
+    },
+    stamp: {
+      on: false,
+      shape: 'stamp',
+      text: '',
+      sub: '',
+      art: '',
+      color: '#D7262E',
+      angle: -6,
+      x: 610,
+      wear: 0.6,
+    },
+    wave: { on: true, kind: 'solid', strip: true },
+    karaoke: { on: true, font: 'Arial', size: 60 },
+    effects: { zoom: 0.1, grain: 7, vignette: true, glitch: true },
+    tail: { on: true, seconds: 1.2 },
+    variants: [],
+  }
+}
+
+/** A short on its Build tab (v0.168): a stretch marked, a variant by the
+ *  calendar, no cover and no timings yet. */
+export function shortView(): ShortView {
+  return {
+    title: 'PAPER LANTERNS',
+    look: shortStyle(),
+    variants: [
+      { key: 'day', label: 'Day' },
+      { key: 'night', label: 'Night' },
+    ],
+    variant: { key: 'day', label: 'Day', by_hand: false },
+    cover: null,
+    seconds: 12,
+    missing: [{ what: 'cover' }],
+    words: { state: 'noTimings' },
+    file: null,
+  }
 }

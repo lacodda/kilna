@@ -69,6 +69,13 @@ impl ProfileConfig {
             problems.push(Reason::of("problem.noWorkKinds"));
         }
         self.validate_compose(&mut problems);
+        if let Some(style) = &self.shorts {
+            unique(
+                &mut problems,
+                Reason::of("place.shortVariants"),
+                style.variants.iter().map(|v| v.key.clone()),
+            );
+        }
 
         for (index, field) in self.work_meta_fields.iter().enumerate() {
             let place = meta_field_at(index, &field.key);

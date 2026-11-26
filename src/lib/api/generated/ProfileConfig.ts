@@ -9,6 +9,7 @@ import type { NoteKind } from "./NoteKind";
 import type { OverviewConfig } from "./OverviewConfig";
 import type { PromptTemplate } from "./PromptTemplate";
 import type { Rhythm } from "./Rhythm";
+import type { ShortStyle } from "./ShortStyle";
 import type { Stage } from "./Stage";
 import type { StyleType } from "./StyleType";
 import type { VibeAxes } from "./VibeAxes";
@@ -166,4 +167,12 @@ guard?: Guard | null,
  * as the kinds of note are: a song and a clip may share one. Added in
  * v0.99 - a document without it is the same document.
  */
-boards?: Array<Board>, };
+boards?: Array<Board>, 
+/**
+ * What the space's shorts look like: the style, built of blocks, and
+ * its variants (v0.168). Absent means the line's own style - see
+ * [`Self::short_style`] - so a space that never opened the constructor
+ * still builds a short. Added in v0.168 - a document without it is the
+ * same document.
+ */
+shorts?: ShortStyle, };

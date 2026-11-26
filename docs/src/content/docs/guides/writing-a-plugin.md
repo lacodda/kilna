@@ -178,12 +178,13 @@ plugin would otherwise have to ask for back:
 | `chain` | The titles up the chain "made from", nearest first: a short's clip, then the song. |
 | `origin` | What it is all made from - the song, for a short - as `id`, `title`, `kind`. |
 | `cover` | The picture it goes out under, a whole path, or `null`. |
+| `short` | For a `cuts` command on a work cut from another (v0.168): what it looks like and what its words are. `variant` - the key of the variant it wears; `look` - the space's [short style](/kilna/guides/the-short-style/) as that variant wears it, block by block, without its pictures; `layers` - the still layers the window drew, as PNG files in `dir`: `ground`, `header`, `blots` (each `file` with its corner `x`, `y` and how it drifts: `ax`, `ay`, `px`, `py`, `phase`, `kick`), `stamp` (`file`, `ghost`, `x`, `y`) and `sign` (`open`, `blink`); `karaoke` - `lines`, each a list of `{word, at, end}` in seconds of the recording the words were timed on, `audio` - that recording, and `offset` when the timings say it - or `null` when the short has no words. |
 | `files` | The files attached to it, oldest first (v0.148): each `kind`, its whole `path` and the `name` it arrived under - a track kept on its Files tab rather than in a folder. |
 | `axes` | For a `score` command only: the axes to judge along, as the work's kind names them - each with `key`, `label`, `weight`, `scale` and `kind`. |
 
 A cutter has what it needs in one call: the stretches and the file each comes
-out of, where to put what it makes, the song's name to letter the frame with,
-and the cover to end on.
+out of, where to put what it makes, what the frame looks like with its layers
+already drawn, the words to light, and the cover to end on.
 
 The plugin does its work and prints one JSON **outcome** to stdout before
 exiting:

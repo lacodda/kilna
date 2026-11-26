@@ -38,6 +38,23 @@ export function useRendererState(): { renderer: Renderer | undefined; known: boo
   return { renderer: rendererOf(plugins.data ?? []), known: plugins.data !== undefined }
 }
 
+/** What kilna-plugin-cut calls itself in its manifest. */
+const BUILDER = 'cut'
+
+/** The plugin that builds a short (v0.168): kilna-plugin-cut, on and able to
+ *  run, offering its build. */
+export function useBuilder(): { executable: string } | undefined {
+  const plugins = useQuery(queries.plugins())
+  const found = (plugins.data ?? []).find(
+    (plugin) =>
+      plugin.usable &&
+      plugin.enabled &&
+      plugin.manifest?.name === BUILDER &&
+      plugin.manifest.commands.some((command) => command.key === 'cut'),
+  )
+  return found === undefined ? undefined : { executable: found.executable }
+}
+
 /** A track decoded for the Build tab: what plays, and what its waveform is
  *  drawn from. */
 export type Decoded =

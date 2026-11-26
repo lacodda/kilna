@@ -1008,6 +1008,52 @@ words:
 Absent means all three defaults. Set in **Settings → Profile**. Added in
 v0.90: a document without it is the same document.
 
+## `shorts`
+
+What the space's shorts look like (v0.168): the
+[short style](/kilna/guides/the-short-style/), built of blocks, and its
+variants. Optional - a profile without it builds its shorts in kilna's own
+style - and every block and every key of a block is optional too: a document
+names what it sets.
+
+```json
+"shorts": {
+  "accent": "#F2C14E",
+  "second": "#4ED1F2",
+  "header": { "on": true, "title_upper": true, "call": "the whole song is on the channel", "font": "Arial" },
+  "sign": { "on": true, "art": "<svg ...>", "blink": "", "size": 310, "pulse": 0.24, "sway": 5 },
+  "ground": {
+    "color": "#121114", "pattern": "blots", "seed": 1, "motion": true,
+    "blots": [{ "x": 60, "y": 340, "size": 1250, "color": "accent", "shape": "splat" }]
+  },
+  "stamp": { "on": true, "shape": "stamp", "text": "Harbour Radio", "sub": "music", "art": "",
+             "color": "#D7262E", "angle": -6, "x": 610, "wear": 0.6 },
+  "wave": { "on": true, "kind": "solid", "strip": true },
+  "karaoke": { "on": true, "font": "Arial", "size": 60 },
+  "effects": { "zoom": 0.1, "grain": 7, "vignette": true, "glitch": true },
+  "tail": { "on": true, "seconds": 1.2 },
+  "variants": [
+    { "key": "day", "label": "Day", "accent": "#FFD23F", "stamp_angle": 5, "wave": "bars" }
+  ]
+}
+```
+
+| Key | What it is |
+| --- | --- |
+| `accent`, `second` | The two colours everything is drawn in, `#RRGGBB`. |
+| `header` | The song's title and the `call` under it; `font` as a stylesheet names one. |
+| `sign` | The channel's sign: `art` and `blink` are the text of an SVG or a `data:` address; `size` is its side at rest in pixels of the 1080 frame, `pulse` how much the loudest moment grows it (0.24 is a quarter), `sway` degrees either way. |
+| `ground` | `pattern` is `plain`, `blots`, `dots`, `grid` or `stripes`; `seed` is the number the pattern is drawn from; each of `blots` has its heart at `x`, `y`, a `size`, a `color` (`accent` or `second`) and a `shape` (`splat`, `drip`, `spray`, `smear`); `motion` lets the blots drift. |
+| `stamp` | `shape` is `stamp` or `plate`; `text` and `sub` are lettered, or `art` is drawn in their place; `angle` in degrees, `x` where its middle stands across the frame, `wear` from 0 to 1. |
+| `wave` | `kind` is `solid`, `lines` or `bars`; `strip` is the line that fills as the short plays. |
+| `karaoke` | The words lit as they are sung: `font` as the system names it, `size` in pixels of the 1920 frame. |
+| `effects` | `zoom` - how far the picture pushes in, 0.1 is a tenth; `grain` from 0 to 40; `vignette`; `glitch` - a tear where the sound hits. |
+| `tail` | The short's cover at the end, for `seconds`. |
+| `variants` | Each with a `key`, a `label`, and what it replaces of the style: `accent`, `second`, `sign_art`, `sign_blink`, `ground` (`pattern`, `seed`, `blots`), `stamp_angle`, `stamp_x`, `wave`. Keys do not repeat. |
+
+A short wears the variant kept on it (`short_variant` among its fields) or
+else the one the round gives the day it goes out.
+
 ## `rhythm`
 
 The pace releases go out at:

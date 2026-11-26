@@ -18,6 +18,7 @@ mod cover;
 mod lab;
 mod media;
 mod notes;
+mod shorts;
 mod space;
 mod storyboard;
 mod styles;
@@ -67,6 +68,7 @@ pub fn run_tool(
         "propose_work" => works::propose_work(&call),
         "cover" => cover::cover(&call),
         "propose_cover" => cover::propose_cover(&call),
+        "propose_short" => shorts::propose_short(&call),
         "brief" => conception::brief(&call),
         "propose_cards" => conception::propose_cards(&call),
         "trials" => lab::trials(&call),

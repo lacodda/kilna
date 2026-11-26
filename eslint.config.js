@@ -37,6 +37,14 @@ export default tseslint.config(
     ],
     rules: { 'dowel/no-raw-color': 'off' },
   },
+  // A short's frame is a picture of its own: what is drawn on it is the
+  // channel's colours and the black edge a word is read by on any ground,
+  // none of them the window's theme. The style a test's space is given is
+  // written in those colours too.
+  {
+    files: ['src/lib/shorts/**', 'src/test/workspace.ts'],
+    rules: { 'dowel/no-raw-color': 'off' },
+  },
   // Where a component is the subject rather than the render: the release-kind
   // glyph is looked up in a table fixed at module level, so the identity is
   // stable across renders and nothing remounts. The rule reads any call that

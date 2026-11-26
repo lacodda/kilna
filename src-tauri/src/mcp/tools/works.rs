@@ -178,6 +178,9 @@ pub(super) fn work(call: &Call) -> Result<String> {
         "frame": frame,
         "publications": publications,
         "trials": trials,
+        // A short (v0.168): its stretches, the variant of the space's short
+        // style it wears, and where its build stands.
+        "short": crate::short::sheet(conn, &found.id)?,
         "sources": links.sources.iter().map(|l| json!({
             "work": l.source_id, "title": l.source_title, "kind": l.source_kind, "role": l.role,
             "taken_at_version": l.source_version_id, "drifted": l.drifted,

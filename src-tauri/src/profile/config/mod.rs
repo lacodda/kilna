@@ -14,6 +14,7 @@ mod note_kind;
 mod overview;
 mod release;
 mod rhythm;
+mod shorts;
 mod stage;
 mod status;
 mod style;
@@ -31,6 +32,7 @@ pub use note_kind::*;
 pub use overview::*;
 pub use release::*;
 pub use rhythm::*;
+pub use shorts::*;
 pub use stage::*;
 pub use status::*;
 pub use style::*;
@@ -175,6 +177,21 @@ pub struct ProfileConfig {
     /// v0.99 - a document without it is the same document.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub boards: Vec<Board>,
+    /// What the space's shorts look like: the style, built of blocks, and
+    /// its variants (v0.168). Absent means the line's own style - see
+    /// [`Self::short_style`] - so a space that never opened the constructor
+    /// still builds a short. Added in v0.168 - a document without it is the
+    /// same document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub shorts: Option<ShortStyle>,
+}
+
+impl ProfileConfig {
+    /// The style the space's shorts are built in: its own, or the line's.
+    pub fn short_style(&self) -> ShortStyle {
+        self.shorts.clone().unwrap_or_default()
+    }
 }
 
 /// How the guard of repeats reads its two words (ADR 0054).
@@ -273,6 +290,8 @@ pub struct RawProfileConfig {
     pub guard: Option<Guard>,
     #[serde(default)]
     pub boards: Vec<Board>,
+    #[serde(default)]
+    pub shorts: Option<ShortStyle>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -334,6 +353,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             cover_ideas: raw.cover_ideas,
             guard: raw.guard,
             boards: raw.boards,
+            shorts: raw.shorts,
         }
     }
 }

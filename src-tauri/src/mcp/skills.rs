@@ -236,7 +236,29 @@ pub(super) fn guide(call: &Call) -> Result<String> {
                                 .join(", "),
                         )
                 })?;
-            pretty(&skill_document(config, skill, kind))
+            let mut document = skill_document(config, skill, kind);
+            // With a work named, the live context of that work (v0.168): the
+            // message the skill's button would send about it, and - for a
+            // short - its stretches, the variant it wears and its build.
+            if let Some(named) = arg(args, "work") {
+                let found = find_work(call.conn, &call.profile.id, named)?;
+                let message = if skill.sends() {
+                    Some(crate::assistant::prompt::for_work(
+                        call.conn,
+                        &found.id,
+                        &skill.template,
+                        crate::assistant::prompt::Context::default(),
+                    )?)
+                } else {
+                    None
+                };
+                document["work_context"] = json!({
+                    "id": found.id, "title": found.title, "kind": found.kind,
+                    "message": message,
+                    "short": crate::short::sheet(call.conn, &found.id)?,
+                });
+            }
+            pretty(&document)
         }
     }
 }

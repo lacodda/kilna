@@ -239,6 +239,8 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::cut::NewCut,
         kilna_lib::cut::CutPatch,
         kilna_lib::cut::Shot,
+        kilna_lib::short::ShortView,
+        kilna_lib::short::Layer,
         kilna_lib::parts::DonorParts,
         kilna_lib::parts::OfferedPart,
         kilna_lib::parts::PartSource,

@@ -1,5 +1,14 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { Cut, CutPatch, DonorParts, NewCut, Shot } from '@/lib/api/types'
+import type {
+  Cut,
+  CutPatch,
+  DonorParts,
+  JsonValue,
+  NewCut,
+  ShortStyle,
+  ShortView,
+  Shot,
+} from '@/lib/api/types'
 
 // A short cut out of another work: its stretches and the list for the cutter.
 
@@ -20,3 +29,16 @@ export const cutShotList = (workId: string) => invoke<Shot[]>('cut_shot_list', {
     and the parts worth a short, as a plugin heard them and as the words place
     them, and what the short's siblings already took (v0.103). */
 export const cutParts = (workId: string) => invoke<DonorParts[]>('cut_parts', { workId })
+
+/** A short on its Build tab (v0.168): the look it wears, what it lacks, its
+    words and its newest build. */
+export const shortView = (workId: string) => invoke<ShortView>('short_view', { workId })
+/** Lay the layers the window drew for a short where its builder is handed
+    them: `placed` says what each is and where it stands. */
+export const stageShortLayers = (
+  workId: string,
+  placed: JsonValue,
+  layers: { name: string; bytes: number[] }[],
+) => invoke<null>('stage_short_layers', { workId, placed, layers })
+/** The style a space's shorts are built in while it has set none. */
+export const shortStyleDefault = () => invoke<ShortStyle>('short_style_default')

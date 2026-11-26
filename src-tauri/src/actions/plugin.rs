@@ -33,6 +33,8 @@ use crate::work::{self, Work, WorkPatch, version};
 /// - `chain` - the titles up the chain "made from", nearest first, and
 ///   `origin` - what it is all made from (the song, for a short);
 /// - `cover` - the picture it goes out under, when it has one;
+/// - `short` - for a command on the Cuts tab of a work cut from another, what
+///   it looks like and what its words are (v0.168);
 /// - `axes` - for a command on the Score tab, the axes to judge along, as the
 ///   work's kind names them (v0.108).
 pub fn subject(conn: &Connection, target: Target, id: &str) -> Result<Value> {
@@ -110,6 +112,15 @@ pub fn subject(conn: &Connection, target: Target, id: &str) -> Result<Value> {
                     })
                     .collect();
                 object.insert("files".into(), Value::Array(files));
+                // What a short looks like and what its words are (v0.168): the
+                // look it wears, the layers the window drew for it, and the
+                // song's lines with their times.
+                if target == Target::Cuts && config.vocabulary(&found.kind).excerpt {
+                    object.insert(
+                        "short".into(),
+                        crate::short::brief(conn, id, &crate::short::layers_dir(id))?,
+                    );
+                }
                 if target == Target::Score {
                     object.insert(
                         "axes".into(),

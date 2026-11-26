@@ -328,7 +328,11 @@ fn initialize() -> Value {
     each a work made from it with releases of its own, and `propose_release` proposes what one \
     of those releases goes out under - its title, description, tags, pinned comment. `cover` \
     reads the board of ideas for a publication's cover and everything an idea is built from, \
-    and `propose_cover` proposes ideas onto it. An experiment is a work whose kind is a lab: \
+    and `propose_cover` proposes ideas onto it. A short wears the space's short style - a \
+    frame built of blocks, with variants taken in a round by the day it goes out: `workspace` \
+    gives the style, `work` says what a short wears, lacks and was built into, and \
+    `propose_short` proposes the style or the variant one short wears; the build itself is \
+    the person's, in the window. An experiment is a work whose kind is a lab: \
     `trials` reads its board - trials by series, each with what it moves, its text, what came \
     out and the verdict - and `propose_trials` proposes trials onto it; a kept trial becomes a \
     version of a song's style in the window. A work may be prepared before it is written - a \

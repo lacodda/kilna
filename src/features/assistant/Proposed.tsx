@@ -16,6 +16,7 @@ import { ProposedWork } from '@/features/assistant/ProposedWork'
 import { ProposedNotes } from '@/features/assistant/ProposedNotes'
 import { ProposedWords } from '@/features/assistant/ProposedWords'
 import { ProposedBricks } from '@/features/assistant/ProposedBricks'
+import { ProposedShort } from '@/features/assistant/ProposedShort'
 import { ProposedStyles } from '@/features/assistant/ProposedStyles'
 
 interface Props {
@@ -197,6 +198,15 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
     case 'styles':
       return (
         <ProposedStyles
+          messageId={messageId}
+          proposal={proposal}
+          applied={applied}
+          dismissed={dismissed}
+        />
+      )
+    case 'short':
+      return (
+        <ProposedShort
           messageId={messageId}
           proposal={proposal}
           applied={applied}

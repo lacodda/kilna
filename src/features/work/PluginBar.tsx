@@ -19,6 +19,9 @@ import { PluginCandidates } from '@/features/work/PluginCandidates'
 interface Props {
   target: PluginTarget
   id: string
+  /** What is done before every run, and awaited: the layers of a short are
+   *  laid before its builder is run (v0.168). A failure of it stops the run. */
+  before?: () => Promise<void>
 }
 
 /** A run going on now: which command, and how far it says it is. */
@@ -55,7 +58,7 @@ function movedBy(target: PluginTarget, id: string) {
 // Actions contributed by installed plugins. Nothing shows when none are
 // installed — an empty toolbar advertising a feature the user does not have is
 // worse than no toolbar.
-export function PluginBar({ target, id }: Props) {
+export function PluginBar({ target, id, before }: Props) {
   const { t, i18n } = useTranslation()
 
   const plugins = useQuery(queries.plugins())
@@ -107,6 +110,7 @@ export function PluginBar({ target, id }: Props) {
       stopped.current = false
       setRunning({ run: runId, label, share: null, message: null })
       try {
+        await before?.()
         return await runPlugin(executable, command, target, id, runId)
       } finally {
         setRunning(null)

@@ -73,6 +73,8 @@ pub(super) fn deliver(
         }
         (Proposal::Words { .. }, _) => Record::new("proposal.words"),
         (Proposal::Styles { .. }, _) => Record::new("proposal.styles"),
+        (Proposal::Short { .. }, Some(_)) => Record::new("proposal.short"),
+        (Proposal::Short { .. }, None) => Record::new("proposal.shortStyle"),
         (Proposal::Canon { .. }, Some(_)) => Record::new("proposal.canon"),
         (Proposal::Canon { .. }, None) => Record::new("proposal.freeCanon"),
         // Refused at the top of this function.
