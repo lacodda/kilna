@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.168.1] - 2026-11-26
+
+### Bug Fixes
+- Show the card of a proposed short style, a card note and bricks
+
 ## [0.168.0] - 2026-11-26
 
 ### Bug Fixes

@@ -2142,7 +2142,7 @@ dependencies = [
 
 [[package]]
 name = "kilna"
-version = "0.168.0"
+version = "0.168.1"
 dependencies = [
  "fst",
  "jiff 1.0.3",
