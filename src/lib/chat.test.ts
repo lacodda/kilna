@@ -4,6 +4,8 @@ import type { JsonValue } from '@/lib/api/generated/serde_json/JsonValue'
 import type { Message, Run } from '@/lib/api/types'
 import { chatLabel, conversation, offers, pending, shownChat } from '@/lib/chat'
 import { studio } from '@/test/workspace'
+import union from '@/lib/api/generated/Proposal.ts?raw'
+import reader from '@/lib/chat.ts?raw'
 
 let counter = 0
 const message = (
@@ -229,6 +231,47 @@ describe('a proposal on an answer', () => {
       null,
       null,
     ])
+  })
+
+  it('reads a short style, a variant for a short, a card note and bricks, and only whole', () => {
+    // All four fell to the default until v0.168.1: the proposal stood in the
+    // chat as words, with nothing to take it by.
+    const items = conversation(
+      [
+        message('assistant', 'a style', 't1', {
+          proposal: { kind: 'short', style: { variants: [] } },
+        }),
+        message('assistant', 'a variant', 't2', {
+          proposal: { kind: 'short', work_id: 'w-1', variant: 'night' },
+        }),
+        message('assistant', 'a note', 't3', { proposal: { kind: 'cardNote', note_id: 'n-1' } }),
+        message('assistant', 'bricks', 't4', {
+          proposal: { kind: 'bricks', package: { bricks: [] } },
+        }),
+        message('assistant', 'broken', 't5', { proposal: { kind: 'short' } }),
+        message('assistant', 'broken', 't6', { proposal: { kind: 'bricks' } }),
+      ],
+      [],
+    )
+
+    expect(items.map((item) => item.answer?.proposal?.kind ?? null)).toEqual([
+      'short',
+      'short',
+      'cardNote',
+      'bricks',
+      null,
+      null,
+    ])
+    expect(offers(items[0]!, true)).toEqual({ insert: false, keep: false })
+  })
+
+  it('reads every kind of proposal the backend can send', () => {
+    // A kind added to the backend's union and not here is a card nobody sees:
+    // the answer stands as plain words and nothing says a word about it.
+    const sent = [...union.matchAll(/"kind": "([A-Za-z]+)"/g)].map((found) => found[1])
+    expect(sent.length).toBeGreaterThan(20)
+    const unread = sent.filter((kind) => !reader.includes(`case '${String(kind)}':`))
+    expect(unread).toEqual([])
   })
 
   it('reads what answers about a release or the canon propose, and only whole', () => {

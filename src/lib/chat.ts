@@ -116,7 +116,10 @@ const proposalOf = (message: Message): Proposal | null => {
       return typeof (proposal as Partial<{ package: unknown }>).package === 'object'
         ? (proposal as Proposal)
         : null
+    // A card's note fell to the default until v0.168.1, like the bricks and
+    // the short below: each had a card of its own and no way to reach it.
     case 'cardPrompt':
+    case 'cardNote':
       return typeof (proposal as Partial<{ note_id: unknown }>).note_id === 'string'
         ? (proposal as Proposal)
         : null
@@ -157,6 +160,16 @@ const proposalOf = (message: Message): Proposal | null => {
       return Array.isArray((proposal as Partial<{ package: { styles?: unknown } }>).package?.styles)
         ? (proposal as Proposal)
         : null
+    case 'bricks':
+      return typeof (proposal as Partial<{ package: unknown }>).package === 'object'
+        ? (proposal as Proposal)
+        : null
+    // The space's short style, the variant one short wears, or both (v0.168).
+    case 'short': {
+      const short = proposal as Partial<{ style: unknown; variant: unknown }>
+      const style = typeof short.style === 'object' && short.style !== null
+      return style || typeof short.variant === 'string' ? (proposal as Proposal) : null
+    }
     default:
       return null
   }
@@ -301,7 +314,8 @@ export function offers(item: Exchange, onWork: boolean): Offers {
     kind === 'trials' ||
     kind === 'cards' ||
     kind === 'month' ||
-    kind === 'media'
+    kind === 'media' ||
+    kind === 'short'
   return {
     insert: onWork && settled && !ownCard,
     keep: settled && !ownCard && kind !== 'note',
