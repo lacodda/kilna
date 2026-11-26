@@ -89,7 +89,7 @@ press away, each a folder of its own. See
 
 ## Status
 
-v0.167.0, in daily use by its author: the loop from a version to a scored,
+v0.168.0, in daily use by its author: the loop from a version to a scored,
 scheduled and released work is closed, in English and Russian. Before 1.0 a
 release may change how a workspace is laid out; it carries the workspace
 forward itself. What landed in each version:

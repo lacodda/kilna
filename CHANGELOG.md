@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.168.0] - 2026-11-26
+
+### Bug Fixes
+- Give the two proposals a look in the journal and settle the linter
+
+### Features
+- Keep a short style in the space and build a short from its card
+
 ## [0.167.0] - 2026-11-25
 
 ### Bug Fixes
