@@ -8,7 +8,7 @@ import type { Strictness, TermKind } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { guessKind, isWording, splitForms } from '@/lib/register'
+import { guessKind, isWording, readsAsSeveral, splitForms } from '@/lib/register'
 import { say } from '@/lib/toast'
 import { useDebounced } from '@/lib/useDebounced'
 import { Button } from '@/components/ui/button'
@@ -116,7 +116,7 @@ function Contents({ onOpenChange, word: initial = '' }: Omit<Props, 'open'>) {
         <Field label={t('register.word')} help={help}>
           <Input autoFocus value={word} onChange={(event) => setWord(event.target.value)} />
         </Field>
-        {/[,/]/.test(word) && <p className="text-xs text-warn">{t('register.wordSeparator')}</p>}
+        {readsAsSeveral(word) && <p className="text-xs text-warn">{t('register.wordSeparator')}</p>}
         {wording && (
           <Field label={t('register.forms')} help={t('register.formsHelp')}>
             <Input value={forms} onChange={(event) => setForms(event.target.value)} />

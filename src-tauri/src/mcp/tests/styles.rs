@@ -32,7 +32,7 @@ fn the_dictionary_says_each_brick_s_branch_and_is_read_by_it() {
         .unwrap(),
     )
     .unwrap();
-    let rows = motion.as_array().unwrap();
+    let rows = motion["bricks"].as_array().unwrap();
     assert_eq!(rows.len(), 20, "the four types of movement, five each");
     assert!(rows.iter().all(
         |row| row["branch"] == "motion" && row["type"].as_str().unwrap().starts_with("motion-")
@@ -68,7 +68,7 @@ fn the_dictionary_is_read_by_type_by_composition_and_by_meaning() {
         .unwrap(),
     )
     .unwrap();
-    let found = found.as_array().unwrap();
+    let found = found["bricks"].as_array().unwrap();
     assert!(
         !found.is_empty(),
         "a Russian word finds the phrases it explains"
@@ -92,7 +92,7 @@ fn the_dictionary_is_read_by_type_by_composition_and_by_meaning() {
         .unwrap(),
     )
     .unwrap();
-    let sound = sound.as_array().unwrap();
+    let sound = sound["bricks"].as_array().unwrap();
     assert_eq!(sound[0]["type"], "genre", "in the composition's order");
     assert!(sound.iter().all(|b| b["phrase"].is_string()));
 
@@ -218,4 +218,39 @@ fn a_style_proposed_by_its_bricks_is_written_by_kilna() {
     )
     .unwrap_err();
     assert_eq!(unknown.refusal().map(|r| r.code), Some("mcp.unknownBrick"));
+}
+
+#[test]
+fn the_dictionary_comes_a_page_at_a_time_short_or_one_brick_whole() {
+    let (conn, _) = workspace();
+    crate::style_set::seed(&conn).unwrap();
+
+    let page = read(
+        &conn,
+        "styles",
+        json!({ "branch": "motion", "limit": 5, "offset": 5, "summary": true }),
+    );
+    assert_eq!(page["total"], 20);
+    assert_eq!(page["has_more"], true);
+    let bricks = page["bricks"].as_array().unwrap();
+    assert_eq!(bricks.len(), 5);
+    assert!(
+        bricks
+            .iter()
+            .all(|brick| brick["name"].is_string() && brick.get("phrase").is_none()),
+        "a summary leaves the phrases out"
+    );
+
+    let id = bricks[0]["id"].as_str().unwrap();
+    let whole = read(&conn, "styles", json!({ "brick": id }));
+    assert_eq!(whole["id"], id);
+    assert!(whole.get("phrase").is_some() && whole.get("explanation").is_some());
+    let refused = run_tool(
+        &conn,
+        &claude(),
+        "styles",
+        &args(json!({ "brick": "nope" })),
+    )
+    .unwrap_err();
+    assert_eq!(refused.reason().key, "refusal.mcp.unknownBrick");
 }

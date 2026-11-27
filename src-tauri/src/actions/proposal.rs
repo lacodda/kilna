@@ -339,6 +339,12 @@ pub fn check(
                 if let Some(kind) = &one.kind {
                     note(plain_note_kind(config, kind));
                 }
+                // A work to move to that has gone since it was proposed.
+                if let Some(work_id) = &one.to_work_id
+                    && crate::work::get(conn, work_id)?.is_none()
+                {
+                    note(Err(Error::not_found("work", work_id)));
+                }
                 // A note to change that has gone since it was proposed.
                 if let Some(id) = &one.note
                     && crate::note::get(conn, id)?.is_none()
@@ -1093,12 +1099,26 @@ fn keep(
                     // A change: only what the proposal says, the rest of the
                     // note as it is.
                     Some(id) => {
+                        // Another kind, another work or none (v0.171): said
+                        // only where it differs from what the note is.
+                        let now = crate::note::get(conn, &id)?;
+                        let kind = one
+                            .kind
+                            .filter(|kind| now.as_ref().is_some_and(|now| now.kind != *kind));
+                        let home = if one.off_work {
+                            Some(None)
+                        } else {
+                            one.to_work_id.map(Some)
+                        }
+                        .filter(|home| now.as_ref().is_some_and(|now| now.work_id != *home));
                         let patch = crate::note::NotePatch {
                             title: said(one.title).map(Some),
                             body: Some(one.body).filter(|body| !body.trim().is_empty()),
                             attribution: said(one.attribution).map(Some),
                             tags: Some(one.tags).filter(|tags| !tags.is_empty()),
                             layer: one.layer,
+                            kind,
+                            work_id: home,
                             ..crate::note::NotePatch::default()
                         };
                         super::note::update(conn, &id, patch)?.id

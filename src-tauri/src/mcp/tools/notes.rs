@@ -200,6 +200,8 @@ pub(super) fn propose_note(call: &Call) -> Result<String> {
         || arg(args, "layer").is_some()
         || arg(args, "note").is_some()
         || arg(args, "origin_work").is_some()
+        || arg(args, "to_work").is_some()
+        || args.get("off_work").is_some()
     {
         let raw: Vec<Value> = match args.get("notes") {
             Some(Value::Array(list)) if !list.is_empty() => list.clone(),
@@ -316,6 +318,37 @@ fn read_proposed_note(
     if target.is_none() && body.trim().is_empty() {
         return Err(Error::refused("mcp.missingArg").param("key", "body"));
     }
+    // Where a note that is there goes (v0.171): to another work, or off its
+    // work. A new note stands where the proposal is made, and says so with
+    // `work`.
+    let off_work = object.get("off_work").and_then(Value::as_bool) == Some(true);
+    let to_work = match arg(object, "to_work") {
+        Some(named) => Some(find_work(conn, profile_id, named)?),
+        None => None,
+    };
+    if (off_work || to_work.is_some()) && target.is_none() {
+        return Err(Error::refused("mcp.moveNeedsNote"));
+    }
+    if off_work && to_work.is_some() {
+        return Err(Error::refused("mcp.moveTwoWays"));
+    }
+    // A card of the canon is no note to move or to make another kind of:
+    // its facts hang on what it is, and `propose_canon` changes it.
+    if let Some(found) = &target
+        && config
+            .note_kind(&found.kind)
+            .is_some_and(|kind| kind.is_card())
+        && (off_work || to_work.is_some() || kind.as_deref().is_some_and(|k| k != found.kind))
+    {
+        return Err(Error::refused("mcp.cardNotMoved").param(
+            "title",
+            found.title.clone().unwrap_or_else(|| found.id.clone()),
+        ));
+    }
+    let stood_on = match target.as_ref().and_then(|found| found.work_id.as_deref()) {
+        Some(work_id) => crate::work::get(conn, work_id)?.map(|work| work.title),
+        None => None,
+    };
     Ok(ProposedNote {
         title: text("title"),
         body,
@@ -328,7 +361,12 @@ fn read_proposed_note(
             title: found.title.clone(),
             body: found.body.clone(),
             tags: found.tags.clone(),
+            kind: Some(found.kind.clone()),
+            work: stood_on,
         }),
+        to_work: to_work.as_ref().map(|work| work.title.clone()),
+        to_work_id: to_work.map(|work| work.id),
+        off_work,
         note: target.map(|found| found.id),
         origin_work_id,
     })
@@ -390,6 +428,21 @@ fn render_notes(notes: &[crate::assistant::proposal::ProposedNote]) -> String {
                             before.tags.join(", ")
                         },
                         one.tags.join(", ")
+                    ));
+                }
+                if let Some(kind) = one.kind.as_deref()
+                    && before.kind.as_deref().is_some_and(|was| was != kind)
+                {
+                    out.push_str(&format!(
+                        "  kind: {} → {kind}\n",
+                        before.kind.as_deref().unwrap_or("-")
+                    ));
+                }
+                if one.off_work || one.to_work.is_some() {
+                    out.push_str(&format!(
+                        "  moved: {} → {}\n",
+                        before.work.as_deref().unwrap_or("no work"),
+                        one.to_work.as_deref().unwrap_or("no work")
                     ));
                 }
                 if !one.body.trim().is_empty() && one.body.trim() != before.body.trim() {

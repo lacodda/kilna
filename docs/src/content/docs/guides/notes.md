@@ -235,6 +235,10 @@ Proposals of stresses and respellings your sung texts already write are on the
 
 An action reads the phrases kept for a work through `{lines}`, or one shelf
 through `{lines:<shelf>}`. An agent reads notes with the MCP tool `notes` and
-proposes them with `propose_note` and `propose_words`. See
+proposes them with `propose_note` and `propose_words`. A change it proposes to
+a note that is there is read before it is kept: the text word by word as one
+text - what goes struck through, what comes beside it - and a title, tags, a
+kind or the work it stands on from what to what. Once kept, the mark on the
+proposal goes on saying what was not written, when something was not. See
 [the profile document](/kilna/reference/profile-document/#template-placeholders)
 and [MCP](/kilna/reference/mcp/).

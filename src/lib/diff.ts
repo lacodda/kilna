@@ -112,3 +112,64 @@ export function changedLines(changes: Change[]): { added: Set<number>; removed: 
   }
   return { added, removed }
 }
+
+/** How many words each side may have before a word diff gives up. */
+const WORD_LIMIT = 4000
+
+/**
+ * A comparison of two texts by the word (v0.171), for a note: a note is
+ * prose a sentence long or a page, and "this line went, that one arrived"
+ * hides that one word of it changed. The runs of space between words are
+ * pieces of their own, so the text reads back exactly as it was written.
+ */
+export function diffWords(before: string, after: string): Change[] {
+  const a = before.split(/(\s+)/).filter((piece) => piece !== '')
+  const b = after.split(/(\s+)/).filter((piece) => piece !== '')
+  if (a.length > WORD_LIMIT || b.length > WORD_LIMIT) {
+    return [
+      { kind: 'removed', text: before },
+      { kind: 'added', text: after },
+    ]
+  }
+  const lcs: number[][] = Array.from({ length: a.length + 1 }, () =>
+    new Array<number>(b.length + 1).fill(0),
+  )
+  for (let i = a.length - 1; i >= 0; i -= 1) {
+    for (let j = b.length - 1; j >= 0; j -= 1) {
+      lcs[i]![j] =
+        a[i] === b[j] ? lcs[i + 1]![j + 1]! + 1 : Math.max(lcs[i + 1]![j]!, lcs[i]![j + 1]!)
+    }
+  }
+  // Neighbours of one kind are one piece: a sentence that went is read as
+  // a sentence, not as its words one by one.
+  const changes: Change[] = []
+  const push = (kind: Change['kind'], text: string) => {
+    const last = changes.at(-1)
+    if (last !== undefined && last.kind === kind) last.text += text
+    else changes.push({ kind, text })
+  }
+  let i = 0
+  let j = 0
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      push('same', a[i]!)
+      i += 1
+      j += 1
+    } else if (lcs[i + 1]![j]! >= lcs[i]![j + 1]!) {
+      push('removed', a[i]!)
+      i += 1
+    } else {
+      push('added', b[j]!)
+      j += 1
+    }
+  }
+  while (i < a.length) {
+    push('removed', a[i]!)
+    i += 1
+  }
+  while (j < b.length) {
+    push('added', b[j]!)
+    j += 1
+  }
+  return changes
+}

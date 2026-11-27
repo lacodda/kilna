@@ -274,3 +274,30 @@ fn a_canon_proposed_from_outside_waits_in_the_chat_and_names_what_it_left_out() 
         .unwrap();
     assert_eq!(lines, 1);
 }
+
+#[test]
+fn the_cards_come_a_page_at_a_time_and_short_by_name_alone() {
+    let (conn, _) = workspace();
+    let profile_id = profile::active(&conn).unwrap().unwrap().id;
+    for name in ["Wren", "Ada", "Tom"] {
+        let card = fixtures::card(&conn, &profile_id, "character", name);
+        fixtures::fact(&conn, &card.id, "looks", "Freckles across the nose.");
+    }
+
+    let whole = read(&conn, "canon", json!({ "limit": 2 }));
+    assert_eq!(whole["total"], 3);
+    assert_eq!(whole["has_more"], true);
+    assert_eq!(whole["cards"].as_array().unwrap().len(), 2);
+    assert!(whole["kinds"].is_array() && whole["section_schemas"].is_object());
+
+    let short = read(&conn, "canon", json!({ "summary": true, "offset": 2 }));
+    assert_eq!(short["cards"].as_array().unwrap().len(), 1);
+    assert!(short["cards"][0]["title"].is_string());
+    assert!(short["cards"][0].get("facts").is_none());
+    assert!(short.get("kinds").is_none() && short.get("section_schemas").is_none());
+    assert_eq!(short["has_root_card"], false);
+
+    let found = read(&conn, "canon", json!({ "query": "freckles", "limit": 2 }));
+    assert_eq!(found["total"], 3);
+    assert_eq!(found["facts"].as_array().unwrap().len(), 2);
+}

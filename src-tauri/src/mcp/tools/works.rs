@@ -100,8 +100,54 @@ pub(super) fn work(call: &Call) -> Result<String> {
     } = *call;
     let found = find_work(conn, &profile.id, required(args, "work")?)?;
     let versions = version::list(conn, &found.id)?;
+    // The versions a page at a time (v0.171): a song rewritten sixty times
+    // is sixty rows here. Short, the card is its head and its counts.
+    let page = Page::of(args, 100);
+    let total_versions = versions.len();
+    if page.summary {
+        let mut roles: BTreeMap<String, Value> = BTreeMap::new();
+        for v in &versions {
+            let role = roles
+                .entry(v.role.clone())
+                .or_insert_with(|| json!({ "versions": 0, "current": null, "length": null }));
+            role["versions"] = json!(role["versions"].as_u64().unwrap_or(0) + 1);
+            if v.is_current {
+                role["current"] = json!(v.id);
+                role["length"] = json!(v.length);
+            }
+        }
+        let latest = score::latest(conn, &found.id)?;
+        let links = link::for_work(conn, &found.id)?;
+        let notes: i64 = conn.query_row(
+            "SELECT count(*) FROM note WHERE work_id = ?1",
+            [&found.id],
+            |row| row.get(0),
+        )?;
+        return pretty(&json!({
+            "id": found.id, "title": found.title, "kind": found.kind, "status": found.status,
+            "stage": found.stage, "tags": found.tags, "marks": found.marks,
+            "vibe": found.vibe,
+            "created_at": found.created_at, "updated_at": found.updated_at,
+            "roles": roles,
+            "latest_score": latest.map(|one| json!({
+                "total": one.total, "tier": one.tier, "rater": one.rater,
+                "scored_at": one.scored_at,
+            })),
+            "releases": release::for_work(conn, &profile.id, &found.id)?.len(),
+            "notes": notes,
+            "scenes": scene::count(conn, &found.id)?,
+            "sources": links.sources.len(),
+            "derived": links.derived.len(),
+        }));
+    }
+    let shown: Vec<_> = versions
+        .into_iter()
+        .skip(page.offset)
+        .take(page.limit)
+        .collect();
+    let has_more_versions = page.offset + shown.len() < total_versions;
     let mut by_role: BTreeMap<String, Vec<Value>> = BTreeMap::new();
-    for v in versions {
+    for v in shown {
         by_role.entry(v.role.clone()).or_default().push(json!({
             "id": v.id, "revision": v.revision, "label": v.label, "length": v.length,
             "is_current": v.is_current, "is_main": v.is_main,
@@ -170,6 +216,8 @@ pub(super) fn work(call: &Call) -> Result<String> {
             .map(|plan| json!({ "id": plan.id, "scheduled_at": plan.scheduled_at, "note": plan.note })),
         "created_at": found.created_at, "updated_at": found.updated_at,
         "versions": by_role,
+        "total_versions": total_versions,
+        "has_more_versions": has_more_versions,
         "latest_score": latest,
         "releases": releases,
         "notes": notes,

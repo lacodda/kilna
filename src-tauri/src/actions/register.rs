@@ -76,6 +76,94 @@ pub fn unlink(conn: &Connection, term_id: &str, work_id: &str) -> Result<()> {
     })
 }
 
+/// Make one word of the record into several (v0.171): what an agent could
+/// propose and a person could only do by hand, word by word. Each part is
+/// found or made with what the one held, and the one goes to the trash -
+/// every step a gesture of its own in the history, all of them or none.
+///
+/// The parts are words: trimmed, the empty ones dropped, each once. Fewer
+/// than two is no split - one part is a rename, and that is the word's own
+/// field.
+pub fn split(conn: &Connection, id: &str, into: &[String]) -> Result<Vec<Term>> {
+    let mut parts: Vec<String> = Vec::new();
+    for part in into {
+        let part = part.trim();
+        if !part.is_empty()
+            && !parts
+                .iter()
+                .any(|known| crate::words::plain(known) == crate::words::plain(part))
+        {
+            parts.push(part.to_owned());
+        }
+    }
+    if parts.len() < 2 {
+        return Err(Error::refused("term.splitNeedsParts"));
+    }
+    crate::db::unit::atomically(conn, |conn| {
+        let found = register::get(conn, id)?.ok_or_else(|| Error::not_found("term", id))?;
+        let made = register::proposal::split(conn, &found.profile_id, &found, &parts)?;
+        let mut terms = Vec::with_capacity(made.len());
+        for part in made {
+            if let Some(term) = register::get(conn, &part)? {
+                terms.push(term);
+            }
+        }
+        Ok(terms)
+    })
+}
+
+/// Make two words of the record one (v0.171): `id` goes into `into_id`. Its
+/// word and its forms become forms of the one that stays, its ways of
+/// singing are added where the other has none for that spelling, the works
+/// named for it are named for the other, and it goes to the trash. What the
+/// one that stays says of itself - its kind, how strictly it is spent, its
+/// topic and note - is left as it is: merging says they are the same thing,
+/// and the one kept is the one whose words about it stand.
+pub fn merge(conn: &Connection, id: &str, into_id: &str) -> Result<Term> {
+    if id == into_id {
+        return Err(Error::refused("term.mergeItself"));
+    }
+    crate::db::unit::atomically(conn, |conn| {
+        let gone = register::get(conn, id)?.ok_or_else(|| Error::not_found("term", id))?;
+        let kept =
+            register::get(conn, into_id)?.ok_or_else(|| Error::not_found("term", into_id))?;
+        let plain = crate::words::plain;
+
+        let mut forms = kept.forms.clone();
+        for form in std::iter::once(&gone.word).chain(&gone.forms) {
+            let known = plain(&kept.word) == plain(form)
+                || forms.iter().any(|one| plain(one) == plain(form));
+            if !known {
+                forms.push(form.clone());
+            }
+        }
+        let mut sung = kept.sung.clone();
+        for one in &gone.sung {
+            if !sung
+                .iter()
+                .any(|known| known.written.to_lowercase() == one.written.to_lowercase())
+            {
+                sung.push(one.clone());
+            }
+        }
+        let patch = TermPatch {
+            forms: Some(forms).filter(|forms| *forms != kept.forms),
+            sung: Some(sung).filter(|sung| *sung != kept.sung),
+            ..TermPatch::default()
+        };
+        if patch.forms.is_some() || patch.sung.is_some() {
+            update(conn, into_id, patch)?;
+        }
+        for used in register::uses(conn, id)? {
+            if used.named {
+                link(conn, into_id, &used.work_id)?;
+            }
+        }
+        super::trash::discard(conn, crate::trash::Entity::Term, id)?;
+        register::get(conn, into_id)?.ok_or_else(|| Error::not_found("term", into_id))
+    })
+}
+
 fn linked(conn: &Connection, term_id: &str, work_id: &str) -> Result<bool> {
     Ok(conn.query_row(
         "SELECT EXISTS (SELECT 1 FROM term_work WHERE term_id = ?1 AND work_id = ?2)",
@@ -129,4 +217,110 @@ pub fn unkeep_repeat(conn: &Connection, work_id: &str, word: &str) -> Result<()>
         crate::register::guard::unkeep(act, work_id, &word)?;
         Ok(())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fixtures;
+    use crate::register::Sung;
+
+    fn term(conn: &Connection, word: &str, forms: &[&str]) -> Term {
+        create(
+            conn,
+            NewTerm {
+                word: word.into(),
+                forms: forms.iter().map(|form| (*form).to_owned()).collect(),
+                ..NewTerm::default()
+            },
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn a_word_of_two_is_split_by_a_gesture_of_the_window() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        let both = term(&conn, "harbour, lantern", &[]);
+        link(&conn, &both.id, &song.id).unwrap();
+
+        // One part is a rename, not a split; the same word twice is one.
+        for few in [
+            vec![],
+            vec!["harbour".to_owned()],
+            vec!["harbour".into(), " Harbour ".into()],
+        ] {
+            assert_eq!(
+                split(&conn, &both.id, &few).unwrap_err().reason().key,
+                "refusal.term.splitNeedsParts"
+            );
+        }
+
+        let parts = split(&conn, &both.id, &["harbour".into(), " lantern ".into()]).unwrap();
+        assert_eq!(
+            parts
+                .iter()
+                .map(|part| part.word.as_str())
+                .collect::<Vec<_>>(),
+            ["harbour", "lantern"]
+        );
+        assert!(
+            register::get(&conn, &both.id).unwrap().is_none(),
+            "the whole is in the trash"
+        );
+        for part in &parts {
+            assert_eq!(part.kind, both.kind);
+            assert!(
+                register::uses(&conn, &part.id)
+                    .unwrap()
+                    .iter()
+                    .any(|used| used.named)
+            );
+        }
+    }
+
+    #[test]
+    fn two_words_are_made_one_and_the_one_that_stays_keeps_its_own_say() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        let kept = term(&conn, "lantern", &["lamp"]);
+        let gone = create(
+            &conn,
+            NewTerm {
+                word: "lanthorn".into(),
+                forms: vec!["lamp".into(), "light".into()],
+                sung: vec![Sung {
+                    written: "lanthorn".into(),
+                    sung: "lant-horn".into(),
+                }],
+                note: Some("the old spelling".into()),
+                ..NewTerm::default()
+            },
+        )
+        .unwrap();
+        link(&conn, &gone.id, &song.id).unwrap();
+
+        assert_eq!(
+            merge(&conn, &kept.id, &kept.id).unwrap_err().reason().key,
+            "refusal.term.mergeItself"
+        );
+
+        let one = merge(&conn, &gone.id, &kept.id).unwrap();
+        assert_eq!(one.id, kept.id);
+        assert_eq!(one.word, "lantern");
+        // The word that went and its forms, each once.
+        assert_eq!(one.forms, ["lamp", "lanthorn", "light"]);
+        assert_eq!(one.sung.len(), 1);
+        assert_eq!(
+            one.note, kept.note,
+            "what the one that stays says of itself stands"
+        );
+        assert!(register::get(&conn, &gone.id).unwrap().is_none());
+        assert!(
+            register::uses(&conn, &kept.id)
+                .unwrap()
+                .iter()
+                .any(|used| used.named)
+        );
+    }
 }

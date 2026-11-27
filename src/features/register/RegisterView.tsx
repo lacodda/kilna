@@ -175,7 +175,11 @@ export function RegisterView() {
         }
         detail={
           selected !== undefined ? (
-            <TermDetail key={selected.id} entry={selected} onGone={() => open(null)} />
+            <TermDetail
+              key={selected.id}
+              entry={selected}
+              onGone={(openId) => open(openId ?? null)}
+            />
           ) : termId !== undefined && !terms.isPending ? (
             <EmptyState
               title={t('register.gone')}

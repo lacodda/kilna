@@ -3,4 +3,12 @@
 /**
  * A note as it stood when a change to it was proposed.
  */
-export type NoteBefore = { title?: string, body: string, tags?: Array<string>, };
+export type NoteBefore = { title?: string, body: string, tags?: Array<string>, 
+/**
+ * Its kind then (v0.171): what a change of kind is read against.
+ */
+kind?: string, 
+/**
+ * The title of the work it stood on then; none for a note on no work.
+ */
+work?: string, };

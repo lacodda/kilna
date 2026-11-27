@@ -6,7 +6,7 @@ use serde_json::{Map, Value, json};
 use crate::assistant::apply;
 use crate::assistant::proposal::Proposal;
 use crate::error::{Error, Result};
-use crate::mcp::call::{Call, arg, find_work, pretty};
+use crate::mcp::call::{Call, Page, arg, find_work, pretty};
 use crate::mcp::deliver::deliver;
 use crate::mcp::schema::section_schema;
 use crate::profile::config::SectionShape;
@@ -55,18 +55,17 @@ fn read_canon(
 
     if args.get("timeline").and_then(Value::as_bool) == Some(true) {
         let dated = view::timeline(conn, profile_id, card.as_ref().map(|c| c.id.as_str()))?;
-        return pretty(
-            &dated
-                .into_iter()
-                .map(|one| {
-                    json!({
-                        "card": one.fact.note_id, "card_title": one.card_title, "fact": one.fact.id,
-                        "text": one.fact.body, "when": one.fact.when, "layer": one.fact.layer,
-                        "status": one.fact.status, "read_by": one.lenses,
-                    })
+        let facts = dated
+            .into_iter()
+            .map(|one| {
+                json!({
+                    "card": one.fact.note_id, "card_title": one.card_title, "fact": one.fact.id,
+                    "text": one.fact.body, "when": one.fact.when, "layer": one.fact.layer,
+                    "status": one.fact.status, "read_by": one.lenses,
                 })
-                .collect::<Vec<_>>(),
-        );
+            })
+            .collect::<Vec<_>>();
+        return pretty(&Page::of(args, 200).cut("facts", facts));
     }
 
     if let Some(query) = arg(args, "query") {
@@ -83,7 +82,7 @@ fn read_canon(
                 "source": one.source,
             }));
         }
-        return pretty(&hits);
+        return pretty(&Page::of(args, 100).cut("facts", hits));
     }
 
     if let Some(card) = card {
@@ -198,9 +197,28 @@ fn read_canon(
             ..view::CardFilter::default()
         },
     )?;
+    // The cards a page at a time (v0.171): a world of five hundred cards is
+    // walked, not swallowed. Short, they are their names alone - and the
+    // vocabulary of kinds and shapes, said once, is left out.
+    let page = Page::of(args, 200);
+    let root = index.root(config);
+    if page.summary {
+        let mut answer = page.cut(
+            "cards",
+            cards
+                .iter()
+                .map(|c| json!({ "id": c.id, "kind": c.kind, "title": c.title, "layer": c.layer }))
+                .collect(),
+        );
+        answer.insert("has_root_card".into(), json!(root.is_some()));
+        answer.insert(
+            "root_card_id".into(),
+            json!(root.map(|card| card.id.clone())),
+        );
+        return pretty(&answer);
+    }
     // Whether the space has its passport, and what each shape of section
     // carries beside an entry's words (v0.144).
-    let root = index.root(config);
     let schemas: Map<String, Value> = [
         SectionShape::Facts,
         SectionShape::Slots,
@@ -220,7 +238,20 @@ fn read_canon(
         (key, section_schema(shape))
     })
     .collect();
-    pretty(&json!({
+    let listed = page.cut(
+        "cards",
+        cards
+            .iter()
+            .map(|c| {
+                json!({
+                    "id": c.id, "kind": c.kind, "title": c.title, "aliases": c.aliases,
+                    "layer": c.layer, "lives_at_work": c.work_title, "facts": c.facts,
+                    "drafts": c.drafts, "open": c.open,
+                })
+            })
+            .collect(),
+    );
+    let mut answer = json!({
         "has_root_card": root.is_some(),
         "root_card_id": root.map(|card| card.id.clone()),
         "section_schemas": schemas,
@@ -231,11 +262,11 @@ fn read_canon(
             })).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
         "relation_kinds": config.relation_kinds,
-        "cards": cards.iter().map(|c| json!({
-            "id": c.id, "kind": c.kind, "title": c.title, "aliases": c.aliases, "layer": c.layer,
-            "lives_at_work": c.work_title, "facts": c.facts, "drafts": c.drafts, "open": c.open,
-        })).collect::<Vec<_>>(),
-    }))
+    });
+    if let Some(object) = answer.as_object_mut() {
+        object.extend(listed);
+    }
+    pretty(&answer)
 }
 
 /// `propose_canon`: cards, facts, relations, pictures and descriptions for

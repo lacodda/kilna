@@ -175,8 +175,17 @@ pub(super) fn tools() -> Vec<Value> {
              what it was made from (`sources`, with whether the source has moved on \
              since) and what was made from it (`derived`); for a work that never goes out \
              itself, its `publications` - everything made from it, with where each stands. \
-             Bodies are not included — read one with `text`; the storyboard with `scenes`.",
-            json!({ "work": work_arg() }),
+             Bodies are not included — read one with `text`; the storyboard with `scenes`. \
+             The versions come a page at a time (`limit`, `offset`; `total_versions`, \
+             `has_more_versions`); `summary: true` gives the card's head alone - what it is, \
+             where it stands, each role with how many versions it has and which is current, \
+             and counts of the rest.",
+            json!({
+                "work": work_arg(),
+                "limit": limit_arg(100),
+                "offset": offset_arg(),
+                "summary": summary_arg("id, title, kind, status, stage, tags, each role with its count and current version, the latest total and counts of releases, notes, scenes, sources and derived"),
+            }),
             &["work"],
         ),
         tool(
@@ -375,8 +384,14 @@ pub(super) fn tools() -> Vec<Value> {
              that writes a text out of it. Narrow by `branch`, by `type`, by `composition` (its \
              types, in its order) or by `query` (a substring of the name, the phrase or the \
              explanation, in any language). Without any of them: each type with its branch and \
-             how many bricks it has.",
+             how many bricks it has. The bricks come a page at a time (`bricks`, with `total`, \
+             `limit`, `offset`, `has_more`); `summary` leaves the phrases and explanations \
+             out; `brick` reads one whole by its id.",
             json!({
+                "brick": text_arg("One brick, by its id: read whole"),
+                "limit": limit_arg(100),
+                "offset": offset_arg(),
+                "summary": summary_arg("id, type, name, family, status, branch, whether it is a house brick and starred"),
                 "branch": text_arg("`picture`, `motion` or a composition key"),
                 "type": text_arg("A style type key, as `workspace` lists them"),
                 "composition": text_arg("A composition key, as `workspace` lists them"),
@@ -472,8 +487,16 @@ pub(super) fn tools() -> Vec<Value> {
             "The storyboard of a work, in order: each scene's number, section, seconds, kind of \
              shot (a key of the kind's `shot_types`), layer (a key of the kind's `layers`), description and prompt blocks (by the kind's \
              `scene_blocks` key). The shared context is the current version of the `context` \
-             role — read it with `text`. Empty for a kind with no storyboard.",
-            json!({ "work": work_arg() }),
+             role — read it with `text`. Empty for a kind with no storyboard. The scenes come \
+             a page at a time (`scenes`, with `total`, `limit`, `offset`, `has_more`); `summary` \
+             leaves the prompt blocks out; `scene` reads one whole by its number or id.",
+            json!({
+                "work": work_arg(),
+                "scene": text_arg("One scene of the board, by its number or its id: read whole"),
+                "limit": limit_arg(100),
+                "offset": offset_arg(),
+                "summary": summary_arg("id, number, section, seconds, kind of shot, layer, the first words of the description and how much is written"),
+            }),
             &["work"],
         ),
         tool(
@@ -826,7 +849,10 @@ pub(super) fn tools() -> Vec<Value> {
              made when there is none. A note can carry `tags` and a `layer` (who may read it). \
              `note` - the id or the exact title of a note that is there - proposes a CHANGE to \
              it rather than a second note: give only what changes (a new `body`, `title`, \
-             `tags`), and the person reads was against becomes before agreeing. `notes` \
+             `tags`), and the person reads was against becomes before agreeing. A change may \
+             also move the note - `to_work` names the work it goes to, `off_work: true` takes \
+             it off its work - and make it another `kind`; a card of the canon is neither \
+             moved nor made another kind (`propose_canon` changes it). `notes` \
              proposes several at once, each an object of these same fields: they wait as one \
              proposal, kept whole or note by note.",
             json!({
@@ -840,9 +866,11 @@ pub(super) fn tools() -> Vec<Value> {
                 "tags": { "type": "array", "items": { "type": "string" }, "description": "The note's tags; for a change, the tags it will have" },
                 "layer": text_arg("Who may read it: public, internal or inWorks; optional"),
                 "note": text_arg("A note that is there, by id or exact title: propose a change to it"),
+                "to_work": text_arg("With `note`: the work the note is moved to, by id or exact title"),
+                "off_work": { "type": "boolean", "description": "With `note`: take the note off its work, to stand on none" },
                 "notes": {
                     "type": "array",
-                    "description": "Several notes in one proposal: [{body, title?, kind?, attribution?, shelf?, tags?, layer?, note?}]",
+                    "description": "Several notes in one proposal: [{body, title?, kind?, attribution?, shelf?, tags?, layer?, note?, to_work?, off_work?}]",
                     "items": {}
                 },
             }),
@@ -865,14 +893,17 @@ pub(super) fn tools() -> Vec<Value> {
              shape of section carries beside its words. A long card is read in parts: \
              `summary: true` gives its head, its summary and how many facts each section \
              holds; `section` and `status` narrow the facts; `limit` and `offset` page them \
-             (`total_facts`, `has_more`). `card: \"root\"` is the passport.",
+             (`total_facts`, `has_more`). `card: \"root\"` is the passport. Without `card` \
+             the cards, the facts a `query` finds and the `timeline` come a page at a time \
+             too (`total`, `limit`, `offset`, `has_more`), and `summary: true` gives the \
+             cards by name alone - id, kind, title, layer - without the kinds and schemas.",
             json!({
                 "card": text_arg("A card: its id, its exact name or alias, or root for the passport"),
-                "summary": { "type": "boolean", "description": "With `card`: its head, summary and counts by section, no facts" },
+                "summary": { "type": "boolean", "description": "With `card`: its head, summary and counts by section, no facts. Without: the cards by name alone" },
                 "section": text_arg("With `card`: only the facts of this section key"),
                 "status": text_arg("With `card`: only facts in this state - canon, draft, open or retired"),
-                "limit": { "type": "integer", "description": "With `card`: at most this many facts" },
-                "offset": { "type": "integer", "description": "With `card`: skip this many facts first" },
+                "limit": { "type": "integer", "description": "At most this many: facts of `card`, or cards, found facts or dated facts without it (200 cards by default)" },
+                "offset": { "type": "integer", "description": "Skip this many first" },
                 "kind": text_arg("Only cards of this kind, as the list names them"),
                 "lens": { "type": "string", "enum": ["cover", "work", "public"], "description": "Read the card as this task may: cover, work or public" },
                 "query": text_arg("Search the facts for these words"),

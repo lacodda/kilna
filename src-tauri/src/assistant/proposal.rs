@@ -71,6 +71,18 @@ pub struct ProposedNote {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub origin_work_id: Option<String>,
+    /// The work a note that is there is moved to, by id (v0.171).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub to_work_id: Option<String>,
+    /// That work's title, for a person to read. Shown, never read back.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub to_work: Option<String>,
+    /// A note that is there is taken off its work, to stand on none.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(optional, as = "Option<bool>")]
+    pub off_work: bool,
     /// What that note held when the change was proposed, for a person to
     /// read was against becomes. Shown, never read back.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -87,6 +99,14 @@ pub struct NoteBefore {
     pub body: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    /// Its kind then (v0.171): what a change of kind is read against.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub kind: Option<String>,
+    /// The title of the work it stood on then; none for a note on no work.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub work: Option<String>,
 }
 
 /// What an answer proposed, if anything.

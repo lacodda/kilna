@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { changedLines, countChanges, diffLines } from '@/lib/diff'
+import { changedLines, countChanges, diffLines, diffWords } from '@/lib/diff'
 
 /** `s:`/`a:`/`r:` prefixes, so a whole result reads on one line. */
 const kinds = (before: string, after: string) =>
@@ -83,5 +83,31 @@ describe('changedLines', () => {
     const lines = changedLines(diffLines('a\nb', 'a\nb'))
     expect(lines.added.size).toBe(0)
     expect(lines.removed.size).toBe(0)
+  })
+})
+
+describe('a diff by the word (v0.171)', () => {
+  it('keeps what stands, and reads back each side exactly as written', () => {
+    const before = 'the road as a witness\n\nand nothing more'
+    const after = 'the road as a judge\n\nand nothing more'
+    const changes = diffWords(before, after)
+    expect(changes).toEqual([
+      { kind: 'same', text: 'the road as a ' },
+      { kind: 'removed', text: 'witness' },
+      { kind: 'added', text: 'judge' },
+      { kind: 'same', text: '\n\nand nothing more' },
+    ])
+    const side = (drop: 'added' | 'removed') =>
+      changes
+        .filter((change) => change.kind !== drop)
+        .map((change) => change.text)
+        .join('')
+    expect(side('added')).toBe(before)
+    expect(side('removed')).toBe(after)
+  })
+
+  it('says nothing changed of the same text, and everything of a new one', () => {
+    expect(diffWords('one two', 'one two')).toEqual([{ kind: 'same', text: 'one two' }])
+    expect(diffWords('', 'one two')).toEqual([{ kind: 'added', text: 'one two' }])
   })
 })

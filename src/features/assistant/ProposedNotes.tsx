@@ -5,6 +5,7 @@ import { keys } from '@/lib/query/keys'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Checkbox } from '@/components/ui/checkbox'
+import { WordDiff } from '@/components/WordDiff'
 import { ProposalCard } from '@/features/assistant/ProposalCard'
 
 interface Props {
@@ -27,7 +28,9 @@ const itemOf = (index: number) => `note:${String(index)}`
  * for the canon are read: one note that misses must not cost the rest. A
  * change is shown against what the note held when it was proposed - its
  * title, its tags, its text - because "the assistant changed your note" is
- * agreed to only by someone who has seen what it changes.
+ * agreed to only by someone who has seen what it changes. The text is read
+ * word by word, as one text (v0.171), and a note sent to another work or
+ * made another kind says from what to what.
  */
 export function ProposedNotes({ messageId, proposal, applied, dismissed }: Props) {
   const { t } = useTranslation()
@@ -100,8 +103,10 @@ function OneNote({ note }: { note: ProposedNote }) {
   const before = note.before
   const tags = note.tags ?? []
 
+  const kinds = config.note_kinds ?? []
+  // A change of kind is said as a change, below; here only a new note's.
   const said = [
-    note.kind !== undefined ? labelOf(config.note_kinds ?? [], note.kind) : null,
+    note.kind !== undefined && before === undefined ? labelOf(kinds, note.kind) : null,
     note.attribution !== undefined ? `— ${note.attribution}` : null,
     note.shelf !== undefined ? t('assistant.noteOnShelf', { shelf: note.shelf }) : null,
     note.layer !== undefined ? t(LAYER_KEYS[note.layer]) : null,
@@ -124,6 +129,8 @@ function OneNote({ note }: { note: ProposedNote }) {
   const beforeTags = before.tags ?? []
   const retagged = tags.length > 0 && tags.join('\u0000') !== beforeTags.join('\u0000')
   const rewritten = note.body.trim() !== '' && note.body.trim() !== before.body.trim()
+  const rekinded = note.kind !== undefined && before.kind !== undefined && note.kind !== before.kind
+  const moved = note.off_work === true || note.to_work !== undefined
 
   return (
     <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -146,10 +153,27 @@ function OneNote({ note }: { note: ProposedNote }) {
           becomes={tags.join(', ')}
         />
       )}
-      {rewritten && (
-        <Change label={t('assistant.noteText')} was={before.body} becomes={note.body} long />
+      {rekinded && (
+        <Change
+          label={t('assistant.noteKind')}
+          was={labelOf(kinds, before.kind ?? '')}
+          becomes={labelOf(kinds, note.kind ?? '')}
+        />
       )}
-      {!retitled && !retagged && !rewritten && (
+      {moved && (
+        <Change
+          label={t('assistant.noteMoved')}
+          was={before.work ?? t('assistant.noteNoWork')}
+          becomes={note.to_work ?? t('assistant.noteNoWork')}
+        />
+      )}
+      {rewritten && (
+        <span className="flex flex-col gap-0.5">
+          <span className="caption">{t('assistant.noteText')}</span>
+          <WordDiff was={before.body} becomes={note.body} />
+        </span>
+      )}
+      {!retitled && !retagged && !rewritten && !rekinded && !moved && (
         <span className="text-faint">{t('assistant.noteSame')}</span>
       )}
     </span>
@@ -163,22 +187,12 @@ const LAYER_KEYS: Record<NonNullable<ProposedNote['layer']>, string> = {
   inWorks: 'assistant.noteLayer.inWorks',
 }
 
-/** One thing a change changes: what it was, and what it becomes. */
-function Change({
-  label,
-  was,
-  becomes,
-  long = false,
-}: {
-  label: string
-  was: string
-  becomes: string
-  long?: boolean
-}) {
+/** One short thing a change changes: what it was, and what it becomes. */
+function Change({ label, was, becomes }: { label: string; was: string; becomes: string }) {
   const { t } = useTranslation()
   // A note's words, as they are and as they would be: text a person may
   // want to copy out, so it can be selected.
-  const block = long ? 'selectable line-clamp-6 whitespace-pre-wrap' : 'selectable truncate'
+  const block = 'selectable truncate'
   return (
     <span className="flex flex-col gap-0.5">
       <span className="caption">{label}</span>

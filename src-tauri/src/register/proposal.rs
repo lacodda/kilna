@@ -659,7 +659,7 @@ pub fn keep(conn: &Connection, package: WordsPackage, items: Option<&[String]>) 
 /// what the one held - its kind, its strictness, its topic and note, the
 /// works named for it - the ways of singing going to the part they are a
 /// way of singing, and the one itself to the trash. The ids of the parts.
-fn split(
+pub(crate) fn split(
     conn: &Connection,
     profile_id: &str,
     found: &super::Term,

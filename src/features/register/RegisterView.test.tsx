@@ -38,6 +38,7 @@ function entry(id: string, word: string, extra: Partial<RegisterEntry>): Registe
 }
 
 const TERMS: RegisterEntry[] = [
+  entry('t-two', 'spacesuit, isotope', { uses: 0 }),
   entry('t-water', 'water', { uses: 2, topic: 'the harbour' }),
   entry('t-lantern', 'lantern', { strictness: 'ban', uses: 7 }),
   entry('t-drink', 'a lighthouse nobody keeps', { kind: 'image', uses: 1 }),
@@ -126,6 +127,55 @@ describe('the register', () => {
     await settled(client)
 
     expect(backend.argsOf('update_term')).toEqual([{ id: 't-water', patch: { scope: 'title' } }])
+  })
+})
+
+describe('a word reshaped in its own editor (v0.171)', () => {
+  it('warns of a word of several and splits it at its commas', async () => {
+    backend.answer('split_term', () => [entry('t-a', 'spacesuit', {}), entry('t-b', 'isotope', {})])
+    const { client, main } = await register('/register/t-two')
+    expect(await within(main).findByText(en.register.wordSeparator)).toBeInTheDocument()
+
+    fireEvent.click(within(main).getAllByRole('button', { name: en.register.split })[0]!)
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('textbox')).toHaveValue('spacesuit, isotope')
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: en.register.splitDo_other.replace('{{count}}', '2'),
+      }),
+    )
+    await settled(client)
+
+    expect(backend.argsOf('split_term')).toEqual([{ id: 't-two', into: ['spacesuit', 'isotope'] }])
+  })
+
+  it('warns while a word is retyped with a slash, and says nothing of a plain one', async () => {
+    const { main } = await register('/register/t-water')
+    const word = await within(main).findByRole('textbox', { name: en.register.word })
+    expect(within(main).queryByText(en.register.wordSeparator)).toBeNull()
+
+    fireEvent.change(word, { target: { value: 'water / sea' } })
+    expect(within(main).getByText(en.register.wordSeparator)).toBeInTheDocument()
+  })
+
+  it('merges a word into the one picked', async () => {
+    backend.answer('merge_terms', () => entry('t-lantern', 'lantern', { forms: ['water'] }))
+    const { client, main } = await register('/register/t-water')
+    fireEvent.click(await within(main).findByRole('button', { name: en.register.merge }))
+    const dialog = await screen.findByRole('dialog')
+    // The word itself is not offered to itself.
+    expect(within(dialog).queryByRole('button', { name: /^water/ })).toBeNull()
+
+    fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'lant' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^lantern/ }))
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: en.register.mergeDo.replace('{{word}}', 'water').replace('{{into}}', 'lantern'),
+      }),
+    )
+    await settled(client)
+
+    expect(backend.argsOf('merge_terms')).toEqual([{ id: 't-water', intoId: 't-lantern' }])
   })
 })
 

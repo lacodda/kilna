@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight, Link2, Trash2, X } from 'lucide-react'
+import { ArrowUpRight, Link2, Merge, Split, Trash2, X } from 'lucide-react'
 import { deleteTerm, linkTerm, unlinkTerm, updateTerm } from '@/lib/api/register'
 import type { RegisterEntry, TermPatch, TermScope } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { isWording, splitForms, TERM_SCOPES } from '@/lib/register'
+import { isWording, readsAsSeveral, splitForms, TERM_SCOPES } from '@/lib/register'
 import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -27,11 +27,13 @@ import {
   SungEditor,
   TopicField,
 } from '@/features/register/TermFields'
+import { MergeTermDialog, SplitTermDialog } from '@/features/register/TermReshape'
 
 interface Props {
   entry: RegisterEntry
-  /** The term left: deleted. */
-  onGone: () => void
+  /** The term left: deleted, split into its parts, or gone into another -
+   *  whose id is then given, for the list to open. */
+  onGone: (openId?: string) => void
 }
 
 /**
@@ -53,6 +55,7 @@ export function TermDetail({ entry, onGone }: Props) {
   const [topic, setTopic] = useState(entry.topic ?? '')
   const [note, setNote] = useState(entry.note ?? '')
   const [naming, setNaming] = useState(false)
+  const [reshaping, setReshaping] = useState<'split' | 'merge' | null>(null)
 
   const uses = useQuery(queries.termUses(entry.id))
 
@@ -129,6 +132,24 @@ export function TermDetail({ entry, onGone }: Props) {
           />
           <Button
             size="icon-sm"
+            variant="icon"
+            title={t('register.split')}
+            aria-label={t('register.split')}
+            onClick={() => setReshaping('split')}
+          >
+            <Split aria-hidden />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="icon"
+            title={t('register.merge')}
+            aria-label={t('register.merge')}
+            onClick={() => setReshaping('merge')}
+          >
+            <Merge aria-hidden />
+          </Button>
+          <Button
+            size="icon-sm"
             variant="danger"
             title={t('register.delete')}
             aria-label={t('register.delete')}
@@ -140,6 +161,20 @@ export function TermDetail({ entry, onGone }: Props) {
         </>
       }
     >
+      {/* One word of the record is one thing a text can say (v0.171): the
+          warning the new-term dialog and a proposal give, given here too -
+          while it is typed, and for a word kept that way before. */}
+      {readsAsSeveral(word) && (
+        <p role="status" className="flex flex-wrap items-center gap-2 text-xs text-warn">
+          <span className="min-w-0 flex-1">{t('register.wordSeparator')}</span>
+          {readsAsSeveral(entry.word) && (
+            <Button size="xs" variant="soft" onClick={() => setReshaping('split')}>
+              <Split aria-hidden />
+              {t('register.split')}
+            </Button>
+          )}
+        </p>
+      )}
       {wording && (
         <div className="flex flex-col gap-1.5">
           <span className="caption">{t('words.sung')}</span>
@@ -289,6 +324,24 @@ export function TermDetail({ entry, onGone }: Props) {
         )}
       </section>
 
+      {reshaping === 'split' && (
+        <SplitTermDialog
+          entry={entry}
+          onOpenChange={(open) => {
+            if (!open) setReshaping(null)
+          }}
+          onDone={() => onGone()}
+        />
+      )}
+      {reshaping === 'merge' && (
+        <MergeTermDialog
+          entry={entry}
+          onOpenChange={(open) => {
+            if (!open) setReshaping(null)
+          }}
+          onDone={(intoId) => onGone(intoId)}
+        />
+      )}
       <PickWorkDialog
         open={naming}
         onOpenChange={setNaming}

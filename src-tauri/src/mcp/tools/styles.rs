@@ -5,7 +5,7 @@ use serde_json::{Map, Value, json};
 
 use crate::assistant::proposal::Proposal;
 use crate::error::{Error, Result};
-use crate::mcp::call::{Call, arg, find_work, pretty};
+use crate::mcp::call::{Call, Page, arg, find_work, pretty};
 use crate::mcp::deliver::deliver;
 
 /// `styles`: the dictionary a prompt is built from.
@@ -39,7 +39,18 @@ fn read_styles(
     };
     let query = arg(args, "query").map(str::to_lowercase);
     let branch = arg(args, "branch");
-    if type_key.is_none() && composition.is_none() && query.is_none() && branch.is_none() {
+    let brick = arg(args, "brick");
+    if let Some(named) = brick
+        && !all.iter().any(|b| b.id == named)
+    {
+        return Err(Error::refused("mcp.unknownBrick").param("named", named));
+    }
+    if type_key.is_none()
+        && composition.is_none()
+        && query.is_none()
+        && branch.is_none()
+        && brick.is_none()
+    {
         let types: Vec<Value> = config
             .style_types
             .iter()
@@ -57,6 +68,7 @@ fn read_styles(
     let house = crate::phrase::house(conn, profile_id)?;
     let mut rows: Vec<&crate::style_brick::StyleBrick> = all
         .iter()
+        .filter(|b| brick.is_none_or(|id| b.id == id))
         .filter(|b| type_key.is_none_or(|key| b.type_key == key))
         .filter(|b| branch.is_none_or(|branch| config.branch_of(&b.type_key) == branch))
         .filter(|b| composition.is_none_or(|c| c.types().any(|key| key == b.type_key)))
@@ -81,9 +93,19 @@ fn read_styles(
         };
         rows.sort_by_key(|b| place(&b.type_key));
     }
+    // A page of them, short or whole (v0.171): a dictionary of a thousand
+    // phrases with their explanations is not read in one answer.
+    let page = Page::of(args, 100);
     let out: Vec<Value> = rows
         .into_iter()
         .map(|b| {
+            if page.summary && brick.is_none() {
+                return json!({
+                    "id": b.id, "type": b.type_key, "name": b.name, "family": b.family,
+                    "house": house.contains(&b.id), "status": b.status,
+                    "favorite": b.favorite, "branch": config.branch_of(&b.type_key),
+                });
+            }
             json!({
                 "id": b.id, "type": b.type_key, "name": b.name, "family": b.family,
                 "phrase": b.description, "explanation": b.explanation, "when": b.when_to_use,
@@ -92,7 +114,11 @@ fn read_styles(
             })
         })
         .collect();
-    pretty(&out)
+    // One brick whole, by its id: what a summary is read down to.
+    if brick.is_some() {
+        return pretty(&out.into_iter().next());
+    }
+    pretty(&page.cut("bricks", out))
 }
 
 /// The bricks an agent named for a composed text, by id or exact name - a

@@ -678,3 +678,35 @@ fn a_package_holding_only_a_release_is_not_empty() {
 
     assert!(answer.contains("1 release"), "{answer}");
 }
+
+#[test]
+fn a_card_is_read_short_and_its_versions_a_page_at_a_time() {
+    let (conn, _) = workspace();
+    let profile_id = profile::active(&conn).unwrap().unwrap().id;
+    let song = fixtures::song(&conn, &profile_id, "Tide");
+    for (n, current) in [(1, false), (2, false), (3, true)] {
+        crate::work::version::create(
+            &conn,
+            &song.id,
+            crate::work::version::NewVersion {
+                role: "lyrics".into(),
+                body: format!("draft {n}"),
+                make_current: current,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    }
+
+    let short = read(&conn, "work", json!({ "work": song.id, "summary": true }));
+    assert_eq!(short["title"], "Tide");
+    assert_eq!(short["roles"]["lyrics"]["versions"], 3);
+    assert!(short["roles"]["lyrics"]["current"].is_string());
+    assert!(short.get("versions").is_none() && short.get("cover").is_none());
+    assert_eq!(short["notes"], 0);
+
+    let page = read(&conn, "work", json!({ "work": song.id, "limit": 2 }));
+    assert_eq!(page["total_versions"], 3);
+    assert_eq!(page["has_more_versions"], true);
+    assert_eq!(page["versions"]["lyrics"].as_array().unwrap().len(), 2);
+}

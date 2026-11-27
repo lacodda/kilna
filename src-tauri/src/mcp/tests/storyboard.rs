@@ -252,3 +252,54 @@ fn a_new_video_can_bring_its_storyboard_in_the_package() {
         "a song takes no scenes: {err}"
     );
 }
+
+#[test]
+fn a_board_is_read_a_page_at_a_time_short_or_one_scene_whole() {
+    let (conn, _) = workspace();
+    let profile_id = profile::active(&conn).unwrap().unwrap().id;
+    let video_id = video(&conn);
+    for (section, words) in [
+        ("intro", "the harbour at dawn"),
+        ("verse 1", "hands on a rope"),
+    ] {
+        scene::create(
+            &conn,
+            &profile_id,
+            scene::NewScene {
+                work_id: video_id.clone(),
+                section: Some(section.into()),
+                description: Some(words.into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    }
+
+    let whole = read(&conn, "scenes", json!({ "work": video_id }));
+    assert_eq!(whole["total"], 2);
+    assert_eq!(whole["has_more"], false);
+    assert!(whole["scenes"][0]["blocks"].is_object());
+
+    let first = read(
+        &conn,
+        "scenes",
+        json!({ "work": video_id, "limit": 1, "summary": true }),
+    );
+    assert_eq!(first["has_more"], true);
+    let short = &first["scenes"][0];
+    assert_eq!(short["position"], 1);
+    assert_eq!(short["description"], "the harbour at dawn");
+    assert!(short.get("blocks").is_none(), "a summary has no blocks");
+
+    let second = read(&conn, "scenes", json!({ "work": video_id, "scene": "2" }));
+    assert_eq!(second["section"], "verse 1");
+    assert!(second["blocks"].is_object());
+    let refused = run_tool(
+        &conn,
+        &claude(),
+        "scenes",
+        &args(json!({ "work": video_id, "scene": "9" })),
+    )
+    .unwrap_err();
+    assert_eq!(refused.reason().key, "refusal.mcp.unknownScene");
+}

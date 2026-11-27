@@ -401,6 +401,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::register::create_term,
             commands::register::update_term,
             commands::register::delete_term,
+            commands::register::split_term,
+            commands::register::merge_terms,
             commands::register::link_term,
             commands::register::unlink_term,
             commands::register::check_text,

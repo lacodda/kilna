@@ -58,6 +58,20 @@ pub fn delete_term(state: State<'_, AppState>, id: String) -> Result<String> {
     actions::trash::discard(&state.conn(), Entity::Term, &id)
 }
 
+/// Make one word of the record into several: each part with what the one
+/// held, the one itself to the trash.
+#[tauri::command]
+pub fn split_term(state: State<'_, AppState>, id: String, into: Vec<String>) -> Result<Vec<Term>> {
+    actions::register::split(&state.conn(), &id, &into)
+}
+
+/// Make two words of the record one: `id` becomes a form of `into_id` and
+/// goes to the trash, the works named for it named for the other.
+#[tauri::command]
+pub fn merge_terms(state: State<'_, AppState>, id: String, into_id: String) -> Result<Term> {
+    actions::register::merge(&state.conn(), &id, &into_id)
+}
+
 #[tauri::command]
 pub fn link_term(state: State<'_, AppState>, term_id: String, work_id: String) -> Result<()> {
     actions::register::link(&state.conn(), &term_id, &work_id)

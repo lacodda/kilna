@@ -32,6 +32,18 @@ note?: string,
  */
 origin_work_id?: string, 
 /**
+ * The work a note that is there is moved to, by id (v0.171).
+ */
+to_work_id?: string, 
+/**
+ * That work's title, for a person to read. Shown, never read back.
+ */
+to_work?: string, 
+/**
+ * A note that is there is taken off its work, to stand on none.
+ */
+off_work?: boolean, 
+/**
  * What that note held when the change was proposed, for a person to
  * read was against becomes. Shown, never read back.
  */

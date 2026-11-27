@@ -1,16 +1,17 @@
 //! The storyboard of a video or a short.
 
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::assistant::apply;
 use crate::assistant::proposal::{self, BoardChange, Proposal};
 use crate::error::{Error, Result};
-use crate::mcp::call::{Call, find_work, pretty, required};
+use crate::mcp::call::{Call, Page, arg, find_work, length_of, pretty, required};
 use crate::mcp::deliver::deliver;
 use crate::scene;
 use crate::speech::Speech;
 
-/// `scenes`: the storyboard of a work, in order.
+/// `scenes`: the storyboard of a work, in order - a page at a time, short
+/// or whole, or one scene by its number or id (v0.171).
 pub(super) fn scenes(call: &Call) -> Result<String> {
     let Call {
         conn,
@@ -19,7 +20,54 @@ pub(super) fn scenes(call: &Call) -> Result<String> {
         ..
     } = *call;
     let found = find_work(conn, &profile.id, required(args, "work")?)?;
-    pretty(&scene::for_work(conn, &found.id)?)
+    let board = scene::for_work(conn, &found.id)?;
+    // One scene whole: what a summary of the board is read down to.
+    let named = arg(args, "scene").map(str::to_owned).or_else(|| {
+        args.get("scene")
+            .and_then(Value::as_u64)
+            .map(|number| number.to_string())
+    });
+    if let Some(named) = named {
+        let one = board
+            .iter()
+            .find(|scene| scene.id == named || scene.position.to_string() == named)
+            .ok_or_else(|| Error::refused("mcp.unknownScene").param("scene", named))?;
+        return pretty(one);
+    }
+    let page = Page::of(args, 100);
+    let mut scenes = Vec::with_capacity(board.len());
+    for one in &board {
+        let whole = serde_json::to_value(one)?;
+        scenes.push(if page.summary {
+            scene_summary(&whole)
+        } else {
+            whole
+        });
+    }
+    pretty(&page.cut("scenes", scenes))
+}
+
+/// A scene as a summary gives it: where it stands, what it is and the first
+/// words of what happens in it, without its prompt blocks.
+fn scene_summary(scene: &Value) -> Value {
+    let description = scene["description"].as_str().unwrap_or_default();
+    let written: usize = scene["blocks"]
+        .as_object()
+        .map(|blocks| {
+            blocks
+                .values()
+                .filter_map(Value::as_str)
+                .map(length_of)
+                .sum()
+        })
+        .unwrap_or(0);
+    json!({
+        "id": scene["id"], "position": scene["position"], "section": scene["section"],
+        "starts_at": scene["starts_at"], "ends_at": scene["ends_at"],
+        "shot_type": scene["shot_type"], "layer": scene["layer"],
+        "description": description.chars().take(120).collect::<String>(),
+        "length": length_of(description) + written,
+    })
 }
 
 /// `propose_scenes`: a storyboard added to the board, replacing it or

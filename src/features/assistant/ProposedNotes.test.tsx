@@ -43,7 +43,7 @@ const WORDS: WordsPackage = {
 
 let backend: Backend
 
-function serve(proposal: Record<string, unknown>) {
+function serve(proposal: Record<string, unknown>, applied?: Applied) {
   const message: Message = {
     id: MESSAGE,
     chat_id: CHAT,
@@ -51,7 +51,9 @@ function serve(proposal: Record<string, unknown>) {
     body: 'A proposal.',
     // A proposal as it is stored: plain JSON, whatever the window's types
     // say about its optional parts.
-    meta: { proposal } as unknown as Message['meta'],
+    meta: (applied === undefined
+      ? { proposal }
+      : { proposal, applied }) as unknown as Message['meta'],
     created_at: NOW,
   }
   backend = mockBackend({
@@ -97,8 +99,13 @@ describe('notes proposed several at once', () => {
     // The change: called by the note it changes, with was and becomes.
     expect(within(card).getByText('Concept')).toBeInTheDocument()
     expect(within(card).getByText(en.assistant.noteChange)).toBeInTheDocument()
-    expect(within(card).getByText('the road as a witness')).toBeInTheDocument()
-    expect(within(card).getByText('the road as a witness, and a judge')).toBeInTheDocument()
+    // The text as one text, read by the word (v0.171): what goes struck
+    // through, what comes beside it, the rest standing once.
+    const gone = card.querySelector('del')!
+    const come = card.querySelector('ins')!
+    expect(gone).toHaveTextContent('witness')
+    expect(come).toHaveTextContent('witness, and a judge')
+    expect(gone.parentElement).toHaveTextContent('the road as a witnesswitness, and a judge')
     expect(within(card).getByText('idea, road')).toBeInTheDocument()
     // The new one, with who may read it.
     expect(within(card).getByText('Bridge')).toBeInTheDocument()
@@ -118,6 +125,54 @@ describe('notes proposed several at once', () => {
       messageId: MESSAGE,
       overrides: { items: ['note:0'] },
     })
+  })
+})
+
+describe('a note sent elsewhere, and what was kept in part (v0.171)', () => {
+  it('says the work a note moves to and the kind it becomes, from what to what', async () => {
+    const moved: ProposedNote = {
+      body: '',
+      note: 'note-concept',
+      kind: 'idea',
+      to_work_id: 'w-ebb',
+      to_work: 'Ebb',
+      before: { title: 'Concept', body: 'the road as a witness', kind: 'note', work: 'Tide' },
+    }
+    serve({ kind: 'notes', notes: [moved] })
+    const { client } = renderApp(`/works/${IDS.song}/assistant`)
+    await settled(client)
+
+    const take = await screen.findByRole('button', { name: en.assistant.keepNotesAll })
+    const card = take.closest('section')!
+    expect(within(card).getByText(en.assistant.noteMoved)).toBeInTheDocument()
+    expect(within(card).getByText('Tide')).toBeInTheDocument()
+    expect(within(card).getByText('Ebb')).toBeInTheDocument()
+    expect(within(card).getByText(en.assistant.noteKind)).toBeInTheDocument()
+    // Its words are left as they are: no text is compared.
+    expect(card.querySelector('del')).toBeNull()
+    expect(within(card).queryByText(en.assistant.noteSame)).toBeNull()
+  })
+
+  it('keeps saying on the applied mark what was not written', async () => {
+    const applied: Applied = {
+      message_id: MESSAGE,
+      at: NOW,
+      terms: ['t-1'],
+      unapplied: [
+        {
+          key: 'refusal.words.fieldNotWritten',
+          params: { word: 'lighthouse', field: 'kind', why: 'its works do not allow it' },
+        },
+      ],
+    }
+    serve({ kind: 'words', package: WORDS }, applied)
+    const { client } = renderApp(`/works/${IDS.song}/assistant`)
+    await settled(client)
+
+    expect(
+      await screen.findByText(en.assistant.keptInPart_one.replace('{{count}}', '1')),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/“lighthouse”: kind was not written/)).toBeInTheDocument()
   })
 })
 

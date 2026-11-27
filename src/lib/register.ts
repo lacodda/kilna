@@ -89,3 +89,22 @@ export function inFacet(word: Pick<Term, 'strictness' | 'sung'>, facet: Facet): 
       return word.strictness === facet
   }
 }
+
+/** Whether a word reads as several: one word of the record is one thing a
+ *  text can say, and a comma or a slash writes two as one. */
+export function readsAsSeveral(word: string): boolean {
+  return /[,/]/.test(word)
+}
+
+/** The words a word that reads as several would be split into: at its
+ *  commas and slashes, trimmed, each once. */
+export function partsOf(word: string): string[] {
+  const parts: string[] = []
+  for (const piece of word.split(/[,/]/)) {
+    const part = piece.trim()
+    if (part !== '' && !parts.some((one) => one.toLowerCase() === part.toLowerCase())) {
+      parts.push(part)
+    }
+  }
+  return parts
+}

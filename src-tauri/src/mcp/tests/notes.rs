@@ -244,3 +244,107 @@ fn notes_are_proposed_several_at_once_and_a_note_is_changed() {
     );
     assert_eq!(unknown.unwrap_err().reason().key, "refusal.mcp.unknownNote");
 }
+
+#[test]
+fn a_note_is_moved_to_another_work_and_made_another_kind_by_a_proposal() {
+    let (conn, _) = workspace();
+    let profile_id = profile::active(&conn).unwrap().unwrap().id;
+    let tide = fixtures::song(&conn, &profile_id, "Tide");
+    let ebb = fixtures::song(&conn, &profile_id, "Ebb");
+    let note = crate::actions::note::create(
+        &conn,
+        crate::note::NewNote {
+            title: Some("The wall".into()),
+            body: "Past the harbour wall.".into(),
+            work_id: Some(tide.id.clone()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let config = profile::active(&conn).unwrap().unwrap().config;
+    let other_kind = config
+        .note_kinds
+        .iter()
+        .find(|kind| !kind.is_card() && kind.key != note.kind)
+        .map(|kind| kind.key.clone())
+        .expect("the craft keeps more than one kind of note");
+
+    // Only a note that is there is moved, and one way.
+    for (bad, key) in [
+        (
+            json!({ "body": "new", "to_work": ebb.id }),
+            "refusal.mcp.moveNeedsNote",
+        ),
+        (
+            json!({ "note": note.id, "to_work": ebb.id, "off_work": true }),
+            "refusal.mcp.moveTwoWays",
+        ),
+    ] {
+        let refused = run_tool(&conn, &claude(), "propose_note", &args(bad)).unwrap_err();
+        assert_eq!(refused.reason().key, key);
+    }
+
+    run_tool(
+        &conn,
+        &claude(),
+        "propose_note",
+        &args(json!({ "note": note.id, "to_work": "Ebb", "kind": other_kind })),
+    )
+    .unwrap();
+    let message = first_message_anywhere(&conn);
+    let proposed = &message.meta["proposal"]["notes"][0];
+    assert_eq!(proposed["to_work_id"], json!(ebb.id));
+    assert_eq!(proposed["before"]["work"], "Tide");
+    assert_eq!(proposed["before"]["kind"], json!(note.kind));
+    assert!(
+        message.body.contains("moved: Tide → Ebb"),
+        "{}",
+        message.body
+    );
+    assert!(message.body.contains("kind: "), "{}", message.body);
+
+    // Nothing is moved until a person keeps it.
+    let still = crate::note::get(&conn, &note.id).unwrap().unwrap();
+    assert_eq!(still.work_id.as_deref(), Some(tide.id.as_str()));
+    crate::actions::proposal::apply(&conn, &message.id, Default::default()).unwrap();
+    let moved = crate::note::get(&conn, &note.id).unwrap().unwrap();
+    assert_eq!(moved.work_id.as_deref(), Some(ebb.id.as_str()));
+    assert_eq!(moved.kind, other_kind);
+    assert_eq!(
+        moved.body, "Past the harbour wall.",
+        "its words are left as they are"
+    );
+
+    // And off its work, to stand on none.
+    run_tool(
+        &conn,
+        &claude(),
+        "propose_note",
+        &args(json!({ "note": note.id, "off_work": true })),
+    )
+    .unwrap();
+    let pending: String = conn
+        .query_row(
+            "SELECT id FROM chat_message WHERE role = 'assistant'
+              ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    crate::actions::proposal::apply(&conn, &pending, Default::default()).unwrap();
+    assert_eq!(
+        crate::note::get(&conn, &note.id).unwrap().unwrap().work_id,
+        None
+    );
+
+    // A card of the canon is not a note to move.
+    let card = fixtures::card(&conn, &profile_id, "character", "Wren");
+    let refused = run_tool(
+        &conn,
+        &claude(),
+        "propose_note",
+        &args(json!({ "note": card.id, "to_work": ebb.id })),
+    )
+    .unwrap_err();
+    assert_eq!(refused.reason().key, "refusal.mcp.cardNotMoved");
+}

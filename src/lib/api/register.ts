@@ -26,6 +26,11 @@ export const updateTerm = (id: string, patch: TermPatch) =>
   invoke<Term>('update_term', { id, patch })
 /** Into the trash, with the works it named. */
 export const deleteTerm = (id: string) => invoke<string>('delete_term', { id })
+/** One word of the record made into several; the parts, as they stand. */
+export const splitTerm = (id: string, into: string[]) => invoke<Term[]>('split_term', { id, into })
+/** Two words of the record made one: `id` goes into `intoId`, which stays. */
+export const mergeTerms = (id: string, intoId: string) =>
+  invoke<Term>('merge_terms', { id, intoId })
 export const linkTerm = (termId: string, workId: string) =>
   invoke<null>('link_term', { termId, workId })
 export const unlinkTerm = (termId: string, workId: string) =>

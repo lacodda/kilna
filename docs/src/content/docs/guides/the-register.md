@@ -140,6 +140,25 @@ register grouped by strictness, meanings last, with what the text already
 takes; `{neighbours}` is the nearest works with their texts. See the
 [profile document](/kilna/reference/profile-document/#template-placeholders).
 
+## Splitting and merging
+
+One word of the record is one thing a text can say. A word written with a
+comma or a slash - *spacesuit, isotope* - reads as several, and is counted as
+neither: the term's editor says so under the word, while you type it and for a
+word kept that way before, as the new-term dialog does.
+
+**Split into several words**, beside the bin, makes each part a word of its
+own with what the whole held - its kind, how strictly it is spent, its topic
+and note, the works named for it - and sends the whole to the trash. The parts
+are offered from its commas and slashes, and you may type them as you like;
+a part the record already keeps is taken as it is.
+
+**Merge into another word** is the other way round: this word becomes a form
+of the one you pick, with its own forms, its ways of singing and the works
+named for it. What the picked word says of itself - its kind, its strictness,
+its topic and note - stands; the word that went is in the trash. Each step is
+a line of the history, and Ctrl+Z walks them back one by one.
+
 ## Deleting
 
 **Delete** sends a term to the [trash](/kilna/guides/the-trash/) with the
