@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.169.0] - 2026-11-27
+
+### Features
+- Read a work's vibe wherever a week is filled, and list planned slots
+
 ## [0.168.1] - 2026-11-26
 
 ### Bug Fixes
