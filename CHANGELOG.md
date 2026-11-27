@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.170.0] - 2026-11-27
+
+### Bug Fixes
+- Break the tie when reading a run's reason, and stop a test waiting for a screen that never settles
+
+### Features
+- Score a text by itself after a kept proposal, and remember what a score judged
+
 ## [0.169.0] - 2026-11-27
 
 ### Features
