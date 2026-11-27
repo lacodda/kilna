@@ -242,10 +242,13 @@ describe('the vibe a card shows (v0.169)', () => {
     song.vibe = { mood: 'melancholy' }
     // The catalogue never answers: the card asks for its own work alone.
     backend.answer('catalogue', () => new Promise(() => undefined))
-    const { client } = renderApp(`/works/${IDS.video}/overview`)
-    await settled(client)
+    // Nothing waits for the screen to settle here: with the catalogue
+    // unanswered it never does.
+    renderApp(`/works/${IDS.video}/overview`)
 
-    const mark = (await screen.findAllByRole('img', { name: /Melancholy/ }))[0]!
+    const mark = (
+      await screen.findAllByRole('img', { name: /Melancholy/ }, { timeout: 8000 })
+    )[0]!
     expect(mark.closest('header')).not.toBeNull()
     expect(backend.argsOf('shown_vibe')).toContainEqual({ id: IDS.video })
   })

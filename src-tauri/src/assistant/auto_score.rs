@@ -172,7 +172,8 @@ pub fn forget_if_nothing_said(conn: &Connection, chat_id: &str) -> Result<bool> 
     }
     let detail: Option<String> = conn
         .query_row(
-            "SELECT detail FROM chat_run WHERE chat_id = ?1 ORDER BY started_at DESC LIMIT 1",
+            "SELECT detail FROM chat_run WHERE chat_id = ?1
+              ORDER BY started_at DESC, rowid DESC LIMIT 1",
             params![chat_id],
             |row| row.get(0),
         )
