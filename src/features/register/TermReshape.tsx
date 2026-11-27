@@ -136,32 +136,30 @@ export function MergeTermDialog({
         </Button>
       }
     >
-      <div className="flex flex-col gap-2">
-        <Input
-          autoFocus
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t('register.mergeSearch')}
-          aria-label={t('register.mergeSearch')}
-        />
-        {others.length === 0 ? (
-          <EmptyState plain title={t('register.mergeNone')} className="p-2" />
-        ) : (
-          <ul className="max-h-64 overflow-y-auto rounded-md border border-line">
-            {others.map((one) => (
-              <li key={one.id}>
-                <RowButton
-                  selected={into?.id === one.id}
-                  onClick={() => setInto(one)}
-                  description={one.forms.length > 0 ? one.forms.join(', ') : undefined}
-                >
-                  {one.word}
-                </RowButton>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <Input
+        autoFocus
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={t('register.mergeSearch')}
+        aria-label={t('register.mergeSearch')}
+      />
+      {others.length === 0 ? (
+        <EmptyState plain title={t('register.mergeNone')} className="p-2" />
+      ) : (
+        <ul className="max-h-64 overflow-y-auto rounded-md border border-line">
+          {others.map((one) => (
+            <li key={one.id}>
+              <RowButton
+                selected={into?.id === one.id}
+                onClick={() => setInto(one)}
+                description={one.forms.length > 0 ? one.forms.join(', ') : undefined}
+              >
+                {one.word}
+              </RowButton>
+            </li>
+          ))}
+        </ul>
+      )}
     </Dialog>
   )
 }
