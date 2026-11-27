@@ -246,9 +246,7 @@ describe('the vibe a card shows (v0.169)', () => {
     // unanswered it never does.
     renderApp(`/works/${IDS.video}/overview`)
 
-    const mark = (
-      await screen.findAllByRole('img', { name: /Melancholy/ }, { timeout: 8000 })
-    )[0]!
+    const mark = (await screen.findAllByRole('img', { name: /Melancholy/ }, { timeout: 8000 }))[0]!
     expect(mark.closest('header')).not.toBeNull()
     expect(backend.argsOf('shown_vibe')).toContainEqual({ id: IDS.video })
   })
