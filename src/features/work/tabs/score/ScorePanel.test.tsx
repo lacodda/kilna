@@ -76,6 +76,21 @@ describe('the score tab', () => {
     expect(within(main).queryByRole('button', { name: en.score.save })).toBeNull()
   })
 
+  it('marks a score the assistant gave by itself with a badge, not a name (v0.170)', async () => {
+    const answers = answersFor(studio())
+    backend.answer('score_history', (args) =>
+      (answers.score_history!(args) as Score[]).map((score, index) =>
+        index === 0 ? { ...score, rater: 'auto' } : score,
+      ),
+    )
+    const { main } = await open()
+
+    // In the list and in the reading: the badge, and nowhere the raw `auto`.
+    expect(within(main).getAllByText(en.score.aiOpinion).length).toBeGreaterThanOrEqual(2)
+    expect(within(main).queryByText(/auto/)).toBeNull()
+    expect(within(main).queryByText(en.score.raterSelf)).toBeNull()
+  })
+
   it('gives a new score on empty scales, for the current draft', async () => {
     const { client, main } = await open()
 

@@ -155,21 +155,48 @@ pub fn starred_answers(
 /// package — and mark the message applied, all as one unit.
 #[tauri::command]
 pub fn apply_proposal(
+    app: AppHandle,
     state: State<'_, AppState>,
     message_id: String,
     overrides: Option<actions::proposal::Overrides>,
 ) -> Result<actions::proposal::Outcome> {
-    actions::proposal::apply(&state.conn(), &message_id, overrides.unwrap_or_default())
+    let outcome =
+        actions::proposal::apply(&state.conn(), &message_id, overrides.unwrap_or_default())?;
+    kept_touched(&app, std::slice::from_ref(&outcome));
+    Ok(outcome)
+}
+
+/// What was kept may be a reason to score a text (v0.170): a version made
+/// the current one, a work made with its text, a stage raised by a field -
+/// whoever proposed it, the window's assistant or an agent over MCP, whose
+/// edits reach a work no other way. Asked once per work, and only for what
+/// changed a work: a kept score or a kept note is no reason.
+fn kept_touched(app: &AppHandle, outcomes: &[actions::proposal::Outcome]) {
+    let mut asked: Vec<&str> = Vec::new();
+    for outcome in outcomes {
+        let changed =
+            outcome.created_work || !outcome.versions.is_empty() || !outcome.fields.is_empty();
+        if let Some(work_id) = outcome.work_id.as_deref()
+            && changed
+            && !asked.contains(&work_id)
+        {
+            asked.push(work_id);
+            text_touched(app, work_id, Asked::Now);
+        }
+    }
 }
 
 /// Keep every proposal in a chat nobody has answered yet — one click for a
 /// week of an agent's suggestions.
 #[tauri::command]
 pub fn apply_pending_proposals(
+    app: AppHandle,
     state: State<'_, AppState>,
     chat_id: String,
 ) -> Result<Vec<actions::proposal::Outcome>> {
-    actions::proposal::apply_pending(&state.conn(), &chat_id)
+    let outcomes = actions::proposal::apply_pending(&state.conn(), &chat_id)?;
+    kept_touched(&app, &outcomes);
+    Ok(outcomes)
 }
 
 /// Every proposal waiting for an answer, across every chat of the profile:
@@ -214,6 +241,7 @@ pub fn assistant_spend(
     day_from: String,
     week_from: String,
 ) -> Result<assistant::spend::Spend> {
+    state.auto_score().week_began(&week_from);
     let conn = state.conn();
     let others = crate::space::others_to_count(&state.app(), state.app_dir(), &state.space_id());
     let spaces: Vec<&rusqlite::Connection> = std::iter::once(&*conn).chain(others.iter()).collect();
@@ -235,6 +263,7 @@ pub fn check_spend(
     day_from: String,
     week_from: String,
 ) -> Result<assistant::spend::SpendCheck> {
+    state.auto_score().week_began(&week_from);
     let conn = state.conn();
     let others = crate::space::others_to_count(&state.app(), state.app_dir(), &state.space_id());
     let spaces: Vec<&rusqlite::Connection> = std::iter::once(&*conn).chain(others.iter()).collect();
@@ -824,7 +853,18 @@ fn launch(
             assistant_run::pump(&runs, &sink, &started, &stream, open);
         }
         if let Some(work_id) = scored_alone {
-            scored_alone_done(&handle, &work_id, &chat_id);
+            let state = handle.state::<AppState>();
+            let gone = assistant::auto_score::forget_if_nothing_said(&state.conn(), &chat_id);
+            match gone {
+                Ok(true) => {
+                    let _ = handle.emit(SCORED_ALONE_EVENT, &work_id);
+                }
+                Ok(false) => scored_alone_done(&handle, &work_id, &chat_id),
+                Err(cause) => crate::log::warn(
+                    "assistant",
+                    &format!("a run that scored {work_id} could not be looked at: {cause}"),
+                ),
+            }
         }
         drain_queue(&handle);
     });
@@ -1018,7 +1058,12 @@ fn score_alone(
             else {
                 return Ok(None);
             };
-            if assistant::spend::over_lately(&conn, &state.app())? {
+            let others =
+                crate::space::others_to_count(&state.app(), state.app_dir(), &state.space_id());
+            let spaces: Vec<&rusqlite::Connection> =
+                std::iter::once(&*conn).chain(others.iter()).collect();
+            let week = state.auto_score().week();
+            if assistant::spend::over_lately(&spaces, &state.app(), week.as_deref())? {
                 return Ok(None);
             }
             Ok(crate::work::version::get(&conn, &version_id)?.map(|version| version.body))
@@ -1041,7 +1086,7 @@ fn score_alone(
         state.auto_score().score_again(work_id);
         return false;
     }
-    if state.queue().holds(&key) || !cli::probe().available {
+    if state.queue().holds(&key) || !cli::probe_lately().available {
         return false;
     }
     state.auto_score().saw(work_id, &body);

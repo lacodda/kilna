@@ -84,26 +84,66 @@ pub fn read(spaces: &[&Connection], app: &Connection, since: Since<'_>) -> Resul
     })
 }
 
-/// Whether the last seven days of the open space's runs have cost more than
-/// the week may: what a run nobody asked for checks before it starts
-/// (FR-01). Seven days back from now rather than from the person's Monday -
-/// nobody is at the window to say when their week began, and the question is
-/// only whether to stay quiet.
-pub fn over_lately(space: &Connection, app: &Connection) -> Result<bool> {
+/// Whether the person's week has cost more than it may: what a run nobody
+/// asked for checks before it starts (FR-01). Every space counts, as in
+/// [`read`] - the money is one person's whichever space spent it.
+///
+/// `week_from` is when the week began, as the window last said it. A window
+/// left open over a Monday still says last week's, so a week older than
+/// seven days is moved on by whole weeks; with none said - nothing has asked
+/// yet - the week is the last seven days.
+pub fn over_lately(
+    spaces: &[&Connection],
+    app: &Connection,
+    week_from: Option<&str>,
+) -> Result<bool> {
     let Some(budget) = budget(app)? else {
         return Ok(false);
     };
-    let since = time::OffsetDateTime::now_utc() - time::Duration::days(7);
-    let since = since
+    let now = time::OffsetDateTime::now_utc();
+    // In the shape every stored moment has: they are compared as text.
+    let since = week_start(week_from, now)
         .format(&time::format_description::well_known::Rfc3339)
+        .ok()
+        .and_then(|text| crate::time::instant(&text))
         .unwrap_or_default();
-    let spent: f64 = space.query_row(
-        "SELECT coalesce(sum(cost_usd), 0) FROM chat_run \
-          WHERE cost_usd IS NOT NULL AND ended_at >= ?1",
-        params![since],
-        |row| row.get(0),
-    )?;
+    let mut spent = 0.0;
+    for (n, conn) in spaces.iter().enumerate() {
+        let counted: rusqlite::Result<f64> = conn.query_row(
+            "SELECT coalesce(sum(cost_usd), 0) FROM chat_run \
+              WHERE cost_usd IS NOT NULL AND ended_at >= ?1",
+            params![since],
+            |row| row.get(0),
+        );
+        match counted {
+            Ok(cost) => spent += cost,
+            // The open space must count: its failure is a fault.
+            Err(cause) if n == 0 => return Err(cause.into()),
+            Err(cause) => crate::log::warn(
+                "assistant",
+                &format!("a space's runs could not be counted: {cause}"),
+            ),
+        }
+    }
     Ok(spent > budget)
+}
+
+/// The start of the week `now` falls in, given a start the window once
+/// said: that moment, moved on by whole weeks until `now` is within seven
+/// days of it. Seven days back when none was said, it cannot be read, or it
+/// lies ahead.
+fn week_start(said: Option<&str>, now: time::OffsetDateTime) -> time::OffsetDateTime {
+    let week = time::Duration::days(7);
+    let said = said.and_then(|text| {
+        time::OffsetDateTime::parse(text, &time::format_description::well_known::Rfc3339).ok()
+    });
+    match said {
+        Some(start) if start <= now => {
+            let whole_weeks = (now - start).whole_days() / 7;
+            start + week * i32::try_from(whole_weeks).unwrap_or(0)
+        }
+        _ => now - week,
+    }
 }
 
 /// What one chat's runs have cost, all of them.
@@ -344,5 +384,60 @@ mod tests {
             week: MONDAY,
         };
         assert!(read(&[&conn], &app, bad).is_err());
+    }
+
+    #[test]
+    fn a_week_said_long_ago_is_moved_on_by_whole_weeks() {
+        let at = |text: &str| {
+            time::OffsetDateTime::parse(text, &time::format_description::well_known::Rfc3339)
+                .unwrap()
+        };
+        let now = at("2026-11-18T12:00:00Z");
+        // This week's Monday stands.
+        assert_eq!(
+            week_start(Some(MONDAY), at("2026-11-04T12:00:00Z")),
+            at(MONDAY)
+        );
+        // A window left open over two Mondays: the week moved on with it.
+        assert_eq!(week_start(Some(MONDAY), now), at("2026-11-16T03:00:00Z"));
+        // Nothing said, nonsense, or a moment ahead: the last seven days.
+        let back = now - time::Duration::days(7);
+        assert_eq!(week_start(None, now), back);
+        assert_eq!(week_start(Some("monday"), now), back);
+        assert_eq!(week_start(Some("2027-01-01T00:00:00Z"), now), back);
+    }
+
+    #[test]
+    fn a_run_nobody_asked_for_counts_every_space_since_the_persons_week() {
+        let (open, profile_id) = fixtures::workspace();
+        let (other, other_profile) = fixtures::workspace();
+        let app = crate::db::open_app_in_memory().unwrap();
+        let spaces = [&open, &other];
+        let here = chat(&open, &profile_id);
+        let there = chat(&other, &other_profile);
+        let now = time::OffsetDateTime::now_utc();
+        let ago = |days: i64| {
+            crate::time::instant(
+                &(now - time::Duration::days(days))
+                    .format(&time::format_description::well_known::Rfc3339)
+                    .unwrap(),
+            )
+            .unwrap()
+        };
+
+        // No budget: nothing is over it.
+        run(&open, &here, &ago(1), Some(50.0));
+        assert!(!over_lately(&spaces, &app, None).unwrap());
+
+        set_budget(&app, Some(60.0)).unwrap();
+        assert!(!over_lately(&spaces, &app, None).unwrap());
+        // The other space's runs are the same money.
+        run(&other, &there, &ago(1), Some(20.0));
+        assert!(over_lately(&spaces, &app, None).unwrap());
+        assert!(!over_lately(&[&open], &app, None).unwrap());
+        // A week that began after those runs has cost nothing yet.
+        assert!(!over_lately(&spaces, &app, Some(&ago(0))).unwrap());
+        // And one that began three days ago counts them.
+        assert!(over_lately(&spaces, &app, Some(&ago(3))).unwrap());
     }
 }

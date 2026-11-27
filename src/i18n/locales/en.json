@@ -743,7 +743,8 @@
     "blindHidden": "The past verdict is hidden while you judge.",
     "blindReveal": "Show it",
     "written": "What was written",
-    "byItself": "the assistant’s opinion"
+    "aiOpinion": "AI opinion",
+    "aiOpinionHint": "Given by the assistant by itself. It stands beside your own score and never over it."
   },
   "catalogue": {
     "work": "Work",

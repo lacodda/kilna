@@ -5,6 +5,7 @@ import { formatTotal } from '@/lib/format'
 import { allOf, labelOf, useProfile, useVocabulary } from '@/lib/useProfile'
 import { Chip } from '@/components/ui/chip'
 import { destinationOf, JournalChip, sentence } from '@/features/journal/JournalFeed'
+import { AUTO_RATER } from '@/components/AiOpinion'
 
 /** How one moment of a work's axis is said: its words, where it leads, and
  *  the chip that names what kind of thing it is. */
@@ -50,7 +51,13 @@ export function useSayMoment(workId: string): (moment: Moment) => SaidMoment {
           moment.role === null || moment.revision === null
             ? ''
             : ` · ${labelOf(vocabulary.version_roles, moment.role)} v${moment.revision}`
-        const by = moment.rater === null ? '' : ` · ${t('timeline.by', { rater: moment.rater })}`
+        // The assistant's own is named as its badge names it, not as `auto`.
+        const by =
+          moment.rater === null
+            ? ''
+            : moment.rater === AUTO_RATER
+              ? ` · ${t('score.aiOpinion')}`
+              : ` · ${t('timeline.by', { rater: moment.rater })}`
         return {
           text: `${t('timeline.scored', { total: formatTotal(moment.total) })}${tier}${read}${by}`,
           to: `/works/${workId}/score`,

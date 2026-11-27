@@ -14,6 +14,7 @@ import { SkeletonList } from '@/components/ui/skeleton'
 import { Pane } from '@/components/ui/frame'
 import { Loaded } from '@/components/Loaded'
 import { cn } from '@/lib/utils'
+import { AiOpinion, AUTO_RATER } from '@/components/AiOpinion'
 
 interface Props {
   workId: string
@@ -145,14 +146,17 @@ export function ScoreList({
                           {/* Who judged, when it was not you: null has meant
                               the author since v0.50, so your own rows stay
                               unlabelled and a second opinion shows by
-                              contrast. */}
+                              contrast. The assistant's has a badge of its
+                              own instead. */}
                           {score.rater !== null &&
                             score.rater !== '' &&
-                            ` · ${score.rater === 'auto' ? t('score.byItself') : score.rater}`}
+                            score.rater !== AUTO_RATER &&
+                            ` · ${score.rater}`}
                         </span>
                       }
                       end={
                         <>
+                          {score.rater === AUTO_RATER && <AiOpinion />}
                           <span className={cn('font-mono', tone)}>{moved ?? '—'}</span>
                           {/* A column of its own width, so the changes line
                               up down the list whatever the totals' digits. */}

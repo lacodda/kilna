@@ -44,6 +44,33 @@ pub fn probe() -> Availability {
     }
 }
 
+/// How long an answer of [`probe`] is believed by [`probe_lately`].
+const BELIEVED_FOR: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// What [`probe`] last found, if it was asked within five minutes; asked
+/// again otherwise.
+///
+/// For what asks often and can be wrong for a while: a text joining the line
+/// to be scored by itself paid about a second for a process each time
+/// (v0.170). A CLI installed or removed meanwhile is noticed within five
+/// minutes - and a run that finds it gone says so itself. A panel that shows
+/// the answer to a person asks [`probe`].
+pub fn probe_lately() -> Availability {
+    static LAST: std::sync::Mutex<Option<(std::time::Instant, Availability)>> =
+        std::sync::Mutex::new(None);
+    let mut last = LAST
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some((at, found)) = last.as_ref()
+        && at.elapsed() < BELIEVED_FOR
+    {
+        return found.clone();
+    }
+    let found = probe();
+    *last = Some((std::time::Instant::now(), found.clone()));
+    found
+}
+
 fn version() -> Result<String> {
     let output = command()
         .arg("--version")
@@ -63,10 +90,35 @@ fn version() -> Result<String> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
+/// A folder the executable is taken from instead of the PATH, when a
+/// rehearsal named one ([`stand_in`]).
+static STAND_IN: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
+
+/// Take the executable from `dir` rather than from the PATH, or from the
+/// PATH again with `None`.
+///
+/// For a rehearsal of a whole run against a CLI that is not Claude Code
+/// (`tests/auto_score_rehearsal.rs`): the PATH is the process's, and
+/// changing it under running threads is not something a test may do.
+/// Nothing in the application calls this.
+#[doc(hidden)]
+pub fn stand_in(dir: Option<&std::path::Path>) {
+    *STAND_IN
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = dir.map(std::path::Path::to_path_buf);
+}
+
 pub(super) fn command() -> Command {
+    let named = STAND_IN
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone();
     // Only the Windows branch below mutates it.
     #[cfg_attr(not(windows), allow(unused_mut))]
-    let mut command = Command::new(EXECUTABLE);
+    let mut command = match named {
+        Some(dir) => Command::new(dir.join(EXECUTABLE)),
+        None => Command::new(EXECUTABLE),
+    };
 
     // Without this a console window flashes on every call on Windows.
     #[cfg(windows)]

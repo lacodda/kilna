@@ -75,7 +75,10 @@ pub enum Not {
 /// why not.
 ///
 /// `seen` is the text this work had when it was last asked to be scored in
-/// this sitting, when it was: what a later change is measured against.
+/// this sitting, when it was: what a later change is measured against. With
+/// none - a sitting that has just begun - the change is measured against the
+/// text the score itself judged (v0.170), so a typo mended after a restart
+/// is still a typo.
 pub fn standing(
     conn: &Connection,
     config: &ProfileConfig,
@@ -124,22 +127,65 @@ pub fn standing(
 
     // The newest score of this very version, and whether the work was
     // touched after it - the catalogue's own "stale".
-    let scored: Option<String> = conn
+    let scored: Option<(String, Option<String>)> = conn
         .query_row(
-            "SELECT scored_at FROM work_score WHERE work_id = ?1 AND version_id = ?2
+            "SELECT scored_at, judged_text FROM work_score
+              WHERE work_id = ?1 AND version_id = ?2
               ORDER BY scored_at DESC, rowid DESC LIMIT 1",
             params![work.id, version_id],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?;
     match scored {
         None => Ok(Ok(version.id)),
-        Some(at) if work.updated_at <= at => Ok(Err(Not::Scored)),
-        Some(_) => match seen {
+        Some((at, _)) if work.updated_at <= at => Ok(Err(Not::Scored)),
+        // What was asked for last in this sitting is the nearer of the two:
+        // it may be a text whose score was never kept.
+        Some((_, judged)) => match seen.or(judged.as_deref()) {
             Some(before) if !significant(before, &version.body) => Ok(Err(Not::BarelyChanged)),
             _ => Ok(Ok(version.id)),
         },
     }
+}
+
+/// A run nobody asked for that came to nothing leaves no chat (v0.170):
+/// when the chat it opened holds no answer - the CLI failed, the run broke,
+/// the application was closing - the chat is removed, with its run. Answers
+/// whether it was.
+///
+/// A person who presses the button sees their failure in the chat it left;
+/// nobody is looking for this one, and a chat list filling with "Score the
+/// song" that say only "failed" reads as the application being broken. The
+/// log has the reason. A chat somebody has written into since is theirs and
+/// stays, as does one whose run is still going.
+pub fn forget_if_nothing_said(conn: &Connection, chat_id: &str) -> Result<bool> {
+    let (answers, asked, running): (i64, i64, i64) = conn.query_row(
+        "SELECT
+            (SELECT count(*) FROM chat_message WHERE chat_id = ?1 AND role = 'assistant'),
+            (SELECT count(*) FROM chat_message WHERE chat_id = ?1 AND role = 'user'),
+            (SELECT count(*) FROM chat_run WHERE chat_id = ?1 AND state = 'running')",
+        params![chat_id],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+    if answers > 0 || asked > 1 || running > 0 {
+        return Ok(false);
+    }
+    let detail: Option<String> = conn
+        .query_row(
+            "SELECT detail FROM chat_run WHERE chat_id = ?1 ORDER BY started_at DESC LIMIT 1",
+            params![chat_id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .flatten();
+    crate::log::warn(
+        "assistant",
+        &format!(
+            "a text scored by itself got no answer, and its chat is not kept: {}",
+            detail.as_deref().unwrap_or("no reason given")
+        ),
+    );
+    Ok(conn.execute("DELETE FROM chat WHERE id = ?1", params![chat_id])? > 0)
 }
 
 /// Whether a text is nothing to score: empty, or the skeleton its role opens
@@ -196,6 +242,9 @@ pub struct Waiting {
     /// Works whose text changed while they were being scored: scored again
     /// when the run ends, since what it judged is no longer what stands.
     again: Mutex<HashSet<String>>,
+    /// When the person's week began, as the window last said it: what a run
+    /// nobody asked for counts the week's money from.
+    week: Mutex<Option<String>>,
 }
 
 fn held<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -254,6 +303,17 @@ impl Waiting {
     /// Remember the text a work is being asked to be scored with.
     pub fn saw(&self, work_id: &str, body: &str) {
         held(&self.seen).insert(work_id.to_owned(), body.to_owned());
+    }
+
+    /// Remember when the person's week began: the window says it whenever it
+    /// reads what the runs have cost.
+    pub fn week_began(&self, at: &str) {
+        *held(&self.week) = Some(at.to_owned());
+    }
+
+    /// When the person's week began, if the window has said.
+    pub fn week(&self) -> Option<String> {
+        held(&self.week).clone()
     }
 
     /// Say a work changed while it was being scored.
@@ -420,7 +480,16 @@ mod tests {
         assert_eq!(ask(Some(&before)), Err(Not::BarelyChanged));
         edit(&format!("{before}\nand nobody is left to see it go"));
         assert_eq!(ask(Some(&before)), Ok(version.clone()));
-        // Not known what it was scored with: scored, rather than left stale.
+        // A sitting that has just begun knows nothing of it, and the score
+        // says what it judged: a typo is still a typo after a restart.
+        edit(&before.replace("wall", "wall,"));
+        assert_eq!(ask(None), Err(Not::BarelyChanged));
+        edit(&format!("{before}\nand nobody is left to see it go"));
+        assert_eq!(ask(None), Ok(version.clone()));
+        // A score written before scores kept their text: not known what it
+        // judged, so scored rather than left stale.
+        conn.execute("UPDATE work_score SET judged_text = NULL", [])
+            .unwrap();
         edit(&before.replace("wall", "wall,"));
         assert_eq!(ask(None), Ok(version));
     }
@@ -449,6 +518,10 @@ mod tests {
         waiting.score_again("c");
         assert_eq!(waiting.clear(), 1);
         assert!(!waiting.take_again("c"), "turning it off forgets that too");
+
+        assert_eq!(waiting.week(), None);
+        waiting.week_began("2026-11-02T03:00:00.000Z");
+        assert_eq!(waiting.week().as_deref(), Some("2026-11-02T03:00:00.000Z"));
 
         waiting.saw("a", "text");
         assert_eq!(waiting.seen("a").as_deref(), Some("text"));

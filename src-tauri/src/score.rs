@@ -252,9 +252,23 @@ pub fn create_minted(
     let id = minted.id().to_owned();
     let scored_at = minted.at().to_owned();
 
+    // The text as it stands this moment: a version is edited in place, and
+    // what a later edit is measured against is what this score read (v0.170).
+    let judged_text: Option<String> = match &version_id {
+        Some(version_id) => conn
+            .query_row(
+                "SELECT body FROM work_version WHERE id = ?1",
+                params![version_id],
+                |row| row.get(0),
+            )
+            .optional()?,
+        None => None,
+    };
+
     conn.execute(
-        "INSERT INTO work_score (id, work_id, version_id, axes, total, tier, note, rater, scored_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT INTO work_score
+            (id, work_id, version_id, axes, total, tier, note, rater, scored_at, judged_text)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             id,
             work_id,
@@ -265,6 +279,7 @@ pub fn create_minted(
             new.note,
             new.rater.filter(|rater| !rater.trim().is_empty()),
             scored_at,
+            judged_text,
         ],
     )?;
 

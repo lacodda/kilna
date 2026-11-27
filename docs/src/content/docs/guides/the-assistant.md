@@ -481,14 +481,17 @@ a run, and a run costs money.
   role opens with;
 - no score describes the text as it stands, and when one described an
   earlier state of it, the text has changed by more than a typo: fifteen
-  characters, or a line come or gone.
+  characters, or a line come or gone. A score keeps the text it judged, so
+  this is measured the same after kilna was closed and opened again.
 
 **When.** An edit starts a silence - ten minutes by default, set in
 **Minutes of silence after an edit** - and every further saved edit starts
 it over, so a text you are still writing is not scored line by line. Some
 things are a reason at once, with no silence: a new text that is the work's
 current one from the start, another version made the current one, a stage
-raised to where texts are scored from. The silences are kept by the window,
+raised to where texts are scored from - and a proposal you keep that does
+any of these, whether the assistant made it in the window or an
+[agent outside it](#an-agent-outside-the-window). The silences are kept by the window,
 not by a screen of it: leaving the card cancels nothing. Closing kilna does -
 a text edited before that is scored when it is next edited.
 
@@ -496,17 +499,18 @@ a text edited before that is scored when it is next edited.
 own, so one that is already going or waiting is one request. It waits behind
 everything you asked for yourself and never takes the last free slot: you do
 not find the machine busy with something you did not ask for. When Claude
-Code is not there, or the last seven days have cost more than the weekly
-budget, it stays quiet - no error, no line in the history. A text that
-changes again while it is being scored is scored once more when the run
-ends.
+Code is not there, or your week has cost more than the weekly budget - every
+space counted, since the Monday the window knows as yours - it stays quiet:
+no error, no line in the history. A run that comes to nothing leaves no chat
+behind either; the log says why. A text that changes again while it is being
+scored is scored once more when the run ends.
 
 **What comes of it.** By default, a
 [proposed score](/kilna/guides/scoring-a-work/#a-proposed-score) that waits
 on the Score tab until you keep it or turn it down - the assistant proposes,
 you decide. With **Keep the score at once** on, it is kept without you, as
-*the assistant's opinion*: a row in the history that says so, which never
-stands over a score of your own
+an **AI opinion**: a row in the history under a muted badge of that name,
+which never stands over a score of your own
 ([Who judged](/kilna/guides/scoring-a-work/#who-judged)).
 
 Turning it on scores nothing that is already there. **Score the unscored and

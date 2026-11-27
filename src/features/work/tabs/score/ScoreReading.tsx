@@ -9,6 +9,7 @@ import { Pane } from '@/components/ui/frame'
 import { AxisGrid, AxisRow } from '@/features/work/tabs/score/AxisRow'
 import { KindVerdicts } from '@/features/work/tabs/score/KindVerdicts'
 import { ScoreFoot } from '@/features/work/tabs/score/ScoreFoot'
+import { AiOpinion, AUTO_RATER } from '@/components/AiOpinion'
 
 interface Props {
   workId: string
@@ -108,7 +109,13 @@ export function ScoreReading({
         {/* Null has meant the author since v0.50: your own verdict says so
             rather than leaving the line blank. */}
         <KeyValueRow label={t('score.rater')}>
-          {score.rater !== null && score.rater !== '' ? score.rater : t('score.raterSelf')}
+          {score.rater === AUTO_RATER ? (
+            <AiOpinion />
+          ) : score.rater !== null && score.rater !== '' ? (
+            score.rater
+          ) : (
+            t('score.raterSelf')
+          )}
         </KeyValueRow>
         {score.note !== null && score.note !== '' && (
           <KeyValueRow label={t('score.note')}>{score.note}</KeyValueRow>
