@@ -262,14 +262,20 @@ every placement, filter or no filter.
 Days become clickable; clicking one gives the release that date. Clicking a
 chip instead opens the release itself.
 
-**The pane beside the calendar lists two things.** **Queue** is what is
-waiting for a date. **Works** is the catalogue as the calendar needs it: every
+**The pane beside the calendar lists three things.** **Releases** is what is
+waiting for a date. **Plans** is the open [planned slots](#planned-slots),
+nearest first, each with its day, its work's stage dial and vibe, and the
+clock that turns warm once it is time to make what goes out; pressing one
+opens the slot. **Works** is the catalogue as the calendar needs it: every
 work that could go out and has nothing planned yet — no release out, booked or
 waiting — strongest first. Picking a work and clicking a day, or carrying the
 work onto a day, books it there: a release through its kind's first door,
 already holding that date, as the day's **+** books one. A song never goes
 out itself, so it is not listed; the works made from it are. The search and
-the two filters at the top narrow whichever list is up.
+the filters at the top - the kind, the stage, and the **vibe** where the
+profile words one - narrow whichever list is up, and every row carries the
+mark of what its work feels like: a week is filled by its mood as much as by
+what is ready.
 
 **The day's + chooses a work that exists.** It opens the list every "which
 work" question shares - a box for the name, the kinds as chips, the stage
@@ -410,7 +416,8 @@ A song goes out nowhere itself - its audio, its video and its shorts do - so
 until v0.138 putting it on a day was refused. Now a work whose kind has no
 door of its own, chosen for a day from the day's **+** or carried onto it,
 is **planned** there: a dashed line marked as a plan, warmer once it is time
-to make what goes out. A work has one slot; planning it again moves it. A
+to make what goes out, with the work's stage dial and its vibe beside the
+clock where the day is wide enough. A work has one slot; planning it again moves it. A
 slot is not a release: it marks nothing out, counts toward no rhythm, is no
 unready release and asks nobody whether it went out - but the guard of
 repeats reads its day, so a song is checked against what is planned around
@@ -429,7 +436,8 @@ own release is on the calendar, or something made from it is booked within
 rhythm says otherwise) - a short two months later closes nothing. From
 `plan_lead_days` before its day (a week) the Dashboard says the slot -
 days left, today, or days late - and the bell warns once when its time comes
-and once when its day is past.
+and once when its day is past. Both windows are set under **Settings ->
+Profile -> The craft -> Planned slots**, beside the rhythm they belong to.
 
 ## Planning a period
 

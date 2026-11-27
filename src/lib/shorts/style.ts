@@ -38,14 +38,3 @@ export function freeKey(style: ShortStyle): string {
   while (taken.has(`variant-${String(n)}`)) n += 1
   return `variant-${String(n)}`
 }
-
-/** Whether a text is a colour as the style keeps one: `#RRGGBB`. */
-export function isColour(text: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(text)
-}
-
-/** What the system's colour picker is shown while the text is not a colour
- *  yet: it takes nothing else. */
-export function pickerValue(text: string): string {
-  return isColour(text) ? text : '#000000'
-}

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { VibeAxes, VibeCharacter, VibeComplexity, VibeGlyph, VibeMood } from '@/lib/api/types'
 import { Select } from '@/components/AppSelect'
-import { Input } from '@/components/ui/input'
+import { ColourField } from '@/components/ColourField'
 import { KeyedList } from '@/features/settings/KeyedList'
 import { LabelInput } from '@/features/settings/LabelInput'
 
@@ -48,11 +48,10 @@ export function VibeEditor({
               onChange={(label) => set({ label: label ?? '' })}
               aria-label={t('editor.wordOf', { key: mood.key })}
             />
-            <Input
-              className="w-28 font-mono text-xs"
+            <ColourField
+              label={t('editor.vibe.colourOf', { key: mood.key })}
               value={mood.color}
-              aria-label={t('editor.vibe.colourOf', { key: mood.key })}
-              onChange={(event) => set({ color: event.target.value })}
+              onChange={(color) => set({ color })}
             />
           </>
         )}

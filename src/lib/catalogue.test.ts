@@ -45,6 +45,7 @@ import {
   type Sort,
   type SortStore,
 } from './catalogue'
+import { studio } from '@/test/workspace'
 import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 
 const row = (over: Partial<CatalogueRow>): CatalogueRow => ({
@@ -688,6 +689,40 @@ describe('what the works feel like (FR-02)', () => {
     row({ work_id: 'unsaid' }),
   ]
   const ids = (kept: ScoredWork[]) => kept.map((r) => r.work_id)
+
+  it("sorts by the place of the words on the profile's lines, a work with none last", () => {
+    const axes = studio().profile.config.vibe!
+    const moods = axes.moods.map((mood) => mood.key)
+    const first = moods[0]!
+    const last = moods.at(-1)!
+    const sorted = [
+      row({ work_id: 'none', title: 'A' }),
+      row({ work_id: 'far', title: 'B', vibe: { vibe: { mood: last } } }),
+      row({ work_id: 'near', title: 'C', vibe: { vibe: { mood: first } } }),
+      // A taken vibe sorts as its own.
+      row({ work_id: 'taken', title: 'D', vibe: { vibe: { mood: first }, from: 'Song' } }),
+    ]
+    expect(ids(sortRows(sorted, { column: 'vibe', direction: 'asc' }, axes))).toEqual([
+      'near',
+      'taken',
+      'far',
+      'none',
+    ])
+    // The other way round, and the work nobody said anything of still last.
+    expect(ids(sortRows(sorted, { column: 'vibe', direction: 'desc' }, axes))).toEqual([
+      'far',
+      'near',
+      'taken',
+      'none',
+    ])
+    // A profile that words no lines orders nothing by them.
+    expect(ids(sortRows(sorted, { column: 'vibe', direction: 'asc' }))).toEqual([
+      'none',
+      'far',
+      'near',
+      'taken',
+    ])
+  })
 
   it('narrows by a word on a line, a taken vibe counting as its own', () => {
     expect(ids(narrow(rows, { mood: 'dark' }))).toEqual(['song', 'clip'])

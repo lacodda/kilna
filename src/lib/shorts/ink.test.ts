@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { ShortStyle } from '@/lib/api/types'
 import { artSrc, blotsOf, groundSvg, stampSvg, wearFilter, wearSeed } from '@/lib/shorts/ink'
 import { rng } from '@/lib/shorts/rng'
-import { freeKey, isColour, pickerValue, worn } from '@/lib/shorts/style'
+import { isColour, pickerValue } from '@/lib/colour'
+import { freeKey, worn } from '@/lib/shorts/style'
 
 const STYLE: ShortStyle = {
   accent: '#FF2E63',

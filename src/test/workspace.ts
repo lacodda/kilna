@@ -1,5 +1,6 @@
 import type {
   Asset,
+  ShownVibe,
   Plugin,
   Space,
   CardCounts,
@@ -640,6 +641,17 @@ const byWork =
 /** Whether a song has what its release needs: the tests do not judge it. */
 const READY: Readiness = { checks: [], ready: true }
 
+/** The vibe a work shows, the way the backend works it out: its own, or the
+ *  one of what it was made from, the first link first. */
+function shownVibeOf(studio: Studio, workId: string, depth = 0): ShownVibe | undefined {
+  const work = studio.works.find((w) => w.id === workId)
+  if (work === undefined || depth > 8) return undefined
+  if (work.vibe != null)
+    return depth === 0 ? { vibe: work.vibe } : { vibe: work.vibe, from: work.title }
+  const source = studio.links.find((link) => link.work_id === workId)
+  return source === undefined ? undefined : shownVibeOf(studio, source.source_id, depth + 1)
+}
+
 function scheduled(studio: Studio, release: Release): ScheduledRelease {
   const owner = studio.works.find((w) => w.id === release.work_id)
   const score = studio.scores.find((s) => s.work_id === release.work_id)
@@ -651,6 +663,7 @@ function scheduled(studio: Studio, release: Release): ScheduledRelease {
     tier: score?.tier ?? null,
     readiness: READY,
     work_stage: owner?.stage ?? 0,
+    work_vibe: shownVibeOf(studio, release.work_id),
   }
 }
 
@@ -706,6 +719,7 @@ function scored(studio: Studio, row: Work): ScoredWork {
     version_count: studio.versions.filter((v) => v.work_id === row.id).length,
     stage: row.stage,
     publications,
+    vibe: shownVibeOf(studio, row.id),
   }
 }
 
@@ -1077,6 +1091,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     last_undoable: () => null,
 
     catalogue: () => studio.works.map((row) => scored(studio, row)),
+    shown_vibe: ({ id }) => shownVibeOf(studio, id as string) ?? null,
     list_works: () => studio.works,
     get_work: ({ id }) => studio.works.find((w) => w.id === id) ?? null,
     card_counts: ({ workId }) => countsOf(studio, workId as string),

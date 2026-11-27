@@ -15,6 +15,8 @@ import {
 } from '@/lib/catalogue'
 import { queries } from '@/lib/query/queries'
 import { useDebounced } from '@/lib/useDebounced'
+import { useProfile } from '@/lib/useProfile'
+import { axesOf } from '@/lib/vibe'
 
 interface Shown {
   /** Every work, each with its next release. */
@@ -43,6 +45,7 @@ export function useShownRows(
   /** Every work's mark of the guard, for the slice by repeats. */
   repeats: RepeatLevels,
 ): Shown | undefined {
+  const profile = useProfile()
   const text = filter.search?.trim() ?? ''
   const settled = useDebounced(text, 160)
   const matches = useQuery({
@@ -74,6 +77,7 @@ export function useShownRows(
   const visible = sortRows(
     narrowByColumns(narrow(all, filter, matching, repeats, media.data), columnFilters),
     sort,
+    axesOf(profile.config),
   )
   return { all, visible, media: media.data }
 }

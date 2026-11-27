@@ -42,7 +42,7 @@ export default tseslint.config(
   // none of them the window's theme. The style a test's space is given is
   // written in those colours too.
   {
-    files: ['src/lib/shorts/**', 'src/test/workspace.ts'],
+    files: ['src/lib/shorts/**', 'src/lib/colour.ts', 'src/test/workspace.ts'],
     rules: { 'dowel/no-raw-color': 'off' },
   },
   // Where a component is the subject rather than the render: the release-kind

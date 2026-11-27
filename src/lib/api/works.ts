@@ -9,6 +9,7 @@ import type {
   Moment,
   NewWork,
   ScoredWork,
+  ShownVibe,
   StatusChange,
   Work,
   WorkFilter,
@@ -50,6 +51,8 @@ export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
 /** Tags in use on works, most used first — what the tag box offers. */
 export const workTags = () => invoke<[string, number][]>('work_tags')
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
+// The vibe one work shows - its own or the one it takes (v0.169).
+export const shownVibe = (id: string) => invoke<ShownVibe | null>('shown_vibe', { id })
 
 /** What every work holds of its media, by id (v0.155). */
 export const worksMedia = () => invoke<Record<string, WorkMedia>>('works_media')

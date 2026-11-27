@@ -2290,6 +2290,7 @@ mod tests {
                 &chat,
                 "steady",
                 Proposal::Score {
+                    vibe_dropped: Vec::new(),
                     vibe: Some(felt(mood)),
                     axes: axes.clone(),
                     note: None,
@@ -2339,6 +2340,7 @@ mod tests {
             &chat,
             "strong chorus",
             Proposal::Score {
+                vibe_dropped: Vec::new(),
                 vibe: None,
                 axes,
                 note: Some("strong chorus".into()),
@@ -2367,6 +2369,7 @@ mod tests {
             &chat,
             "steady",
             Proposal::Score {
+                vibe_dropped: Vec::new(),
                 vibe: None,
                 axes,
                 note: None,
@@ -3702,6 +3705,7 @@ mod bound_to_a_version_tests {
         let meta = proposal_meta(
             "Claude Code",
             &Proposal::Score {
+                vibe_dropped: Vec::new(),
                 vibe: None,
                 axes,
                 note: None,
@@ -3844,6 +3848,7 @@ mod bound_to_a_version_tests {
         let meta = proposal_meta(
             "Claude Code",
             &Proposal::Score {
+                vibe_dropped: Vec::new(),
                 vibe: None,
                 axes,
                 note: None,

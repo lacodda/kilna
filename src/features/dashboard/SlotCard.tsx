@@ -5,6 +5,7 @@ import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { TileButton } from '@/components/ui/tile-button'
 import { WorkRepeatMark } from '@/components/RepeatMark'
+import { WorkVibeMark } from '@/components/WorkVibeMark'
 
 /**
  * One of the nearest slots: the cover, the work, what goes out and when.
@@ -42,6 +43,7 @@ export function SlotCard({
           <span className="min-w-0 truncate text-sm font-semibold text-text">
             {release.work_title}
           </span>
+          <WorkVibeMark shown={release.work_vibe} />
           <WorkRepeatMark workId={release.work_id} />
         </span>
         <span className="block truncate font-mono text-xs text-faint">

@@ -112,6 +112,12 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         vibe: Option<crate::work::Vibe>,
+        /// The words the answer said of the vibe that the profile does not
+        /// have (v0.169): left out of `vibe`, and named rather than dropped
+        /// in silence.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[ts(optional, as = "Option<Vec<String>>")]
+        vibe_dropped: Vec<String>,
     },
     /// A new version in a role. The text itself is the message body — that
     /// is what *insert as version* keeps, verbatim — so the proposal carries
@@ -1212,8 +1218,11 @@ struct RawScenes {
 pub fn read_score(body: &str, config: &ProfileConfig, kind: &str) -> Option<Proposal> {
     let raw: RawScore = serde_json::from_str(&fenced_json(body)?).ok()?;
     let mut proposal = score_from(raw.axes, raw.note, config.vocabulary(kind))?;
-    if let Proposal::Score { vibe, .. } = &mut proposal {
-        *vibe = vibe_from(raw.vibe, config);
+    if let Proposal::Score {
+        vibe, vibe_dropped, ..
+    } = &mut proposal
+    {
+        (*vibe, *vibe_dropped) = vibe_from(raw.vibe, config);
     }
     Some(proposal)
 }
@@ -1221,16 +1230,26 @@ pub fn read_score(body: &str, config: &ProfileConfig, kind: &str) -> Option<Prop
 /// A vibe an answer or an agent proposed, as it can be kept: only the lines
 /// said with a word of the profile's (FR-02). A word the profile does not
 /// have is dropped rather than refusing the score it came with - the marks
-/// are the answer, the vibe a suggestion beside them.
+/// are the answer, the vibe a suggestion beside them. The words dropped come
+/// back beside it, in the order of the lines, to be named on the card.
 pub fn vibe_from(
     raw: Option<crate::work::Vibe>,
     config: &ProfileConfig,
-) -> Option<crate::work::Vibe> {
+) -> (Option<crate::work::Vibe>, Vec<String>) {
     let axes = config.vibe();
-    let raw = raw?.kept()?;
-    let known =
-        |key: Option<String>, words: Vec<&str>| key.filter(|key| words.contains(&key.as_str()));
-    crate::work::Vibe {
+    let Some(raw) = raw.and_then(crate::work::Vibe::kept) else {
+        return (None, Vec::new());
+    };
+    let mut dropped = Vec::new();
+    let mut known = |key: Option<String>, words: Vec<&str>| match key {
+        Some(key) if words.contains(&key.as_str()) => Some(key),
+        Some(key) => {
+            dropped.push(key);
+            None
+        }
+        None => None,
+    };
+    let kept = crate::work::Vibe {
         mood: known(
             raw.mood,
             axes.moods.iter().map(|m| m.key.as_str()).collect(),
@@ -1244,7 +1263,8 @@ pub fn vibe_from(
             axes.complexities.iter().map(|c| c.key.as_str()).collect(),
         ),
     }
-    .kept()
+    .kept();
+    (kept, dropped)
 }
 
 /// A scoring proposal out of marks by axis key, checked against the profile.
@@ -1265,6 +1285,7 @@ pub fn score_from(
     } = marks_from(raw, note, config)?;
     Some(Proposal::Score {
         vibe: None,
+        vibe_dropped: Vec::new(),
         axes,
         note,
         unknown,
@@ -1750,10 +1771,15 @@ mod tests {
                 "vibe": {{"mood": "melancholy", "character": "sunny", "complexity": "complex"}}}}"#
         ));
 
-        let Some(Proposal::Score { vibe, .. }) = read_score(&body, &config, "song") else {
+        let Some(Proposal::Score {
+            vibe, vibe_dropped, ..
+        }) = read_score(&body, &config, "song")
+        else {
             panic!("a score");
         };
-        // A word the profile does not have is dropped; the marks stand.
+        // A word the profile does not have is dropped, and named (v0.169);
+        // the marks stand.
+        assert_eq!(vibe_dropped, vec!["sunny".to_owned()]);
         assert_eq!(
             vibe,
             Some(crate::work::Vibe {
@@ -1764,10 +1790,14 @@ mod tests {
         );
 
         let without = block(&format!(r#"{{"axes": {{"{first}": 7}}}}"#));
-        let Some(Proposal::Score { vibe, .. }) = read_score(&without, &config, "song") else {
+        let Some(Proposal::Score {
+            vibe, vibe_dropped, ..
+        }) = read_score(&without, &config, "song")
+        else {
             panic!("a score");
         };
         assert_eq!(vibe, None, "a score without a vibe proposes none");
+        assert!(vibe_dropped.is_empty());
         // And the instruction asks for one, by the profile's words.
         let asked = scoring_instruction(&config, "song");
         assert!(asked.contains("\"vibe\""), "{asked}");

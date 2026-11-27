@@ -605,7 +605,14 @@
         "closedDay": "the day is closed",
         "repeated": "already placed by an earlier row"
       }
-    }
+    },
+    "queueReleases": "Releases",
+    "queuePlans": "Plans",
+    "plansHint": "Works promised a day before anything of them can go out, nearest first. Open one to move it, or to make it real.",
+    "plansEmpty": "No work is planned on a day.",
+    "plansSearch": "Find a plan",
+    "queueVibe": "Vibe",
+    "queueVibeFilter": "Filter by vibe"
   },
   "releases": {
     "kind": "Place",
@@ -1103,7 +1110,9 @@
     },
     "vibeIfNone": "kept only if you have not said one",
     "proposedStyles": "Styles for the dictionary",
-    "proposedCardNote": "A summary of the card"
+    "proposedCardNote": "A summary of the card",
+    "vibeDropped_one": "Not a word of this profile’s vibe, left out: {{words}}",
+    "vibeDropped_other": "Not words of this profile’s vibe, left out: {{words}}"
   },
   "links": {
     "sources": "Made from",
@@ -1998,7 +2007,13 @@
     "rhythmShortage": "A month with fewer of those days",
     "rhythmShortageKeep": "The grid as it falls",
     "rhythmShortageFloat": "Add a floating slot for the peak",
-    "rhythmZone": "Time zone"
+    "rhythmZone": "Time zone",
+    "rhythmPlans": "Planned slots",
+    "rhythmPlansHint": "A work planned on a day reminds of itself this many days ahead, and its slot closes when something made from the work is booked this near its day.",
+    "rhythmPlanLead": "Days ahead a planned slot reminds",
+    "rhythmPlanLeadUnit": "days ahead to remind",
+    "rhythmPlanWindow": "Days either side that close a planned slot",
+    "rhythmPlanWindowUnit": "days either side to close"
   },
   "fields": {
     "choiceNone": "Not set",
@@ -6090,7 +6105,6 @@
     "coloursHint": "Two, and everything is drawn in them.",
     "accent": "The first colour",
     "second": "The second colour",
-    "pickColour": "Pick {{what}}",
     "header": "Header",
     "headerHint": "The song's title and a call, at the top.",
     "call": "The call",
@@ -6214,5 +6228,8 @@
     "takeProposal": "Take it",
     "proposalTaken": "Taken.",
     "proposalTakenMark": "Taken"
+  },
+  "colour": {
+    "pick": "Pick {{what}}"
   }
 }

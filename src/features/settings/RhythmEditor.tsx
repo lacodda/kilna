@@ -180,6 +180,44 @@ export function RhythmEditor({
         </FieldGroup>
       )}
 
+      {/* The two windows of a planned slot (v0.169, FR-11): how early it
+          reminds, and how near its day something made from its work must be
+          booked to close it. In the profile's file alone until now. */}
+      {rhythm != null && (
+        <FieldGroup label={t('editor.rhythmPlans')} help={t('editor.rhythmPlansHint')}>
+          <div className="flex flex-wrap items-center gap-2">
+            <NumberField
+              className="w-72"
+              min={1}
+              step={1}
+              value={rhythm.plan_lead_days ?? 7}
+              unit={t('editor.rhythmPlanLeadUnit')}
+              aria-label={t('editor.rhythmPlanLead')}
+              onValueChange={(days) =>
+                onChange({
+                  ...rhythm,
+                  plan_lead_days: days === null ? undefined : Math.max(1, Math.trunc(days)),
+                })
+              }
+            />
+            <NumberField
+              className="w-72"
+              min={0}
+              step={1}
+              value={rhythm.plan_match_window_days ?? 7}
+              unit={t('editor.rhythmPlanWindowUnit')}
+              aria-label={t('editor.rhythmPlanWindow')}
+              onValueChange={(days) =>
+                onChange({
+                  ...rhythm,
+                  plan_match_window_days: days === null ? undefined : Math.max(0, Math.trunc(days)),
+                })
+              }
+            />
+          </div>
+        </FieldGroup>
+      )}
+
       {rhythm != null && (
         <FieldGroup label={t('editor.rhythmMonthly')} help={t('editor.rhythmMonthlyHint')}>
           <div className="flex flex-col items-start gap-1.5">

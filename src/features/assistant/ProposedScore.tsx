@@ -83,6 +83,14 @@ export function ProposedScore({
     ...(proposal.missing !== undefined && proposal.missing.length > 0
       ? [t('assistant.scoreMissing', { axes: proposal.missing.join(', ') })]
       : []),
+    ...(proposal.vibe_dropped !== undefined && proposal.vibe_dropped.length > 0
+      ? [
+          t('assistant.vibeDropped', {
+            count: proposal.vibe_dropped.length,
+            words: proposal.vibe_dropped.join(', '),
+          }),
+        ]
+      : []),
     ...(proposal.unknown !== undefined && proposal.unknown.length > 0
       ? [t('assistant.scoreUnknown', { axes: proposal.unknown.join(', ') })]
       : []),

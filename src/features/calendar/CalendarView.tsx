@@ -43,6 +43,7 @@ import {
 } from '@/lib/calendarPeriod'
 import { ghostsOf, shiftGhostsOf, type Ghost } from '@/lib/layout'
 import { addDays, today } from '@/lib/month'
+import { planShown } from '@/lib/unplanned'
 import { batchable } from '@/lib/releaseFields'
 import { closedDays } from '@/lib/timeOff'
 import { say } from '@/lib/toast'
@@ -323,7 +324,7 @@ export function CalendarView({ onSelect }: Props) {
         for (const plan of showPlans ? (workPlans.data ?? []) : []) {
           const row = works.data?.find((one) => one.work_id === plan.work_id)
           if (row === undefined) continue
-          const shown: PlanShown = { plan, title: row.title, kind: row.kind }
+          const shown = planShown(plan, row)
           const due = addDays(plan.scheduled_at, -Math.max(1, lead)) <= now
           byDay.set(plan.scheduled_at, [...(byDay.get(plan.scheduled_at) ?? []), { shown, due }])
         }
@@ -449,6 +450,7 @@ export function CalendarView({ onSelect }: Props) {
               queued={queued}
               works={works}
               plans={workPlans.data ?? []}
+              onOpenPlan={setOpenPlan}
               source={source}
               onSourceChange={setSource}
               picked={picked}

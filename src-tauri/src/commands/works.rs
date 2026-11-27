@@ -167,6 +167,13 @@ pub fn catalogue(state: State<'_, AppState>) -> Result<Vec<ScoredWork>> {
     score::catalogue(&conn, &active(&conn)?)
 }
 
+/// The vibe one work shows - its own, or the one it takes from what it was
+/// made from (v0.169): the card's header asks for this and not the catalogue.
+#[tauri::command]
+pub fn shown_vibe(state: State<'_, AppState>, id: String) -> Result<Option<work::ShownVibe>> {
+    work::shown_vibe(&state.conn(), &id)
+}
+
 /// What every work holds of its media, for the catalogue's filters a batch
 /// is chosen by (v0.155).
 #[tauri::command(async)]

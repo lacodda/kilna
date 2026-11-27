@@ -331,6 +331,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>, target: Option<String>) {
             commands::works::number_works,
             commands::works::work_tags,
             commands::works::catalogue,
+            commands::works::shown_vibe,
             commands::works::card_counts,
             commands::works::work_timeline,
             commands::works::clone_work,

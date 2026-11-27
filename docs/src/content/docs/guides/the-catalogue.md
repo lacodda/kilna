@@ -169,11 +169,18 @@ unsaid stands at its middle word while the mark is drawn - and press a word
 again to take it off. The same picker stands in the card's header beside the
 stage, and the mark on a calendar's slot.
 
+The column sorts by the place of a work's words on the three lines, in the
+order the profile writes them - the mood first, then the character, then how
+complex it is - so one end of the table is the darkest and the other the
+brightest; a work that shows no vibe sorts last either way.
+
 A clip, an audio release or a short with no vibe of its own shows the one of
 what it was made from, drawn quieter, and says whose it is; saying one for
 it makes it its own, and **Take it from what it was made from** gives the
 source's back. The assistant reads a vibe when it scores a text, and an
 agent may propose one: either is kept only where you have said nothing. A
+word of an answer that is not one of the profile's is left out, and the
+score's card names it rather than dropping it in silence. A
 free word under the **Mood** field of a song made before v0.124 is left as it
 is. See [`vibe`](/kilna/reference/profile-document/#vibe) for the words.
 

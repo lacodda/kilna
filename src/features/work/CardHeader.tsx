@@ -501,12 +501,11 @@ function MetaStrip({ work }: { work: Work }) {
 
 /**
  * The work's vibe in its header. What a work with none of its own shows -
- * the one of what it was made from - is read off the catalogue's row, which
- * is where it is worked out; until the catalogue has answered, a work's own
- * is drawn and a taken one is not.
+ * the one of what it was made from - is asked for this work alone (v0.169):
+ * until then it was read off the catalogue's row, and a card opened before
+ * the catalogue answered drew no mark it takes from its song.
  */
 function WorkVibe({ work }: { work: Work }) {
-  const rows = useQuery(queries.catalogue()).data
-  const shown = rows?.find((row) => row.work_id === work.id)?.vibe
+  const shown = useQuery(queries.shownVibe(work.id)).data
   return <VibePicker workId={work.id} own={work.vibe} shown={shown} />
 }

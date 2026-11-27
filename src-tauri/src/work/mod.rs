@@ -306,6 +306,54 @@ pub fn shown_vibes(
     Ok(shown)
 }
 
+/// The vibe one work shows (v0.169): its own, or the one of what it was made
+/// from, however far back - the same answer [`shown_vibes`] gives for it,
+/// walked for this work alone, so a card does not wait for a catalogue to
+/// draw a mark it takes from its song.
+pub fn shown_vibe(conn: &Connection, work_id: &str) -> Result<Option<ShownVibe>> {
+    let read = |id: &str| -> Result<Option<(String, Option<Vibe>)>> {
+        Ok(conn
+            .query_row(
+                "SELECT title, vibe FROM work WHERE id = ?1",
+                params![id],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+            )
+            .optional()?
+            .map(|(title, vibe)| (title, Vibe::stored(vibe))))
+    };
+    let Some((_, own)) = read(work_id)? else {
+        return Ok(None);
+    };
+    if let Some(vibe) = own {
+        return Ok(Some(ShownVibe { vibe, from: None }));
+    }
+    let mut at = work_id.to_owned();
+    for _ in 0..8 {
+        let source: Option<String> = conn
+            .query_row(
+                "SELECT source_id FROM work_link WHERE work_id = ?1 AND role != ?2
+                  ORDER BY created_at, rowid LIMIT 1",
+                params![at, crate::link::LAB],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(source) = source else {
+            break;
+        };
+        match read(&source)? {
+            Some((title, Some(vibe))) => {
+                return Ok(Some(ShownVibe {
+                    vibe,
+                    from: Some(title),
+                }));
+            }
+            Some(_) => at = source,
+            None => break,
+        }
+    }
+    Ok(None)
+}
+
 /// What a work feels like, along three lines (FR-02): each a key of the
 /// profile's `vibe`, any of them left unsaid. The mark drawn for it is worked
 /// out from the three and never set by hand.
@@ -1669,6 +1717,12 @@ mod tests {
         let row = |id: &str| rows.iter().find(|row| row.work_id == id).unwrap();
         assert_eq!(row(&short.id).vibe, Some(shown[&short.id].clone()));
         assert_eq!(row(&alone.id).vibe, None);
+
+        // Asked for one work alone, the answer is the same (v0.169).
+        for id in [&song.id, &clip.id, &short.id, &alone.id] {
+            assert_eq!(shown_vibe(&conn, id).unwrap(), shown.get(id).cloned());
+        }
+        assert_eq!(shown_vibe(&conn, "no-such-work").unwrap(), None);
     }
 
     #[test]

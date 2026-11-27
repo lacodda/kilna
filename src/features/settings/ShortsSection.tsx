@@ -12,9 +12,10 @@ import type {
 } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { artSrc } from '@/lib/shorts/ink'
-import { freeKey, isColour, pickerValue, worn } from '@/lib/shorts/style'
+import { freeKey, worn } from '@/lib/shorts/style'
 import { say } from '@/lib/toast'
 import { Select } from '@/components/AppSelect'
+import { ColourField } from '@/components/ColourField'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Chip, ChipGroup } from '@/components/ui/chip'
@@ -74,14 +75,14 @@ export function ShortsSection() {
 
         <Section id="shorts.colours" title={t('shorts.colours')} hint={t('shorts.coloursHint')}>
           <Row label={t('shorts.accent')}>
-            <Colour
+            <ColourField
               label={t('shorts.accent')}
               value={style.accent}
               onChange={(accent) => change({ accent })}
             />
           </Row>
           <Row label={t('shorts.second')}>
-            <Colour
+            <ColourField
               label={t('shorts.second')}
               value={style.second}
               onChange={(second) => change({ second })}
@@ -179,7 +180,7 @@ export function ShortsSection() {
 
         <Section id="shorts.ground" title={t('shorts.ground')} hint={t('shorts.groundHint')}>
           <Row label={t('shorts.groundColour')}>
-            <Colour
+            <ColourField
               label={t('shorts.groundColour')}
               value={style.ground.color}
               onChange={(color) => change({ ground: { ...style.ground, color } })}
@@ -241,7 +242,7 @@ export function ShortsSection() {
             />
           </Row>
           <Row label={t('shorts.stampColour')}>
-            <Colour
+            <ColourField
               label={t('shorts.stampColour')}
               value={style.stamp.color}
               onChange={(color) => change({ stamp: { ...style.stamp, color } })}
@@ -500,42 +501,6 @@ function Number({
   )
 }
 
-/** A colour: the system's picker, and the same colour as text beside it. */
-function Colour({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  const { t } = useTranslation()
-  const [typed, setTyped] = useState<string | null>(null)
-  return (
-    <span className="flex items-center gap-2">
-      <input
-        type="color"
-        aria-label={t('shorts.pickColour', { what: label })}
-        className="size-7 cursor-pointer rounded-md border border-line bg-transparent p-0"
-        value={pickerValue(value)}
-        onChange={(event) => onChange(event.target.value.toUpperCase())}
-      />
-      <Input
-        aria-label={label}
-        className="w-28 font-mono"
-        value={typed ?? value}
-        onChange={(event) => {
-          const text = event.target.value.trim()
-          setTyped(text)
-          if (isColour(text)) onChange(text.toUpperCase())
-        }}
-        onBlur={() => setTyped(null)}
-      />
-    </span>
-  )
-}
-
 /** A picture kept in the style as text: the text of an SVG, or a small
  *  picture as a `data:` address. */
 function Art({
@@ -789,7 +754,7 @@ function VariantEditor({
         variant.accent != null,
         () => onChange({ accent: style.accent }),
         () => onChange({ accent: undefined }),
-        <Colour
+        <ColourField
           label={t('shorts.accent')}
           value={variant.accent ?? style.accent}
           onChange={(accent) => onChange({ accent })}
@@ -800,7 +765,7 @@ function VariantEditor({
         variant.second != null,
         () => onChange({ second: style.second }),
         () => onChange({ second: undefined }),
-        <Colour
+        <ColourField
           label={t('shorts.second')}
           value={variant.second ?? style.second}
           onChange={(second) => onChange({ second })}

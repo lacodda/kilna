@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { Release, RepeatFinding, RepeatMark, ShiftPlan, TimeOff } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { noScrollerInAnother } from '@/test/regions'
 import { renderApp, settled } from '@/test/render'
-import { answersFor, IDS, NOW, studio } from '@/test/workspace'
+import { answersFor, IDS, NOW, studio, type Studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
 /*
@@ -20,11 +20,12 @@ import en from '@/i18n/locales/en.json'
  */
 
 let backend: Backend
+let workspace: Studio
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(NOW))
-  const workspace = studio()
+  workspace = studio()
   backend = mockBackend({
     ...answersFor(workspace),
     schedule_release: ({ id, slot }) => {
@@ -535,5 +536,63 @@ describe('days and shifts (v0.96)', () => {
     expect(backend.argsOf('apply_layout')).toEqual([
       { placements: [{ release_id: IDS.audioRelease, date: '2026-10-06' }] },
     ])
+  })
+})
+
+describe('the pane beside the calendar (v0.169)', () => {
+  it('lists the open planned slots under Plans, nearest first, and opens one', async () => {
+    const plan = (id: string, workId: string, day: string) => ({
+      id,
+      work_id: workId,
+      scheduled_at: day,
+      note: null,
+      created_at: '2026-09-15T10:00:00Z',
+      updated_at: '2026-09-15T10:00:00Z',
+    })
+    backend.answer('work_plans', () => [
+      plan('plan-2', IDS.song, '2026-10-20'),
+      plan('plan-1', IDS.draft, '2026-09-28'),
+    ])
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    fireEvent.click(within(main).getByRole('radio', { name: /^Plans/ }))
+
+    const pane = main.querySelector<HTMLElement>('[data-queue-drop]')!
+    const rows = await within(pane).findAllByRole('listitem')
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Harbour Lights'),
+      expect.stringContaining('Paper Lanterns'),
+    ])
+    expect(within(pane).getByText(en.calendar.plansHint)).toBeVisible()
+
+    fireEvent.click(within(rows[0]!).getByRole('button'))
+    expect(await screen.findByRole('dialog', { name: 'Harbour Lights' })).toBeVisible()
+  })
+
+  it('draws what a waiting release feels like and narrows the list by it', async () => {
+    const song = workspace.works.find((work) => work.id === IDS.song)!
+    song.vibe = { mood: 'melancholy' }
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const pane = main.querySelector<HTMLElement>('[data-queue-drop]')!
+    const before = (await within(pane).findAllByRole('listitem')).length
+    // The song's audio takes the song's vibe.
+    expect(within(pane).getAllByRole('img', { name: 'Melancholy' }).length).toBeGreaterThan(0)
+
+    fireEvent.click(within(pane).getByRole('button', { name: en.calendar.queueVibeFilter }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Joyful' }))
+    await waitFor(() => expect(within(pane).getByText(en.calendar.queueNoMatch)).toBeVisible())
+    fireEvent.click(screen.getByRole('button', { name: 'Joyful' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Melancholy' }))
+    await waitFor(() => {
+      const shown = within(pane).queryAllByRole('listitem')
+      expect(shown.length).toBeGreaterThan(0)
+      expect(shown.length).toBeLessThanOrEqual(before)
+      for (const row of shown) {
+        expect(within(row).getByRole('img', { name: 'Melancholy' })).toBeInTheDocument()
+      }
+    })
   })
 })

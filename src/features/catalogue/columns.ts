@@ -42,7 +42,8 @@ export const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
   // What the work feels like (FR-02): a mark, beside the dial.
   vibe: {
     label: 'catalogue.column.vibe',
-    sort: null,
+    // By the place of its words on the profile's lines (v0.169).
+    sort: 'vibe',
     filter: 'vibe',
     width: 'w-14',
     naturalWidth: 72,

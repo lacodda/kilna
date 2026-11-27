@@ -47,6 +47,17 @@ describe('a proposed score', () => {
     expect(screen.getByText(en.assistant.vibeIfNone)).toBeVisible()
   })
 
+  it('names the words of a vibe the profile does not have (v0.169)', () => {
+    mounted({
+      kind: 'score',
+      axes: { hook: 7 },
+      vibe: { mood: 'melancholy' },
+      vibe_dropped: ['sunny', 'baroque'],
+    } as ScoreProposal)
+
+    expect(screen.getByText(/left out: sunny, baroque/)).toBeVisible()
+  })
+
   it('says nothing of a vibe when the answer read none', () => {
     mounted({ kind: 'score', axes: { hook: 7 } } as ScoreProposal)
     expect(screen.queryByText(en.assistant.vibeIfNone)).toBeNull()

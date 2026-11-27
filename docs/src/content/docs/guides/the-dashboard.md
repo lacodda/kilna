@@ -58,7 +58,9 @@ there are releases.
 
 Everything holding a slot inside the week, soonest first, ready or not — the
 week as it actually stands. A release that is ready appears here with a tick
-and nothing else to do; that is the point of seeing it.
+and nothing else to do; that is the point of seeing it. Each row carries the
+mark of what its work feels like, as the cards of **Closest to release** do:
+a week reads as a run of moods before it reads as a run of titles.
 
 ## Closest to release
 

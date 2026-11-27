@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { WorkPlan } from '@/lib/api/types'
+import type { ShownVibe, WorkPlan } from '@/lib/api/types'
 import { deleteWorkPlan, fulfillWorkPlan, updateWorkPlan } from '@/lib/api/workPlans'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -15,6 +15,10 @@ export interface PlanShown {
   plan: WorkPlan
   title: string
   kind: string
+  /** How far along its work is, as the catalogue's row says it (v0.169). */
+  stage: number
+  /** What its work shows it feels like. */
+  vibe?: ShownVibe | null
 }
 
 const REFRESHED = [

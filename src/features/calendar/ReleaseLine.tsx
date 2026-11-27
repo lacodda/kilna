@@ -14,6 +14,7 @@ import { StageDial } from '@/components/StageDial'
 import { stageAt } from '@/lib/stages'
 import { axesOf, resolveVibe, vibeWords } from '@/lib/vibe'
 import { VibeIcon } from '@/components/VibeIcon'
+import { WorkVibeMark } from '@/components/WorkVibeMark'
 import { BigCalendarItem } from '@/components/ui/big-calendar-item'
 import { Button } from '@/components/ui/button'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
@@ -264,6 +265,7 @@ export function WorkPlanLine({
   onOpen: () => void
 }) {
   const { t } = useTranslation()
+  const profile = useProfile()
   return (
     <BigCalendarItem
       tentative
@@ -271,10 +273,21 @@ export function WorkPlanLine({
       title={t('workPlan.line', { title: shown.title })}
       onClick={onOpen}
       end={
-        <CalendarClock
-          aria-label={due ? t('workPlan.due') : t('workPlan.marker')}
-          className={cn('size-3', due ? 'text-warn' : 'text-faint')}
-        />
+        <>
+          {/* How far along the work is and what it feels like (v0.169), as
+              a booked line says them: a slot is a promise about a work, and
+              these two are what is known of it before anything is booked. */}
+          <StageDial
+            stage={stageAt(profile.config, shown.stage)}
+            size={10}
+            className="hidden @min-[7rem]:block"
+          />
+          <WorkVibeMark shown={shown.vibe} size={14} className="hidden @min-[9rem]:block" />
+          <CalendarClock
+            aria-label={due ? t('workPlan.due') : t('workPlan.marker')}
+            className={cn('size-3', due ? 'text-warn' : 'text-faint')}
+          />
+        </>
       }
     >
       {shown.title}

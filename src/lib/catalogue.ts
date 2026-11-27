@@ -1,7 +1,15 @@
 import type { WorkPlan } from '@/lib/api/types'
 import { today as todayOf } from '@/lib/month'
-import type { RepeatLevel, ScheduledRelease, ScoredWork, WorkMedia } from '@/lib/api/types'
+import type {
+  RepeatLevel,
+  ScheduledRelease,
+  ScoredWork,
+  Vibe,
+  VibeAxes,
+  WorkMedia,
+} from '@/lib/api/types'
 import { standsAt, stopOf } from '@/lib/stages'
+import { resolveVibe } from '@/lib/vibe'
 
 /** A working gap: something started but not carried through. */
 export type Gap =
@@ -74,7 +82,16 @@ export interface CatalogueFilter {
 
 /** A column the table can be ordered by. */
 export type SortColumn =
-  'title' | 'stage' | 'total' | 'status' | 'versions' | 'release' | 'views' | 'created' | 'updated'
+  | 'title'
+  | 'stage'
+  | 'vibe'
+  | 'total'
+  | 'status'
+  | 'versions'
+  | 'release'
+  | 'views'
+  | 'created'
+  | 'updated'
 export type SortDirection = 'asc' | 'desc'
 
 export interface Sort {
@@ -601,7 +618,11 @@ export function narrowByColumns<Row extends ScoredWork & Partial<CatalogueRow>>(
  * ticked.
  */
 function feelsLike(row: ScoredWork, ticks: ReadonlySet<string>): boolean {
-  const shown = row.vibe?.vibe
+  return feels(row.vibe?.vibe, ticks)
+}
+
+/** The same rule for any vibe shown: a queue's release, a planned slot. */
+export function feels(shown: Vibe | undefined, ticks: ReadonlySet<string>): boolean {
   if (shown === undefined) return ticks.has(NO_VIBE)
   const lines = (['mood', 'character', 'complexity'] as const).filter((line) =>
     [...ticks].some((tick) => tick.startsWith(`${line}:`)),
@@ -681,8 +702,23 @@ function isListOf(value: unknown, type: 'string' | 'number'): boolean {
  * make "worst first" useless. Sorting is stable on the title, so a column of
  * ties keeps a predictable order instead of shuffling between renders.
  */
-export function sortRows(rows: CatalogueRow[], sort: Sort): CatalogueRow[] {
+export function sortRows(rows: CatalogueRow[], sort: Sort, axes?: VibeAxes): CatalogueRow[] {
   const sign = sort.direction === 'asc' ? 1 : -1
+  const valueOf = (row: CatalogueRow, column: SortColumn) =>
+    column === 'vibe' ? vibeRank(axes, row) : plainValueOf(row, column)
+  const presence = (a: CatalogueRow, b: CatalogueRow, column: SortColumn) => {
+    const has = (row: CatalogueRow) => valueOf(row, column) !== null
+    if (has(a) === has(b)) return 0
+    return has(a) ? -1 : 1
+  }
+  const compare = (a: CatalogueRow, b: CatalogueRow, column: SortColumn) => {
+    const left = valueOf(a, column)
+    const right = valueOf(b, column)
+    if (left === null || right === null) return 0
+    return typeof left === 'number' && typeof right === 'number'
+      ? left - right
+      : String(left).localeCompare(String(right))
+  }
 
   return [...rows].sort((a, b) => {
     // Absence is settled before the direction is applied. Ranking it with the
@@ -698,14 +734,27 @@ export function sortRows(rows: CatalogueRow[], sort: Sort): CatalogueRow[] {
   })
 }
 
-/** Which of the two lacks a value in this column; absent sorts last, always. */
-function presence(a: CatalogueRow, b: CatalogueRow, column: SortColumn): number {
-  const has = (row: CatalogueRow) => valueOf(row, column) !== null
-  if (has(a) === has(b)) return 0
-  return has(a) ? -1 : 1
+/**
+ * Where a row stands by what it feels like (v0.169): the place of its mood
+ * on the profile's line, then of its character, then of its complexity - the
+ * order the owner wrote the words in, which runs from one end of each line
+ * to the other. A line left unsaid stands at the neutral word, as the mark
+ * draws it; a work that shows no vibe is absent and sorts last.
+ */
+function vibeRank(axes: VibeAxes | undefined, row: CatalogueRow): number | null {
+  const shown = resolveVibe(axes, row.vibe?.vibe)
+  if (axes === undefined || shown === null) return null
+  return (
+    axes.moods.indexOf(shown.mood) * 10_000 +
+    axes.characters.indexOf(shown.character) * 100 +
+    axes.complexities.indexOf(shown.complexity)
+  )
 }
 
-function valueOf(row: CatalogueRow, column: SortColumn): string | number | null {
+function plainValueOf(
+  row: CatalogueRow,
+  column: Exclude<SortColumn, 'vibe'>,
+): string | number | null {
   switch (column) {
     case 'title':
       return row.title
@@ -730,16 +779,6 @@ function valueOf(row: CatalogueRow, column: SortColumn): string | number | null 
     case 'updated':
       return row.updated_at
   }
-}
-
-function compare(a: CatalogueRow, b: CatalogueRow, column: SortColumn): number {
-  const left = valueOf(a, column)
-  const right = valueOf(b, column)
-  if (left === null || right === null) return 0
-
-  return typeof left === 'number' && typeof right === 'number'
-    ? left - right
-    : String(left).localeCompare(String(right))
 }
 
 const SORT_KEY = 'kilna.catalogue.sort'
@@ -791,6 +830,7 @@ const COLUMNS: SortColumn[] = [
   // remembered and then refused on the next open, quietly resetting to the
   // score. The list is what `valueOf` switches on, and the two must agree.
   'stage',
+  'vibe',
   'total',
   'status',
   'versions',

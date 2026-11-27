@@ -104,6 +104,7 @@ import { getVersion, listVersions } from '@/lib/api/versions'
 import {
   cardCounts,
   catalogue,
+  shownVibe,
   coverView,
   frameView,
   getWork,
@@ -189,6 +190,8 @@ export const queries = {
       queryFn: () => sceneFrameView(sceneId),
     }),
   catalogue: () => queryOptions({ queryKey: keys.catalogue, queryFn: catalogue }),
+  shownVibe: (id: string) =>
+    queryOptions({ queryKey: keys.shownVibe(id), queryFn: () => shownVibe(id) }),
   worksMedia: () => queryOptions({ queryKey: keys.worksMedia, queryFn: worksMedia }),
   workTags: () => queryOptions({ queryKey: keys.workTags, queryFn: workTags }),
   collections: () => queryOptions({ queryKey: keys.collections, queryFn: listCollections }),

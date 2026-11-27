@@ -23,6 +23,8 @@ export const keys = {
 
   works: ['works'] as const,
   work: (id: string) => ['works', 'item', id] as const,
+  /** Under `works`: whatever changes a work may change what it shows. */
+  shownVibe: (id: string) => ['works', 'vibe', id] as const,
   /** What was made from a work, and where each stands (v0.86). Under the
    *  works' prefix, because a status changing anywhere down the chain is a
    *  work changing; the links, releases and comments refresh it as well. */

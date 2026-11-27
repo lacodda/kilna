@@ -1,4 +1,5 @@
 import type { ProfileConfig, ScheduledRelease, ScoredWork, WorkPlan } from '@/lib/api/types'
+import type { PlanShown } from '@/features/calendar/WorkPlanEditor'
 import { hasDoors, publicationKinds } from '@/lib/useProfile'
 
 /**
@@ -54,4 +55,10 @@ export function unplannedWorks(
         (b.total ?? 0) - (a.total ?? 0) ||
         a.title.localeCompare(b.title),
     )
+}
+
+/** A planned slot with what the window shows of its work (v0.169): the
+ *  calendar's dashed line and the pane's list of plans read the same. */
+export function planShown(plan: WorkPlan, row: ScoredWork): PlanShown {
+  return { plan, title: row.title, kind: row.kind, stage: row.stage, vibe: row.vibe }
 }

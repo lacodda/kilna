@@ -7,6 +7,7 @@ import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/ReadyMarks'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StageDial } from '@/components/StageDial'
+import { WorkVibeMark } from '@/components/WorkVibeMark'
 import { Badge } from '@/components/ui/badge'
 import { RowButton } from '@/components/ui/list-row'
 
@@ -47,6 +48,9 @@ export function WeekRow({
               marks say whether it could go out, the dial says whether it is
               done. */}
           <StageDial stage={stageAt(profile.config, release.work_stage)} />
+          {/* What it feels like (v0.169): a week reads as a run of moods
+              before it reads as a run of titles. */}
+          <WorkVibeMark shown={release.work_vibe} />
           <ReadyMarks release={release} daysLeft={daysLeft} />
           {/* Whether its song repeats one out or booked nearby (ADR 0054):
               a week about to go out is the last place to notice. */}

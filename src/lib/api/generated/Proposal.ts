@@ -47,7 +47,13 @@ unknown?: Array<string>, missing?: Array<string>,
  * What the work feels like, as the answer read it (FR-02): words of
  * the profile's lines, kept only where the author said nothing.
  */
-vibe?: Vibe, } | { "kind": "version", role: string, label?: string | null, 
+vibe?: Vibe, 
+/**
+ * The words the answer said of the vibe that the profile does not
+ * have (v0.169): left out of `vibe`, and named rather than dropped
+ * in silence.
+ */
+vibe_dropped?: Array<string>, } | { "kind": "version", role: string, label?: string | null, 
 /**
  * The version the text was written from, when the agent rewrote one
  * (ADR 0055): kept as the new version's parent if it is still a

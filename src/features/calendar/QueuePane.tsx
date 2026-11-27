@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { UseQueryResult } from '@tanstack/react-query'
-import type { ScheduledRelease, ScoredWork, WorkPlan } from '@/lib/api/types'
+import { CalendarClock } from 'lucide-react'
+import type { ScheduledRelease, ScoredWork, ShownVibe, WorkPlan } from '@/lib/api/types'
+import { feels } from '@/lib/catalogue'
 import { coverImageFor } from '@/lib/cover'
-import { formatNumber } from '@/lib/format'
-import { standsAt } from '@/lib/stages'
-import { unplannedWorks } from '@/lib/unplanned'
+import { formatDay, formatNumber } from '@/lib/format'
+import { addDays, today } from '@/lib/month'
+import { stageAt, standsAt } from '@/lib/stages'
+import { planShown, unplannedWorks } from '@/lib/unplanned'
+import { axesOf } from '@/lib/vibe'
 import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Select } from '@/components/AppSelect'
@@ -15,6 +19,9 @@ import { ReadyMarks } from '@/components/ReadyMarks'
 import { RepeatWarning } from '@/components/RepeatWarning'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StageChecks } from '@/components/StageChecks'
+import { StageDial } from '@/components/StageDial'
+import { VibeChecks } from '@/components/VibeChecks'
+import { WorkVibeMark } from '@/components/WorkVibeMark'
 import { Pane } from '@/components/ui/frame'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -24,12 +31,27 @@ import { RowButton } from '@/components/ui/list-row'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { QueueDrop } from '@/features/calendar/QueueDrop'
+import type { PlanShown } from '@/features/calendar/WorkPlanEditor'
 import { carriedWork, carryWork, type DropTarget } from '@/features/calendar/useCalendarDrag'
 import { cn } from '@/lib/utils'
 
-/** Which list the pane shows: releases waiting for a day, or works with
- *  nothing planned yet. */
-export type PaneSource = 'queue' | 'works'
+/** What each list is for, said under the segments. */
+const HINTS = {
+  queue: 'calendar.queueHint',
+  plans: 'calendar.plansHint',
+  works: 'calendar.unplannedHint',
+} as const
+
+/** What the search box of each list asks for. */
+const SEARCHES = {
+  queue: 'calendar.queueSearch',
+  plans: 'calendar.plansSearch',
+  works: 'calendar.unplannedSearch',
+} as const
+
+/** Which list the pane shows: releases waiting for a day, the open planned
+ *  slots of works (v0.169), or works with nothing planned yet. */
+export type PaneSource = 'queue' | 'plans' | 'works'
 
 interface Props {
   queued: UseQueryResult<ScheduledRelease[]>
@@ -37,6 +59,8 @@ interface Props {
   works: UseQueryResult<ScoredWork[]>
   /** The works planned on a day: they stand on the calendar already. */
   plans: readonly WorkPlan[]
+  /** A planned slot pressed: its editor opens, as from the calendar. */
+  onOpenPlan: (shown: PlanShown) => void
   source: PaneSource
   onSourceChange: (source: PaneSource) => void
   /** What is waiting for a date, if anything: a queued release's id, or a
@@ -61,9 +85,11 @@ interface Props {
 /**
  * What can still be given a day, beside the calendar it is read against.
  *
- * Two lists under one head (v0.96): the queue - releases waiting for a date,
- * strongest first, as it has always been - and the works with nothing planned
- * yet, the catalogue as the calendar needs it. A row of either is picked and
+ * Three lists under one head: the releases waiting for a date, strongest
+ * first, as it has always been; the plans (v0.169, FR-11 11.3) - the open
+ * planned slots of works, nearest first, each opening its editor; and the
+ * works with nothing planned yet (v0.96), the catalogue as the calendar
+ * needs it. A row of either is picked and
  * then given a day, or carried onto one: a queued release takes the day, a
  * work gets a release of its first door dated to it, as the day's `+` books
  * one, and a song - which goes out only as what is made from it - is planned
@@ -79,6 +105,7 @@ export function QueuePane({
   queued,
   works,
   plans,
+  onOpenPlan,
   source,
   onSourceChange,
   picked,
@@ -112,18 +139,46 @@ export function QueuePane({
   // going out" is the last stops ticked together. Until v0.111 this was a
   // dropdown of the pane's own that meant "has reached".
   const [stages, setStages] = useState<number[]>([])
+  // The words of a vibe ticked (v0.169), as the catalogue's funnel ticks
+  // them: a week is filled by what it should feel like as much as by what
+  // is ready.
+  const [vibes, setVibes] = useState<string[]>([])
+  const axes = axesOf(profile.config)
 
   const ticked = stages.length === 0 ? null : new Set(stages)
-  const matches = (kind: string, stage: number, title: string) =>
+  const felt = vibes.length === 0 ? null : new Set(vibes)
+  const matches = (
+    kind: string,
+    stage: number,
+    title: string,
+    vibe: ShownVibe | null | undefined,
+  ) =>
     (workKind === null || kind === workKind) &&
     (ticked === null || standsAt(stage, ticked)) &&
+    (felt === null || feels(vibe?.vibe, felt)) &&
     title.toLowerCase().includes(query.trim().toLowerCase())
 
   const shownQueue = (queued.data ?? []).filter((entry) =>
-    matches(entry.work_kind, entry.work_stage, entry.work_title),
+    matches(entry.work_kind, entry.work_stage, entry.work_title, entry.work_vibe),
   )
   const unplanned = unplannedWorks(works.data ?? [], queued.data ?? [], plans, profile.config)
-  const shownWorks = unplanned.filter((work) => matches(work.kind, work.stage, work.title))
+  const shownWorks = unplanned.filter((work) =>
+    matches(work.kind, work.stage, work.title, work.vibe),
+  )
+  // The open slots with their works, nearest first; one whose work the
+  // catalogue has not answered for yet is not listed until it has.
+  const lead = Math.max(1, profile.config.rhythm?.plan_lead_days ?? 7)
+  const now = today()
+  const planned = plans
+    .flatMap((plan) => {
+      const row = works.data?.find((one) => one.work_id === plan.work_id)
+      return row === undefined ? [] : [planShown(plan, row)]
+    })
+    .sort(
+      (a, b) =>
+        a.plan.scheduled_at.localeCompare(b.plan.scheduled_at) || a.title.localeCompare(b.title),
+    )
+  const shownPlans = planned.filter((one) => matches(one.kind, one.stage, one.title, one.vibe))
 
   // One click plans the whole queue to the profile's rhythm. Without a rhythm
   // there is nothing to pace by, and the button says so instead of hiding.
@@ -178,9 +233,15 @@ export function QueuePane({
               className="w-full *:flex-1"
             >
               <Segment value="queue">
-                {t('calendar.queue')}
+                {t('calendar.queueReleases')}
                 <span className="ml-1 font-mono text-xs text-dim tabular-nums">
                   {queued.data?.length ?? 0}
+                </span>
+              </Segment>
+              <Segment value="plans">
+                {t('calendar.queuePlans')}
+                <span className="ml-1 font-mono text-xs text-dim tabular-nums">
+                  {planned.length}
                 </span>
               </Segment>
               <Segment value="works">
@@ -191,9 +252,7 @@ export function QueuePane({
               </Segment>
             </SegmentedControl>
             <div className="flex items-center gap-2">
-              <p className="min-w-0 flex-1 text-xs text-dim">
-                {source === 'queue' ? t('calendar.queueHint') : t('calendar.unplannedHint')}
-              </p>
+              <p className="min-w-0 flex-1 text-xs text-dim">{t(HINTS[source])}</p>
               {canLayOut && (
                 <Button
                   size="sm"
@@ -215,12 +274,8 @@ export function QueuePane({
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={t(
-                source === 'queue' ? 'calendar.queueSearch' : 'calendar.unplannedSearch',
-              )}
-              aria-label={t(
-                source === 'queue' ? 'calendar.queueSearch' : 'calendar.unplannedSearch',
-              )}
+              placeholder={t(SEARCHES[source])}
+              aria-label={t(SEARCHES[source])}
               className="text-xs"
             />
             <div className="flex items-center gap-1.5">
@@ -250,6 +305,21 @@ export function QueuePane({
               >
                 <StageChecks chosen={stages} onChange={setStages} />
               </FilterPopover>
+              {/* By what a work feels like (v0.169): only where the profile
+                  words the three lines. */}
+              {axes !== undefined && (
+                <FilterPopover
+                  title={t('calendar.queueVibe')}
+                  label={t('calendar.queueVibeFilter')}
+                  active={felt !== null}
+                  clearLabel={t('catalogue.clear')}
+                  onClear={() => setVibes([])}
+                  align="end"
+                  className="size-7"
+                >
+                  <VibeChecks axes={axes} chosen={vibes} onChange={setVibes} />
+                </FilterPopover>
+              )}
             </div>
           </div>
         }
@@ -336,6 +406,8 @@ export function QueuePane({
                                 (ADR 0054): picking what goes out next is
                                 where a repeat is worth knowing. */}
                             <WorkRepeatMark workId={entry.work_id} />
+                            {/* What it feels like - its own, or its song's. */}
+                            <WorkVibeMark shown={entry.work_vibe} />
                             {/* No date yet, so no deadline: the gaps show, calmly. */}
                             <ReadyMarks release={entry} daysLeft={null} />
                             {score(entry.total)}
@@ -346,6 +418,58 @@ export function QueuePane({
                       </RowButton>
                     </li>
                   ))}
+                </ul>
+              )
+            }
+          </Loaded>
+        ) : source === 'plans' ? (
+          <Loaded
+            query={works}
+            skeleton={<SkeletonList rows={4} />}
+            isEmpty={() => planned.length === 0}
+            emptyState={<EmptyState plain title={t('calendar.plansEmpty')} className="p-2" />}
+            plain
+          >
+            {() =>
+              shownPlans.length === 0 ? (
+                <EmptyState
+                  plain
+                  variant="filtered"
+                  title={t('calendar.queueNoMatch')}
+                  className="p-2"
+                />
+              ) : (
+                <ul className="flex flex-col gap-0.5">
+                  {shownPlans.map((shown) => {
+                    const due = addDays(shown.plan.scheduled_at, -lead) <= now
+                    return (
+                      <li key={shown.plan.id}>
+                        <RowButton
+                          onClick={() => onOpenPlan(shown)}
+                          className="px-2"
+                          start={cover(shown.plan.work_id)}
+                          // The day it is promised for, and what it is.
+                          description={[
+                            formatDay(shown.plan.scheduled_at),
+                            labelOf(profile.config.work_kinds, shown.kind),
+                          ].join(' · ')}
+                          end={
+                            <>
+                              <WorkRepeatMark workId={shown.plan.work_id} />
+                              <StageDial stage={stageAt(profile.config, shown.stage)} />
+                              <WorkVibeMark shown={shown.vibe} />
+                              <CalendarClock
+                                aria-label={due ? t('workPlan.due') : t('workPlan.marker')}
+                                className={cn('size-3.5', due ? 'text-warn' : 'text-faint')}
+                              />
+                            </>
+                          }
+                        >
+                          {shown.title}
+                        </RowButton>
+                      </li>
+                    )
+                  })}
                 </ul>
               )
             }
@@ -387,6 +511,7 @@ export function QueuePane({
                           end={
                             <>
                               <WorkRepeatMark workId={work.work_id} />
+                              <WorkVibeMark shown={work.vibe} />
                               {score(work.total)}
                             </>
                           }

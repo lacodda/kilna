@@ -235,3 +235,18 @@ describe('the chips that pick', () => {
     expect(within(main).queryByRole('combobox', { name: en.work.kind })).toBeNull()
   })
 })
+
+describe('the vibe a card shows (v0.169)', () => {
+  it('draws the one it takes from its song before the catalogue has answered', async () => {
+    const song = workspace.works.find((work) => work.id === IDS.song)!
+    song.vibe = { mood: 'melancholy' }
+    // The catalogue never answers: the card asks for its own work alone.
+    backend.answer('catalogue', () => new Promise(() => undefined))
+    const { client } = renderApp(`/works/${IDS.video}/overview`)
+    await settled(client)
+
+    const mark = (await screen.findAllByRole('img', { name: /Melancholy/ }))[0]!
+    expect(mark.closest('header')).not.toBeNull()
+    expect(backend.argsOf('shown_vibe')).toContainEqual({ id: IDS.video })
+  })
+})

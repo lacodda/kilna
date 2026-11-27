@@ -97,6 +97,20 @@ describe('the canon and the vibe in the profile', () => {
     expect(config.vibe!.moods[0]!.color).toBe(colour)
   })
 
+  it('takes the colour of a mood from the picker as from the text beside it (v0.169)', async () => {
+    const mood = workspace.profile.config.vibe!.moods[1]!
+    // Joined so the colour check of the source does not read it as a style.
+    const colour = ['#', 'ab12cd'].join('')
+    const { client } = await open(en.editor.part.vibe)
+    const label = en.editor.vibe.colourOf.replace('{{key}}', mood.key)
+    fireEvent.input(screen.getByLabelText(en.colour.pick.replace('{{what}}', label)), {
+      target: { value: colour },
+    })
+    expect(screen.getByRole('textbox', { name: label })).toHaveValue(colour.toUpperCase())
+    const config = await saved(client)
+    expect(config.vibe!.moods[1]!.color).toBe(colour.toUpperCase())
+  })
+
   it('offers a glyph for every mark', async () => {
     const mark = workspace.profile.config.marks![0]!
     await open(en.editor.part.craft)
