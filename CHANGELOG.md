@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.171.0] - 2026-11-27
+
+### Bug Fixes
+- Leave the step between the merge dialog's parts to the dialog
+
+### Features
+- Move a note by a proposal, page the long readings, and split or merge a term in the window
+
 ## [0.170.0] - 2026-11-27
 
 ### Bug Fixes
